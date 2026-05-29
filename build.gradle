@@ -14,6 +14,7 @@ plugins {
     id 'com.matthewprenger.cursegradle' version '1.4.0' apply false
     id 'com.modrinth.minotaur' version '2.+' apply false
     id 'org.jetbrains.changelog' version '2.5.0'
+    id 'com.gradleup.shadow' version '9.4.+'
 }
 
 apply from: 'gradle/scripts/helpers.gradle'
@@ -62,11 +63,6 @@ java {
     if (propertyBool('generate_javadocs_jar')) {
         withJavadocJar()
     }
-}
-
-configurations {
-    embed
-    implementation.extendsFrom(embed)
 }
 
 minecraft {
@@ -223,8 +219,6 @@ jar {
         }
         attributes(attribute_map)
     }
-    // Add all embedded dependencies into the jar
-    from(provider{ configurations.embed.collect {it.isDirectory() ? it : zipTree(it)} })
 }
 
 idea {
