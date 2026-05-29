@@ -94,9 +94,13 @@ minecraft {
 
     if (propertyBool('use_tags')) {
         if (file('tags.properties').exists()) {
-            Properties props = new Properties().tap {  it.load(file('tags.properties').newInputStream()); it }
+            Properties props = new Properties().tap { it.load(file('tags.properties').newInputStream()); it }
             if (!props.isEmpty()) {
-                injectedTags.set(props.collectEntries { k, v -> [(k): interpolate(v)] })
+                injectedTags.set(props.collectEntries { k, v ->
+                        def interpolated = interpolate(v)
+                        if (interpolated == null || interpolated.isEmpty()) throw new GradleException("Empty tag value found for key: $k")
+                        [(k): interpolated]
+                    })
             }
         }
     }
