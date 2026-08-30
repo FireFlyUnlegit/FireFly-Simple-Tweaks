@@ -44,9 +44,8 @@ object EnchantmentManager {
         EnchantCrit.INSTANCE,
         EnchantCritDamage.INSTANCE,
         EnchantHealer.INSTANCE,
-    )
+        )
     private val handlerList = listOf(
-        EnchantInfinitePowerHandler,
         EnchantFlightHandler,
         EnchantItemFixerHandler,
         EnchantBloodLustHandler,
@@ -55,7 +54,10 @@ object EnchantmentManager {
         EnchantCritHandler,
         EnchantCritDamageHandler,
         EnchantHealerHandler,
-    )
+        )
+    private val initHandlerList = listOf(
+        EnchantInfinitePowerHandler,
+        )
 
     /**
      * 注册所有附魔到 Forge 注册表
@@ -77,6 +79,10 @@ object EnchantmentManager {
      */
     fun initHandlers() {
         handlerList.forEach { it.registerToForge() }
+        initHandlerList.forEach {
+            it.registerToForge()
+            it.init()
+        }
         SimpleMod.LOGGER.info("initialized ${enchantmentList.size} enchantment handler")
     }
 
