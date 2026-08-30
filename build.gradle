@@ -5,6 +5,7 @@ import com.gtnewhorizons.retrofuturagradle.mcp.InjectTagsTask
 import net.darkhax.curseforgegradle.TaskPublishCurseForge
 import org.jetbrains.changelog.Changelog
 import org.jetbrains.gradle.ext.Gradle
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     id 'java'
@@ -16,11 +17,11 @@ plugins {
     id 'com.modrinth.minotaur' version '2.+' apply false
     id 'org.jetbrains.changelog' version '2.5.0'
     id 'com.gradleup.shadow' version '9.6.+'
+    id 'org.jetbrains.kotlin.jvm' version '2.0.21'
 }
 
 apply from: 'gradle/scripts/helpers.gradle'
 
-// Early Assertions
 assertProperty 'mod_version'
 assertProperty 'root_package'
 assertProperty 'mod_id'
@@ -58,7 +59,6 @@ tasks.decompressDecompiledSources.enabled !propertyBool('change_minecraft_source
 java {
     toolchain {
         languageVersion.set(JavaLanguageVersion.of(propertyBool('use_modern_java_syntax') ? 16 : 8))
-        // Azul covers the most platforms for Java 8 toolchains, crucially including MacOS arm64
         vendor.set(JvmVendorSpec.AZUL)
     }
     if (propertyBool('generate_sources_jar')) {
@@ -86,11 +86,9 @@ minecraft {
     useDependencyAccessTransformers.set(propertyBool('use_dependency_at_files'))
 
     username.set(propertyString('minecraft_username'))
-    
-    // Add any additional tweaker classes here
+
     extraTweakClasses.addAll(propertyStringList('extra_tweak_classes'))
 
-    // Add various JVM arguments here for runtime
     def args = ['-ea:' + group]
     if (propertyBool('use_mixins')) {
         args << '-Dmixin.checks.interfaces=true'
@@ -104,9 +102,9 @@ minecraft {
             Properties props = new Properties().tap { it.load(file('tags.properties').newInputStream()); it }
             if (!props.isEmpty()) {
                 injectedTags.set(props.collectEntries { k, v ->
-                        def interpolated = interpolate(v)
-                        if (interpolated == null || interpolated.isEmpty()) throw new GradleException("Empty tag value found for key: $k")
-                        [(k): interpolated]
+                    def interpolated = interpolate(v)
+                    if (interpolated == null || interpolated.isEmpty()) throw new GradleException("Empty tag value found for key: $k")
+                    [(k): interpolated]
                 })
             }
         }
@@ -118,22 +116,23 @@ repositories {
         name 'CleanroomMC Maven'
         url 'https://maven.cleanroommc.com'
     }
+    mavenCentral()
 }
 
 dependencies {
+    implementation "org.jetbrains.kotlin:kotlin-stdlib"
+    implementation 'zone.rong:mixinbooter:11.13'
+
     if (propertyBool('use_modern_java_syntax')) {
         annotationProcessor 'com.github.bsideup.jabel:jabel-javac-plugin:1.0.0'
-        // Workaround for https://github.com/bsideup/jabel/issues/174
         annotationProcessor 'net.java.dev.jna:jna-platform:5.13.0'
         compileOnly ('com.github.bsideup.jabel:jabel-javac-plugin:1.0.0') {
             transitive = false
         }
-        // Allow jdk.unsupported classes like sun.misc.Unsafe, workaround for JDK-8206937 and fixes crashes in tests
         patchedMinecraft 'me.eigenraven.java8unsupported:java-8-unsupported-shim:1.0.0'
-        // Include for tests
         testAnnotationProcessor 'com.github.bsideup.jabel:jabel-javac-plugin:1.0.0'
         testCompileOnly('com.github.bsideup.jabel:jabel-javac-plugin:1.0.0') {
-            transitive = false // We only care about the 1 annotation class
+            transitive = false
         }
     }
     if (propertyBool('use_jetbrains_annotations')) {
@@ -160,19 +159,6 @@ dependencies {
 
 apply from: 'gradle/scripts/dependencies.gradle'
 
-if (propertyBool('use_mixins')) {
-    ['runClient', 'runServer', 'runObfClient', 'runObfServer'].each { taskName ->
-        tasks.named(taskName, JavaExec).configure { JavaExec task ->
-            task.doFirst {
-                if (task.debug) {
-                    task.jvmArgs("-javaagent:${configurations.mixinAgent.singleFile.absolutePath}")
-                }
-            }
-        }
-    }
-}
-
-// Adds Access Transformer files to tasks
 if (propertyBool('use_access_transformer')) {
     def atFiles = propertyStringList('access_transformer_locations').collect { location ->
         def fileLocation = file("src/main/resources/${location}")
@@ -182,14 +168,12 @@ if (propertyBool('use_access_transformer')) {
         return fileLocation
     }
 
-    // Apply ATs to both Minecraft and Forge sources/runtime patched jar
     tasks.named('applyJST').configure {
         accessTransformerFiles.from(atFiles)
     }
 }
 
 processResources {
-
     inputs.property 'mod_id', propertyString('mod_id')
     inputs.property 'mod_name', propertyString('mod_name')
     inputs.property 'mod_version', propertyString('mod_version')
@@ -201,12 +185,7 @@ processResources {
     inputs.property 'mod_logo_path', propertyString('mod_logo_path')
     inputs.property 'mixin_refmap', propertyString('mixin_refmap')
     inputs.property 'mixin_package', propertyString('mixin_package')
-    inputs.property 'mixin_configs', propertyStringList('mixin_configs').join(' ')
-
-    def filterList = ['mcmod.info', 'pack.mcmeta']
-    filterList.addAll(propertyStringList('mixin_configs'))
-
-    filesMatching(filterList) { fcd ->
+    filesMatching(['mcmod.info', 'pack.mcmeta']) { fcd ->
         fcd.expand(
                 'mod_id': propertyString('mod_id'),
                 'mod_name': propertyString('mod_name'),
@@ -221,11 +200,6 @@ processResources {
                 'mixin_package': propertyString('mixin_package')
         )
     }
-    
-    if (propertyBool('use_access_transformer')) {
-        rename '(.+_at.cfg)', 'META-INF/$1'
-    }
-
 }
 
 jar {
@@ -252,8 +226,18 @@ jar {
         if (!mixinConnectorClass.isEmpty()) {
             attribute_map['MixinConnector'] = mixinConnectorClass
         }
+        // ❌ 移除 FMLCorePlugin（不再使用 MixinLoader）
+        // attribute_map['FMLCorePlugin'] = 'dev.firefly.simplemod.MixinLoader'
+        // attribute_map['FMLCorePluginContainsFMLMod'] = 'true'
+        // ❌ 移除 TweakClass
+        // attribute_map['TweakClass'] = 'org.spongepowered.asm.launch.MixinTweaker'
+        // attribute_map['TweakOrder'] = '0'
         attributes(attribute_map)
     }
+    from {
+        configurations.runtimeClasspath.findAll { it.name.startsWith('kotlin-stdlib') }.collect { zipTree(it) }
+    }
+    exclude 'module-info.class'
 }
 
 idea {
@@ -402,3 +386,20 @@ if (propertyBool('publish_to_curseforge')) {
 
 apply from: 'gradle/scripts/publishing.gradle'
 apply from: 'gradle/scripts/extra.gradle'
+
+tasks.withType(KotlinCompile).configureEach {
+    if (name == 'compilePatchedMcKotlin') {
+        dependsOn tasks.decompressDecompiledSources
+    }
+}
+
+tasks.configureEach { task ->
+    if (task.name in [
+            'compileInjectedTagsKotlin',
+            'compileInjectedInterfacesKotlin',
+            'compileApiKotlin',
+            'compileMcLauncherKotlin'
+    ]) {
+        task.enabled = false
+    }
+}

@@ -1,0 +1,27 @@
+package dev.firefly.simplemod.enchantments.enchantment_handlers
+
+import dev.firefly.simplemod.core.Listenable
+import dev.firefly.simplemod.enchantments.EnchantHealer
+import dev.firefly.simplemod.util.getItemSpecificEnchantLevel
+import net.minecraft.entity.EntityLivingBase
+import net.minecraftforge.event.entity.living.LivingHurtEvent
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
+
+object EnchantHealerHandler : Listenable{
+    @SubscribeEvent
+    fun onLivingHurt(e: LivingHurtEvent) {
+        if (e.entity.world.isRemote) return
+        val lvl = getItemSpecificEnchantLevel((((e.source.trueSource as? EntityLivingBase) ?:return)
+            .heldItemMainhand),
+            EnchantHealer.INSTANCE)
+        if (lvl > 0)
+        {
+            val originDMG = e.amount
+            val living = e.entityLiving
+            val healingFactor = 0.2f * lvl
+            living.health = (originDMG * healingFactor + e.entityLiving.health).coerceAtMost(living.maxHealth)
+            e.isCanceled = true
+        }
+    }
+}
+

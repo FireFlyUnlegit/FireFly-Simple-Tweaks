@@ -1,0 +1,20 @@
+{
+  "required": true,
+  "minVersion": "0.7.11",
+  "package": "dev.firefly.simplemod.mixin",
+  "refmap": "mixins.simplemod.refmap.json",
+  "target": "@env(DEFAULT)",
+  "compatibilityLevel": "JAVA_8",
+  "mixins": [
+    "MixinEntityPlayer",
+    "MixinEntityPlayerAttack",
+    "MixinEntityPlayerSP",
+    "MixinEntityRenderer",
+    "MixinEntitySetDead",
+    "MixinMinecraft",
+    "MixinNetworkManager",
+    "MixinWorldRemoveEntity"
+  ],
+  "client": [],
+  "server": []
+}

@@ -1,0 +1,20 @@
+package dev.firefly.simplemod.enchantments.enchantment_handlers
+
+import dev.firefly.simplemod.core.Listenable
+import dev.firefly.simplemod.enchantments.EnchantCrit
+import dev.firefly.simplemod.util.getItemSpecificEnchantLevel
+import dev.firefly.simplemod.util.setCrit
+import net.minecraftforge.event.entity.player.CriticalHitEvent
+import net.minecraftforge.fml.common.eventhandler.EventPriority
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
+import kotlin.random.Random.Default.nextFloat
+
+object EnchantCritHandler : Listenable {
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    fun onCrit(e: CriticalHitEvent) {
+        val lvl = getItemSpecificEnchantLevel(e.entityLiving.heldItemMainhand, EnchantCrit.INSTANCE)
+        if (lvl > 0 && nextFloat() < .1 * lvl) {
+            e.setCrit(true)
+        }
+    }
+}

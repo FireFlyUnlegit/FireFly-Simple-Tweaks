@@ -1,21 +1,31 @@
-## TemplateDevEnv
-_For Kotlin see [TemplateDevEnvKt](https://github.com/CleanroomMC/TemplateDevEnvKt)_
+# Simple Optimization Mod
 
-Template workspace for modding Minecraft 1.12.2. Licensed under MIT, it is made for public use.
+一个轻量级的 Minecraft 1.12.2 模组，主要做了两件事：
 
-This template runs on **Java 25**, **Gradle 9.7.0** + **[RetroFuturaGradle](https://github.com/GTNewHorizons/RetroFuturaGradle) 2.0.3** + **Forge 14.23.5.2847**.
+---
 
-With **coremod and mixin support** that is easy to configure.
+## 🎯 功能
 
-### Instructions:
+### 1. 移除伤害指示器
+- 去除了玩家攻击生物时生成的红色/白色受击粒子（原版中攻击生物时爆开的那团粒子效果）
+- 让战斗画面更干净整洁
 
-1. Click `use this template` at the top.
-2. Clone the repository that you have created with this template to your local machine.
-3. Make sure IDEA is using Java 25 for Gradle before you sync the project. Verify this by going to IDEA's `Settings > Build, Execution, Deployment > Build Tools > Gradle > Gradle JVM`.
-4. Open the project folder in IDEA. When prompted, click "Load Gradle Project" as it detects the `build.gradle`, if you weren't prompted, right-click the project's `build.gradle` in IDEA, select `Link Gradle Project`, after completion, hit `Refresh All` in the gradle tab on the right.
-5. Run gradle tasks such as `runClient` and `runServer` in the IDEA gradle tab, or use the auto-imported run configurations like `1. Run Client`.
+### 2. 虚空附魔（Everything Into Void）
+- 一个**极其强力**的附魔，只能通过创造模式或指令获取
+- 手持带有此附魔的武器，你将获得：
+  - ✨ **飞行能力**
+  - 🛡️ **完全无敌**（免疫所有伤害 + 死亡）
+  - ⚔️ **秒杀任何生物**（包括末影龙）
+  - 📦 **27 格虚空容器**（潜行 + 右键打开，自动收集掉落物）
 
-### Notes:
-- Dependencies script in [gradle/scripts/dependencies.gradle](gradle/scripts/dependencies.gradle), explanations are commented in the file.
-- Publishing script in [gradle/scripts/publishing.gradle](gradle/scripts/publishing.gradle).
-- When writing Mixins on IntelliJ, it is advisable to use latest [MinecraftDev Fork for RetroFuturaGradle](https://github.com/eigenraven/MinecraftDev/releases).
+> 没有此附魔时，模组不会影响任何游戏机制，仅移除伤害粒子。
+
+---
+
+## 📄 许可证
+
+MIT
+
+---
+
+本模组用于练手
