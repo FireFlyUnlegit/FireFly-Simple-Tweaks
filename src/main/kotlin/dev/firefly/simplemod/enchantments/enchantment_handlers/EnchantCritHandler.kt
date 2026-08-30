@@ -2,7 +2,6 @@ package dev.firefly.simplemod.enchantments.enchantment_handlers
 
 import dev.firefly.simplemod.core.Listenable
 import dev.firefly.simplemod.enchantments.EnchantCrit
-import dev.firefly.simplemod.enchantments.EnchantCritDamage
 import dev.firefly.simplemod.util.getItemSpecificEnchantLevel
 import dev.firefly.simplemod.util.setCrit
 import net.minecraftforge.event.entity.player.CriticalHitEvent
@@ -16,7 +15,6 @@ object EnchantCritHandler : Listenable {
         val lvl = getItemSpecificEnchantLevel(e.entityLiving.heldItemMainhand, EnchantCrit.INSTANCE)
         if (lvl > 0 && nextFloat() < .1 * lvl && !e.isVanillaCritical) {
             e.setCrit(true)
-            val lvl2 = getItemSpecificEnchantLevel(e.entityLiving.heldItemMainhand, EnchantCritDamage.INSTANCE)
             e.damageModifier += 0.5f
         }
     }
