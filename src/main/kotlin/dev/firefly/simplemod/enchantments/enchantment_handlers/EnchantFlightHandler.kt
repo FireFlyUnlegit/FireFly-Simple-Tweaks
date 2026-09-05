@@ -30,7 +30,7 @@ object EnchantFlightHandler : Listenable {
                 p.sendPlayerAbilities()
             }
             val tick = flyingTick[uuid] ?: 0
-            if (p.capabilities.isFlying && level < maxLevel) {
+            if (p.capabilities.isFlying && level < maxLevel && (!p.isCreative || !p.isSpectator)) {
                 if (tick % (20 * level) == 0) {
                     stack.itemDamage += 2
                 }

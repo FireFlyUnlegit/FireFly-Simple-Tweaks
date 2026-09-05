@@ -8,3 +8,16 @@ enchantment.simplemod.crit=暴击
 enchantment.simplemod.crit_damage=暴击伤害
 enchantment.simplemod.healer=治疗者
 enchantment.simplemod.execute=处决
+enchantment.simplemod.double_crit=双倍暴击
+
+enchantment.simplemod.bloodlust.desc=根据攻击者已损失的生命值比例提升伤害，等级越高加成越高。
+enchantment.simplemod.crit.desc=攻击时有几率触发暴击（无需跳跃），等级越高几率越大。
+enchantment.simplemod.crit_damage.desc=提升暴击造成的额外伤害，等级越高加成越多。
+enchantment.simplemod.double_crit.desc=暴击时有几率造成额外大量伤害，等级越高触发几率和伤害越高。
+enchantment.simplemod.execute.desc=根据目标已损失的生命值造成额外伤害，等级越高效果越强。
+enchantment.simplemod.flight.desc=使胸甲获得飞行能力，飞行时会消耗饥饿值和耐久，等级越高消耗越慢。
+enchantment.simplemod.healer.desc=将造成的伤害转化为对目标的治疗，等级越高治疗比例越高。
+enchantment.simplemod.healing_blade.desc=根据造成的伤害治疗自身，溢出部分转为伤害吸收，等级越高效果越强。
+enchantment.simplemod.infinite_power.desc=获得飞行、无敌、瞬间挖掘、无限食物/耐久、激光攻击、巨量掉落加成、灵魂绑定和无限存储袋等全能能力。
+enchantment.simplemod.item_fixer.desc=缓慢修复物品耐久，等级越高修复几率和量越大，与经验修补冲突。
+enchantment.simplemod.void_protection.desc=落入虚空时消耗一级附魔将你传送至高空，避免死亡。

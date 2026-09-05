@@ -16,7 +16,7 @@ class EnchantBloodLust private constructor() : Enchantment(
     }
 
     override fun getMaxLevel(): Int = 5
-    override fun getMinEnchantability(enchantmentLevel: Int) = enchantmentLevel * 3 + 15
+    override fun getMinEnchantability(enchantmentLevel: Int) = enchantmentLevel * 3 + 25
     companion object {
         val INSTANCE = EnchantBloodLust()
     }

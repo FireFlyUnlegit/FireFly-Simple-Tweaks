@@ -15,7 +15,7 @@ class EnchantCritDamage private constructor() : Enchantment(
         setName("simplemod.crit_damage")
     }
     override fun getMinEnchantability(enchantmentLevel: Int): Int = 15 + 5 * enchantmentLevel
-    override fun getMaxLevel(): Int = 5
+    override fun getMaxLevel(): Int = 10
 
     companion object {
         val INSTANCE = EnchantCritDamage()

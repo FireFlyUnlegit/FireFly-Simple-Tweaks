@@ -31,4 +31,5 @@ fun Listenable.unregisterAll() {
 }
 fun Listenable.registerToForge() {
     MinecraftForge.EVENT_BUS.register(this)
+    this.init()
 }

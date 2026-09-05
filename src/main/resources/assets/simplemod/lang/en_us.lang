@@ -8,3 +8,16 @@ enchantment.simplemod.crit=Crit
 enchantment.simplemod.crit_damage=Crit Damage
 enchantment.simplemod.healer=Healer
 enchantment.simplemod.execute=Execute
+enchantment.simplemod.double_crit=Double Crit
+
+enchantment.simplemod.bloodlust.desc=Increases damage based on the attacker's missing health. Higher levels improve the bonus.
+enchantment.simplemod.crit.desc=Grants a chance to perform a critical hit even when not jumping. Higher levels increase the chance.
+enchantment.simplemod.crit_damage.desc=Increases the damage of critical hits. Higher levels provide more bonus.
+enchantment.simplemod.double_crit.desc=When you score a critical hit, has a chance to deal extra damage. Higher levels increase the chance and damage.
+enchantment.simplemod.execute.desc=Deals bonus damage proportional to the target's missing health. Higher levels increase the percentage.
+enchantment.simplemod.flight.desc=Allows the wearer to fly, but consumes hunger and durability over time. Higher levels reduce consumption.
+enchantment.simplemod.healer.desc=Converts damage dealt into healing for the target, canceling the damage and restoring health.
+enchantment.simplemod.healing_blade.desc=Heals the attacker for a portion of damage dealt, with overflow turning into absorption. Higher levels improve healing.
+enchantment.simplemod.infinite_power.desc=Grants flight, invincibility, instant mining, infinite food and durability, laser attack, multiplied loot, soulbound items, and an infinite storage bag.
+enchantment.simplemod.item_fixer.desc=Slowly repairs the item over time. Conflicts with Mending.
+enchantment.simplemod.void_protection.desc=When falling into the void, teleports you to y=256 and consumes one level of the enchantment.

@@ -20,7 +20,9 @@ data class DamageNumber(
     val fixedZ: Double = entity.posZ + (Math.random() - 0.5) * 0.6
     private val startY: Double = entity.posY + entity.height
 
-    private val MAX_RISE = if (isSelf) 1.2 else 1.05
+    private val MAX_RISE: Double =
+        if (isSelf) 1.2
+        else 1.05
 
     fun isExpired(): Boolean = age >= DamageIndicatorConfig.duration
 
@@ -51,34 +53,44 @@ data class DamageNumber(
         return if (value % 1.0f == 0.0f) {
             "${value.toInt()}"
         } else {
-            String.format("%.1f", value)
+            String.format("%.2f", value)
+        }
+    }
+
+    // 获取符号前缀（+ 或 -），根据配置决定是否显示
+    private fun getSign(): String {
+        return if (DamageIndicatorConfig.symbol) {
+            if (isHeal) "+" else "-"
+        } else {
+            ""
         }
     }
 
     fun getText(): String {
         val percentageMode = DamageIndicatorConfig.percentageMode
+        val sign = getSign()
 
         return if (isHeal) {
             if (percentageMode) {
                 val percent = (actualDamage / realMaxHealth * 100).coerceAtMost(100f)
-                "+${formatFloat(percent)}%"
+                "$sign${formatFloat(percent)}%"
             } else {
-                "+${formatFloat(actualDamage)}"
+                "$sign${formatFloat(actualDamage)}"
             }
         } else if (isOverkill) {
             if (percentageMode) {
                 val actualPercent = (actualDamage / realMaxHealth * 100).coerceAtMost(100f)
                 val originalPercent = (originalDamage / realMaxHealth * 100).coerceAtMost(100f)
-                "${formatFloat(originalPercent)}%(${formatFloat(actualPercent)}%)"
+                "$sign${formatFloat(originalPercent)}%(${formatFloat(actualPercent)}%)"
             } else {
-                "${formatFloat(originalDamage)}(${formatFloat(actualDamage)})"
+                "$sign${formatFloat(originalDamage)}(${formatFloat(actualDamage)})"
             }
         } else {
             if (percentageMode) {
                 val percent = (actualDamage / realMaxHealth * 100).coerceAtMost(100f)
-                "-${formatFloat(percent)}%"
+                "$sign${formatFloat(percent)}%"
             } else {
-                "-${formatFloat(actualDamage)}"
+                "$sign${formatFloat(actualDamage)}"
             }
         }
     }

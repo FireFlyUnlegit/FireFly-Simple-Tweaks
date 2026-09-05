@@ -12,7 +12,10 @@ public class DamageIndicatorConfig {
     @Config.Comment("Whether to show damage numbers when attacking mobs")
     @Config.RequiresMcRestart
     public static boolean enabled = true;
-
+    @Config.Name("Indicator with symbol(+/-)")
+    @Config.Comment("Whether the indicator display with symbol(+/-)")
+    @Config.RequiresMcRestart
+    public static boolean symbol = true;
     @Config.Name("Display Duration (Ticks)")
     @Config.Comment("How long damage numbers stay visible (20 ticks = 1 second)")
     @Config.RangeInt(min = 10, max = 100)

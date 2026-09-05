@@ -4,6 +4,7 @@ import dev.firefly.simplemod.SimpleMod
 import dev.firefly.simplemod.enchantments.EnchantBloodLust
 import dev.firefly.simplemod.enchantments.EnchantCrit
 import dev.firefly.simplemod.enchantments.EnchantCritDamage
+import dev.firefly.simplemod.enchantments.EnchantDoubleCrit
 import dev.firefly.simplemod.enchantments.EnchantExecute
 import dev.firefly.simplemod.enchantments.EnchantFlight
 import dev.firefly.simplemod.enchantments.EnchantHealer
@@ -14,6 +15,7 @@ import dev.firefly.simplemod.enchantments.EnchantVoidProtection
 import dev.firefly.simplemod.enchantments.enchantment_handlers.EnchantBloodLustHandler
 import dev.firefly.simplemod.enchantments.enchantment_handlers.EnchantCritDamageHandler
 import dev.firefly.simplemod.enchantments.enchantment_handlers.EnchantCritHandler
+import dev.firefly.simplemod.enchantments.enchantment_handlers.EnchantDoubleCritHandler
 import dev.firefly.simplemod.enchantments.enchantment_handlers.EnchantExecuteHandler
 import dev.firefly.simplemod.enchantments.enchantment_handlers.EnchantFlightHandler
 import dev.firefly.simplemod.enchantments.enchantment_handlers.EnchantHealerHandler
@@ -45,9 +47,11 @@ object EnchantmentManager {
         EnchantCrit.INSTANCE,
         EnchantCritDamage.INSTANCE,
         EnchantHealer.INSTANCE,
-        EnchantExecute.INSTANCE
+        EnchantExecute.INSTANCE,
+        EnchantDoubleCrit.INSTANCE,
         )
     private val handlerList = listOf(
+        EnchantInfinitePowerHandler,
         EnchantFlightHandler,
         EnchantItemFixerHandler,
         EnchantBloodLustHandler,
@@ -56,10 +60,8 @@ object EnchantmentManager {
         EnchantCritHandler,
         EnchantCritDamageHandler,
         EnchantHealerHandler,
-        EnchantExecuteHandler
-        )
-    private val initHandlerList = listOf(
-        EnchantInfinitePowerHandler,
+        EnchantExecuteHandler,
+        EnchantDoubleCritHandler,
         )
 
     /**
@@ -82,10 +84,6 @@ object EnchantmentManager {
      */
     fun initHandlers() {
         handlerList.forEach { it.registerToForge() }
-        initHandlerList.forEach {
-            it.registerToForge()
-            it.init()
-        }
         SimpleMod.LOGGER.info("initialized ${enchantmentList.size} enchantment handler")
     }
     fun registerEnchantments() {
