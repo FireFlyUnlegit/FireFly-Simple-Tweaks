@@ -2,8 +2,14 @@ package dev.firefly.simplemod
 
 import dev.firefly.simplemod.core.EnchantmentManager
 import dev.firefly.simplemod.core.ModuleManager
+import dev.firefly.simplemod.core.config.DamageIndicatorConfig
+import dev.firefly.simplemod.core.config.GeneralConfig
+import dev.firefly.simplemod.damageindicator.DamageIndicatorHandler
+import dev.firefly.simplemod.damageindicator.DamageIndicatorRenderer
 import dev.firefly.simplemod.gui.ModGuiScreen
+import dev.firefly.simplemod.network.NetworkManager
 import net.minecraft.client.Minecraft
+import net.minecraftforge.common.MinecraftForge
 import net.minecraftforge.fml.common.Mod
 import net.minecraftforge.fml.common.event.FMLInitializationEvent
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent
@@ -13,13 +19,13 @@ import org.apache.logging.log4j.LogManager
 import org.lwjgl.input.Keyboard
 import java.io.File
 import java.util.Properties
-@Mod.EventBusSubscriber
+
 @Mod(modid = SimpleMod.MOD_ID, name = SimpleMod.NAME, version = SimpleMod.VERSION)
 class SimpleMod {
     companion object {
-        const val MOD_ID = "assets/simplemod"
+        const val MOD_ID = "simplemod"
         const val NAME = "Simple Optimization Mod"
-        const val VERSION = "1.0.0"
+        const val VERSION = "1.0.1"
         val LOGGER = LogManager.getLogger(NAME)
 
         private val configFile = File("config/simplemod/gui.properties")
@@ -49,7 +55,7 @@ class SimpleMod {
         fun setGuiKey(key: Int) {
             guiKey = key
             saveGuiConfig()
-            LOGGER.info("GUI Open Key was changed to:${Keyboard.getKeyName(key)}")
+            LOGGER.info("GUI Open Key was changed to: ${Keyboard.getKeyName(key)}")
         }
     }
 
@@ -57,8 +63,10 @@ class SimpleMod {
     fun preInit(event: FMLPreInitializationEvent) {
         LOGGER.info("{} Loading...", NAME)
         ModuleManager.registerModules()
-        EnchantmentManager.initHandlers()
-        net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(EnchantmentManager)
+        NetworkManager.registerPackets()
+        EnchantmentManager.registerEnchantments()
+        MinecraftForge.EVENT_BUS.register(DamageIndicatorRenderer)
+        MinecraftForge.EVENT_BUS.register(DamageIndicatorHandler)
 
         LOGGER.info("GUI Open Key: ${Keyboard.getKeyName(guiKey)}")
     }
@@ -66,7 +74,7 @@ class SimpleMod {
     @Mod.EventHandler
     fun init(event: FMLInitializationEvent) {
         LOGGER.info("{} Load Completed!", NAME)
-        net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(this)
+        MinecraftForge.EVENT_BUS.register(this)
     }
 
     @SubscribeEvent

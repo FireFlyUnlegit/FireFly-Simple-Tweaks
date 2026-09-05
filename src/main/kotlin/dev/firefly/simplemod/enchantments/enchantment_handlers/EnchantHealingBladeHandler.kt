@@ -5,12 +5,13 @@ import dev.firefly.simplemod.enchantments.EnchantHealingBlade
 import dev.firefly.simplemod.util.getItemSpecificEnchantLevel
 import net.minecraft.entity.EntityLivingBase
 import net.minecraftforge.event.entity.living.LivingHurtEvent
+import net.minecraftforge.fml.common.eventhandler.EventPriority
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
 
 
 object EnchantHealingBladeHandler : Listenable {
 
-    @SubscribeEvent
+    @SubscribeEvent(priority = EventPriority.LOWEST)
     fun onLivingHurt(e: LivingHurtEvent) {
         val attacker = (e.source.trueSource?: return) as? EntityLivingBase?: return
         if (e.isCanceled || e.entity.world.isRemote) return

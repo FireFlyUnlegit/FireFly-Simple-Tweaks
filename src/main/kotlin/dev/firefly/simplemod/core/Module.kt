@@ -38,7 +38,6 @@ abstract class Module(
     fun toggle() { state = !state }
     fun isEnabled(): Boolean = state
 
-    // ✅ 添加 getKeyName 函数
     fun getKeyName(): String {
         return if (keyBind == Keyboard.KEY_NONE) "NONE" else Keyboard.getKeyName(keyBind) ?: "NONE"
     }

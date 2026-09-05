@@ -17,7 +17,7 @@ object EnchantBloodLustHandler : Listenable {
         val level = getItemSpecificEnchantLevel(stack, EnchantBloodLust.INSTANCE)
         if (level > 0) {
             val ratio = (attacker.maxHealth - attacker.health) / attacker.maxHealth
-            val bonus = ratio * (0.005 + ((level-1) * 0.00125))
+            val bonus = ratio * (0.005 + ((level-1) * 0.0025))
             if (bonus > 0.0) {
                 e.amount = (e.amount + e.amount*bonus).toFloat()
             }

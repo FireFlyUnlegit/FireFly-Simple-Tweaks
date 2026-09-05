@@ -5,10 +5,11 @@ import dev.firefly.simplemod.enchantments.EnchantHealer
 import dev.firefly.simplemod.util.getItemSpecificEnchantLevel
 import net.minecraft.entity.EntityLivingBase
 import net.minecraftforge.event.entity.living.LivingHurtEvent
+import net.minecraftforge.fml.common.eventhandler.EventPriority
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
 
 object EnchantHealerHandler : Listenable{
-    @SubscribeEvent
+    @SubscribeEvent(priority = EventPriority.LOW)
     fun onLivingHurt(e: LivingHurtEvent) {
         if (e.entity.world.isRemote) return
         val lvl = getItemSpecificEnchantLevel((((e.source.trueSource as? EntityLivingBase) ?:return)

@@ -1,8 +1,14 @@
 [{
 	"modid": "simplemod",
 	"name": "Simple Optimization Mod",
-	"description": "Remove damage indicator particles to prevent lag.",
+	"description": "A lightweight mod that removes attack particles and adds various custom enchantments.",
 	"version": "1.0.0",
 	"mcversion": "1.12.2",
-	"authorList": ["FireFly"]
+	"url": "",
+	"updateUrl": "",
+	"authorList": ["Firefly"],
+	"credits": "",
+	"logoFile": "",
+	"screenshots": [],
+	"dependencies": []
 }]

@@ -3,18 +3,8 @@ package dev.firefly.simplemod.enchantments.enchantment_handlers
 import dev.firefly.simplemod.core.Listenable
 import dev.firefly.simplemod.core.handler
 import dev.firefly.simplemod.enchantments.EnchantInfinitePower
-import dev.firefly.simplemod.enchantments.enchantment_handlers.infinitepower.ClientHandler
-import dev.firefly.simplemod.enchantments.enchantment_handlers.infinitepower.ContainerInfiniteBag
-import dev.firefly.simplemod.enchantments.enchantment_handlers.infinitepower.DropHandler
-import dev.firefly.simplemod.enchantments.enchantment_handlers.infinitepower.FlightHandler
-import dev.firefly.simplemod.enchantments.enchantment_handlers.infinitepower.ForgeHandler
-import dev.firefly.simplemod.enchantments.enchantment_handlers.infinitepower.GuiInfiniteBag
-import dev.firefly.simplemod.enchantments.enchantment_handlers.infinitepower.InfiniteBagInventory
-import dev.firefly.simplemod.enchantments.enchantment_handlers.infinitepower.InfiniteContainerHandler
-import dev.firefly.simplemod.enchantments.enchantment_handlers.infinitepower.PacketLaser
-import dev.firefly.simplemod.enchantments.enchantment_handlers.infinitepower.SaveHandler
-import dev.firefly.simplemod.enchantments.enchantment_handlers.infinitepower.SoulBindHandler
-import dev.firefly.simplemod.enchantments.enchantment_handlers.infinitepower.ToolHandler
+import dev.firefly.simplemod.enchantments.enchantment_handlers.infinitepower.*
+import dev.firefly.simplemod.network.NetworkManager
 import net.minecraft.entity.EntityLivingBase
 import net.minecraft.entity.ai.attributes.AttributeModifier
 import net.minecraft.entity.boss.EntityDragon
@@ -33,8 +23,6 @@ import net.minecraftforge.common.MinecraftForge
 import net.minecraftforge.fml.common.Loader
 import net.minecraftforge.fml.common.network.IGuiHandler
 import net.minecraftforge.fml.common.network.NetworkRegistry
-import net.minecraftforge.fml.common.network.simpleimpl.SimpleNetworkWrapper
-import net.minecraftforge.fml.relauncher.Side
 import java.util.*
 import kotlin.math.cos
 import kotlin.math.sin
@@ -47,11 +35,6 @@ object EnchantInfinitePowerHandler : Listenable {
     internal const val LASER_MAX_DISTANCE = 128.0
     internal const val LASER_STEP = 1.0
     internal const val ENTITY_CHECK_RADIUS = 1.25
-
-    internal const val CHANNEL = "simplemod"
-    lateinit var wrapper: SimpleNetworkWrapper
-        private set
-    private var discriminator = 0
 
     internal val ATTACK_SPEED_MODIFIER = AttributeModifier(
         UUID.fromString("12345678-1234-1234-1234-123456789abc"),
@@ -68,17 +51,15 @@ object EnchantInfinitePowerHandler : Listenable {
             EnchantInfinitePower.tick()
         }
 
-        wrapper = NetworkRegistry.INSTANCE.newSimpleChannel(CHANNEL)
-
-        val container = Loader.instance().indexedModList["assets/simplemod"]
+        val container = Loader.instance().indexedModList["simplemod"]
         modInstance = container?.getMod()
-            ?: throw RuntimeException("Failed to get mod instance for assets/simplemod")
+            ?: throw RuntimeException("Failed to get mod instance for simplemod")
 
         NetworkRegistry.INSTANCE.registerGuiHandler(modInstance, object : IGuiHandler {
-            override fun getServerGuiElement(ID: Int, player: EntityPlayer, world: World, x: Int, y: Int, z: Int): Any {
+            override fun getServerGuiElement(id: Int, player: EntityPlayer, world: World, x: Int, y: Int, z: Int): Any {
                 return ContainerInfiniteBag(player, InfiniteBagInventory(player))
             }
-            override fun getClientGuiElement(ID: Int, player: EntityPlayer, world: World, x: Int, y: Int, z: Int): Any {
+            override fun getClientGuiElement(id: Int, player: EntityPlayer, world: World, x: Int, y: Int, z: Int): Any {
                 return GuiInfiniteBag(player, InfiniteBagInventory(player))
             }
         })
@@ -91,12 +72,10 @@ object EnchantInfinitePowerHandler : Listenable {
         MinecraftForge.EVENT_BUS.register(InfiniteContainerHandler)
         MinecraftForge.EVENT_BUS.register(DropHandler)
         MinecraftForge.EVENT_BUS.register(SaveHandler)
-
-        wrapper.registerMessage(PacketLaser.Handler::class.java, PacketLaser::class.java, discriminator++, Side.SERVER)
     }
 
     fun sendLaser(player: EntityPlayer, direction: Vec3d) {
-        wrapper.sendToServer(PacketLaser(player, direction))
+        NetworkManager.sendToServer(PacketLaser(player, direction))
     }
 
     @JvmStatic
@@ -207,43 +186,67 @@ object EnchantInfinitePowerHandler : Listenable {
         }
     }
 
+
     internal fun spawnDeathParticles(world: WorldServer, pos: Vec3d) {
         val rand = Random()
-        for (i in 0..29) {
-            val angle = i * (2 * Math.PI / 30) + rand.nextDouble() * 0.5
-            val radius = 1.0 + rand.nextDouble() * 0.5
+
+        for (i in 0..39) {
+            val angle = i * (2 * Math.PI / 40) + rand.nextDouble() * 0.3
+            val radius = 0.8 + rand.nextDouble() * 0.6
             val xOff = cos(angle) * radius
             val zOff = sin(angle) * radius
-            val yOff = i * 0.1 + rand.nextDouble() * 0.3
-            world.spawnParticle(EnumParticleTypes.END_ROD,
+            val yOff = i * 0.08 + rand.nextDouble() * 0.2
+            world.spawnParticle(
+                EnumParticleTypes.END_ROD,
                 pos.x + xOff, pos.y + yOff, pos.z + zOff,
-                0, 0.0, 0.0, 0.0, 0.0)
+                0, 0.0, 0.0, 0.0, 0.0
+            )
         }
-        repeat(20) {
-            val xOff = (rand.nextDouble() - 0.5) * 3.0
+
+        repeat(40) {
+            val xOff = (rand.nextDouble() - 0.5) * 3.5
+            val yOff = rand.nextDouble() * 2.5
+            val zOff = (rand.nextDouble() - 0.5) * 3.5
+            world.spawnParticle(
+                EnumParticleTypes.DRAGON_BREATH,
+                pos.x + xOff, pos.y + yOff, pos.z + zOff,
+                0, 0.0, 0.0, 0.0, 0.0
+            )
+        }
+
+        repeat(60) {
+            val xOff = (rand.nextDouble() - 0.5) * 4.5
+            val yOff = rand.nextDouble() * 3.0 + 0.5
+            val zOff = (rand.nextDouble() - 0.5) * 4.5
+            world.spawnParticle(
+                EnumParticleTypes.ENCHANTMENT_TABLE,
+                pos.x + xOff, pos.y + yOff, pos.z + zOff,
+                0, 0.0, 0.0, 0.0, 0.0
+            )
+        }
+
+        repeat(50) {
+            val xOff = (rand.nextDouble() - 0.5) * 2.5
             val yOff = rand.nextDouble() * 2.0
-            val zOff = (rand.nextDouble() - 0.5) * 3.0
-            world.spawnParticle(EnumParticleTypes.ENCHANTMENT_TABLE,
+            val zOff = (rand.nextDouble() - 0.5) * 2.5
+            world.spawnParticle(
+                EnumParticleTypes.FIREWORKS_SPARK,
                 pos.x + xOff, pos.y + yOff, pos.z + zOff,
-                0, 0.0, 0.0, 0.0, 0.0)
+                0, 0.0, 0.0, 0.0, 0.0
+            )
         }
-        repeat(15) {
-            val xOff = (rand.nextDouble() - 0.5) * 2.0
-            val yOff = rand.nextDouble() * 1.5
-            val zOff = (rand.nextDouble() - 0.5) * 2.0
-            world.spawnParticle(EnumParticleTypes.DRAGON_BREATH,
-                pos.x + xOff, pos.y + yOff, pos.z + zOff,
-                0, 0.0, 0.0, 0.0, 0.0)
-        }
-        repeat(10) {
+
+        repeat(30) {
             val angle = rand.nextDouble() * 2 * Math.PI
-            val radius = 1.5 + rand.nextDouble() * 1.0
+            val radius = 1.2 + rand.nextDouble() * 1.2
             val xOff = cos(angle) * radius
             val zOff = sin(angle) * radius
             val yOff = rand.nextDouble() * 1.5
-            world.spawnParticle(EnumParticleTypes.NOTE,
-                pos.x + xOff, pos.y + yOff, pos.z + zOff,
-                0, rand.nextDouble(), rand.nextDouble(), rand.nextDouble(), 0.0)
+            world.spawnParticle(
+                EnumParticleTypes.NOTE,
+                pos.x + xOff, pos.y + yOff + 0.5, pos.z + zOff,
+                0, rand.nextDouble(), rand.nextDouble(), rand.nextDouble(), 0.0
+            )
         }
     }
 
@@ -251,42 +254,114 @@ object EnchantInfinitePowerHandler : Listenable {
         val rand = Random()
         val distance = start.distanceTo(end)
         val steps = (distance / LASER_STEP).toInt()
+
         for (i in 0..steps) {
             val t = i.toDouble() / steps
             val pos = start.add((end.x - start.x) * t, (end.y - start.y) * t, (end.z - start.z) * t)
+
             val r = rand.nextDouble()
             val g = rand.nextDouble()
             val b = rand.nextDouble()
-            world.spawnParticle(EnumParticleTypes.SPELL_MOB,
-                pos.x, pos.y, pos.z, 1, r, g, b, 0.0)
-            if (i % 5 == 0) {
-                world.spawnParticle(EnumParticleTypes.ENCHANTMENT_TABLE,
+            world.spawnParticle(
+                EnumParticleTypes.SPELL_MOB,
+                pos.x, pos.y, pos.z,
+                1, r, g, b, 0.0
+            )
+
+            if (i % 3 == 0) {
+                world.spawnParticle(
+                    EnumParticleTypes.END_ROD,
+                    pos.x, pos.y, pos.z,
+                    0, 0.0, 0.0, 0.0, 0.0
+                )
+            }
+
+            if (i % 6 == 0) {
+                world.spawnParticle(
+                    EnumParticleTypes.FIREWORKS_SPARK,
+                    pos.x, pos.y, pos.z,
+                    0, 0.0, 0.0, 0.0, 0.0
+                )
+            }
+
+            if (i % 8 == 0) {
+                world.spawnParticle(
+                    EnumParticleTypes.ENCHANTMENT_TABLE,
                     pos.x + (rand.nextDouble() - 0.5) * 0.3,
                     pos.y + (rand.nextDouble() - 0.5) * 0.3 + 0.2,
                     pos.z + (rand.nextDouble() - 0.5) * 0.3,
-                    1, rand.nextDouble() * 0.1, rand.nextDouble() * 0.1, rand.nextDouble() * 0.1, 0.0)
+                    1, rand.nextDouble() * 0.1, rand.nextDouble() * 0.1, rand.nextDouble() * 0.1, 0.0
+                )
             }
-            if (i % 7 == 0) {
-                world.spawnParticle(EnumParticleTypes.FLAME,
-                    pos.x + (rand.nextDouble() - 0.5) * 0.5,
-                    pos.y + (rand.nextDouble() - 0.5) * 0.5,
-                    pos.z + (rand.nextDouble() - 0.5) * 0.5,
-                    1, 0.0, 0.05, 0.0, 0.0)
-            }
+        }
+
+        if (hit) {
+            spawnLaserHitParticles(world, end)
         }
     }
 
     private fun spawnLaserHitParticles(world: WorldServer, pos: Vec3d) {
         val rand = Random()
-        for (i in 0..19) {
-            val angle = i * (2 * Math.PI / 20) + rand.nextDouble() * 0.3
-            val radius = 1.0 + rand.nextDouble() * 1.0
+
+        for (i in 0..29) {
+            val angle = i * (2 * Math.PI / 30) + rand.nextDouble() * 0.3
+            val radius = 0.5 + rand.nextDouble() * 1.2
             val xOff = cos(angle) * radius
             val zOff = sin(angle) * radius
             val yOff = rand.nextDouble() * 0.5
-            world.spawnParticle(EnumParticleTypes.END_ROD,
+            world.spawnParticle(
+                EnumParticleTypes.END_ROD,
                 pos.x + xOff, pos.y + yOff, pos.z + zOff,
-                0, 0.0, 0.0, 0.0, 0.0)
+                0, 0.0, 0.0, 0.0, 0.0
+            )
+        }
+
+        for (i in 0..39) {
+            val angle = i * (2 * Math.PI / 40) + rand.nextDouble() * 0.3
+            val radius = 0.8 + rand.nextDouble() * 1.5
+            val xOff = cos(angle) * radius
+            val zOff = sin(angle) * radius
+            val yOff = rand.nextDouble() * 0.8
+            world.spawnParticle(
+                EnumParticleTypes.FIREWORKS_SPARK,
+                pos.x + xOff, pos.y + yOff, pos.z + zOff,
+                0, 0.0, 0.0, 0.0, 0.0
+            )
+        }
+
+        repeat(30) {
+            val xOff = (rand.nextDouble() - 0.5) * 2.0
+            val yOff = rand.nextDouble() * 1.5
+            val zOff = (rand.nextDouble() - 0.5) * 2.0
+            world.spawnParticle(
+                EnumParticleTypes.ENCHANTMENT_TABLE,
+                pos.x + xOff, pos.y + yOff, pos.z + zOff,
+                0, 0.0, 0.0, 0.0, 0.0
+            )
+        }
+
+        repeat(20) {
+            val angle = rand.nextDouble() * 2 * Math.PI
+            val radius = 0.8 + rand.nextDouble() * 1.0
+            val xOff = cos(angle) * radius
+            val zOff = sin(angle) * radius
+            val yOff = rand.nextDouble() * 0.8
+            world.spawnParticle(
+                EnumParticleTypes.NOTE,
+                pos.x + xOff, pos.y + yOff, pos.z + zOff,
+                0, rand.nextDouble(), rand.nextDouble(), rand.nextDouble(), 0.0
+            )
+        }
+
+        repeat(20) {
+            val xOff = (rand.nextDouble() - 0.5) * 1.5
+            val yOff = rand.nextDouble() * 1.0
+            val zOff = (rand.nextDouble() - 0.5) * 1.5
+            world.spawnParticle(
+                EnumParticleTypes.SPELL_MOB,
+                pos.x + xOff, pos.y + yOff, pos.z + zOff,
+                1, rand.nextDouble(), rand.nextDouble(), rand.nextDouble(), 0.0
+            )
         }
     }
 }

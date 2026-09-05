@@ -4,6 +4,7 @@ import dev.firefly.simplemod.SimpleMod
 import dev.firefly.simplemod.enchantments.EnchantBloodLust
 import dev.firefly.simplemod.enchantments.EnchantCrit
 import dev.firefly.simplemod.enchantments.EnchantCritDamage
+import dev.firefly.simplemod.enchantments.EnchantExecute
 import dev.firefly.simplemod.enchantments.EnchantFlight
 import dev.firefly.simplemod.enchantments.EnchantHealer
 import dev.firefly.simplemod.enchantments.EnchantHealingBlade
@@ -13,6 +14,7 @@ import dev.firefly.simplemod.enchantments.EnchantVoidProtection
 import dev.firefly.simplemod.enchantments.enchantment_handlers.EnchantBloodLustHandler
 import dev.firefly.simplemod.enchantments.enchantment_handlers.EnchantCritDamageHandler
 import dev.firefly.simplemod.enchantments.enchantment_handlers.EnchantCritHandler
+import dev.firefly.simplemod.enchantments.enchantment_handlers.EnchantExecuteHandler
 import dev.firefly.simplemod.enchantments.enchantment_handlers.EnchantFlightHandler
 import dev.firefly.simplemod.enchantments.enchantment_handlers.EnchantHealerHandler
 import dev.firefly.simplemod.enchantments.enchantment_handlers.EnchantHealingBladeHandler
@@ -20,15 +22,14 @@ import dev.firefly.simplemod.enchantments.enchantment_handlers.EnchantInfinitePo
 import dev.firefly.simplemod.enchantments.enchantment_handlers.EnchantItemFixerHandler
 import dev.firefly.simplemod.enchantments.enchantment_handlers.EnchantVoidProtectionHandler
 import net.minecraft.enchantment.Enchantment
+import net.minecraftforge.common.MinecraftForge
 import net.minecraftforge.event.RegistryEvent
-import net.minecraftforge.fml.common.Mod
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
 
 /**
  * 附魔管理器
  * 统一管理所有自定义附魔的注册和初始化
  */
-@Mod.EventBusSubscriber
 
 object EnchantmentManager {
 
@@ -44,6 +45,7 @@ object EnchantmentManager {
         EnchantCrit.INSTANCE,
         EnchantCritDamage.INSTANCE,
         EnchantHealer.INSTANCE,
+        EnchantExecute.INSTANCE
         )
     private val handlerList = listOf(
         EnchantFlightHandler,
@@ -54,6 +56,7 @@ object EnchantmentManager {
         EnchantCritHandler,
         EnchantCritDamageHandler,
         EnchantHealerHandler,
+        EnchantExecuteHandler
         )
     private val initHandlerList = listOf(
         EnchantInfinitePowerHandler,
@@ -84,6 +87,10 @@ object EnchantmentManager {
             it.init()
         }
         SimpleMod.LOGGER.info("initialized ${enchantmentList.size} enchantment handler")
+    }
+    fun registerEnchantments() {
+        MinecraftForge.EVENT_BUS.register(this)
+        initHandlers()
     }
 
     fun getAll(): List<Enchantment> = enchantments

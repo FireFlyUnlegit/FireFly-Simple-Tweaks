@@ -6,11 +6,13 @@
   "target": "@env(DEFAULT)",
   "compatibilityLevel": "JAVA_8",
   "mixins": [
+    "MixinContainerRepair",
     "MixinEntityPlayer",
     "MixinEntityPlayerAttack",
     "MixinEntityPlayerSP",
     "MixinEntityRenderer",
     "MixinEntitySetDead",
+    "MixinGuiRepair",
     "MixinMinecraft",
     "MixinNetworkManager",
     "MixinWorldRemoveEntity"
