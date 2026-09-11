@@ -5,8 +5,6 @@ import net.minecraft.enchantment.EnumEnchantmentType
 import net.minecraft.init.Enchantments
 import net.minecraft.inventory.EntityEquipmentSlot
 import net.minecraft.util.ResourceLocation
-import net.minecraftforge.event.RegistryEvent
-import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
 
 class EnchantItemFixer private constructor() : Enchantment(
     Rarity.VERY_RARE,

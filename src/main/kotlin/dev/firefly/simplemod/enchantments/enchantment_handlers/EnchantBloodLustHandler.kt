@@ -3,6 +3,7 @@ package dev.firefly.simplemod.enchantments.enchantment_handlers
 import dev.firefly.simplemod.core.Listenable
 import dev.firefly.simplemod.enchantments.EnchantBloodLust
 import dev.firefly.simplemod.util.getItemSpecificEnchantLevel
+import dev.firefly.simplemod.util.isClientSide
 import net.minecraft.entity.EntityLivingBase
 import net.minecraftforge.event.entity.living.LivingHurtEvent
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
@@ -10,7 +11,7 @@ import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
 object EnchantBloodLustHandler : Listenable {
     @SubscribeEvent
     fun onLivingHurt(e: LivingHurtEvent) {
-        if (e.entity.world.isRemote) return
+        if (e.isClientSide) return
         val source = e.source
         val attacker = source.trueSource?: return
         val stack = (attacker as? EntityLivingBase)?.heldItemMainhand?: return

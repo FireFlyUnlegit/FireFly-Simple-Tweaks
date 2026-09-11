@@ -1,37 +1,46 @@
 package dev.firefly.simplemod.core
 
 import dev.firefly.simplemod.SimpleMod
+import dev.firefly.simplemod.enchantments.EnchantAcidAttack
+import dev.firefly.simplemod.enchantments.EnchantArmorBreaker
+import dev.firefly.simplemod.enchantments.EnchantAssassin
 import dev.firefly.simplemod.enchantments.EnchantBloodLust
 import dev.firefly.simplemod.enchantments.EnchantCrit
 import dev.firefly.simplemod.enchantments.EnchantCritDamage
 import dev.firefly.simplemod.enchantments.EnchantDoubleCrit
+import dev.firefly.simplemod.enchantments.EnchantDoubleStrike
+import dev.firefly.simplemod.enchantments.EnchantEffectBonus
 import dev.firefly.simplemod.enchantments.EnchantExecute
 import dev.firefly.simplemod.enchantments.EnchantFlight
 import dev.firefly.simplemod.enchantments.EnchantHealer
 import dev.firefly.simplemod.enchantments.EnchantHealingBlade
+import dev.firefly.simplemod.enchantments.EnchantImmortal
 import dev.firefly.simplemod.enchantments.EnchantInfinitePower
 import dev.firefly.simplemod.enchantments.EnchantItemFixer
+import dev.firefly.simplemod.enchantments.EnchantSaturation
 import dev.firefly.simplemod.enchantments.EnchantVoidProtection
+import dev.firefly.simplemod.enchantments.enchantment_handlers.EnchantAcidAttackHandler
+import dev.firefly.simplemod.enchantments.enchantment_handlers.EnchantArmorBreakerHandler
+import dev.firefly.simplemod.enchantments.enchantment_handlers.EnchantAssassinHandler
 import dev.firefly.simplemod.enchantments.enchantment_handlers.EnchantBloodLustHandler
 import dev.firefly.simplemod.enchantments.enchantment_handlers.EnchantCritDamageHandler
 import dev.firefly.simplemod.enchantments.enchantment_handlers.EnchantCritHandler
 import dev.firefly.simplemod.enchantments.enchantment_handlers.EnchantDoubleCritHandler
+import dev.firefly.simplemod.enchantments.enchantment_handlers.EnchantDoubleStrikeHandler
+import dev.firefly.simplemod.enchantments.enchantment_handlers.EnchantEffectBonusHandler
 import dev.firefly.simplemod.enchantments.enchantment_handlers.EnchantExecuteHandler
 import dev.firefly.simplemod.enchantments.enchantment_handlers.EnchantFlightHandler
 import dev.firefly.simplemod.enchantments.enchantment_handlers.EnchantHealerHandler
 import dev.firefly.simplemod.enchantments.enchantment_handlers.EnchantHealingBladeHandler
+import dev.firefly.simplemod.enchantments.enchantment_handlers.EnchantImmortalHandler
 import dev.firefly.simplemod.enchantments.enchantment_handlers.EnchantInfinitePowerHandler
 import dev.firefly.simplemod.enchantments.enchantment_handlers.EnchantItemFixerHandler
+import dev.firefly.simplemod.enchantments.enchantment_handlers.EnchantSaturationHandler
 import dev.firefly.simplemod.enchantments.enchantment_handlers.EnchantVoidProtectionHandler
 import net.minecraft.enchantment.Enchantment
 import net.minecraftforge.common.MinecraftForge
 import net.minecraftforge.event.RegistryEvent
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
-
-/**
- * 附魔管理器
- * 统一管理所有自定义附魔的注册和初始化
- */
 
 object EnchantmentManager {
 
@@ -39,6 +48,7 @@ object EnchantmentManager {
 
     private val enchantmentList = listOf(
         EnchantInfinitePower.INSTANCE,
+        EnchantDoubleStrike.INSTANCE,
         EnchantFlight.INSTANCE,
         EnchantItemFixer.INSTANCE,
         EnchantBloodLust.INSTANCE,
@@ -49,9 +59,17 @@ object EnchantmentManager {
         EnchantHealer.INSTANCE,
         EnchantExecute.INSTANCE,
         EnchantDoubleCrit.INSTANCE,
-        )
+        EnchantEffectBonus.INSTANCE,
+        EnchantImmortal.INSTANCE,
+        EnchantSaturation.INSTANCE,
+        EnchantAcidAttack.INSTANCE,
+        EnchantArmorBreaker.INSTANCE,
+        EnchantAssassin.INSTANCE,
+    )
+
     private val handlerList = listOf(
         EnchantInfinitePowerHandler,
+        EnchantDoubleStrikeHandler,
         EnchantFlightHandler,
         EnchantItemFixerHandler,
         EnchantBloodLustHandler,
@@ -62,12 +80,14 @@ object EnchantmentManager {
         EnchantHealerHandler,
         EnchantExecuteHandler,
         EnchantDoubleCritHandler,
-        )
+        EnchantEffectBonusHandler,
+        EnchantImmortalHandler,
+        EnchantSaturationHandler,
+        EnchantAcidAttackHandler,
+        EnchantArmorBreakerHandler,
+        EnchantAssassinHandler,
+    )
 
-    /**
-     * 注册所有附魔到 Forge 注册表
-     * 由 @SubscribeEvent 自动调用，不需要手动调用
-     */
     @SubscribeEvent
     fun registerEnchantments(event: RegistryEvent.Register<Enchantment>) {
         enchantmentList.forEach { enchantment ->
@@ -78,14 +98,11 @@ object EnchantmentManager {
         SimpleMod.LOGGER.info("Registered ${enchantments.size} enchantments")
     }
 
-    /**
-     * 初始化所有附魔的处理器
-     * 在 SimpleMod.init() 中调用
-     */
     fun initHandlers() {
         handlerList.forEach { it.registerToForge() }
         SimpleMod.LOGGER.info("initialized ${enchantmentList.size} enchantment handler")
     }
+
     fun registerEnchantments() {
         MinecraftForge.EVENT_BUS.register(this)
         initHandlers()

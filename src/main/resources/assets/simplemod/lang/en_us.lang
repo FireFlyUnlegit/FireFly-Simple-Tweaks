@@ -9,6 +9,13 @@ enchantment.simplemod.crit_damage=Crit Damage
 enchantment.simplemod.healer=Healer
 enchantment.simplemod.execute=Execute
 enchantment.simplemod.double_crit=Double Crit
+enchantment.simplemod.double_strike=Double Strike
+enchantment.simplemod.effect_bonus=Effect Bonus
+enchantment.simplemod.immortal=Immortal
+enchantment.simplemod.saturation=Saturation
+enchantment.simplemod.acid_attack=Acid Attack
+enchantment.simplemod.armor_breaker=Armor Breaker
+enchantment.simplemod.assassin=Assassin
 
 enchantment.simplemod.bloodlust.desc=Increases damage based on the attacker's missing health. Higher levels improve the bonus.
 enchantment.simplemod.crit.desc=Grants a chance to perform a critical hit even when not jumping. Higher levels increase the chance.
@@ -21,3 +28,10 @@ enchantment.simplemod.healing_blade.desc=Heals the attacker for a portion of dam
 enchantment.simplemod.infinite_power.desc=Grants flight, invincibility, instant mining, infinite food and durability, laser attack, multiplied loot, soulbound items, and an infinite storage bag.
 enchantment.simplemod.item_fixer.desc=Slowly repairs the item over time. Conflicts with Mending.
 enchantment.simplemod.void_protection.desc=When falling into the void, teleports you to y=256 and consumes one level of the enchantment.
+enchantment.simplemod.double_strike.desc=Every attack has a chance to trigger an extra strike.
+enchantment.simplemod.effect_bonus.desc=Increases damage based on the number of active potion effects on the target. Higher levels improve the multiplier.
+enchantment.simplemod.immortal.desc=Grants a chance to completely negate incoming damage after accumulating hits. Higher levels increase the chance and negate more consecutive hits.
+enchantment.simplemod.saturation.desc=Slowly restores hunger and saturation over time. Higher levels restore faster and more per trigger.
+enchantment.simplemod.acid_attack.desc=Damages the target's held weapon on hit. Higher levels deal more durability damage.
+enchantment.simplemod.armor_breaker.desc=Damages a random piece of the target's armor on hit. Higher levels deal more durability damage.
+enchantment.simplemod.assassin.desc=Instantly executes targets whose health is below a threshold after the hit. The threshold scales with level.

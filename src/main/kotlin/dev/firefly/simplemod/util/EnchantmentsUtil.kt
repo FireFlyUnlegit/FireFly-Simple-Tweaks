@@ -3,6 +3,8 @@ package dev.firefly.simplemod.util
 import net.minecraft.client.Minecraft
 import net.minecraft.enchantment.Enchantment
 import net.minecraft.enchantment.EnchantmentHelper
+import net.minecraft.entity.EntityLivingBase
+import net.minecraft.inventory.EntityEquipmentSlot
 import net.minecraft.item.ItemStack
 
 /**
@@ -39,12 +41,11 @@ fun hasEnchantment(itemStack: ItemStack, enchantment: Enchantment): Boolean {
 /**
  * 获取玩家所有盔甲上指定附魔的总等级
  */
-fun getArmorEnchantLevel(enchantment: Enchantment): Int {
-    val mc = Minecraft.getMinecraft()
-    val player = mc.player ?: return 0
+fun EntityLivingBase.getArmorEnchantLevel(enchant: Enchantment): Int {
     var total = 0
-    player.inventory.armorInventory.forEach { armor ->
-        total += getItemSpecificEnchantLevel(armor, enchantment)
+    for (slot in EntityEquipmentSlot.entries) {
+        if (slot.slotType != EntityEquipmentSlot.Type.ARMOR) continue
+        total += EnchantmentHelper.getEnchantmentLevel(enchant, this.getItemStackFromSlot(slot))
     }
     return total
 }
