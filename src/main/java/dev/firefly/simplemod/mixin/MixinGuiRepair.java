@@ -1,6 +1,6 @@
 package dev.firefly.simplemod.mixin;
 
-import dev.firefly.simplemod.core.config.AnvilConfig;
+import dev.firefly.simplemod.core.config.GeneralConfig;
 import net.minecraft.client.gui.GuiRepair;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.Constant;
@@ -17,8 +17,8 @@ public class MixinGuiRepair {
             constant = @Constant(intValue = 40)
     )
     private int modifyRenderMaxCost(int original) {
-        if (AnvilConfig.disableAnvilCostLimit) {
-            return AnvilConfig.maxAnvilCost;
+        if (GeneralConfig.disableAnvilCostLimit) {
+            return GeneralConfig.maxAnvilCost;
         }
         return original;
     }

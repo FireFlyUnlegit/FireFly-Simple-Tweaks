@@ -1,5 +1,6 @@
 package dev.firefly.simplemod
 
+import dev.firefly.simplemod.core.CommandManager
 import dev.firefly.simplemod.core.EnchantmentManager
 import dev.firefly.simplemod.core.ModuleManager
 import dev.firefly.simplemod.core.config.DamageIndicatorConfig
@@ -13,6 +14,7 @@ import net.minecraftforge.common.MinecraftForge
 import net.minecraftforge.fml.common.Mod
 import net.minecraftforge.fml.common.event.FMLInitializationEvent
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent
+import net.minecraftforge.fml.common.event.FMLServerStartingEvent
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
 import net.minecraftforge.fml.common.gameevent.InputEvent
 import org.apache.logging.log4j.LogManager
@@ -25,7 +27,7 @@ class SimpleMod {
     companion object {
         const val MOD_ID = "simplemod"
         const val NAME = "Simple Optimization Mod"
-        const val VERSION = "1.0.1"
+        const val VERSION = "1.0.2"
         val LOGGER = LogManager.getLogger(NAME)
 
         private val configFile = File("config/simplemod/gui.properties")
@@ -67,10 +69,14 @@ class SimpleMod {
         EnchantmentManager.registerEnchantments()
         MinecraftForge.EVENT_BUS.register(DamageIndicatorRenderer)
         MinecraftForge.EVENT_BUS.register(DamageIndicatorHandler)
-
+        CommandManager.registerCommands()
         LOGGER.info("GUI Open Key: ${Keyboard.getKeyName(guiKey)}")
     }
 
+    @Mod.EventHandler
+    fun onServerStarting(e: FMLServerStartingEvent) {
+        CommandManager.onServerStarting(e)
+    }
     @Mod.EventHandler
     fun init(event: FMLInitializationEvent) {
         LOGGER.info("{} Load Completed!", NAME)

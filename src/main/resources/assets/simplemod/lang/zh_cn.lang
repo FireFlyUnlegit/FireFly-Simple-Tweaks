@@ -16,6 +16,7 @@ enchantment.simplemod.saturation=饱食
 enchantment.simplemod.acid_attack=酸蚀攻击
 enchantment.simplemod.armor_breaker=破甲
 enchantment.simplemod.assassin=刺客
+enchantment.simplemod.damage_limiter=限伤
 
 enchantment.simplemod.bloodlust.desc=根据攻击者已损失的生命值比例提升伤害，等级越高加成越高。
 enchantment.simplemod.crit.desc=攻击时有几率触发暴击（无需跳跃），等级越高几率越大。
@@ -34,4 +35,5 @@ enchantment.simplemod.immortal.desc=累积受击后，有概率完全免疫本�
 enchantment.simplemod.saturation.desc=随时间缓慢恢复饥饿值与饱和度，等级越高恢复越快、单次恢复越多。
 enchantment.simplemod.acid_attack.desc=命中时腐蚀目标手持的武器，等级越高扣除耐久越多。
 enchantment.simplemod.armor_breaker.desc=命中时随机腐蚀目标一件盔甲，等级越高扣除耐久越多。
-enchantment.simplemod.assassin.desc=命中后若目标剩余血量低于阈值则直接斩杀，阈值随等级提升。
+
+enchantment.simplemod.damage_limiter.desc=受到的中等伤害会被压制到最大生命值的固定比例，超出数倍的致命一击则直接穿透。等级越高压制越强。

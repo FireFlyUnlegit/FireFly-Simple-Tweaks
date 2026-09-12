@@ -57,7 +57,6 @@ data class DamageNumber(
         }
     }
 
-    // 获取符号前缀（+ 或 -），根据配置决定是否显示
     private fun getSign(): String {
         return if (DamageIndicatorConfig.symbol) {
             if (isHeal) "+" else "-"

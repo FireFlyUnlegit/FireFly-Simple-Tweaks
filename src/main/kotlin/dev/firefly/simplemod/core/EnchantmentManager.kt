@@ -7,6 +7,7 @@ import dev.firefly.simplemod.enchantments.EnchantAssassin
 import dev.firefly.simplemod.enchantments.EnchantBloodLust
 import dev.firefly.simplemod.enchantments.EnchantCrit
 import dev.firefly.simplemod.enchantments.EnchantCritDamage
+import dev.firefly.simplemod.enchantments.EnchantDamageLimiter
 import dev.firefly.simplemod.enchantments.EnchantDoubleCrit
 import dev.firefly.simplemod.enchantments.EnchantDoubleStrike
 import dev.firefly.simplemod.enchantments.EnchantEffectBonus
@@ -25,6 +26,7 @@ import dev.firefly.simplemod.enchantments.enchantment_handlers.EnchantAssassinHa
 import dev.firefly.simplemod.enchantments.enchantment_handlers.EnchantBloodLustHandler
 import dev.firefly.simplemod.enchantments.enchantment_handlers.EnchantCritDamageHandler
 import dev.firefly.simplemod.enchantments.enchantment_handlers.EnchantCritHandler
+import dev.firefly.simplemod.enchantments.enchantment_handlers.EnchantDamageLimiterHandler
 import dev.firefly.simplemod.enchantments.enchantment_handlers.EnchantDoubleCritHandler
 import dev.firefly.simplemod.enchantments.enchantment_handlers.EnchantDoubleStrikeHandler
 import dev.firefly.simplemod.enchantments.enchantment_handlers.EnchantEffectBonusHandler
@@ -65,6 +67,7 @@ object EnchantmentManager {
         EnchantAcidAttack.INSTANCE,
         EnchantArmorBreaker.INSTANCE,
         EnchantAssassin.INSTANCE,
+        EnchantDamageLimiter.INSTANCE,
     )
 
     private val handlerList = listOf(
@@ -86,6 +89,7 @@ object EnchantmentManager {
         EnchantAcidAttackHandler,
         EnchantArmorBreakerHandler,
         EnchantAssassinHandler,
+        EnchantDamageLimiterHandler,
     )
 
     @SubscribeEvent

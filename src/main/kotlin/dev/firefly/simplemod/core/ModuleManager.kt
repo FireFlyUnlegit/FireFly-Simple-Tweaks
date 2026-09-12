@@ -17,7 +17,7 @@ object ModuleManager {
         moduleList.forEach {
             register(it)
         }
-        SimpleMod.LOGGER.info("已注册 ${modules.size} 个模块")
+        SimpleMod.LOGGER.info("Registered ${modules.size} Modules")
     }
 
     private fun register(module: Module) {
@@ -25,9 +25,9 @@ object ModuleManager {
         module.load()
         if (module.state) {
             module.onEnable()
-            SimpleMod.LOGGER.info("模块自动启用: ${module.name}")
+            SimpleMod.LOGGER.info("Module Enabled Automatically: ${module.name}")
         }
-        SimpleMod.LOGGER.info("注册模块: ${module.name} (状态: ${if (module.state) "开启" else "关闭"})")
+        SimpleMod.LOGGER.info("RegisterModule: ${module.name} (State: ${if (module.state) "Enabled" else "Disabled"})")
     }
 
     fun get(name: String): Module? = modules.find { it.name.equals(name, ignoreCase = true) }

@@ -17,7 +17,7 @@ object EnchantEffectBonusHandler : Listenable {
         val target = e.entityLiving?: return
         val lvl = getItemSpecificEnchantLevel( attacker.heldItemMainhand , EnchantEffectBonus.INSTANCE)
         if (lvl > 0 && nextFloat() < 0.35 + 0.06 * lvl) {
-            e.amount *= 0.02f * lvl * target.activePotionEffects.size
+            e.amount *= 0.02f * lvl * target.activePotionEffects.size + 1f
         }
     }
 }

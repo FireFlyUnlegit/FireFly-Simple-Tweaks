@@ -22,8 +22,7 @@ class EnchantItemFixer private constructor() : Enchantment(
         return super.canApplyTogether(ench) && ench != Enchantments.MENDING
     }
 
-    override fun getMinEnchantability(enchantmentLevel: Int): Int = 15
-    override fun getMaxEnchantability(enchantmentLevel: Int): Int = 30
+    override fun getMinEnchantability(enchantmentLevel: Int): Int = 15 + 5 * enchantmentLevel
 
     override fun isTreasureEnchantment(): Boolean = false
 

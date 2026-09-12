@@ -1,6 +1,6 @@
 package dev.firefly.simplemod.mixin;
 
-import dev.firefly.simplemod.core.config.AnvilConfig;
+import dev.firefly.simplemod.core.config.GeneralConfig;
 import net.minecraft.inventory.ContainerRepair;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -20,8 +20,8 @@ public class MixinContainerRepair {
             constant = @Constant(intValue = 40)
     )
     private int modifyMaxAnvilCost(int original) {
-        if (AnvilConfig.disableAnvilCostLimit) {
-            return AnvilConfig.maxAnvilCost;
+        if (GeneralConfig.disableAnvilCostLimit) {
+            return GeneralConfig.maxAnvilCost;
         }
         return original;
     }
@@ -38,7 +38,7 @@ public class MixinContainerRepair {
             )
     )
     private int modifyVariableI(int original) {
-        if (AnvilConfig.disableAnvilCostLimit && original == 40) {
+        if (GeneralConfig.disableAnvilCostLimit && original == 40) {
             return 0;
         }
         return original;

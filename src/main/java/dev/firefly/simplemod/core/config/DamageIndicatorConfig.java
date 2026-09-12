@@ -10,30 +10,28 @@ import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 public class DamageIndicatorConfig {
     @Config.Name("Enable Damage Indicator")
     @Config.Comment("Whether to show damage numbers when attacking mobs")
-    @Config.RequiresMcRestart
     public static boolean enabled = true;
     @Config.Name("Indicator with symbol(+/-)")
     @Config.Comment("Whether the indicator display with symbol(+/-)")
-    @Config.RequiresMcRestart
     public static boolean symbol = true;
     @Config.Name("Display Duration (Ticks)")
     @Config.Comment("How long damage numbers stay visible (20 ticks = 1 second)")
-    @Config.RangeInt(min = 10, max = 100)
+    @Config.RangeInt(min = 10, max = 500)
     public static int duration = 40;
 
     @Config.Name("Rise Duration (Ticks)")
     @Config.Comment("How many ticks the number rises before stopping (10 ticks = 0.5 seconds)")
-    @Config.RangeInt(min = 5, max = 30)
+    @Config.RangeInt(min = 5, max = 50)
     public static int riseDuration = 10;
 
     @Config.Name("Max Distance")
     @Config.Comment("Maximum distance to show damage numbers")
-    @Config.RangeInt(min = 16, max = 128)
+    @Config.RangeInt(min = 16, max = 256)
     public static int maxDistance = 64;
 
     @Config.Name("Scale")
     @Config.Comment("Base scale of damage numbers")
-    @Config.RangeDouble(min = 0.5, max = 2.0)
+    @Config.RangeDouble(min = 0.5, max = 10.0)
     public static double scale = 1.2;
 
     @Config.Name("Percentage Mode")

@@ -1,5 +1,6 @@
 package dev.firefly.simplemod.util
 
+import net.minecraftforge.event.entity.living.LivingDamageEvent
 import net.minecraftforge.event.entity.living.LivingHurtEvent
 import net.minecraftforge.event.entity.player.CriticalHitEvent
 import net.minecraftforge.fml.common.eventhandler.Event
@@ -11,4 +12,6 @@ fun CriticalHitEvent.setCrit(state: Boolean) {
 val CriticalHitEvent.isCrit: Boolean
     get() = this.isVanillaCritical || this.result == Event.Result.ALLOW
 val LivingHurtEvent.isClientSide: Boolean
+    get() = this.entity.world.isRemote
+val LivingDamageEvent.isClientSide: Boolean
     get() = this.entity.world.isRemote
