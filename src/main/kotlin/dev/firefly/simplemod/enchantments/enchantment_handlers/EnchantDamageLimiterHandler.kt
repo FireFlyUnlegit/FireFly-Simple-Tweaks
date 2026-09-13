@@ -3,7 +3,7 @@ package dev.firefly.simplemod.enchantments.enchantment_handlers
 import dev.firefly.simplemod.core.Listenable
 import dev.firefly.simplemod.enchantments.EnchantDamageLimiter
 import dev.firefly.simplemod.util.getItemSpecificEnchantLevel
-import dev.firefly.simplemod.util.isClientSide
+import dev.firefly.simplemod.util.invalid
 import net.minecraft.inventory.EntityEquipmentSlot
 import net.minecraftforge.event.entity.living.LivingDamageEvent
 import net.minecraftforge.fml.common.eventhandler.EventPriority
@@ -14,7 +14,7 @@ object EnchantDamageLimiterHandler : Listenable {
 
     @SubscribeEvent(priority = EventPriority.LOWEST)
     fun onLivingDamage(e: LivingDamageEvent) {
-        if (e.isClientSide) return
+        if (e.invalid) return
         val p = e.entityLiving ?: return
 
         var lvl = 0

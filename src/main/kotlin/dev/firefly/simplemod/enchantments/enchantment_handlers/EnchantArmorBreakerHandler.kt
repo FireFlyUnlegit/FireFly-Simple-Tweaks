@@ -4,7 +4,7 @@ import dev.firefly.simplemod.core.Listenable
 import dev.firefly.simplemod.enchantments.EnchantArmorBreaker
 import dev.firefly.simplemod.util.getItemSpecificEnchantLevel
 import dev.firefly.simplemod.util.getRandomArmor
-import dev.firefly.simplemod.util.isClientSide
+import dev.firefly.simplemod.util.invalid
 import net.minecraft.entity.EntityLivingBase
 import net.minecraft.entity.player.EntityPlayer
 import net.minecraftforge.event.entity.living.LivingHurtEvent
@@ -14,7 +14,7 @@ import kotlin.random.Random.Default.nextFloat
 object EnchantArmorBreakerHandler : Listenable {
     @SubscribeEvent
     fun onLivingHurt(e: LivingHurtEvent) {
-        if (e.isClientSide) return
+        if (e.invalid) return
         val attacker = (e.source.trueSource as? EntityLivingBase)?: return
         val target = e.entityLiving as? EntityPlayer?: return
 

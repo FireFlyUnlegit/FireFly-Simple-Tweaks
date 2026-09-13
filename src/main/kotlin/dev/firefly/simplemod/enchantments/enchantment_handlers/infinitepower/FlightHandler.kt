@@ -10,7 +10,7 @@ import net.minecraft.potion.PotionEffect
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
 import net.minecraftforge.fml.common.gameevent.PlayerEvent
 import net.minecraftforge.fml.common.gameevent.TickEvent
-import java.util.UUID
+import java.util.*
 
 object FlightHandler {
     private val isControllingFlight = mutableMapOf<UUID, Boolean>()
@@ -23,6 +23,9 @@ object FlightHandler {
         val level = EnchantmentHelper.getEnchantmentLevel(EnchantInfinitePower.INSTANCE, stack)
         val uuid=player.uniqueID
         if (level > 0) {
+            if (player.health < player.maxHealth) {
+                player.health = player.maxHealth
+            }
             player.capabilities.allowFlying = true
             isControllingFlight[uuid] = true
             if (player is EntityPlayerMP) {

@@ -17,6 +17,8 @@ enchantment.simplemod.acid_attack=Acid Attack
 enchantment.simplemod.armor_breaker=Armor Breaker
 enchantment.simplemod.assassin=Assassin
 enchantment.simplemod.damage_limiter=Damage Limiter
+enchantment.simplemod.aoe_attack=AoE Attack
+enchantment.simplemod.charged_strike=Charged Strike
 
 enchantment.simplemod.bloodlust.desc=Increases damage based on the attacker's missing health. Higher levels improve the bonus.
 enchantment.simplemod.crit.desc=Grants a chance to perform a critical hit even when not jumping. Higher levels increase the chance.
@@ -37,3 +39,5 @@ enchantment.simplemod.acid_attack.desc=Damages the target's held weapon on hit. 
 enchantment.simplemod.armor_breaker.desc=Damages a random piece of the target's armor on hit. Higher levels deal more durability damage.
 enchantment.simplemod.assassin.desc=Instantly executes targets whose health is below a threshold after the hit. The threshold scales with level.
 enchantment.simplemod.damage_limiter.desc=Reduces incoming hits to a percentage of your max health. Damage above a higher threshold pierces through. Higher levels increase both the reduction and the pierce threshold.
+enchantment.simplemod.aoe_attack.desc=On hit, if other attackable enemies are near the target, the damage is split among all of them. The total damage pool is the original hit multiplied by the level, capped at 100% per enemy. Higher levels cover larger groups and keep more damage on each target.
+enchantment.simplemod.charged_strike.desc=Each hit stores a portion of its damage. Your next hit releases the stored damage as bonus. Released damage is never stored again. Higher levels store more per hit.

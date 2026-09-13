@@ -3,6 +3,7 @@ package dev.firefly.simplemod.damageindicator
 import dev.firefly.simplemod.core.Listenable
 import dev.firefly.simplemod.core.config.DamageIndicatorConfig
 import dev.firefly.simplemod.network.NetworkManager
+import dev.firefly.simplemod.util.isClientSide
 import net.minecraft.entity.EntityLivingBase
 import net.minecraft.entity.player.EntityPlayerMP
 import net.minecraftforge.common.DimensionManager
@@ -114,7 +115,7 @@ object DamageIndicatorHandler : Listenable {
     @SubscribeEvent(priority = EventPriority.LOWEST)
     fun onLivingHurt(event: LivingHurtEvent) {
         if (!DamageIndicatorConfig.enabled) return
-        if (event.entity.world.isRemote) return
+        if (event.isClientSide) return
 
         val target = event.entityLiving
         val uuid = target.uniqueID

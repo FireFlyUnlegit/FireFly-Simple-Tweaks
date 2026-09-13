@@ -11,12 +11,14 @@ enchantment.simplemod.execute=处决
 enchantment.simplemod.double_crit=双倍暴击
 enchantment.simplemod.double_strike=双重打击
 enchantment.simplemod.effect_bonus=效果增益
-enchantment.simplemod.immortal=不死
+enchantment.simplemod.immortal=不朽
 enchantment.simplemod.saturation=饱食
 enchantment.simplemod.acid_attack=酸蚀攻击
 enchantment.simplemod.armor_breaker=破甲
 enchantment.simplemod.assassin=刺客
 enchantment.simplemod.damage_limiter=限伤
+enchantment.simplemod.aoe_attack=群攻
+enchantment.simplemod.charged_strike=充能打击
 
 enchantment.simplemod.bloodlust.desc=根据攻击者已损失的生命值比例提升伤害，等级越高加成越高。
 enchantment.simplemod.crit.desc=攻击时有几率触发暴击（无需跳跃），等级越高几率越大。
@@ -35,5 +37,7 @@ enchantment.simplemod.immortal.desc=累积受击后，有概率完全免疫本�
 enchantment.simplemod.saturation.desc=随时间缓慢恢复饥饿值与饱和度，等级越高恢复越快、单次恢复越多。
 enchantment.simplemod.acid_attack.desc=命中时腐蚀目标手持的武器，等级越高扣除耐久越多。
 enchantment.simplemod.armor_breaker.desc=命中时随机腐蚀目标一件盔甲，等级越高扣除耐久越多。
-
+enchantment.simplemod.assassin.desc=斩杀低生命的敌人
 enchantment.simplemod.damage_limiter.desc=受到的中等伤害会被压制到最大生命值的固定比例，超出数倍的致命一击则直接穿透。等级越高压制越强。
+enchantment.simplemod.aoe_attack.desc=命中时若目标附近有其他可攻击的敌人，将本次伤害分摊至全体。总伤害池为原始伤害的等级倍数，单个目标至多承受 100%。等级越高，可覆盖的敌群越广、单目标伤害越接近满额。
+enchantment.simplemod.charged_strike.desc=每次命中会储存本次伤害的一部分作为充能，下一次命中时一并释放。被释放的伤害不会再次储存。等级越高，每次储存的比例越高。

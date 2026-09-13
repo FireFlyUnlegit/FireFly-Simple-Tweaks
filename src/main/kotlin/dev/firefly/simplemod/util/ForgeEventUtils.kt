@@ -2,6 +2,7 @@ package dev.firefly.simplemod.util
 
 import net.minecraftforge.event.entity.living.LivingDamageEvent
 import net.minecraftforge.event.entity.living.LivingHurtEvent
+import net.minecraftforge.event.entity.player.AttackEntityEvent
 import net.minecraftforge.event.entity.player.CriticalHitEvent
 import net.minecraftforge.fml.common.eventhandler.Event
 
@@ -15,3 +16,15 @@ val LivingHurtEvent.isClientSide: Boolean
     get() = this.entity.world.isRemote
 val LivingDamageEvent.isClientSide: Boolean
     get() = this.entity.world.isRemote
+val CriticalHitEvent.isClientSide: Boolean
+    get() = this.entity.world.isRemote
+val AttackEntityEvent.isClientSide: Boolean
+    get() = this.entity.world.isRemote
+val LivingHurtEvent.invalid: Boolean
+    get() = this.isClientSide || this.isCanceled
+val LivingDamageEvent.invalid: Boolean
+    get() = this.isClientSide || this.isCanceled
+val CriticalHitEvent.invalid: Boolean
+    get() = this.isClientSide || this.isCanceled
+val AttackEntityEvent.invalid: Boolean
+    get() = this.isClientSide || this.isCanceled

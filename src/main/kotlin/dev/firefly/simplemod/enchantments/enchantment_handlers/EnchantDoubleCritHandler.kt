@@ -4,6 +4,7 @@ import dev.firefly.simplemod.core.Listenable
 import dev.firefly.simplemod.enchantments.EnchantCritDamage
 import dev.firefly.simplemod.enchantments.EnchantDoubleCrit
 import dev.firefly.simplemod.util.getItemSpecificEnchantLevel
+import dev.firefly.simplemod.util.invalid
 import dev.firefly.simplemod.util.isCrit
 import dev.firefly.simplemod.util.safeGetCooledAttackStrength
 import net.minecraftforge.event.entity.player.CriticalHitEvent
@@ -14,6 +15,8 @@ import kotlin.random.Random.Default.nextFloat
 object EnchantDoubleCritHandler : Listenable {
     @SubscribeEvent(priority = EventPriority.HIGH)
     fun onCrit(e: CriticalHitEvent) {
+        if (e.invalid) return
+
         val living = e.entityLiving?: return
         if (living.safeGetCooledAttackStrength() < 0.848) return
 

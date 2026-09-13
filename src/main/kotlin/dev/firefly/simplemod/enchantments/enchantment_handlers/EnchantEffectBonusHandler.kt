@@ -3,7 +3,7 @@ package dev.firefly.simplemod.enchantments.enchantment_handlers
 import dev.firefly.simplemod.core.Listenable
 import dev.firefly.simplemod.enchantments.EnchantEffectBonus
 import dev.firefly.simplemod.util.getItemSpecificEnchantLevel
-import dev.firefly.simplemod.util.isClientSide
+import dev.firefly.simplemod.util.invalid
 import net.minecraft.entity.EntityLivingBase
 import net.minecraftforge.event.entity.living.LivingHurtEvent
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
@@ -12,7 +12,7 @@ import kotlin.random.Random.Default.nextFloat
 object EnchantEffectBonusHandler : Listenable {
     @SubscribeEvent
     fun onLivingHurt(e: LivingHurtEvent) {
-        if (e.isClientSide) return
+        if (e.invalid) return
         val attacker = (e.source.trueSource as? EntityLivingBase)?: return
         val target = e.entityLiving?: return
         val lvl = getItemSpecificEnchantLevel( attacker.heldItemMainhand , EnchantEffectBonus.INSTANCE)

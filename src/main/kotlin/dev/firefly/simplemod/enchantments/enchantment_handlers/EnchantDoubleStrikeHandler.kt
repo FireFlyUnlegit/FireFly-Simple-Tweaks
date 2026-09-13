@@ -4,13 +4,14 @@ import dev.firefly.simplemod.core.Listenable
 import dev.firefly.simplemod.enchantments.EnchantDoubleStrike
 import dev.firefly.simplemod.util.attackCharge
 import dev.firefly.simplemod.util.getItemSpecificEnchantLevel
+import dev.firefly.simplemod.util.invalid
 import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.util.DamageSource
 import net.minecraftforge.event.entity.living.LivingHurtEvent
 import net.minecraftforge.event.entity.player.AttackEntityEvent
 import net.minecraftforge.fml.common.eventhandler.EventPriority
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
-import java.util.WeakHashMap
+import java.util.*
 import kotlin.random.Random.Default.nextFloat
 
 object EnchantDoubleStrikeHandler : Listenable {
@@ -22,7 +23,8 @@ object EnchantDoubleStrikeHandler : Listenable {
     fun onAttack(e: AttackEntityEvent) {
         if (inExtraStrike.get()) return
         val player = e.entityPlayer
-        if (player.world.isRemote) return
+        if (e.invalid) return
+
         armed.remove(player)
         if (player.attackCharge < 0.848) return
         val lvl = getItemSpecificEnchantLevel(player.heldItemMainhand, EnchantDoubleStrike.INSTANCE)
@@ -34,6 +36,8 @@ object EnchantDoubleStrikeHandler : Listenable {
     fun onHurt(e: LivingHurtEvent) {
         if (inExtraStrike.get()) return
         val attacker = e.source.trueSource as? EntityPlayer ?: return
+        if (e.invalid) return
+
         if (attacker.world.isRemote) return
         val lvl = armed.remove(attacker) ?: return
         val target = e.entityLiving

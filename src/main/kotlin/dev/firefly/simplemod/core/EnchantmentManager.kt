@@ -1,44 +1,8 @@
 package dev.firefly.simplemod.core
 
 import dev.firefly.simplemod.SimpleMod
-import dev.firefly.simplemod.enchantments.EnchantAcidAttack
-import dev.firefly.simplemod.enchantments.EnchantArmorBreaker
-import dev.firefly.simplemod.enchantments.EnchantAssassin
-import dev.firefly.simplemod.enchantments.EnchantBloodLust
-import dev.firefly.simplemod.enchantments.EnchantCrit
-import dev.firefly.simplemod.enchantments.EnchantCritDamage
-import dev.firefly.simplemod.enchantments.EnchantDamageLimiter
-import dev.firefly.simplemod.enchantments.EnchantDoubleCrit
-import dev.firefly.simplemod.enchantments.EnchantDoubleStrike
-import dev.firefly.simplemod.enchantments.EnchantEffectBonus
-import dev.firefly.simplemod.enchantments.EnchantExecute
-import dev.firefly.simplemod.enchantments.EnchantFlight
-import dev.firefly.simplemod.enchantments.EnchantHealer
-import dev.firefly.simplemod.enchantments.EnchantHealingBlade
-import dev.firefly.simplemod.enchantments.EnchantImmortal
-import dev.firefly.simplemod.enchantments.EnchantInfinitePower
-import dev.firefly.simplemod.enchantments.EnchantItemFixer
-import dev.firefly.simplemod.enchantments.EnchantSaturation
-import dev.firefly.simplemod.enchantments.EnchantVoidProtection
-import dev.firefly.simplemod.enchantments.enchantment_handlers.EnchantAcidAttackHandler
-import dev.firefly.simplemod.enchantments.enchantment_handlers.EnchantArmorBreakerHandler
-import dev.firefly.simplemod.enchantments.enchantment_handlers.EnchantAssassinHandler
-import dev.firefly.simplemod.enchantments.enchantment_handlers.EnchantBloodLustHandler
-import dev.firefly.simplemod.enchantments.enchantment_handlers.EnchantCritDamageHandler
-import dev.firefly.simplemod.enchantments.enchantment_handlers.EnchantCritHandler
-import dev.firefly.simplemod.enchantments.enchantment_handlers.EnchantDamageLimiterHandler
-import dev.firefly.simplemod.enchantments.enchantment_handlers.EnchantDoubleCritHandler
-import dev.firefly.simplemod.enchantments.enchantment_handlers.EnchantDoubleStrikeHandler
-import dev.firefly.simplemod.enchantments.enchantment_handlers.EnchantEffectBonusHandler
-import dev.firefly.simplemod.enchantments.enchantment_handlers.EnchantExecuteHandler
-import dev.firefly.simplemod.enchantments.enchantment_handlers.EnchantFlightHandler
-import dev.firefly.simplemod.enchantments.enchantment_handlers.EnchantHealerHandler
-import dev.firefly.simplemod.enchantments.enchantment_handlers.EnchantHealingBladeHandler
-import dev.firefly.simplemod.enchantments.enchantment_handlers.EnchantImmortalHandler
-import dev.firefly.simplemod.enchantments.enchantment_handlers.EnchantInfinitePowerHandler
-import dev.firefly.simplemod.enchantments.enchantment_handlers.EnchantItemFixerHandler
-import dev.firefly.simplemod.enchantments.enchantment_handlers.EnchantSaturationHandler
-import dev.firefly.simplemod.enchantments.enchantment_handlers.EnchantVoidProtectionHandler
+import dev.firefly.simplemod.enchantments.*
+import dev.firefly.simplemod.enchantments.enchantment_handlers.*
 import net.minecraft.enchantment.Enchantment
 import net.minecraftforge.common.MinecraftForge
 import net.minecraftforge.event.RegistryEvent
@@ -68,6 +32,8 @@ object EnchantmentManager {
         EnchantArmorBreaker.INSTANCE,
         EnchantAssassin.INSTANCE,
         EnchantDamageLimiter.INSTANCE,
+        EnchantAoeAttack.INSTANCE,
+        EnchantChargedStrike.INSTANCE,
     )
 
     private val handlerList = listOf(
@@ -90,6 +56,8 @@ object EnchantmentManager {
         EnchantArmorBreakerHandler,
         EnchantAssassinHandler,
         EnchantDamageLimiterHandler,
+        EnchantAoeAttackHandler,
+        EnchantChargedStrikeHandler,
     )
 
     @SubscribeEvent

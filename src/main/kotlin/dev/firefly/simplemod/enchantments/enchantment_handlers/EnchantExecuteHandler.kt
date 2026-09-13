@@ -3,6 +3,7 @@ package dev.firefly.simplemod.enchantments.enchantment_handlers
 import dev.firefly.simplemod.core.Listenable
 import dev.firefly.simplemod.enchantments.EnchantExecute
 import dev.firefly.simplemod.util.getItemSpecificEnchantLevel
+import dev.firefly.simplemod.util.invalid
 import net.minecraft.entity.EntityLivingBase
 import net.minecraftforge.event.entity.living.LivingHurtEvent
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
@@ -10,7 +11,7 @@ import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
 object EnchantExecuteHandler : Listenable {
     @SubscribeEvent
     fun onLivingHurt(e: LivingHurtEvent) {
-        if (e.entity.world.isRemote) return
+        if (e.invalid) return
         val attacker = (e.source.trueSource as? EntityLivingBase)?: return
         val target = e.entityLiving?: return
         val lvl = getItemSpecificEnchantLevel(attacker.heldItemMainhand, EnchantExecute.INSTANCE)
