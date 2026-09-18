@@ -14,7 +14,7 @@ object EnchantExecuteHandler : Listenable {
         if (e.invalid) return
         val attacker = (e.source.trueSource as? EntityLivingBase)?: return
         val target = e.entityLiving?: return
-        val lvl = getItemSpecificEnchantLevel(attacker.heldItemMainhand, EnchantExecute.INSTANCE)
+        val lvl = getItemSpecificEnchantLevel(attacker.heldItemMainhand, EnchantExecute)
         if (lvl > 0) {
             val lostHealth = ((target.maxHealth + target.absorptionAmount) - (target.health+ target.absorptionAmount)) * 0.02f * lvl
             e.amount += lostHealth

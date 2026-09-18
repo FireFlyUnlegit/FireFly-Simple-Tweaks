@@ -18,7 +18,7 @@ object InfiniteContainerHandler {
         if (player.world.isRemote) return
         val stack = player.heldItemMainhand
         if (stack.isEmpty) return
-        val level = EnchantmentHelper.getEnchantmentLevel(EnchantInfinitePower.INSTANCE, stack)
+        val level = EnchantmentHelper.getEnchantmentLevel(EnchantInfinitePower, stack)
         if (level <= 0) return
         if (!player.isSneaking) return
 
@@ -43,7 +43,7 @@ object InfiniteContainerHandler {
 
         val stack = player.heldItemMainhand
         if (stack.isEmpty) return
-        val level = EnchantmentHelper.getEnchantmentLevel(EnchantInfinitePower.INSTANCE, stack)
+        val level = EnchantmentHelper.getEnchantmentLevel(EnchantInfinitePower, stack)
         if (level <= 0) return
 
         val inv = InfiniteBagInventory(player)

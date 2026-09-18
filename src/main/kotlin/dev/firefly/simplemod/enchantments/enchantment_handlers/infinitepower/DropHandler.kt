@@ -19,12 +19,11 @@ object DropHandler {
         val player = trueSource
         val stack = player.heldItemMainhand
         if (stack.isEmpty) return
-        val level = EnchantmentHelper.getEnchantmentLevel(EnchantInfinitePower.INSTANCE, stack)
+        val level = EnchantmentHelper.getEnchantmentLevel(EnchantInfinitePower, stack)
         if (level <= 0) return
 
-        // 虚空附魔基础倍率 100 + 原版抢夺等级
         val lootingLevel = EnchantmentHelper.getEnchantmentLevel(Enchantments.LOOTING, stack)
-        val multiplier = 100 + lootingLevel
+        val multiplier = 64 + lootingLevel
 
         val newDrops = mutableListOf<EntityItem>()
         for (drop in event.drops) {
@@ -50,12 +49,11 @@ object DropHandler {
         if (player == null) return
         val stack = player.heldItemMainhand
         if (stack.isEmpty) return
-        val level = EnchantmentHelper.getEnchantmentLevel(EnchantInfinitePower.INSTANCE, stack)
+        val level = EnchantmentHelper.getEnchantmentLevel(EnchantInfinitePower, stack)
         if (level <= 0) return
 
-        // 虚空附魔基础倍率 100 + 原版时运等级
         val fortuneLevel = EnchantmentHelper.getEnchantmentLevel(Enchantments.FORTUNE, stack)
-        val multiplier = 100 + fortuneLevel
+        val multiplier = 64 + fortuneLevel
 
         val newDrops = mutableListOf<ItemStack>()
         for (drop in event.drops) {

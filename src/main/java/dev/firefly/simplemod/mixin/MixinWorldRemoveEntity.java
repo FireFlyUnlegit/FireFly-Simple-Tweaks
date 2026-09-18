@@ -19,7 +19,7 @@ public abstract class MixinWorldRemoveEntity {
         if (!(entity instanceof EntityPlayer)) return;
         EntityPlayer player = (EntityPlayer) entity;
         ItemStack stack = player.getHeldItemMainhand();
-        int level = EnchantmentHelper.getEnchantmentLevel(EnchantInfinitePower.Companion.getINSTANCE(), stack);
+        int level = EnchantmentHelper.getEnchantmentLevel(EnchantInfinitePower.INSTANCE, stack);
         if (level > 0) {
             ci.cancel();
         }

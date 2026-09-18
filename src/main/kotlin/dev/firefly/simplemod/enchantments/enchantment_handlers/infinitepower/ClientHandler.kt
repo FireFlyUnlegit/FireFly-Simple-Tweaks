@@ -15,7 +15,7 @@ object ClientHandler {
         val player = event.entityPlayer
         if (player.world.isRemote) {
             val stack = player.heldItemMainhand
-            val level = EnchantmentHelper.getEnchantmentLevel(EnchantInfinitePower.INSTANCE, stack)
+            val level = EnchantmentHelper.getEnchantmentLevel(EnchantInfinitePower, stack)
             if (level <= 0) return
             val lookVec = player.lookVec
             EnchantInfinitePowerHandler.sendLaser(player, lookVec)

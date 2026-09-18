@@ -18,7 +18,7 @@ object EnchantItemFixerHandler : Listenable {
             p.heldItemMainhand
         )
         stacks.forEach {
-            val level = getItemSpecificEnchantLevel(it, EnchantItemFixer.INSTANCE)
+            val level = getItemSpecificEnchantLevel(it, EnchantItemFixer)
             if (level > 0) {
                 if (nextFloat() <= 0.02 * level && it.itemDamage > 0) it.itemDamage -= (1 + level / 2).coerceAtMost(it.itemDamage)
             }

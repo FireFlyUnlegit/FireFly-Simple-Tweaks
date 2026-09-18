@@ -7,12 +7,12 @@ import net.minecraft.entity.player.EntityPlayerMP
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
 import net.minecraftforge.fml.common.gameevent.PlayerEvent
 import net.minecraftforge.fml.common.gameevent.TickEvent
-import java.util.UUID
+import java.util.*
 
 object EnchantFlightHandler : Listenable {
     private val isControllingFlight = mutableMapOf<UUID, Boolean>()
     private val flyingTick = mutableMapOf<UUID, Int>()
-    private val maxLevel = EnchantFlight.INSTANCE.maxLevel
+    private val maxLevel = EnchantFlight.maxLevel
 
     @SubscribeEvent
     fun onPlayerTick(e: TickEvent.PlayerTickEvent) {
@@ -20,7 +20,7 @@ object EnchantFlightHandler : Listenable {
         val p = e.player
         val uuid = p.uniqueID
         val stack = p.inventory.armorInventory[2]
-        val enchantment = EnchantFlight.INSTANCE
+        val enchantment = EnchantFlight
         val level = getItemSpecificEnchantLevel(stack, enchantment)
         if (level > 0 && p.foodStats.foodLevel > 0) {
             isControllingFlight[uuid] = true

@@ -7,7 +7,7 @@ import dev.firefly.simplemod.util.getItemSpecificEnchantLevel
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
 import net.minecraftforge.fml.common.gameevent.PlayerEvent
 import net.minecraftforge.fml.common.gameevent.TickEvent
-import java.util.UUID
+import java.util.*
 import kotlin.random.Random.Default.nextFloat
 
 object EnchantSaturationHandler : Listenable {
@@ -20,7 +20,7 @@ object EnchantSaturationHandler : Listenable {
         val p = e.player
         if (p.world.isRemote) return
 
-        val lvl = getItemSpecificEnchantLevel(p.chestplate, EnchantSaturation.INSTANCE)
+        val lvl = getItemSpecificEnchantLevel(p.chestplate, EnchantSaturation)
         val recoveryCount: Int = lvl / 8 + 1
         if (lvl <= 0) {
             cooldown.remove(p.uniqueID)

@@ -20,7 +20,7 @@ object FlightHandler {
         if (event.phase != TickEvent.Phase.END) return
         val player = event.player
         val stack = player.heldItemMainhand
-        val level = EnchantmentHelper.getEnchantmentLevel(EnchantInfinitePower.INSTANCE, stack)
+        val level = EnchantmentHelper.getEnchantmentLevel(EnchantInfinitePower, stack)
         val uuid=player.uniqueID
         if (level > 0) {
             if (player.health < player.maxHealth) {

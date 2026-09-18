@@ -1,23 +1,12 @@
 package dev.firefly.simplemod.enchantments
 
-import net.minecraft.enchantment.Enchantment
-import net.minecraft.enchantment.EnumEnchantmentType
-import net.minecraft.inventory.EntityEquipmentSlot
-import net.minecraft.util.ResourceLocation
+import dev.firefly.simplemod.enchantments.baseclass.ModEnchantmentType
+import dev.firefly.simplemod.enchantments.baseclass.ModEnchantments
 
-class EnchantBloodLust private constructor() : Enchantment(
-    Rarity.VERY_RARE,
-    EnumEnchantmentType.WEAPON,
-    arrayOf(EntityEquipmentSlot.MAINHAND)
-) {
-    init {
-        registryName= ResourceLocation("simplemod","bloodlust")
-        setName("simplemod.bloodlust")
-    }
-
-    override fun getMaxLevel(): Int = 5
-    override fun getMinEnchantability(enchantmentLevel: Int) = enchantmentLevel * 3 + 25
-    companion object {
-        val INSTANCE = EnchantBloodLust()
-    }
-}
+object EnchantBloodLust :
+    ModEnchantments(
+        "bloodlust",
+        ModEnchantmentType.WEAPON,
+        5,
+        {25 + 3 * it}
+    )

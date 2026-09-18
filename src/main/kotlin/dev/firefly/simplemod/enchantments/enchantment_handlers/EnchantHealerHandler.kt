@@ -15,7 +15,7 @@ object EnchantHealerHandler : Listenable{
         if (e.invalid) return
         val lvl = getItemSpecificEnchantLevel((((e.source.trueSource as? EntityLivingBase) ?:return)
             .heldItemMainhand),
-            EnchantHealer.INSTANCE)
+            EnchantHealer)
         if (lvl > 0)
         {
             val originDMG = e.amount

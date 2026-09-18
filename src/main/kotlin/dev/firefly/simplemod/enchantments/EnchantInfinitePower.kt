@@ -6,12 +6,10 @@ import net.minecraft.inventory.EntityEquipmentSlot
 import net.minecraft.item.ItemStack
 import net.minecraft.util.ResourceLocation
 import net.minecraft.util.text.TextFormatting
-import net.minecraftforge.event.RegistryEvent
 import net.minecraftforge.fml.common.Mod
-import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
 
 @Mod.EventBusSubscriber
-class EnchantInfinitePower private constructor() : Enchantment(
+object EnchantInfinitePower : Enchantment(
     Rarity.VERY_RARE,
     EnumEnchantmentType.WEAPON,
     arrayOf(EntityEquipmentSlot.MAINHAND, EntityEquipmentSlot.OFFHAND)
@@ -51,12 +49,9 @@ class EnchantInfinitePower private constructor() : Enchantment(
         }
         return sb.toString()
     }
-    companion object {
-        val INSTANCE = EnchantInfinitePower()
-        private var colorTick = 0
+    private var colorTick = 0
 
-        fun tick() {
-            colorTick = (colorTick + 1) % 60
-        }
+    fun tick() {
+        colorTick = (colorTick + 1) % 60
     }
 }

@@ -20,7 +20,7 @@ object EnchantChargedStrikeHandler : Listenable {
         if (e.invalid) return
         val attacker = e.source.trueSource as? EntityPlayer ?: return
 
-        val lvl = getItemSpecificEnchantLevel(attacker.heldItemMainhand, EnchantChargedStrike.INSTANCE)
+        val lvl = getItemSpecificEnchantLevel(attacker.heldItemMainhand, EnchantChargedStrike)
         if (lvl <= 0) {
             stored.remove(attacker)
             return

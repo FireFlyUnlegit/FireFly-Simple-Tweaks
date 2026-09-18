@@ -20,7 +20,7 @@ object EnchantDamageLimiterHandler : Listenable {
         var lvl = 0
         for (slot in EntityEquipmentSlot.entries) {
             if (slot.slotType != EntityEquipmentSlot.Type.ARMOR) continue
-            lvl = max(lvl, getItemSpecificEnchantLevel(p.getItemStackFromSlot(slot), EnchantDamageLimiter.INSTANCE))
+            lvl = max(lvl, getItemSpecificEnchantLevel(p.getItemStackFromSlot(slot), EnchantDamageLimiter))
         }
         if (lvl <= 0) return
 

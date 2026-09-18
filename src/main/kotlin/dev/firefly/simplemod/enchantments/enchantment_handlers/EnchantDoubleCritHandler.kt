@@ -20,8 +20,8 @@ object EnchantDoubleCritHandler : Listenable {
         val living = e.entityLiving?: return
         if (living.safeGetCooledAttackStrength() < 0.848) return
 
-        val lvl = getItemSpecificEnchantLevel(living.heldItemMainhand, EnchantDoubleCrit.INSTANCE)
-        val lvl2 = getItemSpecificEnchantLevel(e.entityLiving.heldItemMainhand, EnchantCritDamage.INSTANCE)
+        val lvl = getItemSpecificEnchantLevel(living.heldItemMainhand, EnchantDoubleCrit)
+        val lvl2 = getItemSpecificEnchantLevel(e.entityLiving.heldItemMainhand, EnchantCritDamage)
 
         if (lvl > 0) {
             val critDMG = (

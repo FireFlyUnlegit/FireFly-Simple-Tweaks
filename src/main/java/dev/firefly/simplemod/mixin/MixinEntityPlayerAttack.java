@@ -23,7 +23,7 @@ public abstract class MixinEntityPlayerAttack {
         }
 
         ItemStack mainHand = player.getHeldItemMainhand();
-        int level = EnchantmentHelper.getEnchantmentLevel(EnchantInfinitePower.Companion.getINSTANCE(), mainHand);
+        int level = EnchantmentHelper.getEnchantmentLevel(EnchantInfinitePower.INSTANCE, mainHand);
         if (level <= 0) {
             return;
         }

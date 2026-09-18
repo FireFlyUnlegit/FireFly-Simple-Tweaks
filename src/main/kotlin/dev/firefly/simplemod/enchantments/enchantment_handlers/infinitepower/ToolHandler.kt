@@ -10,7 +10,7 @@ object ToolHandler {
     fun onHarvestCheck(event: PlayerEvent.HarvestCheck) {
         val player = event.entityPlayer
         val stack = player.heldItemMainhand
-        val level = EnchantmentHelper.getEnchantmentLevel(EnchantInfinitePower.INSTANCE, stack)
+        val level = EnchantmentHelper.getEnchantmentLevel(EnchantInfinitePower, stack)
         if (level > 0) {
             event.setCanHarvest(true)
         }
@@ -20,7 +20,7 @@ object ToolHandler {
     fun onBreakSpeed(event: PlayerEvent.BreakSpeed) {
         val player = event.entityPlayer
         val stack = player.heldItemMainhand
-        val level = EnchantmentHelper.getEnchantmentLevel(EnchantInfinitePower.INSTANCE, stack)
+        val level = EnchantmentHelper.getEnchantmentLevel(EnchantInfinitePower, stack)
         if (level > 0) {
             event.newSpeed = Float.MAX_VALUE
         }

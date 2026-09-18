@@ -15,7 +15,7 @@ object EnchantAssassinHandler : Listenable {
         if (e.invalid) return
         val attacker = (e.source.trueSource as? EntityLivingBase)?: return
         val target = e.entityLiving?: return
-        val lvl = getItemSpecificEnchantLevel( attacker.heldItemMainhand , EnchantAssassin.INSTANCE)
+        val lvl = getItemSpecificEnchantLevel( attacker.heldItemMainhand , EnchantAssassin)
         if (lvl > 0) {
             val threshold = target.maxHealth * 0.01f * lvl
             val remaining = target.health - e.amount

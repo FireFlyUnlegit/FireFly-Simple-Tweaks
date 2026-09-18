@@ -19,7 +19,7 @@ public abstract class MixinEntitySetDead {
         if (!(self instanceof EntityPlayer)) return;
         EntityPlayer player = (EntityPlayer) self;
         ItemStack stack = player.getHeldItemMainhand();
-        int level = EnchantmentHelper.getEnchantmentLevel(EnchantInfinitePower.Companion.getINSTANCE(), stack);
+        int level = EnchantmentHelper.getEnchantmentLevel(EnchantInfinitePower.INSTANCE, stack);
         if (level > 0) {
             ci.cancel();
         }

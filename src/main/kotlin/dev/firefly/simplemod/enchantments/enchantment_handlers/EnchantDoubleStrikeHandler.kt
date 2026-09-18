@@ -27,7 +27,7 @@ object EnchantDoubleStrikeHandler : Listenable {
 
         armed.remove(player)
         if (player.attackCharge < 0.848) return
-        val lvl = getItemSpecificEnchantLevel(player.heldItemMainhand, EnchantDoubleStrike.INSTANCE)
+        val lvl = getItemSpecificEnchantLevel(player.heldItemMainhand, EnchantDoubleStrike)
         if (lvl <= 0) return
         if (nextFloat() < 0.25f + 0.05f * lvl) armed[player] = lvl
     }

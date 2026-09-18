@@ -15,7 +15,7 @@ object ForgeHandler {
         if (entity !is EntityPlayer) return
         val player = entity
         val stack = player.heldItemMainhand
-        val level = EnchantmentHelper.getEnchantmentLevel(EnchantInfinitePower.INSTANCE, stack)
+        val level = EnchantmentHelper.getEnchantmentLevel(EnchantInfinitePower, stack)
         if (level <= 0) return
         event.isCanceled = true
         if (player.health < player.maxHealth) {
@@ -29,7 +29,7 @@ object ForgeHandler {
         if (entity !is EntityPlayer) return
         val player = entity
         val stack = player.heldItemMainhand
-        val level = EnchantmentHelper.getEnchantmentLevel(EnchantInfinitePower.INSTANCE, stack)
+        val level = EnchantmentHelper.getEnchantmentLevel(EnchantInfinitePower, stack)
         if (level <= 0) return
         event.isCanceled = true
         player.health = player.maxHealth
@@ -43,7 +43,7 @@ object ForgeHandler {
         if (entity !is EntityPlayer) return
         val player = entity
         val stack = player.heldItemMainhand
-        val level = EnchantmentHelper.getEnchantmentLevel(EnchantInfinitePower.INSTANCE, stack)
+        val level = EnchantmentHelper.getEnchantmentLevel(EnchantInfinitePower, stack)
         if (level <= 0) return
         e.isCanceled = true
         e.amount = 0.0f

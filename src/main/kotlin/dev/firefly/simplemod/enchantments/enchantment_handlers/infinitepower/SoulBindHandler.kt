@@ -21,7 +21,7 @@ object SoulBindHandler {
 
         for (drop in drops) {
             val stack = drop.item
-            if (!stack.isEmpty && EnchantmentHelper.getEnchantmentLevel(EnchantInfinitePower.INSTANCE, stack) > 0) {
+            if (!stack.isEmpty && EnchantmentHelper.getEnchantmentLevel(EnchantInfinitePower, stack) > 0) {
                 val tag = NBTTagCompound()
                 stack.writeToNBT(tag)
                 savedItems.appendTag(tag)

@@ -19,6 +19,9 @@ enchantment.simplemod.assassin=刺客
 enchantment.simplemod.damage_limiter=限伤
 enchantment.simplemod.aoe_attack=群攻
 enchantment.simplemod.charged_strike=充能打击
+enchantment.simplemod.death_protection=死亡保护
+enchantment.simplemod.motion_bonus=势能
+enchantment.simplemod.regeneration=生命恢复
 
 enchantment.simplemod.bloodlust.desc=根据攻击者已损失的生命值比例提升伤害，等级越高加成越高。
 enchantment.simplemod.crit.desc=攻击时有几率触发暴击（无需跳跃），等级越高几率越大。
@@ -41,3 +44,6 @@ enchantment.simplemod.assassin.desc=斩杀低生命的敌人
 enchantment.simplemod.damage_limiter.desc=受到的中等伤害会被压制到最大生命值的固定比例，超出数倍的致命一击则直接穿透。等级越高压制越强。
 enchantment.simplemod.aoe_attack.desc=命中时若目标附近有其他可攻击的敌人，将本次伤害分摊至全体。总伤害池为原始伤害的等级倍数，单个目标至多承受 100%。等级越高，可覆盖的敌群越广、单目标伤害越接近满额。
 enchantment.simplemod.charged_strike.desc=每次命中会储存本次伤害的一部分作为充能，下一次命中时一并释放。被释放的伤害不会再次储存。等级越高，每次储存的比例越高。
+enchantment.simplemod.death_protection.desc=受到致命伤害时消耗一级附魔免疫本次伤害，并获得相当于原等级 ×20 的伤害吸收。等级越高吸收越多，可触发的次数也越多。
+enchantment.simplemod.motion_bonus.desc=根据你与目标的相对移动速度提升伤害。静止无加成，冲刺撞击时达到最高。等级越高加成上限越高。
+enchantment.simplemod.regeneration.desc=缓慢回血

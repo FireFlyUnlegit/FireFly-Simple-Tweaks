@@ -1,31 +1,12 @@
 package dev.firefly.simplemod.enchantments
 
-import net.minecraft.enchantment.Enchantment
-import net.minecraft.enchantment.EnumEnchantmentType
-import net.minecraft.inventory.EntityEquipmentSlot
-import net.minecraft.util.ResourceLocation
+import dev.firefly.simplemod.enchantments.baseclass.ModEnchantmentType
+import dev.firefly.simplemod.enchantments.baseclass.ModEnchantments
 
-class EnchantAcidAttack private constructor() : Enchantment(
-    Rarity.VERY_RARE,
-    EnumEnchantmentType.WEAPON,
-    arrayOf(EntityEquipmentSlot.MAINHAND)
-){
-    init {
-        registryName = ResourceLocation("simplemod","acid_attack")
-        setName("simplemod.acid_attack")
-    }
-
-    override fun getMaxLevel(): Int {
-        return 3
-    }
-
-    override fun getMinEnchantability(enchantmentLevel: Int): Int {
-        return 10 + 15 * enchantmentLevel
-    }
-
-    companion object {
-        val INSTANCE = EnchantAcidAttack()
-    }
-
-
-}
+object EnchantAcidAttack :
+    ModEnchantments(
+        "acid_attack",
+        ModEnchantmentType.WEAPON,
+        3,
+        {15 + 10 * it}
+    )

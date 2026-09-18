@@ -18,7 +18,7 @@ object EnchantArmorBreakerHandler : Listenable {
         val attacker = (e.source.trueSource as? EntityLivingBase)?: return
         val target = e.entityLiving as? EntityPlayer?: return
 
-        val lvl = getItemSpecificEnchantLevel( attacker.heldItemMainhand, EnchantArmorBreaker.INSTANCE)
+        val lvl = getItemSpecificEnchantLevel( attacker.heldItemMainhand, EnchantArmorBreaker)
         val rate = 0.15 * lvl + 0.1
         if (lvl > 0 && rate > nextFloat()) {
             target.getRandomArmor().damageItem(lvl,target)

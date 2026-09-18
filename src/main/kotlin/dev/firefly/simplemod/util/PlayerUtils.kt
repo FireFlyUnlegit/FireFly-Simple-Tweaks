@@ -1,9 +1,11 @@
 package dev.firefly.simplemod.util
 import dev.firefly.simplemod.interfaces.AttackChargeAccessor
+import net.minecraft.entity.Entity
 import net.minecraft.entity.EntityLivingBase
 import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.inventory.EntityEquipmentSlot
 import net.minecraft.item.ItemStack
+import net.minecraft.util.math.MathHelper.sqrt
 import kotlin.random.Random.Default.nextInt
 
 fun EntityPlayer.teleport(
@@ -65,4 +67,16 @@ val EntityPlayer.chestplate: ItemStack
 val EntityPlayer.helmet: ItemStack
     get() = this.getItemStackFromSlot(EntityEquipmentSlot.HEAD)
 
+fun EntityPlayer.relativeSpeedTo(other: Entity, includeY: Boolean = false): Double {
+    val dx = this.motionX - other.motionX
+    val dy = this.motionY - other.motionY
+    val dz = this.motionZ - other.motionZ
+    return (if (includeY) sqrt(dx * dx + dy * dy + dz * dz)
+    else sqrt(dx * dx + dz * dz)).toDouble()
+}
+
+fun EntityPlayer.speed(includeY: Boolean = false): Double {
+    return (if (includeY) sqrt(motionX * motionX + motionY * motionY + motionZ * motionZ)
+    else sqrt(motionX * motionX + motionZ * motionZ)).toDouble()
+}
 

@@ -3,8 +3,6 @@ package dev.firefly.simplemod
 import dev.firefly.simplemod.core.CommandManager
 import dev.firefly.simplemod.core.EnchantmentManager
 import dev.firefly.simplemod.core.ModuleManager
-import dev.firefly.simplemod.core.config.DamageIndicatorConfig
-import dev.firefly.simplemod.core.config.GeneralConfig
 import dev.firefly.simplemod.damageindicator.DamageIndicatorHandler
 import dev.firefly.simplemod.damageindicator.DamageIndicatorRenderer
 import dev.firefly.simplemod.gui.ModGuiScreen
@@ -20,14 +18,14 @@ import net.minecraftforge.fml.common.gameevent.InputEvent
 import org.apache.logging.log4j.LogManager
 import org.lwjgl.input.Keyboard
 import java.io.File
-import java.util.Properties
+import java.util.*
 
 @Mod(modid = SimpleMod.MOD_ID, name = SimpleMod.NAME, version = SimpleMod.VERSION)
 class SimpleMod {
     companion object {
         const val MOD_ID = "simplemod"
         const val NAME = "Simple Optimization Mod"
-        const val VERSION = "1.0.2"
+        const val VERSION = "1.0.3"
         val LOGGER = LogManager.getLogger(NAME)
 
         private val configFile = File("config/simplemod/gui.properties")

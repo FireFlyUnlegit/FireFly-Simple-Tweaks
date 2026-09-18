@@ -22,7 +22,7 @@ object EnchantImmortalHandler : Listenable {
         val target = e.entityLiving
         val id = target.uniqueID
 
-        val lvl = target.getArmorEnchantLevel(EnchantImmortal.INSTANCE)
+        val lvl = target.getArmorEnchantLevel(EnchantImmortal)
         if (lvl <= 0) {
             hitCounter.remove(id)
             shieldCounter.remove(id)

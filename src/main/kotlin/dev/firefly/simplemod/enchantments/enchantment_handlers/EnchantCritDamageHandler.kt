@@ -14,7 +14,7 @@ object EnchantCritDamageHandler : Listenable {
     fun onCrit(e: CriticalHitEvent) {
         if (e.invalid) return
 
-        val lvl = getItemSpecificEnchantLevel(e.entityLiving.heldItemMainhand, EnchantCritDamage.INSTANCE)
+        val lvl = getItemSpecificEnchantLevel(e.entityLiving.heldItemMainhand, EnchantCritDamage)
         if (lvl > 0 && e.isCrit) {
             e.damageModifier += (.1 * lvl).toFloat()
             

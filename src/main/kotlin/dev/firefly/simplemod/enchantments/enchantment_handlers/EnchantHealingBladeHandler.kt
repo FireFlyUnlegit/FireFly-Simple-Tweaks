@@ -16,7 +16,7 @@ object EnchantHealingBladeHandler : Listenable {
     fun onLivingHurt(e: LivingDamageEvent) {
         val attacker = (e.source.trueSource?: return) as? EntityLivingBase?: return
         if (e.invalid) return
-        val level = getItemSpecificEnchantLevel(attacker.heldItemMainhand, EnchantHealingBlade.INSTANCE)
+        val level = getItemSpecificEnchantLevel(attacker.heldItemMainhand, EnchantHealingBlade)
         val dmg = e.amount
         if (level > 0) {
             val healingCount = dmg * (0.05f * level)

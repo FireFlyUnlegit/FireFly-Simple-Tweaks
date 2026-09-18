@@ -14,7 +14,7 @@ object EnchantAcidAttackHandler : Listenable {
         if (e.invalid) return
         val attacker = (e.source.trueSource as? EntityLivingBase)?: return
         val target = e.entityLiving?: return
-        val lvl = getItemSpecificEnchantLevel( attacker.heldItemMainhand , EnchantAcidAttack.INSTANCE)
+        val lvl = getItemSpecificEnchantLevel( attacker.heldItemMainhand , EnchantAcidAttack)
         val rate = 0.15 * lvl + 0.1
         val stack = target.heldItemMainhand
         if (lvl > 0 && kotlin.random.Random.nextFloat() <= rate && stack.isItemStackDamageable) {

@@ -22,7 +22,7 @@ object EnchantAoeAttackHandler : Listenable {
         val attacker = e.source.trueSource as? EntityPlayer ?: return
         val target = e.entityLiving ?: return
 
-        val lvl = getItemSpecificEnchantLevel(attacker.heldItemMainhand, EnchantAoeAttack.INSTANCE)
+        val lvl = getItemSpecificEnchantLevel(attacker.heldItemMainhand, EnchantAoeAttack)
         if (lvl <= 0) return
 
         val box = target.entityBoundingBox.grow(0.2 * lvl)
