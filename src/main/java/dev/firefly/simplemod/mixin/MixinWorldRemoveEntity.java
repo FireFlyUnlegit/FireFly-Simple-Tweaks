@@ -1,6 +1,6 @@
 package dev.firefly.simplemod.mixin;
 
-import dev.firefly.simplemod.enchantments.EnchantInfinitePower;
+import dev.firefly.simplemod.enchantments.mythic.EnchantInfinitePower;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;

@@ -22,6 +22,9 @@ enchantment.simplemod.charged_strike=充能打击
 enchantment.simplemod.death_protection=死亡保护
 enchantment.simplemod.motion_bonus=势能
 enchantment.simplemod.regeneration=生命恢复
+enchantment.simplemod.combo=连击
+enchantment.simplemod.swift_sneak=迅捷潜行
+enchantment.simplemod.celestial_blessing=天界祝福
 
 enchantment.simplemod.bloodlust.desc=根据攻击者已损失的生命值比例提升伤害，等级越高加成越高。
 enchantment.simplemod.crit.desc=攻击时有几率触发暴击（无需跳跃），等级越高几率越大。
@@ -47,3 +50,6 @@ enchantment.simplemod.charged_strike.desc=每次命中会储存本次伤害的�
 enchantment.simplemod.death_protection.desc=受到致命伤害时消耗一级附魔免疫本次伤害，并获得相当于原等级 ×20 的伤害吸收。等级越高吸收越多，可触发的次数也越多。
 enchantment.simplemod.motion_bonus.desc=根据你与目标的相对移动速度提升伤害。静止无加成，冲刺撞击时达到最高。等级越高加成上限越高。
 enchantment.simplemod.regeneration.desc=缓慢回血
+enchantment.simplemod.combo.desc=降低目标的无敌时间
+enchantment.simplemod.swift_sneak.desc=加快你潜行时候的速度
+enchantment.simplemod.celestial_blessing.desc=造成伤害时汲取生命，溢出的治疗将转化为圣光护盾。护盾可抵挡伤害，亦可消耗以恢复生命与饱食度。附带基于目标当前生命值的真实伤害，并在周身环绕神圣粒子。
