@@ -31,7 +31,12 @@ public class GeneralConfig {
     )
     @Config.RangeInt(min = 1)
     public static int maxEnchantmentPower = 15;
-
+    @Config.Name("Enabled Enchantments' Color")
+    @Config.Comment(
+            "Let Enchantments have themselves display color."
+    )
+    @Config.RequiresMcRestart
+    public static boolean enabledEnchantmentColor = true;
 
 }
 @Mod.EventBusSubscriber(modid = "simplemod")

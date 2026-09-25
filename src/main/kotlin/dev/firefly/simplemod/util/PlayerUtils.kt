@@ -31,6 +31,11 @@ fun EntityLivingBase.safeGetCooledAttackStrength(): Float {
     if (entity !is EntityPlayer) return 0.0f
     return entity.attackCharge
 }
+fun EntityLivingBase.safeSetCooledAttackStrength(value : Float) {
+    val entity = this as? EntityPlayer
+    if (entity !is EntityPlayer) return
+    entity.attackChargeValue = value.coerceIn(0f,1f)
+}
 
 val EntityPlayer.attackCharge: Float
     get() = (this as AttackChargeAccessor).attackCharge
@@ -80,3 +85,15 @@ fun EntityPlayer.speed(includeY: Boolean = false): Double {
     else sqrt(motionX * motionX + motionZ * motionZ)).toDouble()
 }
 
+
+val EntityLivingBase.healthRatio: Float
+    get() = this.health / this.maxHealth
+
+val EntityLivingBase.lostHealth: Float
+    get() = this.maxHealth - this.health
+
+val EntityLivingBase.lostHealthRatio: Float
+    get() = (this.maxHealth - this.health) / this.maxHealth
+
+val EntityLivingBase.effectiveHealthRatio: Float
+    get() = if (maxHealth <= 0f) 0f else (health + absorptionAmount) / maxHealth

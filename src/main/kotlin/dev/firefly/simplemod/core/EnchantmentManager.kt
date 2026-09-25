@@ -1,8 +1,38 @@
 package dev.firefly.simplemod.core
 
 import dev.firefly.simplemod.SimpleMod
-import dev.firefly.simplemod.enchantments.*
-import dev.firefly.simplemod.enchantments.enchantment_handlers.*
+import dev.firefly.simplemod.enchantments.common.EnchantAcidAttack
+import dev.firefly.simplemod.enchantments.common.EnchantArmorBreaker
+import dev.firefly.simplemod.enchantments.common.EnchantMotionBonus
+import dev.firefly.simplemod.enchantments.common.EnchantVoidProtection
+import dev.firefly.simplemod.enchantments.epic.EnchantChargedStrike
+import dev.firefly.simplemod.enchantments.epic.EnchantCritDamage
+import dev.firefly.simplemod.enchantments.handlers.common.EnchantAcidAttackHandler
+import dev.firefly.simplemod.enchantments.handlers.common.EnchantArmorBreakerHandler
+import dev.firefly.simplemod.enchantments.handlers.common.EnchantMotionBonusHandler
+import dev.firefly.simplemod.enchantments.handlers.common.EnchantVoidProtectionHandler
+import dev.firefly.simplemod.enchantments.handlers.epic.EnchantChargedStrikeHandler
+import dev.firefly.simplemod.enchantments.handlers.epic.EnchantCritDamageHandler
+import dev.firefly.simplemod.enchantments.handlers.legendary.*
+import dev.firefly.simplemod.enchantments.handlers.mystery.EnchantCelestialBlessingHandler
+import dev.firefly.simplemod.enchantments.handlers.mythic.EnchantDeathProtectionHandler
+import dev.firefly.simplemod.enchantments.handlers.mythic.EnchantHealingBladeHandler
+import dev.firefly.simplemod.enchantments.handlers.mythic.EnchantInfinitePowerHandler
+import dev.firefly.simplemod.enchantments.handlers.rare.EnchantAssassinHandler
+import dev.firefly.simplemod.enchantments.handlers.rare.EnchantExecuteHandler
+import dev.firefly.simplemod.enchantments.handlers.rare.EnchantImmortalHandler
+import dev.firefly.simplemod.enchantments.handlers.rare.EnchantItemFixerHandler
+import dev.firefly.simplemod.enchantments.handlers.uncommon.*
+import dev.firefly.simplemod.enchantments.legendary.*
+import dev.firefly.simplemod.enchantments.mystery.EnchantCelestialBlessing
+import dev.firefly.simplemod.enchantments.mythic.EnchantDeathProtection
+import dev.firefly.simplemod.enchantments.mythic.EnchantHealingBlade
+import dev.firefly.simplemod.enchantments.mythic.EnchantInfinitePower
+import dev.firefly.simplemod.enchantments.rare.EnchantAssassin
+import dev.firefly.simplemod.enchantments.rare.EnchantExecute
+import dev.firefly.simplemod.enchantments.rare.EnchantImmortal
+import dev.firefly.simplemod.enchantments.rare.EnchantItemFixer
+import dev.firefly.simplemod.enchantments.uncommon.*
 import net.minecraft.enchantment.Enchantment
 import net.minecraftforge.common.MinecraftForge
 import net.minecraftforge.event.RegistryEvent
@@ -37,6 +67,9 @@ object EnchantmentManager {
         EnchantMotionBonus,
         EnchantDeathProtection,
         EnchantRegeneration,
+        EnchantCombo,
+        EnchantSwiftSneak,
+        EnchantCelestialBlessing,
     )
 
     private val handlerList = listOf(
@@ -64,11 +97,14 @@ object EnchantmentManager {
         EnchantMotionBonusHandler,
         EnchantDeathProtectionHandler,
         EnchantRegenerationHandler,
+        EnchantComboHandler,
+        EnchantSwiftSneakHandler,
+        EnchantCelestialBlessingHandler,
     )
 
     @SubscribeEvent
     fun registerEnchantments(event: RegistryEvent.Register<Enchantment>) {
-        enchantmentList.forEach { enchantment ->
+        enchantmentList.sortedByDescending { it.category.rarity }.forEach { enchantment ->
             enchantments.add(enchantment)
             event.registry.register(enchantment)
             SimpleMod.LOGGER.info("Registering Enchantment: ${enchantment.name} (${enchantment.registryName})")

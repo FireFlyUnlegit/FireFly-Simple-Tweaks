@@ -1,7 +1,7 @@
 package dev.firefly.simplemod.network
 
 import dev.firefly.simplemod.damageindicator.PacketDamageIndicator
-import dev.firefly.simplemod.enchantments.enchantment_handlers.infinitepower.PacketLaser
+import dev.firefly.simplemod.enchantments.handlers.mythic.infinitepower.PacketLaser
 import net.minecraftforge.fml.common.network.NetworkRegistry
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage
 import net.minecraftforge.fml.common.network.simpleimpl.SimpleNetworkWrapper

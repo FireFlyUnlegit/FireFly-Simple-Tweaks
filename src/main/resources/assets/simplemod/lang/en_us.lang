@@ -22,6 +22,10 @@ enchantment.simplemod.charged_strike=Charged Strike
 enchantment.simplemod.death_protection=Death Protection
 enchantment.simplemod.motion_bonus=Motion Bonus
 enchantment.simplemod.regeneration=Regeneration
+enchantment.simplemod.combo=Combo
+enchantment.simplemod.swift_sneak=Swift Sneak
+enchantment.simplemod.celestial_blessing=Celestial Blessing
+
 
 enchantment.simplemod.bloodlust.desc=Increases damage based on the attacker's missing health. Higher levels improve the bonus.
 enchantment.simplemod.crit.desc=Grants a chance to perform a critical hit even when not jumping. Higher levels increase the chance.
@@ -47,3 +51,6 @@ enchantment.simplemod.charged_strike.desc=Each hit stores a portion of its damag
 enchantment.simplemod.death_protection.desc=When taking fatal damage, consumes one level of the enchantment to negate the hit and grants absorption equal to the original level × 20. Higher levels grant more absorption and allow more triggers before the enchantment is used up.
 enchantment.simplemod.motion_bonus.desc=Increases damage based on how fast you are moving relative to the target. Standing still gives no bonus; sprinting into an enemy maximizes it. Higher levels increase the maximum bonus.
 enchantment.simplemod.regeneration.desc=Regen Health slowly
+enchantment.simplemod.combo.desc=Reduce Target's Hurt Resistance Time
+enchantment.simplemod.swift_sneak.desc=Faster speed when you're sneaking
+enchantment.simplemod.celestial_blessing.desc=Deals damage and converts a portion into a holy shield. The shield absorbs damage and can be consumed to restore health and hunger. Adds true damage based on the target's current health, with holy particles surrounding the wielder.
