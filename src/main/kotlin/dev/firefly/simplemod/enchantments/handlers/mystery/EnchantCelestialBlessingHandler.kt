@@ -38,7 +38,7 @@ object EnchantCelestialBlessingHandler : Listenable {
             if (maxHealthAttr != null) {
                 val modifierUUID = UUID.nameUUIDFromBytes("simplemod_celestial_shred".toByteArray())
 
-                val reduction = (e.amount + healthReduction) * 0.1f * atklvl
+                val reduction = (e.amount + healthReduction) * 0.04f * atklvl
 
                 val existingModifier = maxHealthAttr.getModifier(modifierUUID)
 
