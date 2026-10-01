@@ -1,0 +1,56 @@
+package dev.firefly.simpletweaks.mixin;
+
+import dev.firefly.simpletweaks.core.config.GeneralConfig;
+import net.minecraft.enchantment.Enchantment;
+import net.minecraft.inventory.ContainerRepair;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.injection.*;
+
+@Mixin(ContainerRepair.class)
+public class MixinContainerRepair {
+
+    /**
+     * 替换所有常量 40
+     * 包括：if (this.maximumCost >= 40)、if (k == i && k > 0 && this.maximumCost >= 40)
+     */
+    @ModifyConstant(
+            method = "updateRepairOutput",
+            constant = @Constant(intValue = 40)
+    )
+    private int modifyMaxAnvilCost(int original) {
+        if (GeneralConfig.disableAnvilCostLimit) {
+            return GeneralConfig.maxAnvilCost;
+        }
+        return original;
+    }
+    @Redirect(
+            method = "updateRepairOutput",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/minecraft/enchantment/Enchantment;isCompatibleWith(Lnet/minecraft/enchantment/Enchantment;)Z"
+            )
+    )
+    private boolean safeIsCompatibleWith(Enchantment self, Enchantment other) {
+        if (self == null || other == null) {
+            return false;
+        }
+        return self.isCompatibleWith(other);
+    }
+    /**
+     * 处理 itemstack.getCount() > 1 时 i = 40 的赋值
+     */
+    @ModifyVariable(
+            method = "updateRepairOutput",
+            name = "i",
+            at = @At(
+                    value = "STORE",
+                    ordinal = 0
+            )
+    )
+    private int modifyVariableI(int original) {
+        if (GeneralConfig.disableAnvilCostLimit && original == 40) {
+            return 0;
+        }
+        return original;
+    }
+}

@@ -226,12 +226,7 @@ jar {
         if (!mixinConnectorClass.isEmpty()) {
             attribute_map['MixinConnector'] = mixinConnectorClass
         }
-        // ❌ 移除 FMLCorePlugin（不再使用 MixinLoader）
-        // attribute_map['FMLCorePlugin'] = 'dev.firefly.simplemod.MixinLoader'
-        // attribute_map['FMLCorePluginContainsFMLMod'] = 'true'
-        // ❌ 移除 TweakClass
-        // attribute_map['TweakClass'] = 'org.spongepowered.asm.launch.MixinTweaker'
-        // attribute_map['TweakOrder'] = '0'
+
         attributes(attribute_map)
     }
     from {
@@ -247,19 +242,19 @@ idea {
     project {
         settings {
             runConfigurations {
-                "0. Setup Decomp Workspace"(Gradle) {
+                "Setup Decomp Workspace"(Gradle) {
                     taskNames = ["setupDecompWorkspace"]
                 }
-                "1. Run Client"(Gradle) {
+                "Run Client"(Gradle) {
                     taskNames = ["runClient"]
                 }
-                "2. Run Server"(Gradle) {
+                "Run Server"(Gradle) {
                     taskNames = ["runServer"]
                 }
-                "3. Run Obfuscated Client"(Gradle) {
+                "Run Obfuscated Client"(Gradle) {
                     taskNames = ["runObfClient"]
                 }
-                "4. Run Obfuscated Server"(Gradle) {
+                "Run Obfuscated Server"(Gradle) {
                     taskNames = ["runObfServer"]
                 }
             }
