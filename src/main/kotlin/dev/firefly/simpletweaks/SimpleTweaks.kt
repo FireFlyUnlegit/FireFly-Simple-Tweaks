@@ -28,7 +28,7 @@ class SimpleTweaks {
     companion object {
         const val MOD_ID = "simple_tweaks"
         const val NAME = "FireFly's Simple Tweaks"
-        const val VERSION = "1.0.5"
+        const val VERSION = "1.0.6"
         val LOGGER: Logger = LogManager.getLogger(NAME)
 
         private val configFile = File("config/simpletweaks/gui.properties")
