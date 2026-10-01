@@ -24,11 +24,17 @@ object EnchantExtraArmorHandler : Listenable {
         val p = e.player
         if (p.world.isRemote) return
 
-        val total = p.getArmorEnchantLevel(EnchantExtraArmor)
-        if (appliedLevel[p] == total) return
+        val armorAttr = p.getEntityAttribute(SharedMonsterAttributes.ARMOR) ?: return
+        val toughnessAttr = p.getEntityAttribute(SharedMonsterAttributes.ARMOR_TOUGHNESS) ?: return
 
-        val armorAttr = p.getEntityAttribute(SharedMonsterAttributes.ARMOR)
-        val toughnessAttr = p.getEntityAttribute(SharedMonsterAttributes.ARMOR_TOUGHNESS)
+        val total = p.getArmorEnchantLevel(EnchantExtraArmor)
+        val hasModifier = armorAttr.getModifier(ARMOR_UUID) != null
+
+        if (total <= 0 && !hasModifier) {
+            appliedLevel.remove(p)
+            return
+        }
+        if (total > 0 && hasModifier && appliedLevel[p] == total) return
 
         armorAttr.removeModifier(ARMOR_UUID)
         toughnessAttr.removeModifier(TOUGHNESS_UUID)
@@ -40,9 +46,10 @@ object EnchantExtraArmorHandler : Listenable {
             toughnessAttr.applyModifier(
                 AttributeModifier(TOUGHNESS_UUID, "Extra Armor Toughness", total * 0.8, 0)
             )
+            appliedLevel[p] = total
+        } else {
+            appliedLevel.remove(p)
         }
-
-        appliedLevel[p] = total
     }
 
     @SubscribeEvent
@@ -50,6 +57,7 @@ object EnchantExtraArmorHandler : Listenable {
         if (!event.isWasDeath) return
         clearModifiers(event.original)
         clearModifiers(event.entityPlayer)
+        appliedLevel.remove(event.original)
         appliedLevel.remove(event.entityPlayer)
     }
 

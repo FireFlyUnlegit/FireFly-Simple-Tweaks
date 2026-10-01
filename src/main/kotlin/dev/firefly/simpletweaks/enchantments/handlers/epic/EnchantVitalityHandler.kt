@@ -7,14 +7,14 @@ import net.minecraft.entity.SharedMonsterAttributes
 import net.minecraft.entity.ai.attributes.AttributeModifier
 import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.inventory.EntityEquipmentSlot
+import net.minecraftforge.event.entity.player.PlayerEvent
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
-import net.minecraftforge.fml.common.gameevent.PlayerEvent
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import java.util.*
 
 object EnchantVitalityHandler : Listenable {
 
-    private val MODIFIER_ID: UUID = UUID.fromString("a4b3c2d1-e5f6-4a5b-9c8d-7e6f5a4b3c2d")
+    private val MODIFIER_ID: UUID = UUID.nameUUIDFromBytes("simple_tweaks_vitality".toByteArray())
 
     private val appliedLevel = WeakHashMap<EntityPlayer, Int>()
 
@@ -24,30 +24,49 @@ object EnchantVitalityHandler : Listenable {
         val p = e.player
         if (p.world.isRemote) return
 
+        val attr = p.getEntityAttribute(SharedMonsterAttributes.MAX_HEALTH) ?: return
+
         val total = totalLevel(p)
-        val last = appliedLevel[p] ?: -1
-        if (total == last) return
+        val hasModifier = attr.getModifier(MODIFIER_ID) != null
 
-        val attr = p.getEntityAttribute(SharedMonsterAttributes.MAX_HEALTH)
+        if (total <= 0 && !hasModifier) {
+            appliedLevel.remove(p)
+            return
+        }
+        if (total > 0 && hasModifier && appliedLevel[p] == total) return
 
-        val existing = attr.getModifier(MODIFIER_ID)
-        if (existing != null) attr.removeModifier(existing)
+        attr.removeModifier(MODIFIER_ID)
 
         if (total > 0) {
             val bonus = total * 4.0 + (total / 10) * 10.0
             attr.applyModifier(
                 AttributeModifier(MODIFIER_ID, "Vitality", bonus, 0)
             )
+            appliedLevel[p] = total
+        } else {
+            appliedLevel.remove(p)
         }
 
         if (p.health > p.maxHealth) p.health = p.maxHealth
-
-        appliedLevel[p] = total
     }
 
     @SubscribeEvent
-    fun onLogout(e: PlayerEvent.PlayerLoggedOutEvent) {
+    fun onPlayerClone(event: PlayerEvent.Clone) {
+        if (!event.isWasDeath) return
+        clearModifier(event.original)
+        clearModifier(event.entityPlayer)
+        appliedLevel.remove(event.original)
+        appliedLevel.remove(event.entityPlayer)
+    }
+
+    @SubscribeEvent
+    fun onLogout(e: net.minecraftforge.fml.common.gameevent.PlayerEvent.PlayerLoggedOutEvent) {
+        clearModifier(e.player)
         appliedLevel.remove(e.player)
+    }
+
+    private fun clearModifier(p: EntityPlayer) {
+        p.getEntityAttribute(SharedMonsterAttributes.MAX_HEALTH).removeModifier(MODIFIER_ID)
     }
 
     private fun totalLevel(p: EntityPlayer): Int {
