@@ -1,0 +1,24 @@
+{
+  "required": true,
+  "minVersion": "0.7.11",
+  "package": "dev.firefly.simpletweaks.mixin",
+  "refmap": "mixins.simple_tweaks.refmap.json",
+  "target": "@env(DEFAULT)",
+  "compatibilityLevel": "JAVA_8",
+  "mixins": [
+    "MixinContainerRepair",
+    "MixinEnchantmentHelper",
+    "MixinEntityPlayer",
+    "MixinEntityPlayerAttack",
+    "MixinEntityPlayerSP",
+    "MixinEntityRenderer",
+    "MixinEntitySetDead",
+    "MixinGuiRepair",
+    "MixinMinecraft",
+    "MixinNetworkManager",
+    "MixinWorldRemoveEntity",
+    "accessor.EntityFireTimeAccessor"
+  ],
+  "client": [],
+  "server": []
+}
