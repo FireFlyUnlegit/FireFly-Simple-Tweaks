@@ -10,3 +10,8 @@ pluginManagement {
 }
 
 rootProject.name = 'simple_tweaks-1.21.1'
+
+// The KSP processor that turns @ModEnchantment into JSON + generated Kotlin. A plain Kotlin/JVM
+// library -- it must NOT be a Loom project, and it must not depend on the mod's own source set
+// (the processor only ever refers to the annotation by its fully-qualified name as a string).
+include 'ksp-processor'
