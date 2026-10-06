@@ -65,7 +65,8 @@ class SimpleTweaksClient : ClientModInitializer {
                 "+ celestial ring + enchant-table replace + celestial anti-resistance " +
                 "+ starfall world-floor fix + book enchantability + min-enchant top-up " +
                 "+ table power cap + book-is-a-book in getPossibleEntries " +
-                "+ infinite_power core/aura + dragon part unwrap + laser (bag dropped) (build=cleanup1)",
+                "+ infinite_power core/aura + dragon part unwrap + laser (bag dropped) " +
+                "+ yStartFactor multiplies entity height, not world Y (build=cleanup2)",
             SimpleTweaks.NAME,
         )
     }

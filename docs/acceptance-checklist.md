@@ -1,12 +1,17 @@
 # 客户端验收清单（`simple_tweaks-2.0.0.jar`）
 
 > 目标 jar：`fabric-1.21.1/build/libs/simple_tweaks-2.0.0.jar`
-> SHA256 `4D63CCBA791EC3AEF1E05F65B97EEC84669D7F7BEE12699AD460258FBBD75BCA`（428305 bytes）
+> SHA256 `6E6BB15082DFCF53EFA7FF7171E45B5BB3DEB45F0508778F6B43522EE56E510D`（529136 bytes）
+> 启动标识：**`build=cleanup2`**
 > 安装位置：`F:\.minecraft\versions\1.21.1-Fabric 0.19.3\mods\simple_tweaks-2.0.0.jar`
 > 配置/日志：`<gameDir>\config\simple_tweaks.json`、`<gameDir>\logs\latest.log`
-> 回退点：`simple_tweaks-2.0.0.jar.prev`（上一版）、`.bak`（最原始版）
+> 回退点：`simple_tweaks-2.0.0.jar.prev`（上一版 `build=cleanup1`）、`.bak`（最原始版）
 >
 > **前置**：单人世界 + 开作弊。日志行都带 `[ST-*]` 前缀，方便 `Select-String '\[ST-'`。
+>
+> ⚠️ `build=cleanup2` 起**测试指令 `/sttest` 与 Carpet 假玩家已删除**（见 §M、`MIGRATION.md` §11），
+> 因此 E/F 组中依赖 `/sttest` 或假玩家的旧做法不再可用，请以本清单的客户端做法为准。
+> ⚠️ `build=cleanup2` 起**旧配置里的 `yStartFactor=2.0` 不再是致命值**（见 §M3）。
 
 ---
 
@@ -14,7 +19,7 @@
 
 | # | 检查 | 期望 |
 |---|---|---|
-| 0.1 | 日志有 `client ready: damage indicator + /stconfig registered (build=config-gui)` | 证明加载的是新 jar |
+| 0.1 | 日志有 `client ready: damage indicator + /stconfig + /enchantinfo ... (build=cleanup2)` | 证明加载的是新 jar；**注意结尾的 build 标识**，不是 `cleanup2` 就是旧 jar |
 | 0.2 | 日志 `Config loaded from ... (anvilLimit=..., damageIndicator=..., cancelVanillaDmgIndicator=..., noFov=false@90.0)` | 配置读取正常 |
 | 0.3 | 全日志 `ERROR` / `Exception` = 0（`PDH Counter` 那两条是 Windows 噪音，忽略） | 无异常 |
 
@@ -62,7 +67,7 @@
 | B11 | 按百分比显示 | 开 → `-30%` 形式 |
 | B12 | 显示阴影 | 关 → 无阴影 |
 | B13 | 存活帧数（默认 40，**单位是帧不是 tick**） | 改 120 → 停留更久 |
-| B14 | 上升时长 / 可见距离 / 字号 / 起始高度系数 | 各自可感知 |
+| B14 | 上升时长 / 可见距离 / 字号 / 起始高度系数 | 各自可感知（起始高度系数语义见 §M3） |
 
 ---
 
@@ -491,6 +496,24 @@
 
 **同时移除的两处全局改动**（净收益）：`SlotPositionMixin`（剥掉 `Slot.x`/`y` 的 final）与
 `ScreenHandlerClickProbeMixin`（`ScreenHandler#internalOnSlotClick` 的 HEAD 探针）。
+
+---
+
+## M. 收尾改动验证（`build=cleanup2`）—— 本轮只验这 5 条
+
+> 本轮删了测试指令 + Carpet 附属，并把 `yStartFactor` 的乘数从「世界高度」改成「实体高度」。
+> 其余功能**代码未动**，无需重测前面各组。
+
+| # | 操作 | 期望 |
+|---|---|---|
+| M1 | 启动看日志 | `client ready: ... (build=cleanup2)` ← 不是这个标识就别往下测 |
+| M2 | 输入 `/sttest` | **指令不存在**（原版"未知指令"红字）—— **这是预期**，测试指令已删除 |
+| M3 | 把 `config\simple_tweaks.json` 里 `yStartFactor` 改成 **2.0** 并重启，打一只怪 | 飘字**仍然显示**，位置明显高于实体；**改前这个值会让飘字彻底消失**（锚点被推到 `maxDistance` 之外） |
+| M4 | 改回 **1.0** 并重启，再打一只怪 | 飘字紧贴实体头顶 —— 与 1.12.2 默认位置一致（默认值行为**未变**） |
+| M5 | `/stconfig`、`/enchantinfo` | 都照常打开、照常可用（确认删掉的只是测试指令，正式功能未受影响） |
+
+> M3/M4 的判据是**同一次构建内改配置即可对比**：2.0 比 1.0 高，而不是 2.0 消失。
+> 若 M3 仍然完全不显示飘字，请把 `config\simple_tweaks.json` 发我 —— 那就说明问题不在公式。
 
 ---
 

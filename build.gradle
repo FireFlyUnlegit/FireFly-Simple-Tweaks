@@ -16,11 +16,6 @@ repositories {
         name = 'Fabric'
         url = 'https://maven.fabricmc.net/'
     }
-    // Modrinth's maven, used for the dev-only Carpet dependency below.
-    maven {
-        name = 'Modrinth'
-        url = 'https://api.modrinth.com/maven'
-    }
     mavenCentral()
 }
 
@@ -34,16 +29,6 @@ dependencies {
     // Kotlin support for Fabric. Ships the Kotlin stdlib so we do NOT shade it ourselves
     // (the old 1.12.2 build shaded kotlin-stdlib into the jar; Fabric does it via this mod).
     modImplementation "net.fabricmc:fabric-language-kotlin:${project.fabric_kotlin_version}"
-
-    // ---- dev-only ---------------------------------------------------------------
-    // Fabric Carpet supplies the `/player <name> ...` command (fake players), so handler
-    // behaviour can be driven and observed on a DEDICATED SERVER without launching a client.
-    // modRuntimeOnly => it is on the dev runtime classpath only and is NEVER shipped in the jar.
-    //
-    // Carpet 1.4.147 is the only release that supports MC 1.21.1 (confirmed against the Modrinth
-    // API: /v2/project/carpet/version?game_versions=["1.21.1"] returns exactly one entry; later
-    // Carpet releases target 1.21.2+). It is resolved from Modrinth's maven (api.modrinth.com/maven).
-    modRuntimeOnly 'maven.modrinth:carpet:1.4.147'
 }
 
 processResources {
