@@ -2,6 +2,7 @@ package dev.firefly.simpletweaks.mixin;
 
 import dev.firefly.simpletweaks.SimpleTweaks;
 import dev.firefly.simpletweaks.core.config.GeneralConfig;
+import dev.firefly.simpletweaks.enchantments.EnchantmentMeta;
 import dev.firefly.simpletweaks.enchantments.EnchantmentNameColors;
 import dev.firefly.simpletweaks.enchantments.InfinitePowerRainbow;
 import net.minecraft.enchantment.Enchantment;
@@ -97,7 +98,9 @@ public abstract class EnchantmentNameColorMixin {
             return;
         }
 
-        Formatting color = EnchantmentNameColors.INSTANCE.of(id.getPath());
+        // EnchantmentMeta, not EnchantmentNameColors: the latter is a legacy generated table and
+        // cannot know about a @ModEnchantment declaration, which made fast_bow render grey (= COMMON).
+        Formatting color = EnchantmentMeta.colorOf(id.getPath());
         if (color == null) {
             return;
         }
