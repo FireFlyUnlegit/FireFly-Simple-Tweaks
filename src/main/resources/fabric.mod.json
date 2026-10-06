@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "id": "simple_tweaks",
+  "version": "${version}",
+  "name": "FireFly's Simple Tweaks",
+  "description": "A lightweight mod that adds custom enchantments, client-side QoL modules, and visual feedback.",
+  "authors": [
+    "FireFly"
+  ],
+  "contact": {},
+  "license": "MIT",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "dev.firefly.simpletweaks.SimpleTweaks"
+    ],
+    "client": [
+      "dev.firefly.simpletweaks.SimpleTweaksClient"
+    ]
+  },
+  "mixins": [
+    "simple_tweaks.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "fabric-api": "*",
+    "fabric-language-kotlin": ">=1.12.0",
+    "minecraft": "~1.21.1",
+    "java": ">=21"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "anvil_cost": 10,
+  "description": {
+    "translate": "enchantment.simple_tweaks.echo_shot"
+  },
+  "effects": {},
+  "max_cost": {
+    "base": 65535,
+    "per_level_above_first": 0
+  },
+  "max_level": 5,
+  "min_cost": {
+    "base": 37,
+    "per_level_above_first": 12
+  },
+  "primary_items": "#minecraft:enchantable/bow",
+  "slots": ["mainhand", "offhand"],
+  "supported_items": "#minecraft:enchantable/bow",
+  "weight": 2
+}

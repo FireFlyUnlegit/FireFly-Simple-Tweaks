@@ -1,0 +1,20 @@
+{
+  "anvil_cost": 6,
+  "description": {
+    "translate": "enchantment.simple_tweaks.item_fixer"
+  },
+  "effects": {},
+  "max_cost": {
+    "base": 65535,
+    "per_level_above_first": 0
+  },
+  "max_level": 8,
+  "min_cost": {
+    "base": 20,
+    "per_level_above_first": 5
+  },
+  "primary_items": "#minecraft:enchantable/durability",
+  "slots": ["any"],
+  "supported_items": "#minecraft:enchantable/durability",
+  "weight": 6
+}
