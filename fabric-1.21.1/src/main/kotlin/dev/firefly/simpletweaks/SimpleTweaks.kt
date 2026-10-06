@@ -1,7 +1,6 @@
 package dev.firefly.simpletweaks
 
 import dev.firefly.simpletweaks.compat.bridge.ServerEventBridge
-import dev.firefly.simpletweaks.core.DevTestCommand
 import dev.firefly.simpletweaks.core.EnchantmentManager
 import dev.firefly.simpletweaks.core.config.SimpleTweaksConfig
 import dev.firefly.simpletweaks.core.registerEvents
@@ -50,10 +49,6 @@ class SimpleTweaks : ModInitializer {
         // The mod's particle types. Registered in common code because `Registries.PARTICLE_TYPE` is a
         // common registry; the sprite/factory half is client-only (see CelestialRingParticles).
         ModParticles.register()
-
-        // Dev-only integration-test command (/sttest). No-ops outside a development environment,
-        // so it never exists in a published jar.
-        DevTestCommand.register()
 
         LOGGER.info("{} load complete.", NAME)
     }
