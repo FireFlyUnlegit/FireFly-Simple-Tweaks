@@ -68,7 +68,8 @@ class SimpleTweaksClient : ClientModInitializer {
                 "+ infinite_power core/aura + dragon part unwrap + laser (bag dropped) " +
                 "+ yStartFactor multiplies entity height + debug logs off by default " +
                 "+ anvil cost cap actually applied " +
-                "+ KSP-generated enchantment definitions, first = fast_bow (build=cleanup5)",
+                "+ KSP-generated enchantment definitions, first = fast_bow " +
+                "+ fast_bow colour + client draw-speed hook (build=cleanup6)",
             SimpleTweaks.NAME,
         )
     }

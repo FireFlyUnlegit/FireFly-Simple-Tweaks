@@ -28,7 +28,8 @@
   "client": [
     "AnvilScreenMixin",
     "EnchantmentNameColorMixin",
-    "InputSlowDownMixin"
+    "InputSlowDownMixin",
+    "LivingEntityDrawSpeedMixin"
   ],
   "server": [],
   "injectors": {

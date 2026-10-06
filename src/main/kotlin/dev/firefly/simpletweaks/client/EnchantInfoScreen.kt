@@ -283,7 +283,7 @@ class EnchantInfoScreen(private val parent: Screen?) :
     private fun buildTooltip(id: String): List<Text> {
         val lines = mutableListOf<Text>()
 
-        val colour = EnchantmentNameColors.of(id)
+        val colour = EnchantmentMeta.colorOf(id)
         val name = Text.translatable("enchantment.simple_tweaks.$id")
         lines.add(if (colour != null) name.formatted(colour) else name)
 
@@ -294,7 +294,7 @@ class EnchantInfoScreen(private val parent: Screen?) :
         if (cat != null) {
             lines.add(
                 Text.translatable("gui.simple_tweaks.enchant_info.category", categoryText(cat))
-                    .formatted(EnchantmentNameColors.of(id) ?: Formatting.WHITE)
+                    .formatted(EnchantmentMeta.colorOf(id) ?: Formatting.WHITE)
             )
         }
 

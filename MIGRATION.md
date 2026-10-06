@@ -1600,15 +1600,53 @@ fabric-1.21.1/
 
 给旧附魔的 handler 加 `@ModEnchantment`，然后**从 `gen-enchantments.ps1` 的表里删掉它**即可（`EnchantmentMeta` 中 KSP 侧优先）。两代并存不冲突，所以可以一个一个搬，不必一次性全改 —— 这是刻意的：一次性迁移 56 个附魔等于制造 56 个潜在回归。
 
-### 15.7 fast_bow 的效果实现（唯一的新 mixin 改动）
+### 15.7 fast_bow：两次实现，第一次"看不见"
 
-`fast_bow` 在 1.12.2 **不存在**，是全新的。1.21 没有"拉弓更快"的组件，且 `ArrowLooseEvent.charge` 只是快照、原版从不回读，所以事件本身改不了射出的力度。真正的算式在 `BowItem.onStoppedUsing` 里：
+`fast_bow` 在 1.12.2 **不存在**，是全新的。
+
+**第一版（`build=cleanup5`）只改了松手时的威力** —— 钩子在 `BowItem.onStoppedUsing` 里：
 
 ```
 offset 34:  invokevirtual  getMaxUseTime(ItemStack, LivingEntity)I
-offset 44:  invokestatic   getPullProgress(I)F          <-- @ModifyArg 挂在这里
+offset 44:  invokestatic   getPullProgress(I)F          <-- @ModifyArg
 ```
 
-实测 `getPullProgress` 是 **static**、且在 `onStoppedUsing` 里**只出现一次** → 不需要 `slice`/`ordinal`（与 §14.2 的铁砧恰成对照）。handler 通过 `compat/ChargeBoost` 把倍率交给这个 `@ModifyArg`；因为 `getPullProgress` 会把结果夹到 `1.0`，**加速只能补足"没拉满"，不可能超过满蓄力**。3 级 = 1.75×，12 tick 即满。
+`getPullProgress` 实测是 **static** 且在该方法里**只出现一次** → 不需要 `slice`/`ordinal`（与 §14.2 的铁砧恰成对照）。这部分是对的，但**作者验收反馈"客户端看不出来哪里 fast"** —— 原因很具体：
 
-> ⚠️ 这动的是**多个弓附魔共用的** `BowItemArrowLooseMixin`，所以验收 §O3.2 专门回归 `multishot` / `tracking_arrow` / `piercing_arrow` / `starfall`。
+**`HeldItemRenderer` 根本不调用 `getPullProgress`，它读的是 `LivingEntity.getItemUseTimeLeft()`。**
+
+字节码实测（含 override 审计：`PlayerEntity` / `AbstractClientPlayerEntity` / `ClientPlayerEntity` / `ServerPlayerEntity` **均未重写**它，只有 `LivingEntity` 声明）：
+
+```
+LivingEntity#getItemUseTimeLeft()I   aload_0; getfield itemUseTimeLeft:I; ireturn   ← 纯字段 getter
+HeldItemRenderer                     7 处读它 → 决定"拉弓动画拉到哪"
+LivingEntity#stopUsingItem           onStoppedUsing(world, this, getItemUseTimeLeft())  ← 射箭威力也来自它
+LivingEntity#getItemUseTime()        getMaxUseTime(activeItem) - getItemUseTimeLeft()
+```
+
+**一个数字同时喂给动画和威力**，所以第二版（`build=cleanup6`）加了 `mixin/LivingEntityDrawSpeedMixin`：`@ModifyReturnValue` 把 `remaining` 换算成"按倍率多拉了这么久"。
+
+#### 为什么是**两个** hook，而不是把 getter 一改到底
+
+因为**单机下客户端与内置服务端是同一个 JVM、同一份被 mixin 过的类**。若 getter 无差别缩放，服务端的 `remainingUseTicks` 也会被缩放，而 `@ModifyArg` 还会再乘一次 → 服务端变成 `1.75² ≈ 3.06`，单机比多人强、也比动画显示的强。
+
+所以分工是刻意的：
+
+| 侧 | hook | 负责 |
+|---|---|---|
+| 客户端 | `LivingEntityDrawSpeedMixin`（`client` 列表 + `world.isClient()` 守卫） | 拉弓动画 |
+| 服务端 | `BowItemArrowLooseMixin` 的 `@ModifyArg` + `compat/ChargeBoost` | 射出威力 |
+
+**每侧只乘一次**，单机与多人一致。倍率只有一个来源：`EnchantFastBowHandler.chargeBoost(stack)`（`@JvmStatic`），两处都调它，动画与威力不会漂移。
+
+因为 `getPullProgress` 把结果夹到 `1.0`，**加速只能补足"没拉满"，不可能超过满蓄力**。3 级 = 1.75×，12 tick 即满。
+
+> ⚠️ `BowItemArrowLooseMixin` 是**多个弓附魔共用**的，所以验收 §O3.2 专门回归 `multishot` / `tracking_arrow` / `piercing_arrow` / `starfall`。
+
+### 15.8 同批修掉的第二个 bug：颜色表也是旧的
+
+作者同时反馈"FastBow 的颜色跟 COMMON 一样" —— **确实是 bug**。`EnchantmentNameColors`（PS1 生成的静态表，id → `Formatting`）里**没有 `fast_bow`**，`of()` 返回 null → 落到原版默认灰 = COMMON 的颜色。而 §15.1 生成的 `COLOR` 表**我写了却没人读**（当时只接了 category/type/maxLevel）。
+
+修法：`EnchantmentMeta.colorOf(id)`（`@JvmStatic`）——KSP 侧优先、回落旧表——两处消费点（`EnchantmentNameColorMixin` 的 tooltip、`EnchantInfoScreen`）都改走它。KSP 侧存的是 `Formatting` 的**名字字符串**（processor 不能依赖 Minecraft 类），用 `Formatting.byName` 解析回来。
+
+> 教训与 §15.5 同源：**新表建好了不等于接上了。** 这一批两个 bug 都是"生成了但没消费"（颜色）和"消费了但不是客户端真正读的那条路径"（拉弓）。
