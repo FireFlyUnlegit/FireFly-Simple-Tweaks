@@ -7,7 +7,7 @@ import dev.firefly.simpletweaks.enchantments.baseclass.ModEnchantments
 object EnchantExtraArmor : ModEnchantments(
     "extra_armor",
     ModEnchantmentType.ARMOR,
-    2,
-    {30 * it},
+    8,
+    {10 * it},
     EnchantmentCategories.RARE
 )

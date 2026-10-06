@@ -6,7 +6,7 @@ import dev.firefly.simpletweaks.enchantments.baseclass.ModEnchantments
 
 object EnchantArmorBreaker : ModEnchantments(
     "armor_breaker",
-    ModEnchantmentType.WEAPON,
+    ModEnchantmentType.SWORD,
     3,
     {16 + 6 * it},
     EnchantmentCategories.COMMON

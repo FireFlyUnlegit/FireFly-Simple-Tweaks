@@ -6,7 +6,7 @@ import dev.firefly.simpletweaks.enchantments.baseclass.ModEnchantments
 
 object EnchantEffectBonus : ModEnchantments(
     "effect_bonus",
-    ModEnchantmentType.WEAPON,
+    ModEnchantmentType.SWORD,
     3,
     { 16 + 6 * it },
     EnchantmentCategories.UNCOMMON

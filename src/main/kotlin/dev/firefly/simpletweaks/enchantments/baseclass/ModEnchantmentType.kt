@@ -7,6 +7,10 @@ enum class ModEnchantmentType(
     val type: EnumEnchantmentType,
     val slots: Array<EntityEquipmentSlot>
 ) {
+    SWORD(
+        EnumEnchantmentType.WEAPON,
+        arrayOf(EntityEquipmentSlot.MAINHAND)
+    ),
     WEAPON(
         EnumEnchantmentType.WEAPON,
         arrayOf(EntityEquipmentSlot.MAINHAND)
@@ -47,7 +51,16 @@ enum class ModEnchantmentType(
             EntityEquipmentSlot.HEAD,
             EntityEquipmentSlot.CHEST,
             EntityEquipmentSlot.LEGS,
-            EntityEquipmentSlot.FEET
-        )
+            EntityEquipmentSlot.FEET,
+            EntityEquipmentSlot.OFFHAND,
+            )
+    ),
+    TOOL(
+        EnumEnchantmentType.DIGGER,
+        arrayOf(EntityEquipmentSlot.MAINHAND)
+    ),
+    BOW(
+        EnumEnchantmentType.BOW,
+        arrayOf(EntityEquipmentSlot.MAINHAND, EntityEquipmentSlot.OFFHAND)
     ),
 }

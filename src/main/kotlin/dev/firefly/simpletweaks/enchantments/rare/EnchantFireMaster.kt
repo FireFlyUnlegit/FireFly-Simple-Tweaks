@@ -7,7 +7,7 @@ import net.minecraft.entity.EnumCreatureAttribute
 
 object EnchantFireMaster : ModEnchantments(
     "fire_master",
-    ModEnchantmentType.WEAPON,
+    ModEnchantmentType.SWORD,
     6,
     {20 + 4*it},
     EnchantmentCategories.RARE,

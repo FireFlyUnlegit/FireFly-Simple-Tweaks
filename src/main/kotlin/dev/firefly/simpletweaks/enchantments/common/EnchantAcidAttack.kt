@@ -7,7 +7,7 @@ import dev.firefly.simpletweaks.enchantments.baseclass.ModEnchantments
 object EnchantAcidAttack :
     ModEnchantments(
         "acid_attack",
-        ModEnchantmentType.WEAPON,
+        ModEnchantmentType.SWORD,
         3,
         {15 + 10 * it},
         category = EnchantmentCategories.COMMON

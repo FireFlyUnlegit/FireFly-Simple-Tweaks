@@ -7,7 +7,7 @@ import dev.firefly.simpletweaks.enchantments.baseclass.ModEnchantments
 object EnchantBloodLust :
     ModEnchantments(
         "bloodlust",
-        ModEnchantmentType.WEAPON,
+        ModEnchantmentType.SWORD,
         5,
         {25 + 3 * it},
         EnchantmentCategories.UNCOMMON

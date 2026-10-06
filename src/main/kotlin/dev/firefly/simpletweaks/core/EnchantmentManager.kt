@@ -6,19 +6,17 @@ import dev.firefly.simpletweaks.enchantments.epic.*
 import dev.firefly.simpletweaks.enchantments.handlers.common.*
 import dev.firefly.simpletweaks.enchantments.handlers.epic.*
 import dev.firefly.simpletweaks.enchantments.handlers.legendary.*
-import dev.firefly.simpletweaks.enchantments.handlers.mystery.EnchantCelestialBlessingHandler
-import dev.firefly.simpletweaks.enchantments.handlers.mythic.EnchantDeathProtectionHandler
-import dev.firefly.simpletweaks.enchantments.handlers.mythic.EnchantHealingBladeHandler
-import dev.firefly.simpletweaks.enchantments.handlers.mythic.EnchantInfinitePowerHandler
+import dev.firefly.simpletweaks.enchantments.handlers.mystery.*
+import dev.firefly.simpletweaks.enchantments.handlers.mythic.*
 import dev.firefly.simpletweaks.enchantments.handlers.rare.*
 import dev.firefly.simpletweaks.enchantments.handlers.uncommon.*
+import dev.firefly.simpletweaks.enchantments.handlers.unique.*
 import dev.firefly.simpletweaks.enchantments.legendary.*
-import dev.firefly.simpletweaks.enchantments.mystery.EnchantCelestialBlessing
-import dev.firefly.simpletweaks.enchantments.mythic.EnchantDeathProtection
-import dev.firefly.simpletweaks.enchantments.mythic.EnchantHealingBlade
-import dev.firefly.simpletweaks.enchantments.mythic.EnchantInfinitePower
+import dev.firefly.simpletweaks.enchantments.mystery.*
+import dev.firefly.simpletweaks.enchantments.mythic.*
 import dev.firefly.simpletweaks.enchantments.rare.*
 import dev.firefly.simpletweaks.enchantments.uncommon.*
+import dev.firefly.simpletweaks.enchantments.unique.*
 import net.minecraft.enchantment.Enchantment
 import net.minecraftforge.common.MinecraftForge
 import net.minecraftforge.event.RegistryEvent
@@ -63,6 +61,28 @@ object EnchantmentManager {
         EnchantAntiKnockback,
         EnchantDamageReduction,
         EnchantExtraArmor,
+        EnchantExperienceStealer,
+        EnchantReForge,
+        EnchantSoulBound,
+        EnchantMomentum,
+        EnchantTunneling,
+        EnchantKillAura,
+        EnchantPrismaticBlessing,
+        EnchantGrievousWounds,
+        EnchantHuntersMark,
+        EnchantMultishot,
+        EnchantTrackingArrow,
+        EnchantPiercingArrow,
+        EnchantStarfall,
+        EnchantEchoShot,
+        EnchantUnbreakable,
+        EnchantEchoShield,
+        EnchantDelayedRecovery,
+        EnchantAutoSmelt,
+        EnchantHeavenlyPunishment,
+        EnchantCombatMaster,
+        EnchantResilience,
+        EnchantGravityStrike,
     )
 
     private val handlerList = listOf(
@@ -100,6 +120,28 @@ object EnchantmentManager {
         EnchantAntiKnockbackHandler,
         EnchantDamageReductionHandler,
         EnchantExtraArmorHandler,
+        EnchantExperienceStealerHandler,
+        EnchantReForgeHandler,
+        EnchantSoulBoundHandler,
+        EnchantMomentumHandler,
+        EnchantTunnelingHandler,
+        EnchantKillAuraHandler,
+        EnchantPrismaticBlessingHandler,
+        EnchantGrievousWoundsHandler,
+        EnchantHuntersMarkHandler,
+        EnchantMultishotHandler,
+        EnchantTrackingArrowHandler,
+        EnchantPiercingArrowHandler,
+        EnchantStarfallHandler,
+        EnchantEchoShotHandler,
+        EnchantUnbreakableHandler,
+        EnchantEchoShieldHandler,
+        EnchantDelayedRecoveryHandler,
+        EnchantAutoSmeltHandler,
+        EnchantHeavenlyPunishmentHandler,
+        EnchantCombatMasterHandler,
+        EnchantResilienceHandler,
+        EnchantGravityStrikeHandler,
     )
 
     @SubscribeEvent
@@ -122,8 +164,10 @@ object EnchantmentManager {
         initHandlers()
     }
 
+    @Suppress("unused")
     fun getAll(): List<Enchantment> = enchantments
 
+    @Suppress("unused")
     fun getByRegistryName(name: String): Enchantment? =
         enchantments.find { it.registryName.toString().equals(name, ignoreCase = true) }
 }

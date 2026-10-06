@@ -7,7 +7,7 @@ import dev.firefly.simpletweaks.enchantments.baseclass.ModEnchantments
 object EnchantAoeAttack :
     ModEnchantments(
         "aoe_attack",
-        ModEnchantmentType.WEAPON,
+        ModEnchantmentType.SWORD,
         5,
         {25 + 5 * it},
         EnchantmentCategories.UNCOMMON

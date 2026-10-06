@@ -79,7 +79,6 @@ configurations {
 
 minecraft {
     mcVersion.set('1.12.2')
-
     mcpMappingChannel.set(propertyString('mapping_channel'))
     mcpMappingVersion.set(propertyString('mapping_version'))
 
@@ -328,6 +327,7 @@ tasks.withType(JavaCompile).configureEach {
             languageVersion.set(JavaLanguageVersion.of(16))
             vendor.set(JvmVendorSpec.AZUL)
         })
+        options.compilerArgs += ['-nowarn']
     }
 }
 

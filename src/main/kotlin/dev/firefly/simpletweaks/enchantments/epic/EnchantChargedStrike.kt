@@ -6,7 +6,7 @@ import dev.firefly.simpletweaks.enchantments.baseclass.ModEnchantments
 
 object EnchantChargedStrike : ModEnchantments(
     "charged_strike",
-    ModEnchantmentType.WEAPON,
+    ModEnchantmentType.SWORD,
     5,
     {25 + it * 5},
     EnchantmentCategories.EPIC

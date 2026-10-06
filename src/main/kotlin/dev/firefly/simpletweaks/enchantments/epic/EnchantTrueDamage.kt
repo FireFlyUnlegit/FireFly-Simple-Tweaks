@@ -6,7 +6,7 @@ import dev.firefly.simpletweaks.enchantments.baseclass.ModEnchantments
 
 object EnchantTrueDamage : ModEnchantments(
     "true_damage",
-    ModEnchantmentType.WEAPON,
+    ModEnchantmentType.SWORD,
     7,
     {it * 5 + 25},
     EnchantmentCategories.EPIC,

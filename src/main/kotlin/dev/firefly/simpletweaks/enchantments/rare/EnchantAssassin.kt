@@ -7,7 +7,7 @@ import dev.firefly.simpletweaks.enchantments.baseclass.ModEnchantments
 object EnchantAssassin :
     ModEnchantments(
         "assassin",
-        ModEnchantmentType.WEAPON,
+        ModEnchantmentType.SWORD,
         5,
         {20 + 10 * it},
         EnchantmentCategories.RARE

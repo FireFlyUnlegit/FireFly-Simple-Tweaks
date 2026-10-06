@@ -7,7 +7,7 @@ import net.minecraft.entity.EnumCreatureAttribute
 
 object EnchantCelestialBlessing : ModEnchantments(
     "celestial_blessing",
-    ModEnchantmentType.WEAPON,
+    ModEnchantmentType.SWORD,
     5,
     {it * 30},
     EnchantmentCategories.MYSTERY,

@@ -6,7 +6,7 @@ import dev.firefly.simpletweaks.enchantments.baseclass.ModEnchantments
 
 object EnchantSuperKnockback : ModEnchantments(
     id = "super_knockback",
-    modType = ModEnchantmentType.WEAPON,
+    modType = ModEnchantmentType.SWORD,
     enchantmentMaxLevel = 3,
     minAbility = {it * 10},
     EnchantmentCategories.UNCOMMON

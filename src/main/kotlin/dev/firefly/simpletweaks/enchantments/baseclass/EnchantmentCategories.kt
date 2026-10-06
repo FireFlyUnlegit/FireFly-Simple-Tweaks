@@ -1,8 +1,11 @@
 package dev.firefly.simpletweaks.enchantments.baseclass
 
 import net.minecraft.util.text.TextFormatting
+import kotlin.math.roundToInt
 
 enum class EnchantmentCategories(val rarity: Int, val color: TextFormatting) {
+
+    UNIQUE(-1, TextFormatting.WHITE),
     COMMON(0, TextFormatting.GRAY),
     UNCOMMON(1, TextFormatting.GREEN),
     RARE(2, TextFormatting.BLUE),
@@ -12,5 +15,5 @@ enum class EnchantmentCategories(val rarity: Int, val color: TextFormatting) {
     MYSTERY(6, TextFormatting.AQUA);
 
     val weight: Int
-        get() = (24 - rarity * 4).coerceAtLeast(1)
+        get() = if (rarity < 0) 0 else (10 - rarity * 1.5.roundToInt()).coerceAtLeast(1)
 }

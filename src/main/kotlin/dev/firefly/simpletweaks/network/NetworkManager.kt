@@ -4,6 +4,7 @@ import dev.firefly.simpletweaks.damageindicator.PacketDamageIndicator
 import dev.firefly.simpletweaks.enchantments.handlers.mythic.infinitepower.PacketLaser
 import dev.firefly.simpletweaks.network.packets.PacketCelestialRing
 import dev.firefly.simpletweaks.network.packets.PacketManaPoolSync
+import dev.firefly.simpletweaks.network.packets.PacketOpenEnchantInfo
 import net.minecraft.entity.player.EntityPlayerMP
 import net.minecraftforge.fml.common.network.NetworkRegistry
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage
@@ -39,6 +40,12 @@ object NetworkManager {
         wrapper.registerMessage(
             PacketManaPoolSync.Handler::class.java,
             PacketManaPoolSync::class.java,
+            discriminator++,
+            Side.CLIENT
+        )
+        wrapper.registerMessage(
+            PacketOpenEnchantInfo.Handler::class.java,
+            PacketOpenEnchantInfo::class.java,
             discriminator++,
             Side.CLIENT
         )

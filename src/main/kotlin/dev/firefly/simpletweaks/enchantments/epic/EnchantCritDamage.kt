@@ -6,7 +6,7 @@ import dev.firefly.simpletweaks.enchantments.baseclass.ModEnchantments
 
 object EnchantCritDamage : ModEnchantments(
     "crit_damage",
-    ModEnchantmentType.WEAPON,
+    ModEnchantmentType.SWORD,
     10,
     {15 + 5 *it},
     EnchantmentCategories.EPIC

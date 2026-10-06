@@ -6,6 +6,9 @@
   "target": "@env(DEFAULT)",
   "compatibilityLevel": "JAVA_8",
   "mixins": [
+    "EntityArrowPiercingMixin",
+    "MixinContainerEnchantment",
+    "MixinContainerEnchantmentPreview",
     "MixinContainerRepair",
     "MixinEnchantmentHelper",
     "MixinEntityPlayer",
@@ -17,7 +20,9 @@
     "MixinMinecraft",
     "MixinNetworkManager",
     "MixinWorldRemoveEntity",
-    "accessor.EntityFireTimeAccessor"
+    "accessor.EntityArrowAccessor",
+    "accessor.EntityFireTimeAccessor",
+    "accessor.EntityLivingBaseAccessor"
   ],
   "client": [],
   "server": []

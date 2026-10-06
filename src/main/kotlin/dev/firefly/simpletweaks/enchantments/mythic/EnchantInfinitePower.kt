@@ -12,7 +12,7 @@ import net.minecraftforge.fml.relauncher.SideOnly
 
 object EnchantInfinitePower : ModEnchantments(
     "infinite_power",
-    ModEnchantmentType.WEAPON,
+    ModEnchantmentType.SWORD,
     1,
     { Int.MAX_VALUE },
     EnchantmentCategories.MYTHIC,

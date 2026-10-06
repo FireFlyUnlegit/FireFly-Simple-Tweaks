@@ -5,12 +5,28 @@ import net.minecraft.command.CommandException
 import net.minecraft.command.ICommandSender
 import net.minecraft.entity.Entity
 import net.minecraft.entity.EntityLivingBase
+import net.minecraft.entity.SharedMonsterAttributes
+import net.minecraft.entity.ai.attributes.IAttribute
+import net.minecraft.entity.ai.attributes.IAttributeInstance
 import net.minecraft.entity.player.EntityPlayerMP
 import net.minecraft.server.MinecraftServer
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.text.TextComponentString
 
-class CommandAttribute : CommandBase() {
+object CommandAttribute : CommandBase() {
+
+    private val COMMON_ATTRIBUTES = listOf(
+        "generic.maxHealth",
+        "generic.followRange",
+        "generic.knockbackResistance",
+        "generic.movementSpeed",
+        "generic.flyingSpeed",
+        "generic.attackDamage",
+        "generic.attackSpeed",
+        "generic.armor",
+        "generic.armorToughness",
+        "generic.luck",
+    )
 
     override fun getName(): String = "attribute"
 
@@ -25,8 +41,9 @@ class CommandAttribute : CommandBase() {
         val target = getEntity(server, sender, args[0]) as? EntityLivingBase
             ?: throw CommandException("Target must be a living entity")
 
-        val instance = target.attributeMap.getAttributeInstanceByName(args[1])
-            ?: throw CommandException("Unknown attribute: ${args[1]}")
+        val name = args[1]
+        val instance = target.attributeMap.getOrRegister(name)
+            ?: throw CommandException("Unknown attribute: $name")
 
         val attrName = instance.attribute.name
 
@@ -105,19 +122,25 @@ class CommandAttribute : CommandBase() {
         return closest
     }
 
-    companion object {
-        private val COMMON_ATTRIBUTES = listOf(
-            "generic.maxHealth",
-            "generic.followRange",
-            "generic.knockbackResistance",
-            "generic.movementSpeed",
-            "generic.flyingSpeed",
-            "generic.attackDamage",
-            "generic.attackSpeed",
-            "generic.armor",
-            "generic.armorToughness",
-            "generic.luck",
-            "generic.reachDistance",
-        )
+    private fun net.minecraft.entity.ai.attributes.AbstractAttributeMap.getOrRegister(name: String): IAttributeInstance? {
+        getAttributeInstanceByName(name)?.let { return it }
+
+        val attr = findAttribute(name) ?: return null
+        registerAttribute(attr)
+        return getAttributeInstanceByName(name)
+    }
+
+    private fun findAttribute(name: String): IAttribute? = when (name) {
+        "generic.maxHealth"           -> SharedMonsterAttributes.MAX_HEALTH
+        "generic.followRange"         -> SharedMonsterAttributes.FOLLOW_RANGE
+        "generic.knockbackResistance" -> SharedMonsterAttributes.KNOCKBACK_RESISTANCE
+        "generic.movementSpeed"       -> SharedMonsterAttributes.MOVEMENT_SPEED
+        "generic.flyingSpeed"         -> SharedMonsterAttributes.FLYING_SPEED
+        "generic.attackDamage"        -> SharedMonsterAttributes.ATTACK_DAMAGE
+        "generic.attackSpeed"         -> SharedMonsterAttributes.ATTACK_SPEED
+        "generic.armor"               -> SharedMonsterAttributes.ARMOR
+        "generic.armorToughness"      -> SharedMonsterAttributes.ARMOR_TOUGHNESS
+        "generic.luck"                -> SharedMonsterAttributes.LUCK
+        else -> null
     }
 }

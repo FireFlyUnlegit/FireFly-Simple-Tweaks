@@ -3,6 +3,7 @@ package dev.firefly.simpletweaks.enchantments.handlers.rare
 import dev.firefly.simpletweaks.core.Listenable
 import dev.firefly.simpletweaks.enchantments.rare.EnchantExtraArmor
 import dev.firefly.simpletweaks.util.getArmorEnchantLevel
+import dev.firefly.simpletweaks.util.syncAttributes
 import net.minecraft.entity.SharedMonsterAttributes
 import net.minecraft.entity.ai.attributes.AttributeModifier
 import net.minecraft.entity.player.EntityPlayer
@@ -38,18 +39,23 @@ object EnchantExtraArmorHandler : Listenable {
 
         armorAttr.removeModifier(ARMOR_UUID)
         toughnessAttr.removeModifier(TOUGHNESS_UUID)
+        val armor = total * 2.0
+        val armorToughness = total * 1.6
+        val percentageArmor = armor * 0.01 * total
+        val percentageToughness = armorToughness * 0.01 * total
 
         if (total > 0) {
             armorAttr.applyModifier(
-                AttributeModifier(ARMOR_UUID, "Extra Armor", total * 2.0, 0)
+                AttributeModifier(ARMOR_UUID, "Extra Armor", percentageArmor + armor, 0)
             )
             toughnessAttr.applyModifier(
-                AttributeModifier(TOUGHNESS_UUID, "Extra Armor Toughness", total * 0.8, 0)
+                AttributeModifier(TOUGHNESS_UUID, "Extra Armor Toughness", percentageToughness + armorToughness, 0)
             )
             appliedLevel[p] = total
         } else {
             appliedLevel.remove(p)
         }
+        p.syncAttributes()
     }
 
     @SubscribeEvent

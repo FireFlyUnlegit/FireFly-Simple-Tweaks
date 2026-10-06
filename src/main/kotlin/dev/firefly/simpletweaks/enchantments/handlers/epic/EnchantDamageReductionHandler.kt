@@ -15,11 +15,11 @@ object EnchantDamageReductionHandler : Listenable {
         if (e.invalid) return
         val lvl = e.target.getArmorEnchantLevel(EnchantDamageReduction)
         if (lvl > 0) {
-            val reduction1 = 0.02f * lvl
-            val reduction2 = 0.015f * (lvl - 5).coerceAtLeast(0)
-            val reduction3 = 0.01f * (lvl - 10).coerceAtLeast(0)
-            val reduction4 = 0.005f * (lvl - 15).coerceAtLeast(0)
-            val totalReduction = (reduction1 + reduction2 + reduction3 + reduction4).coerceAtMost(0.75f)
+            val reduction1 = 0.024f * lvl
+            val reduction2 = 0.018f * (lvl - 5).coerceAtLeast(0)
+            val reduction3 = 0.012f * (lvl - 10).coerceAtLeast(0)
+            val reduction4 = 0.006f * (lvl - 15).coerceAtLeast(0)
+            val totalReduction = (reduction1 + reduction2 + reduction3 + reduction4).coerceAtMost(0.9f)
             e.amount = (e.amount * (1f - totalReduction) - (lvl * 0.001f)).coerceAtLeast(0f)
         }
     }

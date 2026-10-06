@@ -4,6 +4,7 @@ import dev.firefly.simpletweaks.core.config.GeneralConfig
 import net.minecraft.client.resources.I18n
 import net.minecraft.enchantment.Enchantment
 import net.minecraft.entity.EnumCreatureAttribute
+import net.minecraft.item.ItemStack
 import net.minecraft.util.ResourceLocation
 import net.minecraft.util.text.TextFormatting
 import net.minecraftforge.fml.relauncher.Side
@@ -23,6 +24,12 @@ abstract class ModEnchantments(
         setName("simple_tweaks.$id")
     }
 
+    override fun canApply(stack: ItemStack): Boolean {
+        return if (modType == ModEnchantmentType.WEAPON
+            && stack.item is net.minecraft.item.ItemBow) {
+            true
+        } else super.canApply(stack)
+    }
     override fun isTreasureEnchantment(): Boolean {
         return category.rarity >= 6
     }
@@ -51,6 +58,9 @@ abstract class ModEnchantments(
         return itemExtraDamage(level,creatureType).toFloat()
     }
     protected open fun itemExtraDamage(level: Int, creatureType: EnumCreatureAttribute): Number {
-        return if (this.modType == ModEnchantmentType.WEAPON) (0.1 + (category.rarity / 20.0)) * level else 0.0
+        return if (this.modType == ModEnchantmentType.SWORD) (0.2 + (category.rarity / 20.0)) * level else 0.0
+    }
+    override fun getMaxEnchantability(enchantmentLevel: Int): Int {
+        return Int.MAX_VALUE
     }
 }
