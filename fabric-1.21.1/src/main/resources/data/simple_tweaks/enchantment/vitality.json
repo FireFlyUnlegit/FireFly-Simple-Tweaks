@@ -1,0 +1,20 @@
+{
+  "anvil_cost": 8,
+  "description": {
+    "translate": "enchantment.simple_tweaks.vitality"
+  },
+  "effects": {},
+  "max_cost": {
+    "base": 65535,
+    "per_level_above_first": 0
+  },
+  "max_level": 10,
+  "min_cost": {
+    "base": 10,
+    "per_level_above_first": 10
+  },
+  "primary_items": "#minecraft:enchantable/armor",
+  "slots": ["armor"],
+  "supported_items": "#minecraft:enchantable/armor",
+  "weight": 4
+}

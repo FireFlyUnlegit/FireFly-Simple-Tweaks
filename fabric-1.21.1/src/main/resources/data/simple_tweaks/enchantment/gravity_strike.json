@@ -1,0 +1,33 @@
+{
+  "anvil_cost": 8,
+  "description": {
+    "translate": "enchantment.simple_tweaks.gravity_strike"
+  },
+  "effects": {
+    "minecraft:damage": [
+      {
+        "effect": {
+          "type": "minecraft:add",
+          "value": {
+            "type": "minecraft:linear",
+            "base": 0.35,
+            "per_level_above_first": 0.35
+          }
+        }
+      }
+    ]
+  },
+  "max_cost": {
+    "base": 65535,
+    "per_level_above_first": 0
+  },
+  "max_level": 6,
+  "min_cost": {
+    "base": 15,
+    "per_level_above_first": 15
+  },
+  "primary_items": "#minecraft:enchantable/sword",
+  "slots": ["mainhand"],
+  "supported_items": "#minecraft:enchantable/sword",
+  "weight": 4
+}
