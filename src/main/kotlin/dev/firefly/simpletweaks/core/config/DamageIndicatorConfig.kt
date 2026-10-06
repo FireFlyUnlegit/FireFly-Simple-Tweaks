@@ -45,7 +45,19 @@ object DamageIndicatorConfig {
     @JvmStatic
     var showShadow: Boolean = true
 
-    /** `yStartFactor` — vertical spawn offset factor. Range 0.5..2.0. */
+    /**
+     * `yStartFactor` — vertical spawn offset, expressed in **entity heights** above the entity's feet.
+     *
+     * Range 0.5..2.0, default 1.0 = exactly the top of the hitbox, i.e. the 1.12.2 behaviour.
+     *
+     * The 1.12.2 original was `startY * factor` where `startY = entity.posY + entity.height`, i.e. the
+     * factor multiplied the *absolute world Y*. That is harmless at y≈64 but pathological elsewhere:
+     * at y=70 with `factor = 2.0` the number spawns near y=143, which is further from the camera than
+     * `maxDistance` and is therefore **never drawn at all** — the feature silently disappears, and
+     * because `cancelVanillaDamageIndicator` is on by default there is no vanilla fallback either.
+     * The 1.21.1 port multiplies the height term only, so no value in range can push the number out of
+     * render range.
+     */
     @JvmStatic
     var yStartFactor: Double = 1.0
 }

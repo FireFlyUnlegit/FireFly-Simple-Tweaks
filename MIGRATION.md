@@ -649,6 +649,9 @@ $totalGB = [math]::Round($os.TotalVisibleMemorySize / 1MB, 1)
 
 ### 开发期假玩家：Fabric Carpet
 
+> ⚠️ **本节已作废（`build=cleanup2`）：Carpet 依赖与相关脚本已全部删除，见 §11。**
+> 以下内容是**当时的记录**，保留不改写 —— 但不要照它去加依赖。
+
 `build.gradle` 已加（**仅开发期，不进 jar**）：
 
 ```gradle
@@ -676,6 +679,8 @@ dependencies { modRuntimeOnly 'maven.modrinth:carpet:1.4.147' }
   **只在状态跃迁时**打点，否则会刷爆日志并拖慢服务器
 
 ### 自动化驱动：RCON 验收脚手架（已搭好）
+
+> ⚠️ **本节已作废（`build=cleanup2`）：`tools/acceptance.ps1` 与 `tools/rcon.ps1` 已删除，见 §11。**
 
 **只用一条命令就能跑完整服务端验收，不需要客户端。**
 
@@ -1423,3 +1428,35 @@ fabric-1.21.1/
 | `replace_block` | 替换方块但**不产掉落**，也不能以"玩家破坏"为触发 |
 | `damage_immunity` | 无法限定"仅致命"，也不会消耗附魔等级 |
 | `random_chance` 近似"每 N 次" | 每次独立判定，语义完全不同（Immortal 的坑） |
+
+---
+
+## 11. 收尾：删除测试指令与 Carpet 附属（`build=cleanup2`）
+
+测试指令与 RCON 假玩家验收都已完成使命（验收改由作者本人客户端进行），三者全部从源码与发布 jar 中删除。
+
+| 删除 | 位置 | 理由 |
+|---|---|---|
+| `/sttest` 指令 | `core/DevTestCommand.kt` + `SimpleTweaks.onInitialize` | 开发期自测入口；发布 jar 里带测试指令属污染 |
+| `invocations` / `vanillaCanEnchant` / `describe*` | `core/EnchantTableGate.kt` | 只有 `/sttest` 读；删除后即死代码。判定谓词 `canEnchant` 与 `maxEnchantmentPower` 保留 |
+| Carpet `1.4.147`（`modRuntimeOnly`） | `build.gradle` | 只用于假玩家验收；**从未进过 jar**（§服务端验收基础设施的结论不变） |
+| Modrinth maven 仓库 | `build.gradle` | 该仓库**只为** Carpet 添加，删依赖后无引用 |
+| `tools/acceptance.ps1`（52 KB） | `tools/` | 100% 依赖 Carpet 假玩家 + `/sttest`，两者删除后无法运行 |
+| `tools/rcon.ps1` | `tools/` | 只服务于 `acceptance.ps1` |
+
+**保留**：`/stconfig`、`/enchantinfo` 是正式功能，不是测试指令；`tools/gen-enchantments.ps1`、`tools/yarn-query.ps1` 是代码生成 / 离线名称校验工具。
+**不改写**：本文件 §服务端验收基础设施 / §逻辑层级验收结果，以及 `docs/phase4-mixin-notes.md`、`docs/phase6-client-notes.md` 中出现的 `/sttest` 与 Carpet，都是**当时的事实记录**，按原样保留。
+
+> ⚠️ **Kotlin 增量编译不会删除已移除源文件的 class。** 只跑 `build` 时 `DevTestCommand.class` 会残留在 `build/classes` 并被 `jar` 打进发布包（实测发生，529 KB 的包差一点就带着它发出去）。删除源文件后**必须 `gradlew clean build`**。
+
+### 11.1 `yStartFactor` 硬化：乘数从「世界高度」改为「实体高度」
+
+| | 改前（= 1.12.2 原式） | 改后（`build=cleanup2`） |
+|---|---|---|
+| 锚点公式 | `(entity.y + entity.height) * yStartFactor` | `entityFeetY + entityHeight * yStartFactor` |
+| `yStartFactor = 1.0`（默认） | 命中箱顶部 | **完全相同**，默认行为不变 |
+| `yStartFactor = 2.0`，站在 y=70 | 锚点 ≈ y143 → 超出 `maxDistance` → **飘字永不渲染** | 锚点 = 脚 + 2 倍身高（≈ y72）→ 正常渲染 |
+
+**为什么必须改**：`yStartFactor` 是**绝对世界高度**的乘数，`2.0` 会把锚点推到离相机 70+ 格处，被 `DamageIndicatorRenderer` 的距离剔除静默丢掉；而 `cancelVanillaDamageIndicator` 默认开启，连原版飘字都没有 ⇒ 表现为该功能**彻底失效**。
+
+**实测复现**：`run/config/simple_tweaks.json` 中 `yStartFactor = 2.0` 时飘字全无。当时已核对代码默认值（1.0）与配置的读、写两条路径**均正确**，唯一问题就在这条公式。改后 `0.5..2.0` 全区间都在渲染范围内，`entityFeetY` / `entityHeight` 仍在构造时缓存，飘字依旧不跟随生物。

@@ -107,9 +107,9 @@ public abstract class EnchantmentScreenHandlerMixin {
     /**
      * (1) 1.12.2 `@Redirect` on `ItemStack#isItemEnchantable` in `onCraftMatrixChanged`.
      *
-     * The predicate itself lives in [EnchantTableGate] so the dev-only `/sttest enchant` probe can
-     * report its verdict and its invocation count separately from the offer values — see that class's
-     * KDoc for why the three failure modes are otherwise indistinguishable.
+     * The predicate itself lives in [EnchantTableGate] rather than inline here; see that class's KDoc
+     * for the three failure modes (redirect never ran / predicate false / offers downstream) that an
+     * inline predicate cannot tell apart from the outside.
      */
     @Redirect(
             method = "onContentChanged(Lnet/minecraft/inventory/Inventory;)V",
