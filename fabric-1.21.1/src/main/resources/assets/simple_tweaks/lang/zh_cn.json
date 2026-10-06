@@ -55,8 +55,8 @@
   "enchantment.simple_tweaks.combat_master": "战斗大师",
   "enchantment.simple_tweaks.resilience": "韧性",
   "enchantment.simple_tweaks.gravity_strike": "重力打击",
+  "enchantment.simple_tweaks.adopted_armor": "适应装甲",
   "enchantment.simple_tweaks.fast_bow": "快速拉弓",
-  "enchantment.simple_tweaks.adopted_armor": "适应护甲",
 
   "enchantment.simple_tweaks.bloodlust.desc": "根据攻击者已损失的生命值比例提升伤害，等级越高加成越高。",
   "enchantment.simple_tweaks.crit.desc": "攻击时有几率触发暴击（无需跳跃），等级越高几率越大。",
@@ -114,8 +114,8 @@
   "enchantment.simple_tweaks.combat_master.desc": "连续命中同一目标会累积连击层数。每层提供 2%%×等级 的额外伤害，最高 20%%×等级。受到任意伤害或切换目标会清空连击，5 秒未攻击也会自动清空。",
   "enchantment.simple_tweaks.resilience.desc": "生命值越低，受到的伤害减免越高。满血无加成；四件护甲全 III 级、血量降至 10%% 时减免达到 84%%。等级越高，减伤越强。",
   "enchantment.simple_tweaks.gravity_strike.desc": "根据你下落的高度提升攻击伤害。下落越高，打击越重，但有上限。平地跳跃无法触发加成。空中发起攻击时，下落高度会一直保留到你落地。",
-  "enchantment.simple_tweaks.fast_bow.desc": "减少拉弓时间，等级越高拉弓越快。",
   "enchantment.simple_tweaks.adopted_armor.desc": "连续受到同类型伤害时叠加减伤层数，最多 6 层。每层减少 0.9% × 等级 的伤害；切换伤害类型或 5 秒未受击则清空层数。",
+  "enchantment.simple_tweaks.fast_bow.desc": "减少拉弓时间，等级越高拉弓越快。",
 
   "death.attack.celestial_particle": "%1$s 被圣光净化了",
   "death.attack.celestial_particle.player": "%1$s 被 %2$s 的圣光净化了",

@@ -61,7 +61,7 @@ class SimpleTweaks : ModInitializer {
          * Bumped from 1.0.7: the 1.21 Fabric build is a new artifact line and does not share
          * saved data with the 1.12.2 version.
          */
-        const val VERSION = "2.0.0"
+        const val VERSION = "2.1.0"
 
         val LOGGER: Logger = LoggerFactory.getLogger(NAME)
     }

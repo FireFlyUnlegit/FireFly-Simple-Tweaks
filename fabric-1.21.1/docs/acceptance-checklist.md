@@ -1,11 +1,11 @@
 # 客户端验收清单（`simple_tweaks-2.0.0.jar`）
 
 > 目标 jar：`fabric-1.21.1/build/libs/simple_tweaks-2.0.0.jar`
-> SHA256 `54C9792F7CCC33F1D260498802ADBCC2735ED99F3E9CDAAEE5BC53C1EE99BEA0`（551272 bytes）
-> 启动标识：**`build=cleanup10`**
+> SHA256 `7EA26FEF6F5C03F5D179492E5127F1DE870802426D4A0758F496C5CF2DF2AFB9`（556393 bytes）
+> 启动标识：**`build=cleanup12`**
 > 安装位置：`F:\.minecraft\versions\1.21.1-Fabric 0.19.3\mods\simple_tweaks-2.0.0.jar`
 > 配置/日志：`<gameDir>\config\simple_tweaks.json`、`<gameDir>\logs\latest.log`
-> 回退点：`simple_tweaks-2.0.0.jar.prev`（上一版 `build=cleanup9`）
+> 回退点：`simple_tweaks-2.0.0.jar.prev`（上一版 `build=cleanup10`）
 >
 > **前置**：单人世界 + 开作弊。
 > ⚠️ **`[ST-*]` 调试日志默认关闭**（`build=cleanup3` 起，见 §M 与 `MIGRATION.md` §12）。本清单里凡

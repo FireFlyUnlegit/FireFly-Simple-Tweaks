@@ -39,9 +39,19 @@ dependencies {
     // It reads @ModEnchantment (matched by fully-qualified name) and writes:
     //   build/generated/ksp/main/kotlin    -> GeneratedEnchantments.kt
     //   build/generated/ksp/main/resources -> data/simple_tweaks/enchantment/<id>.json
-    // KSP registers both output directories on the `main` source set itself, which is why the
-    // datapack JSON lands in the jar with no extra `sourceSets` wiring here.
+    //                                      -> data/minecraft/tags/enchantment/{non_treasure,
+    //                                         in_enchanting_table,tradeable}.json
+    // KSP registers both output directories on the `main` source set itself, which is why the datapack
+    // JSON lands in the jar with no extra `sourceSets` wiring here.
     ksp project(':ksp-processor')
+}
+
+// The processor owns the vanilla enchantment tags plus the merged index tables, and for those it needs the
+// 1.12.2-derived half of the enchantment set: `tools/legacy-enchantments.json`, written once by
+// `tools/gen-enchantments.ps1` and committed. It reports an error if this option is missing or the file is
+// unreadable — a silently short tag would only show up as "the enchanting table offers too little".
+ksp {
+    arg('simpleTweaks.legacyManifest', file('tools/legacy-enchantments.json').absolutePath)
 }
 
 processResources {

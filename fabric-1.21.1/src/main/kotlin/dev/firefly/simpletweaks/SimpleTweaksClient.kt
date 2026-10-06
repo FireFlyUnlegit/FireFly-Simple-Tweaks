@@ -73,7 +73,9 @@ class SimpleTweaksClient : ClientModInitializer {
                 "+ piercing_arrow/crit migrated to KSP + crit-damage priority split " +
                 "+ @ModEnchantment enums (category/type/color/slot) " +
                 "+ enchant index enumerates the live registry " +
-                "+ name colour derived from tier (EnchantmentNameColors deleted) (build=cleanup10)",
+                "+ name colour derived from tier (EnchantmentNameColors deleted) " +
+                "+ villagers no longer trade mod enchantments " +
+                "+ KSP owns non_treasure/in_enchanting_table/tradeable (build=cleanup12)",
             SimpleTweaks.NAME,
         )
     }

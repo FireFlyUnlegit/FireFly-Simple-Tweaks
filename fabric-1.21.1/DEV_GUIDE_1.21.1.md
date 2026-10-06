@@ -335,6 +335,9 @@ Mixin 只改写 `@Mixin` 那个类的方法体。1.21 里不少基类方法被**
 | 12 | Git 提交后编辑工具报"文件已变化"                        | 仓库开了 `core.autocrlf`，`git add` 会按 CRLF 重写工作区文件。重新读一次即可（代理向的坑）                                                                                          |
 | 13 | `AnvilScreen`/`AnvilScreenHandler` 的 40 改错 | 同一字面量在方法里出现多次，**必须核实个数再决定 ordinal**（§4.3）                                                                                                              |
 | 14 | `getMaxUseTime` 当成"拉弓时间"                   | 弓的它是 72000（最长持有时长），**不是**蓄满所需的 20 tick                                                                                                                 |
+| 15 | tag 里写 `"remove"` 却毫无效果，**且不报错**          | **1.21.1 原版 tag 格式根本没有 `remove` 字段** —— `TagFile` 只有 `entries`(=`values`) 和 `replace`。`remove` 是 **Fabric Tag API** 的扩展，键名必须是 **`"fabric:remove"`**；写成裸 `remove` 会被**静默忽略**。原版 `values` 还是**必填**字段，所以"只移除、不添加"的文件也要写 `"values": []`。连带的坑：`replace: true` 表示"用本文件的 values **取代**整个 tag"，而 vanilla `non_treasure` 里有 35 个原版附魔、`in_enchanting_table` 整个就是 `#minecraft:non_treasure` 的引用 —— 对它们用 `replace: true` 会把**原版附魔逐出附魔台** |
+| 16 | 新写的 `@ModEnchantment` 没进附魔台 / 没被村民过滤          | KSP 是这两个 tag 的**唯一生产者**，而它需要 `tools/legacy-enchantments.json`（由 `tools/gen-enchantments.ps1` 跑一次生成、**要提交**）才能覆盖 54 个 legacy 附魔。该路径经 `build.gradle` 的 `ksp { arg('simpleTweaks.legacyManifest', …) }` 传入；缺失时 processor 会**报错**而不是生成一个短 tag |
+| 17 | 生成物里出现 `<ERROR TYPE: …>`                       | 注解实参**不是编译期常量**（例如 `color = EnchantCategory.EPIC.color` 是属性读取）。KSP 不报错，只回一个占位符；processor 现在有**枚举名护栏**会在声明处直接报错（§3.6），不要绕过它 |
 
 ---
 
