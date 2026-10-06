@@ -1,11 +1,11 @@
 # 客户端验收清单（`simple_tweaks-2.0.0.jar`）
 
 > 目标 jar：`fabric-1.21.1/build/libs/simple_tweaks-2.0.0.jar`
-> SHA256 `A40C60CAED6BA69F54BD8BDDBF08EB0AAB820500CC2D83774E1A8798138BC26A`（529459 bytes）
-> 启动标识：**`build=cleanup3`**
+> SHA256 `49CF34A1806AA626B369161D0C700044BB8C6B2C0D681827926BB867BE53D696`（531177 bytes）
+> 启动标识：**`build=cleanup4`**
 > 安装位置：`F:\.minecraft\versions\1.21.1-Fabric 0.19.3\mods\simple_tweaks-2.0.0.jar`
 > 配置/日志：`<gameDir>\config\simple_tweaks.json`、`<gameDir>\logs\latest.log`
-> 回退点：`simple_tweaks-2.0.0.jar.prev`（上一版 `build=cleanup2`）、`.bak`（最原始版）
+> 回退点：`simple_tweaks-2.0.0.jar.prev`（上一版 `build=cleanup3`）、`.bak`（最原始版）
 >
 > **前置**：单人世界 + 开作弊。
 > ⚠️ **`[ST-*]` 调试日志默认关闭**（`build=cleanup3` 起，见 §M 与 `MIGRATION.md` §12）。本清单里凡
@@ -533,6 +533,27 @@
 
 ---
 
+## N. 铁砧等级上限（`build=cleanup4` 新修复）—— **本轮重点**
+
+> 这个选项之前**只有配置项、没有代码**（`disableAnvilCostLimit` / `maxAnvilCost` 谁都没读），
+> 所以"改了没用"是必然的，不是你的操作问题。现在补了服务端闸门 + 客户端红字两个 mixin。
+
+| # | 操作 | 期望 |
+|---|---|---|
+| N1 | 把铁砧代价推到 **40 以上**（给剑打一堆附魔后用同种剑合并，或反复合并同件物品） | 产物**不再显示红色「过于昂贵！」**，而是正常显示代价 `Cost: N`（N ≥ 40） |
+| N2 | 等级 ≥ N 时点产物 | **能取出**，等级正常扣除 |
+| N3 | 等级 < N 时点产物 | 仍然**取不出**（红字）—— 这是**对的**：只取消上限，不取消价格 |
+| N4 | `/stconfig` 关掉「移除铁砧『过于昂贵』」 | 立刻恢复原版：≥ 40 就红字「过于昂贵」 |
+| N5 | 「铁砧最大花费」改成 **100**（开关保持开启），把物品拿开再放回去重算 | 代价 40–99 正常可取出；**≥ 100 才**变红「过于昂贵」 |
+| N6 | 用**一叠材料**（如 2 个铁锭修护甲）在铁砧上修 | 代价**仍是原版那个小数字**，不会变成天文数字 |
+
+> ⚠️ **N6 是本次最容易踩的坑，也是最重要的一条。** `AnvilScreenHandler.updateResult()` 里有**三处**
+> `40`：第一处是"材料堆叠 > 1 时的花费 40"，第二处是创造模式显示钳位，**第三处才是上限闸门**。
+> 只改了第三处（`@Constant(intValue = 40, ordinal = 2)`）；如果 N6 变成"修复要 40 级"或"代价 21 亿"，
+> 说明 ordinal 选错了，**请立刻告知**，不要继续测别的。
+
+---
+
 ## 已知未做（**不要当 bug 报**）
 
 | 项 | 原因 |
@@ -540,7 +561,9 @@
 | **InfinitePower 背包**（GUI / 右键开启 / 存档） | **已舍弃**；源码保留在 `src/**/disabled/`，结论见 `infinite-power-deferred.md` §17 |
 | **Velocity** | 作者裁定不移植 |
 | `/attribute` | 1.21 原版自带且更强，不移植 |
-| `/enchant ... 0` 移除附魔 | 作者裁定不移植（1.21 参数在**解析阶段**就拒绝 0，需两个 mixin，性价比不足）。替代：**铁砧祛魔** |
+| `/enchant ... 0` 移除附魔 | 作者裁定不移植（1.21 参数在**解析阶段**就拒绝 0，需两个 mixin，性价比不足） |
+| **铁砧祛魔**（`anvilDisenchant`） | ❌ **未移植**（`build=cleanup4` 核实）。配置项/界面/lang 都在但 `DisenchanterLogic` 整个类不存在；1.21 没有可写经验标签的物品 NBT。**注意**：本表以前把「铁砧祛魔」写成 `/enchant ... 0` 的替代品，那是错的 —— 它自己也没做 |
+| **附魔成本倍率**（稀有度越高越贵） | ❌ **未移植**。1.12.2 靠 Forge 的 `AnvilUpdateEvent`（`AnvilCostHandler`），Fabric 无对应事件 |
 | `SlowDownEvent` 的第三方注册门面 | **事件本身已移植且行为正确**，但只挂在本模组总线上；要对外需再加一个公开门面 |
 | 原版箱子贴图式的界面底板 | 图鉴面板用纯色填充而非 `generic_54.png` 贴图 |
 | 图鉴里的附魔书是"假"的 | 只用 `ENCHANTMENT_GLINT_OVERRIDE` 加闪光，**没有真的 `STORED_ENCHANTMENTS` 组件** |

@@ -1483,3 +1483,59 @@ fabric-1.21.1/
 **保持无条件输出**（这些是启动信息与真异常，不该被开关吞掉）：`v2.0.0 loading` / `load complete` / `client ready: ... (build=...)` / `Config loaded from ...` / `Registered N enchantment handler(s)`，以及 `ForgeEventBus` 与配置读写的全部 `warn` / `error`。
 
 > ⚠️ **验收影响**：本文件与 `docs/acceptance-checklist.md` 里所有"日志应出现 `[ST-...]`"的判据，**现在都必须先打开开关**，否则那些行根本不会出现 —— 这是预期，不是功能失效。清单 §M 已加对应检查项。
+
+---
+
+## 14. 铁砧等级上限：配置项存在但从未实现（`build=cleanup4` 修复）
+
+**现象**：`/stconfig` 里「移除铁砧『过于昂贵』」和「铁砧最大花费」能改、能落盘，但铁砧行为不变。
+
+**根因**：**1.21.1 移植里没有任何铁砧 mixin**。1.12.2 这个功能由 `MixinContainerRepair`（服务端闸门）+
+`MixinGuiRepair`（客户端红字）实现，**两个都没被移植**；`GeneralConfig`、配置 JSON、配置界面、两份 lang
+全都写好了，所以它看起来"已实现" —— 实际没有任何代码读它。与当初 `maxEnchantmentPower` 是同一类错误。
+
+### 14.1 修复：两半缺一不可
+
+| 新增 | 目标 | 作用 |
+|---|---|---|
+| `mixin/AnvilScreenHandlerMixin`（common） | `AnvilScreenHandler.updateResult` | 服务端闸门：`levelCost >= 40 && !creative → 产物清空` |
+| `mixin/AnvilScreenMixin`（client） | `AnvilScreen.drawForeground` | 客户端红字「过于昂贵！」的同一个 40 |
+
+只改服务端 → 产物能拿出来但界面仍标红；只改客户端 → 界面正常但服务端清空产物。
+
+### 14.2 关键坑：`updateResult()` 里有**三处** `40`
+
+字节码实测（`javap -c`，`AnvilScreenHandler.updateResult`，yarn 1.21.1+build.3）：
+
+| 字节码偏移 | ordinal | 含义 |
+|---|---|---|
+| 723 | 0 | 合并循环内 `if (stack.getCount() > 1) cost = 40;` —— **一个花费值，不是上限** |
+| 899 | 1 | `if (j > 0 && i == j && levelCost >= 40) levelCost.set(39);` —— 创造模式显示钳位 |
+| **920** | **2** | `if (levelCost >= 40 && !creative) result = EMPTY;` —— **闸门**（唯一读 `creativeMode` 的那处） |
+
+因此**必须写 `ordinal`**：裸 `@ModifyConstant(intValue = 40)` 会同时改掉三处，把"用一叠材料修理"的代价
+变成 `maxAnvilCost`（默认 21 亿）。`ordinal` 是 **`@Constant`** 的元素而 `@ModifyConstant` **没有** ——
+这一点由 `javap` 查 `sponge-mixin` 0.15.5 的注解定义确认，不是凭记忆。
+
+（1.12.2 那个"把存进 `i` 的 40 改成 0"的 `@ModifyVariable` 钩子在编译器优化后即死代码、从未生效，
+所以这里**不**改 ordinal 0 恰好与 1.12.2 的**实际**行为一致。）
+
+### 14.3 仍未移植的铁砧功能（本次未做，勿当 bug 报）
+
+| 功能 | 1.12.2 位置 | 现状 |
+|---|---|---|
+| **铁砧祛魔**（`anvilDisenchant`） | `MixinContainerRepair#firefly$disenchant` + `DisenchanterLogic` | ❌ **未移植**。配置项/界面/lang 都在，但 `DisenchanterLogic` 整个类不存在；1.21 没有可写经验标签的物品 NBT，需重新设计承载方式 |
+| **附魔成本倍率**（稀有度越高越贵） | `AnvilCostHandler`（Forge `AnvilUpdateEvent`） | ❌ **未移植**。Fabric 无对应事件，需另挂 mixin |
+
+> ⚠️ 清单「已知未做」表里原写「`/enchant ... 0` 的替代：**铁砧祛魔**」，而铁砧祛魔本身也不存在 —— 已改正。
+
+### 14.4 验证方式
+
+| 层 | 检查 | 结果 |
+|---|---|---|
+| 方法解析 | `simple_tweaks-refmap.json` | `AnvilScreenHandlerMixin.updateResult → Lnet/minecraft/class_1706;method_24928()V`；`AnvilScreenMixin.drawForeground → class_471;method_2388(class_332;II)V` |
+| 注解取值 | jar 内 class 上跑 `javap -v` | `@Constant(intValue=40, ordinal=2)` / `@Constant(intValue=40)` |
+| 行为 | 客户端验收 §N（N6 专验 ordinal 0 未被误改） | **待作者验收** |
+
+> `ordinal` 是唯一脆弱点。若日后铁砧又不生效，第一步是重新 `javap -c` 数 `updateResult` 里的
+> `bipush 40` 个数与位置，而不是先怀疑配置读取。
