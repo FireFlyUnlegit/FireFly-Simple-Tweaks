@@ -9,8 +9,9 @@
 >
 > **前置**：单人世界 + 开作弊。日志行都带 `[ST-*]` 前缀，方便 `Select-String '\[ST-'`。
 >
-> ⚠️ `build=cleanup2` 起**测试指令 `/sttest` 与 Carpet 假玩家已删除**（见 §M、`MIGRATION.md` §11），
-> 因此 E/F 组中依赖 `/sttest` 或假玩家的旧做法不再可用，请以本清单的客户端做法为准。
+> ⚠️ `build=cleanup2` 只删掉了**开发期自测入口**：`/sttest` 指令、Carpet 假玩家依赖、`tools/acceptance.ps1`、
+> `tools/rcon.ps1`（见 §M 与 `MIGRATION.md` §11）。**`/stconfig` 与 `/enchantinfo` 未受任何影响** ——
+> 本清单各组照常按客户端做法测，E/F 等组本来就不依赖 `/sttest` 或假玩家。
 > ⚠️ `build=cleanup2` 起**旧配置里的 `yStartFactor=2.0` 不再是致命值**（见 §M3）。
 
 ---
