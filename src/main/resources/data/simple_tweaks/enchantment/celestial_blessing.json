@@ -1,0 +1,32 @@
+{
+  "anvil_cost": 14,
+  "description": {
+    "translate": "enchantment.simple_tweaks.celestial_blessing"
+  },
+  "effects": {
+    "minecraft:damage": [
+      {
+        "effect": {
+          "type": "minecraft:add",
+          "value": {
+            "type": "minecraft:linear",
+            "base": 2,
+            "per_level_above_first": 2
+          }
+        }
+      }
+    ]
+  },
+  "max_cost": {
+    "base": 65535,
+    "per_level_above_first": 0
+  },
+  "max_level": 5,
+  "min_cost": {
+    "base": 30,
+    "per_level_above_first": 30
+  },
+  "slots": ["mainhand"],
+  "supported_items": "#minecraft:enchantable/sword",
+  "weight": 1
+}

@@ -1,0 +1,33 @@
+{
+  "anvil_cost": 12,
+  "description": {
+    "translate": "enchantment.simple_tweaks.grievous_wounds"
+  },
+  "effects": {
+    "minecraft:damage": [
+      {
+        "effect": {
+          "type": "minecraft:add",
+          "value": {
+            "type": "minecraft:linear",
+            "base": 0.45,
+            "per_level_above_first": 0.45
+          }
+        }
+      }
+    ]
+  },
+  "max_cost": {
+    "base": 65535,
+    "per_level_above_first": 0
+  },
+  "max_level": 5,
+  "min_cost": {
+    "base": 37,
+    "per_level_above_first": 12
+  },
+  "primary_items": "#minecraft:enchantable/sword",
+  "slots": ["mainhand"],
+  "supported_items": "#minecraft:enchantable/sword",
+  "weight": 1
+}

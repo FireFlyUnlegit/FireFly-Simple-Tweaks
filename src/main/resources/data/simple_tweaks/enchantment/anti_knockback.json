@@ -1,0 +1,33 @@
+{
+  "anvil_cost": 2,
+  "description": {
+    "translate": "enchantment.simple_tweaks.anti_knockback"
+  },
+  "effects": {
+    "minecraft:attributes": [
+      {
+        "amount": {
+          "type": "minecraft:linear",
+          "base": 0.125,
+          "per_level_above_first": 0.125
+        },
+        "attribute": "minecraft:generic.knockback_resistance",
+        "id": "simple_tweaks:enchantment.anti_knockback",
+        "operation": "add_value"
+      }
+    ]
+  },
+  "max_cost": {
+    "base": 65535,
+    "per_level_above_first": 0
+  },
+  "max_level": 2,
+  "min_cost": {
+    "base": 10,
+    "per_level_above_first": 10
+  },
+  "primary_items": "#minecraft:enchantable/armor",
+  "slots": ["armor"],
+  "supported_items": "#minecraft:enchantable/armor",
+  "weight": 10
+}

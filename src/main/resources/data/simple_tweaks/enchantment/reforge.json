@@ -1,0 +1,19 @@
+{
+  "anvil_cost": 2,
+  "description": {
+    "translate": "enchantment.simple_tweaks.reforge"
+  },
+  "effects": {},
+  "max_cost": {
+    "base": 65535,
+    "per_level_above_first": 0
+  },
+  "max_level": 1,
+  "min_cost": {
+    "base": 1,
+    "per_level_above_first": 1
+  },
+  "slots": ["any"],
+  "supported_items": "#minecraft:enchantable/durability",
+  "weight": 1
+}

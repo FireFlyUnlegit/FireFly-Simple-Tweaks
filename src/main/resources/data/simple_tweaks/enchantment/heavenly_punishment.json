@@ -1,0 +1,32 @@
+{
+  "anvil_cost": 14,
+  "description": {
+    "translate": "enchantment.simple_tweaks.heavenly_punishment"
+  },
+  "effects": {
+    "minecraft:damage": [
+      {
+        "effect": {
+          "type": "minecraft:add",
+          "value": {
+            "type": "minecraft:linear",
+            "base": 5,
+            "per_level_above_first": 5
+          }
+        }
+      }
+    ]
+  },
+  "max_cost": {
+    "base": 65535,
+    "per_level_above_first": 0
+  },
+  "max_level": 4,
+  "min_cost": {
+    "base": 30,
+    "per_level_above_first": 30
+  },
+  "slots": ["mainhand"],
+  "supported_items": "#minecraft:enchantable/sword",
+  "weight": 1
+}

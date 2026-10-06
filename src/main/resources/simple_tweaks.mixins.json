@@ -1,0 +1,38 @@
+{
+  "required": true,
+  "minVersion": "0.8.5",
+  "package": "dev.firefly.simpletweaks.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "AbstractBlockBreakingDeltaMixin",
+    "BlockHarvestDropsMixin",
+    "BowItemArrowLooseMixin",
+    "EntityDamageMixin",
+    "EntityFallDamageMixin",
+    "EntityTickMixin",
+    "EnchantmentScreenHandlerMixin",
+    "EnchantmentHelperMixin",
+    "LivingEntityApplyDamageMixin",
+    "LivingEntityDeathMixin",
+    "LivingEntityHealMixin",
+    "PlayerEntityAttackMixin",
+    "PlayerEntityBreakSpeedMixin",
+    "PlayerEntityDamageIndicatorParticleMixin",
+    "PlayerEntityDropItemMixin",
+    "PersistentProjectileEntityAccessor",
+    "PersistentProjectileEntityPiercingMixin",
+    "PersistentProjectileEntityStateMixin",
+    "ServerPlayerDropsMixin"
+  ],
+  "client": [
+    "EnchantmentNameColorMixin",
+    "InputSlowDownMixin"
+  ],
+  "server": [],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "overwrites": {
+    "requireAnnotations": true
+  }
+}

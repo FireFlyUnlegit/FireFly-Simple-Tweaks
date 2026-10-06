@@ -1,0 +1,19 @@
+{
+  "anvil_cost": 12,
+  "description": {
+    "translate": "enchantment.simple_tweaks.infinite_power"
+  },
+  "effects": {},
+  "max_cost": {
+    "base": 65535,
+    "per_level_above_first": 0
+  },
+  "max_level": 1,
+  "min_cost": {
+    "base": 65535,
+    "per_level_above_first": 0
+  },
+  "slots": ["mainhand"],
+  "supported_items": "#minecraft:enchantable/sword",
+  "weight": 1
+}

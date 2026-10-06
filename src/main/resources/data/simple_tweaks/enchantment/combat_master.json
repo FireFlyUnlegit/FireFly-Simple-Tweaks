@@ -1,0 +1,33 @@
+{
+  "anvil_cost": 2,
+  "description": {
+    "translate": "enchantment.simple_tweaks.combat_master"
+  },
+  "effects": {
+    "minecraft:damage": [
+      {
+        "effect": {
+          "type": "minecraft:add",
+          "value": {
+            "type": "minecraft:linear",
+            "base": 0.2,
+            "per_level_above_first": 0.2
+          }
+        }
+      }
+    ]
+  },
+  "max_cost": {
+    "base": 65535,
+    "per_level_above_first": 0
+  },
+  "max_level": 5,
+  "min_cost": {
+    "base": 8,
+    "per_level_above_first": 8
+  },
+  "primary_items": "#minecraft:enchantable/sword",
+  "slots": ["mainhand"],
+  "supported_items": "#minecraft:enchantable/sword",
+  "weight": 10
+}
