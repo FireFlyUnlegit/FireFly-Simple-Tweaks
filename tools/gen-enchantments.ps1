@@ -143,15 +143,25 @@ function Invoke-GenEnchantments {
     # NOTE: lang is NOT affected, and that is correct. `$en`/`$zh` are parsed from the 1.12.2 `.lang`
     # files rather than from $rows, so a migrated enchantment keeps its name and description. KSP
     # deliberately does not generate lang (DEV_GUIDE_1.21.1.md §3.3).
-    # 'crit' is listed now that `@ModEnchantment` can emit its `minecraft:damage` component
-    # (`damagePerLevel = 0.4`). An enchantment whose JSON needs anything else in `effects`
-    # (`minecraft:attributes`, `minecraft:item_damage`, ...) still cannot move -- which is why the other
-    # 53 keep being generated here on purpose: they already work, and migrating them would buy
-    # uniformity at the price of 53 chances to regress.
-    $kspMigrated = @('piercing_arrow', 'crit')
+    # Which ids live in `@ModEnchantment` declarations instead? Read them, do not keep a list: a
+    # migrated enchantment must stop being emitted here (its KSP-generated JSON would otherwise collide
+    # with this script's copy at the same jar path), and a hand-kept list is exactly the thing that goes
+    # stale. The declarations themselves are the single source of truth.
+    $kspMigrated = @()
+    $handlerRoot = Join-Path $OutRoot 'src\main\kotlin\dev\firefly\simpletweaks\enchantments\handlers'
+    foreach ($hf in Get-ChildItem $handlerRoot -Recurse -File -Filter *.kt) {
+        $ht = [System.IO.File]::ReadAllText($hf.FullName, [System.Text.Encoding]::UTF8)
+        foreach ($am in [regex]::Matches($ht, '@ModEnchantment\((?<b>[\s\S]*?)\n\s*\)')) {
+            $im = [regex]::Match($am.Groups['b'].Value, 'id\s*=\s*"([a-z_0-9]+)"')
+            if ($im.Success) { $kspMigrated += $im.Groups[1].Value }
+        }
+    }
+    $kspMigrated = @($kspMigrated | Sort-Object -Unique)
+    if ($kspMigrated.Count -eq 0) { throw "no @ModEnchantment declarations found under $handlerRoot -- annotation parse failed" }
     $rowsBefore = $rows.Count
     $rows = @($rows | Where-Object { $_.Id -notin $kspMigrated })
-    Write-Host "KSP-migrated, excluded from the legacy tables: $($kspMigrated -join ', ')  ($rowsBefore -> $($rows.Count) rows)"
+    Write-Host "KSP-declared (@ModEnchantment) excluded : $($kspMigrated.Count) [$($kspMigrated -join ', ')]"
+    Write-Host "legacy rows                             : $rowsBefore -> $($rows.Count)"
 
     # ---- lang ---------------------------------------------------------------
     $langDir = Join-Path $SrcRoot 'src\main\resources\assets\simple_tweaks\lang'
@@ -325,19 +335,11 @@ function Invoke-GenEnchantments {
         }
     }
 
-    # ---- non_treasure tag (=> appears in the enchanting table) --------------
-    $tagDir = Join-Path $OutRoot 'src\main\resources\data\minecraft\tags\enchantment'
-    New-Item -ItemType Directory -Force -Path $tagDir | Out-Null
-    $nonTreasure = ($report | Where-Object { -not $_.Treasure } | Sort-Object Id |
-        ForEach-Object { '    "simple_tweaks:' + $_.Id + '"' }) -join ",`n"
-    Write-Text (Join-Path $tagDir 'non_treasure.json') @"
-{
-  "replace": false,
-  "values": [
-$nonTreasure
-  ]
-}
-"@
+    # ---- non_treasure / in_enchanting_table / tradeable tags ----------------
+    # NOTE: these are NOT written here any more. The KSP processor owns all three, because it is the
+    # only place that knows **both** the 1.12.2-derived ids and the `@ModEnchantment` declarations --
+    # and a tag file can have exactly one producer (two would land at the same jar path and collide).
+    # What this script supplies instead is the 1.12.2 half of that knowledge, as a manifest (below).
 
     # ---- lang JSON (all keys, not just enchantment ones) --------------------
     $assetsLang = Join-Path $OutRoot 'src\main\resources\assets\simple_tweaks\lang'
@@ -402,68 +404,32 @@ $keyLines
     # `$catColors` note near the top of this script. The colour is a property of the tier and is derived
     # from it at runtime by `EnchantmentMeta.colorOf`, so there is nothing to generate here.
 
-    # ---- tier (category) and applicability (type) tables --------------------
-    # The in-game enchant index (client/EnchantInfoScreen) groups enchantments by 1.12.2
-    # `EnchantmentCategories` and prints the 1.12.2 `ModEnchantmentType` as "applies to". Neither
-    # concept exists in 1.21 code -- enchantments are data-driven and applicability is an item tag --
-    # so both tables are generated from the same parse that writes the JSON definitions.
+    # ---- legacy enchantment manifest (id + index metadata) ------------------
+    # This script no longer writes `EnchantmentTiers.kt` either. KSP is the single producer of the merged
+    # `CATEGORY` / `TYPE` / `MAX_LEVEL` tables, because it is the only side that also knows the
+    # `@ModEnchantment` declarations.
     #
-    # CATEGORY values are lowercased because they are used directly as the lang key suffix
-    # (`gui.simple_tweaks.category.<name>`), which is how the 1.12.2 screen did it.
-    # TYPE values keep the 1.12.2 spelling (`WEAPON`, not the lang key `sword_bow`); the caller maps
-    # that one exception, so this table stays a faithful copy of the original enum.
-    $catLines = ($report | Sort-Object Id | ForEach-Object {
-        '        "' + $_.Id + '" to "' + $_.Cat.ToLowerInvariant() + '"'
+    # So what is emitted here is the missing half: the 1.12.2-derived metadata for the enchantments that
+    # are NOT declared with `@ModEnchantment`. KSP merges this with its own specs and uses the result for
+    # both the index tables and the tags (see ModEnchantmentProcessor).
+    #
+    # `category` and `type` are lowercased to match what the enchant index consumes -- `category`
+    # doubles as the lang key suffix `gui.simple_tweaks.category.<name>`.
+    $manifestLines = ($report | Sort-Object Id | ForEach-Object {
+        '  { "id": "' + $_.Id + '", "category": "' + $_.Cat.ToLowerInvariant() +
+            '", "type": "' + $_.Type.ToLowerInvariant() + '", "maxLevel": ' + $_.Max + ' }'
     }) -join ",`n"
-    $typeLines = ($report | Sort-Object Id | ForEach-Object {
-        '        "' + $_.Id + '" to "' + $_.Type.ToLowerInvariant() + '"'
-    }) -join ",`n"
-    $maxLines = ($report | Sort-Object Id | ForEach-Object {
-        '        "' + $_.Id + '" to ' + $_.Max
-    }) -join ",`n"
-    $tiersFile = @"
-package dev.firefly.simpletweaks.enchantments
-
-/**
- * 1.12.2 tier and applicability, per enchantment.
- *
- * AUTO-GENERATED by tools/gen-enchantments.ps1 -- do not edit by hand.
- *
- * 1.21 has neither concept in code: enchantments are data-driven, and "what may this go on" is an
- * item tag. The 1.12.2 tier is still needed by the in-game enchant index
- * (``client/EnchantInfoScreen``) to group entries, and ``ModEnchantmentType`` is what that screen
- * prints as "applies to", so both are generated from the same parse as the JSON definitions.
- */
-object EnchantmentTiers {
-
-    /** Enchantment id -> 1.12.2 ``EnchantmentCategories`` name, lowercased for direct lang-key use. */
-    val CATEGORY: Map<String, String> = mapOf(
-$catLines
-    )
-
-    /** Enchantment id -> 1.12.2 ``ModEnchantmentType`` name, lowercased. */
-    val TYPE: Map<String, String> = mapOf(
-$typeLines
-    )
-
-    /**
-     * Enchantment id -> max level (1.12.2 ``Enchantment#getMaxLevel``).
-     *
-     * Generated rather than read from the enchantment registry so the in-game index depends only on
-     * static data plus rendering -- no registry lookup, hence no client-registry-sync assumptions.
-     */
-    val MAX_LEVEL: Map<String, Int> = mapOf(
-$maxLines
-    )
-}
-"@
-    Write-Text (Join-Path $keyDir 'EnchantmentTiers.kt') $tiersFile
+    $manifest = "[`n" + $manifestLines + "`n]`n"
+    $manifestPath = Join-Path $OutRoot 'tools\legacy-enchantments.json'
+    Write-Text $manifestPath $manifest
+    Write-Host "legacy manifest entries                 : $($report.Count) -> tools/legacy-enchantments.json"
 
     # Write-Host (not Write-Output): anything on the output stream would be appended to the
     # returned $report array and show up as phantom empty rows.
     Write-Host "generated enchantment JSONs : $($report.Count)"
-    Write-Host "non_treasure entries        : $(($report | Where-Object { -not $_.Treasure }).Count)"
-    Write-Host "treasure (excluded from tag): $(($report | Where-Object { $_.Treasure } | ForEach-Object { $_.Id }) -join ', ')"
+    # NOTE: nothing here reports on `non_treasure` any more. That tag (and `in_enchanting_table` and
+    # `tradeable`) is written by the KSP processor, and its membership rule lives there -- reporting a
+    # count from this script's older `$_.Treasure` flag would describe a file this script no longer writes.
     Write-Host "lang keys en_us / zh_cn     : $($en.Count) / $($zh.Count)"
     return ,$report
 }
