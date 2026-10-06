@@ -14,14 +14,12 @@ function Invoke-GenEnchantments {
 
     # rarity index mirrors the 1.12.2 EnchantmentCategories enum
     $rarity = @{ UNIQUE = -1; COMMON = 0; UNCOMMON = 1; RARE = 2; EPIC = 3; LEGENDARY = 4; MYTHIC = 5; MYSTERY = 6 }
-    # 1.12.2 `EnchantmentCategories.color`, copied verbatim from
-    # src/main/kotlin/.../enchantments/baseclass/EnchantmentCategories.kt. Used for the enchantment
-    # name colour on the tooltip; the port needs it as a table because the 1.12.2 `ModEnchantments`
-    # base class (which carried `textColor`) no longer exists -- 1.21 enchantments are data-driven.
-    $catColors = @{
-        UNIQUE = 'WHITE'; COMMON = 'GRAY'; UNCOMMON = 'GREEN'; RARE = 'BLUE'
-        EPIC = 'LIGHT_PURPLE'; LEGENDARY = 'GOLD'; MYTHIC = 'DARK_RED'; MYSTERY = 'AQUA'
-    }
+    # NOTE: 1.12.2 `EnchantmentCategories.color` is deliberately NOT emitted any more. The colour is a
+    # property of the category -- `EnchantmentCategories(rarity, color)` -- so it now lives on the
+    # `EnchantCategory` enum (mod source: enchantments/annotations/Enums.kt) and `EnchantmentMeta.colorOf`
+    # derives it from the tier this script already writes. The old `EnchantmentNameColors.kt` table was
+    # checked against that derivation entry by entry and agreed 54/54, so keeping a second copy could
+    # only ever let the two drift apart.
 
     # ModEnchantmentType -> (supported_items, primary_items, slots)
     $typeMap = @{
@@ -133,6 +131,28 @@ function Invoke-GenEnchantments {
         }
     }
 
+    # ---- enchantments migrated to KSP (@ModEnchantment) ---------------------
+    # These are declared with `@ModEnchantment` on their handler, so KSP generates their datapack JSON,
+    # registry key and index metadata at build time. They must therefore disappear from EVERYTHING this
+    # script emits: the per-enchantment JSON, ModEnchantmentKeys, EnchantmentTiers
+    # and the non_treasure tag -- all of which are derived from $rows/$report below.
+    #
+    # Filtering $rows (rather than $report) is deliberate: it is the single point every downstream output
+    # passes through, so the listings cannot drift out of sync with one another.
+    #
+    # NOTE: lang is NOT affected, and that is correct. `$en`/`$zh` are parsed from the 1.12.2 `.lang`
+    # files rather than from $rows, so a migrated enchantment keeps its name and description. KSP
+    # deliberately does not generate lang (DEV_GUIDE_1.21.1.md §3.3).
+    # 'crit' is listed now that `@ModEnchantment` can emit its `minecraft:damage` component
+    # (`damagePerLevel = 0.4`). An enchantment whose JSON needs anything else in `effects`
+    # (`minecraft:attributes`, `minecraft:item_damage`, ...) still cannot move -- which is why the other
+    # 53 keep being generated here on purpose: they already work, and migrating them would buy
+    # uniformity at the price of 53 chances to regress.
+    $kspMigrated = @('piercing_arrow', 'crit')
+    $rowsBefore = $rows.Count
+    $rows = @($rows | Where-Object { $_.Id -notin $kspMigrated })
+    Write-Host "KSP-migrated, excluded from the legacy tables: $($kspMigrated -join ', ')  ($rowsBefore -> $($rows.Count) rows)"
+
     # ---- lang ---------------------------------------------------------------
     $langDir = Join-Path $SrcRoot 'src\main\resources\assets\simple_tweaks\lang'
     function Read-Lang([string]$file) {
@@ -196,6 +216,13 @@ function Invoke-GenEnchantments {
 
         'gui.simple_tweaks.config.autoSprintEnabled'    = @('自动冲刺', 'Auto sprint')
         'gui.simple_tweaks.config.autoSprintOmniSprint' = @('全向冲刺（任意方向都冲刺）', 'Omni sprint (any direction)')
+
+        # Enchantments that exist ONLY in the 1.21 port, so the 1.12.2 `.lang` files cannot supply them.
+        # KSP deliberately does not generate lang (DEV_GUIDE_1.21.1.md §3.3), so a `@ModEnchantment`
+        # enchantment with no entry here would silently lose its name and description the next time this
+        # script runs. Add one line here (and only here) whenever a brand-new enchantment is introduced.
+        'enchantment.simple_tweaks.fast_bow'      = @('快速拉弓', 'Fast Bow')
+        'enchantment.simple_tweaks.fast_bow.desc' = @('减少拉弓时间，等级越高拉弓越快。', 'Reduces bow draw time. Higher levels draw faster.')
     }
     foreach ($k in $extraLang.Keys) {
         if ($en.ContainsKey($k) -or $zh.ContainsKey($k)) { throw "port-only lang key collides with 1.12.2: $k" }
@@ -371,47 +398,9 @@ $keyLines
 "@
     Write-Text (Join-Path $keyDir 'ModEnchantmentKeys.kt') $keysFile
 
-    # ---- enchantment name colours ------------------------------------------
-    # 1.12.2 coloured the name in `ModEnchantments.decorateName(rawName(level))` from
-    # `EnchantmentCategories.color`. The colour is deliberately NOT baked into the enchantment JSON
-    # `description`: the feature is gated by `GeneralConfig.enabledEnchantmentColor`, and a static
-    # text component cannot honour a runtime switch. So the table is generated here and applied at
-    # render time by `mixin/EnchantmentNameColorMixin.java`.
-    $colorLines = ($report | Sort-Object Id | ForEach-Object {
-        if (-not $catColors.ContainsKey($_.Cat)) { throw "no colour for category [$($_.Cat)] (id $($_.Id))" }
-        '        "' + $_.Id + '" to Formatting.' + $catColors[$_.Cat]
-    }) -join ",`n"
-    $colorFile = @"
-package dev.firefly.simpletweaks.enchantments
-
-import net.minecraft.util.Formatting
-
-/**
- * Tooltip colour per enchantment, ported from 1.12.2 ``EnchantmentCategories.color``.
- *
- * AUTO-GENERATED by tools/gen-enchantments.ps1 -- do not edit by hand.
- *
- * 1.12.2 expressed this through ``ModEnchantments.decorateName`` / ``getTranslatedName``. Since 1.21
- * enchantments are data-driven and their displayed name comes from
- * ``Enchantment.getName(RegistryEntry, int)``, the colour is applied there instead -- see
- * ``mixin/EnchantmentNameColorMixin.java``.
- *
- * This is an explicit table rather than something derived from the JSON because the 1.12.2 tier
- * (``EnchantmentCategories``) has no 1.21 equivalent: 1.21 enchantments have no rarity, and the
- * ``weight`` field that the generator does write is ambiguous -- 1.12.2's ``weight`` is
- * ``10 - rarity*2`` clamped at 1, so MYTHIC and MYSTERY both come out as 1.
- */
-object EnchantmentNameColors {
-
-    /** Enchantment id (path only) -> 1.12.2 ``EnchantmentCategories.color``. */
-    val COLORS: Map<String, Formatting> = mapOf(
-$colorLines
-    )
-
-    fun of(id: String): Formatting? = COLORS[id]
-}
-"@
-    Write-Text (Join-Path $keyDir 'EnchantmentNameColors.kt') $colorFile
+    # NOTE: the 1.12.2 name-colour table (`EnchantmentNameColors.kt`) was deleted on purpose -- see the
+    # `$catColors` note near the top of this script. The colour is a property of the tier and is derived
+    # from it at runtime by `EnchantmentMeta.colorOf`, so there is nothing to generate here.
 
     # ---- tier (category) and applicability (type) tables --------------------
     # The in-game enchant index (client/EnchantInfoScreen) groups enchantments by 1.12.2

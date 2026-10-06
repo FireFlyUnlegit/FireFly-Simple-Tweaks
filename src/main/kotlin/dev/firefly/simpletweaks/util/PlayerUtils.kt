@@ -85,11 +85,6 @@ val LivingEntity.displayedItem: List<ItemStack>
         this.mainHandStack,
         this.offHandStack
     ).filter { !it.isEmpty }
-val LivingEntity.heldItems: List<ItemStack>
-    get() = listOf(
-        this.mainHandStack,
-        this.offHandStack
-    )
 
 /**
  * 1.12.2 `EntityPlayer.syncAttributes()` sent `SPacketEntityProperties(entityId, allAttributes)`
@@ -221,3 +216,4 @@ fun PlayerEntity.canCrit(): Boolean =
         !this.hasStatusEffect(StatusEffects.BLINDNESS) &&
         !this.hasVehicle() &&
         !this.isSprinting
+

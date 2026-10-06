@@ -3,7 +3,6 @@ package dev.firefly.simpletweaks.mixin;
 import dev.firefly.simpletweaks.SimpleTweaks;
 import dev.firefly.simpletweaks.core.config.GeneralConfig;
 import dev.firefly.simpletweaks.enchantments.EnchantmentMeta;
-import dev.firefly.simpletweaks.enchantments.EnchantmentNameColors;
 import dev.firefly.simpletweaks.enchantments.InfinitePowerRainbow;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.registry.RegistryKey;
@@ -49,9 +48,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  * <h2>{@code infinite_power} is a real exception, not an oversight</h2>
  * 1.12.2's {@code EnchantInfinitePower} **overrode {@code decorateName}** to produce an animated
  * rainbow (see {@link InfinitePowerRainbow}) instead of the MYTHIC tier colour. That override is
- * reproduced here — without it the port would silently lose the effect. Its generated tier colour
- * ({@code DARK_RED}) is therefore present in {@link EnchantmentNameColors} but unused, deliberately,
- * so that the table stays a faithful copy of {@code EnchantmentCategories.color}.
+ * reproduced here — without it the port would silently lose the effect. Its MYTHIC tier colour
+ * ({@code DARK_RED}) is therefore never applied. That colour is no longer a special case in a table:
+ * it is derived from the category (see {@code EnchantmentMeta}), so removing this branch would simply
+ * put {@code infinite_power} back on the normal tier colour.
  *
  * <p>{@code EnchantHealer} also passes an explicit {@code textColor = GREEN}, but its category is
  * UNCOMMON, which is already GREEN — so that override needs no special case. (Checked, not assumed.)
@@ -92,14 +92,17 @@ public abstract class EnchantmentNameColorMixin {
 
         Text original = cir.getReturnValue();
 
-        // The one `decorateName` override in the 1.12.2 tree.
-        if ("infinite_power".equals(id.getPath())) {
+        // The one `decorateName` override in the 1.12.2 tree. Asked of EnchantmentMeta rather than
+        // matched on the id here, so a future `@ModEnchantment(color = EnchantColor.RAINBOW)` gets the
+        // animated name for free and `infinite_power`'s hard-coded exception lives in exactly one place.
+        // Must precede colorOf: EnchantColor.RAINBOW has no Formatting to apply.
+        if (EnchantmentMeta.isRainbow(id.getPath())) {
             cir.setReturnValue(InfinitePowerRainbow.INSTANCE.apply(original));
             return;
         }
 
-        // EnchantmentMeta, not EnchantmentNameColors: the latter is a legacy generated table and
-        // cannot know about a @ModEnchantment declaration, which made fast_bow render grey (= COMMON).
+        // Resolved centrally: a @ModEnchantment declaration's own colour, else the colour of its 1.12.2
+        // tier. Doing it anywhere else is how fast_bow rendered grey (= COMMON) while it was blue.
         Formatting color = EnchantmentMeta.colorOf(id.getPath());
         if (color == null) {
             return;
