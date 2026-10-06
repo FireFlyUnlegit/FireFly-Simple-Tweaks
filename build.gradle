@@ -2,6 +2,8 @@ plugins {
     id 'fabric-loom' version "${loom_version}"
     id 'maven-publish'
     id 'org.jetbrains.kotlin.jvm' version "${kotlin_version}"
+    // KSP: generates the enchantment datapack JSON + GeneratedEnchantments.kt from @ModEnchantment.
+    id 'com.google.devtools.ksp' version "${ksp_version}"
 }
 
 version = project.mod_version
@@ -29,6 +31,17 @@ dependencies {
     // Kotlin support for Fabric. Ships the Kotlin stdlib so we do NOT shade it ourselves
     // (the old 1.12.2 build shaded kotlin-stdlib into the jar; Fabric does it via this mod).
     modImplementation "net.fabricmc:fabric-language-kotlin:${project.fabric_kotlin_version}"
+
+    // ---- KSP ---------------------------------------------------------------------------------
+    // The processor is a build-only Kotlin/JVM library (`ksp-processor/`). It is on the `ksp`
+    // configuration, so neither it nor the KSP API ever reaches the mod jar or `modRuntimeOnly`.
+    //
+    // It reads @ModEnchantment (matched by fully-qualified name) and writes:
+    //   build/generated/ksp/main/kotlin    -> GeneratedEnchantments.kt
+    //   build/generated/ksp/main/resources -> data/simple_tweaks/enchantment/<id>.json
+    // KSP registers both output directories on the `main` source set itself, which is why the
+    // datapack JSON lands in the jar with no extra `sourceSets` wiring here.
+    ksp project(':ksp-processor')
 }
 
 processResources {

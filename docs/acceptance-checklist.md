@@ -1,11 +1,11 @@
 # 客户端验收清单（`simple_tweaks-2.0.0.jar`）
 
 > 目标 jar：`fabric-1.21.1/build/libs/simple_tweaks-2.0.0.jar`
-> SHA256 `49CF34A1806AA626B369161D0C700044BB8C6B2C0D681827926BB867BE53D696`（531177 bytes）
-> 启动标识：**`build=cleanup4`**
+> SHA256 `A7D597F5BADBA2693526BCE4C71F963FB932E1E604D9263C18A974F33AC01FB2`（539991 bytes）
+> 启动标识：**`build=cleanup5`**
 > 安装位置：`F:\.minecraft\versions\1.21.1-Fabric 0.19.3\mods\simple_tweaks-2.0.0.jar`
 > 配置/日志：`<gameDir>\config\simple_tweaks.json`、`<gameDir>\logs\latest.log`
-> 回退点：`simple_tweaks-2.0.0.jar.prev`（上一版 `build=cleanup3`）、`.bak`（最原始版）
+> 回退点：`simple_tweaks-2.0.0.jar.prev`（上一版 `build=cleanup4`）、`.bak`（最原始版）
 >
 > **前置**：单人世界 + 开作弊。
 > ⚠️ **`[ST-*]` 调试日志默认关闭**（`build=cleanup3` 起，见 §M 与 `MIGRATION.md` §12）。本清单里凡
@@ -510,7 +510,7 @@
 
 | # | 操作 | 期望 |
 |---|---|---|
-| M1 | 启动看日志 | `client ready: ... (build=cleanup3)` ← 不是这个标识就别往下测 |
+| M1 | 启动看日志 | `client ready: ... (build=cleanup5)` ← **每次改动都会推进这个标识**，认准页首写的那一个 |
 | M2 | 输入 `/sttest` | **指令不存在**（原版"未知指令"红字）—— **这是预期**，测试指令已删除 |
 | M3 | `/stconfig`、`/enchantinfo` | 都照常打开、照常可用（确认删掉的只是测试指令，正式功能未受影响） |
 | M4 | **不加任何启动参数**，正常打怪 / 附魔玩几分钟，再 `Select-String '\[ST-\|enchant-table' logs\latest.log` | **一行都没有** ← 本轮的默认行为 |
@@ -558,6 +558,49 @@
 
 ---
 
+## O. FastBow（KSP 试点，`build=cleanup5`）
+
+> 这是**第一个用 `@ModEnchantment` 声明的附魔**：数据包 JSON、注册表键、图鉴元数据、handler 注册
+> 全部由 KSP 在编译期生成（见 `MIGRATION.md` §15）。本组同时验证"KSP 生成的 JSON 能不能被游戏吃下"
+> —— 因为这份 `fast_bow.json` 已经不是手写的了。
+
+### O1 存在性与图鉴元数据
+
+```
+/give @s minecraft:bow[enchantments={"simple_tweaks:fast_bow":3}]
+/give @s minecraft:arrow 64
+```
+
+| # | 操作 | 期望 |
+|---|---|---|
+| O1.1 | 用上面命令拿到弓，悬停看提示 | 附魔名显示**蓝色**「快速拉弓」，且有描述行 |
+| O1.2 | 打开 `/enchantinfo` → 点 **RARE** 分类 | 列表里**有 Fast Bow** ← KSP 生成的图鉴元数据（旧 bug 就是它不在 `ALL` 里所以看不见） |
+| O1.3 | 悬停它 | 分类 RARE / 适用**弓** / **最大等级 3** / 描述正常 |
+| O1.4 | 用附魔台或铁砧给弓刷附魔 | **能刷出 `fast_bow`**（说明生成的 datapack JSON 被正常加载） |
+| O1.5 | 输入 `/enchantinfo` 之外的旧附魔 | 56 个老附魔**全部照旧**在列表里（本轮没动它们） |
+
+### O2 拉弓加快（效果本体）
+
+| # | 操作 | 期望 |
+|---|---|---|
+| O2.1 | **无附魔**弓：明显没拉满（约 1 秒）就松手 | 射得又近又弱 ← 基准线 |
+| O2.2 | `fast_bow:3` 的弓：**同样约 1 秒**松手 | 箭**满威满速**（本该 20 tick 才满，现在约 12 tick） |
+| O2.3 | `fast_bow:1` 的弓：同样约 1 秒松手 | 比 3 级稍弱、但**明显强于 O2.1**（等级有梯度） |
+| O2.4 | 拉到底（> 20 tick）再放 | **与无附魔弓完全一致** ← 加速只补足蓄力，**不能超过满蓄力** |
+| O2.5 | 射完后**立刻**换一把无附魔弓射 | 那把弓**不受影响**（每次放箭都会重置倍率） |
+
+> **O2.4 是关键反例**：若拉满后伤害还更高，说明倍率被叠加到了满蓄力之上，是 bug。
+
+### O3 回归（本轮改的是多个弓附魔共用的注入点）
+
+| # | 期望 |
+|---|---|
+| O3.1 | 普通弓手感与原版**完全一致** |
+| O3.2 | `multishot` / `tracking_arrow` / `piercing_arrow` / `starfall` **全部照旧** ← 风险最高处，四个都过一遍 |
+| O3.3 | 快速点击（蓄力不足 `charge < 5`）→ 与之前一样不多发、不异常 |
+
+---
+
 ## 已知未做（**不要当 bug 报**）
 
 | 项 | 原因 |
@@ -566,8 +609,8 @@
 | **Velocity** | 作者裁定不移植 |
 | `/attribute` | 1.21 原版自带且更强，不移植 |
 | `/enchant ... 0` 移除附魔 | 作者裁定不移植（1.21 参数在**解析阶段**就拒绝 0，需两个 mixin，性价比不足） |
-| **铁砧祛魔**（`anvilDisenchant`） | ❌ **未移植**（`build=cleanup4` 核实）。配置项/界面/lang 都在但 `DisenchanterLogic` 整个类不存在；1.21 没有可写经验标签的物品 NBT。**注意**：本表以前把「铁砧祛魔」写成 `/enchant ... 0` 的替代品，那是错的 —— 它自己也没做 |
-| **附魔成本倍率**（稀有度越高越贵） | ❌ **未移植**。1.12.2 靠 Forge 的 `AnvilUpdateEvent`（`AnvilCostHandler`），Fabric 无对应事件 |
+| **铁砧祛魔**（`anvilDisenchant`） | **作者裁定不需要**（`build=cleanup4` 核实：从未移植）。配置键/界面/lang 仍在但**无任何实现**，属惰性键（同 `noFovEnabled` 的处理），**不要当 bug 报** |
+| **附魔成本倍率**（稀有度越高越贵） | **作者裁定不需要**（同上，从未移植）。1.12.2 靠 Forge 的 `AnvilUpdateEvent`，Fabric 无对应事件 |
 | `SlowDownEvent` 的第三方注册门面 | **事件本身已移植且行为正确**，但只挂在本模组总线上；要对外需再加一个公开门面 |
 | 原版箱子贴图式的界面底板 | 图鉴面板用纯色填充而非 `generic_54.png` 贴图 |
 | 图鉴里的附魔书是"假"的 | 只用 `ENCHANTMENT_GLINT_OVERRIDE` 加闪光，**没有真的 `STORED_ENCHANTMENTS` 组件** |

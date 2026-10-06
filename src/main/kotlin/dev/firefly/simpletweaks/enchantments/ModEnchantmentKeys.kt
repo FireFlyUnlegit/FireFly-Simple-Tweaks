@@ -83,6 +83,10 @@ object ModEnchantmentKeys {
     val UNBREAKABLE: RegistryKey<Enchantment> = of("unbreakable")
     val VITALITY: RegistryKey<Enchantment> = of("vitality")
     val VOID_PROTECTION: RegistryKey<Enchantment> = of("void_protection")
+    // NOTE: `fast_bow` is deliberately NOT here. It is declared with @ModEnchantment on
+    // EnchantFastBowHandler and its key comes from the KSP-generated GeneratedEnchantments.FAST_BOW,
+    // merged into EnchantmentMeta.allKeys(). Adding it to this table as well would create a second
+    // source of truth -- which is the bug this whole mechanism exists to remove.
 
     /** All  keys, for diagnostics/iteration. */
     val ALL: List<RegistryKey<Enchantment>> = listOf(ACID_ATTACK, ANTI_KNOCKBACK, AOE_ATTACK, ARMOR_BREAKER, ASSASSIN, AUTO_SMELT, BLOODLUST, CELESTIAL_BLESSING, CHARGED_STRIKE, COMBAT_MASTER, COMBO, CRIT, CRIT_DAMAGE, DAMAGE_LIMITER, DAMAGE_REDUCTION, DEATH_PROTECTION, DELAYED_RECOVERY, DOUBLE_CRIT, DOUBLE_STRIKE, ECHO_SHIELD, ECHO_SHOT, EFFECT_BONUS, EXECUTE, EXPERIENCE_STEALER, EXTRA_ARMOR, FIRE_MASTER, FLIGHT, GRAVITY_STRIKE, GRIEVOUS_WOUNDS, HEALER, HEALING_BLADE, HEAVENLY_PUNISHMENT, HUNTERS_MARK, IMMORTAL, INFINITE_POWER, ITEM_FIXER, KILL_AURA, MOMENTUM, MOTION_BONUS, MULTISHOT, PIERCING_ARROW, PRISMATIC_BLESSING, REFORGE, REGENERATION, RESILIENCE, SATURATION, SOUL_BOUND, STARFALL, SUPER_KNOCKBACK, SWIFT_SNEAK, TRACKING_ARROW, TRUE_DAMAGE, TUNNELING, UNBREAKABLE, VITALITY, VOID_PROTECTION)

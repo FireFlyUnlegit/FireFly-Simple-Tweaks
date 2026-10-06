@@ -1,0 +1,29 @@
+// The KSP processor module. A plain Kotlin/JVM library: it must NOT apply Loom and must not depend
+// on the mod's source set -- the processor refers to the annotation only by its fully-qualified name
+// (a string), so there is no compile-time edge from the processor back to the mod.
+plugins {
+    id 'org.jetbrains.kotlin.jvm' version "${kotlin_version}"
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // The KSP API only. `symbol-processing-api` is put on the processor's runtime classpath by the
+    // KSP Gradle plugin, so this stays a compile-time dependency and is never shaded into the mod.
+    implementation "com.google.devtools.ksp:symbol-processing-api:${ksp_version}"
+}
+
+kotlin {
+    jvmToolchain(21)
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
+
+tasks.withType(JavaCompile).configureEach {
+    it.options.encoding = 'UTF-8'
+}

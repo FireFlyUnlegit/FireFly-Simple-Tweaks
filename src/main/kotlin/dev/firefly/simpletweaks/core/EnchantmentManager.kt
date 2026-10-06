@@ -2,7 +2,9 @@ package dev.firefly.simpletweaks.core
 
 import dev.firefly.simpletweaks.SimpleTweaks
 import dev.firefly.simpletweaks.compat.ForgeEventBus
+import dev.firefly.simpletweaks.enchantments.EnchantmentMeta
 import dev.firefly.simpletweaks.enchantments.ModEnchantmentKeys
+import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 import dev.firefly.simpletweaks.enchantments.handlers.common.EnchantAcidAttackHandler
 import dev.firefly.simpletweaks.enchantments.handlers.common.EnchantArmorBreakerHandler
 import dev.firefly.simpletweaks.enchantments.handlers.common.EnchantAutoSmeltHandler
@@ -228,12 +230,26 @@ object EnchantmentManager {
     )
 
     fun initHandlers() {
-        handlerList.forEach { it.registerEvents() }
-        SimpleTweaks.LOGGER.info("Registered {} enchantment handler(s)", handlerList.size)
+        // The hand-written list above (the 1.12.2 port, order-sensitive -- see its comments) plus
+        // everything declared with @ModEnchantment. KSP renders those into
+        // GeneratedEnchantments.HANDLERS, which is what makes "one file per enchantment" true: a new
+        // handler is registered without editing this file at all.
+        val all = handlerList + GeneratedEnchantments.HANDLERS
+        all.forEach { it.registerEvents() }
+        SimpleTweaks.LOGGER.info(
+            "Registered {} enchantment handler(s) ({} hand-listed + {} @ModEnchantment)",
+            all.size, handlerList.size, GeneratedEnchantments.HANDLERS.size,
+        )
     }
 
-    /** Convenience for diagnostic commands; enchantments themselves now come from the data pack. */
-    fun getAllKeys(): List<RegistryKey<Enchantment>> = ModEnchantmentKeys.ALL
+    /**
+     * Every known key, across both generations of this port — see [EnchantmentMeta].
+     *
+     * This is only used for diagnostics now (enchantments themselves come from the data pack), so a
+     * missing entry is not a functional bug — but it *was* one until this became a merge:
+     * `ModEnchantmentKeys.ALL` did not contain `fast_bow`, so the enchant index silently omitted it.
+     */
+    fun getAllKeys(): List<RegistryKey<Enchantment>> = EnchantmentMeta.allKeys()
 
     @Suppress("unused")
     fun isRegistered(owner: Any): Boolean = ForgeEventBus.isRegistered(owner)
