@@ -673,7 +673,9 @@ dependencies { modRuntimeOnly 'maven.modrinth:carpet:1.4.147' }
 `compat/STLog.kt`：`STLog.log("EnchantName", "key=value, ...")`，
 输出形如 `[ST-AcidAttack] attacker=Zombie, lvl=3, rate=0.55, procced=true`。
 
-- **默认开启**（验收无需加 JVM 参数），`-Dsimpletweaks.debug=false` 可关闭
+- **默认关闭**（正常游玩一行 `[ST-*]` 都不写）。做验收时用启动开关打开：
+  `-Dsimpletweaks.debug=true`（JVM 参数）或环境变量 `SIMPLETWEAKS_DEBUG=true`（等价 `=1`）—— 见 §12。
+  开关在**类初始化时读一次**，是启动开关，不是运行时开关
 - 日志器名 `simple_tweaks/debug`，前缀 `[ST-...]` 便于 `Select-String '\[ST-'` 抓取
 - 只在**附魔真正生效的分支**打点；`PlayerTickEvent`/`LivingUpdateEvent` 这类每 tick 的处理器
   **只在状态跃迁时**打点，否则会刷爆日志并拖慢服务器
@@ -1460,3 +1462,24 @@ fabric-1.21.1/
 **为什么必须改**：`yStartFactor` 是**绝对世界高度**的乘数，`2.0` 会把锚点推到离相机 70+ 格处，被 `DamageIndicatorRenderer` 的距离剔除静默丢掉；而 `cancelVanillaDamageIndicator` 默认开启，连原版飘字都没有 ⇒ 表现为该功能**彻底失效**。
 
 **实测复现**：`run/config/simple_tweaks.json` 中 `yStartFactor = 2.0` 时飘字全无。当时已核对代码默认值（1.0）与配置的读、写两条路径**均正确**，唯一问题就在这条公式。改后 `0.5..2.0` 全区间都在渲染范围内，`entityFeetY` / `entityHeight` 仍在构造时缓存，飘字依旧不跟随生物。
+
+---
+
+## 12. 调试日志改为启动开关（`build=cleanup3`）
+
+**问题**：`STLog` 原本"默认开启"（`-Dsimpletweaks.debug=false` 才关）。结果**正常游玩时每个生效的附魔都往日志里写一行 `[ST-*]`** —— 83 个调用点分布在 52 个 handler 里。验收期这是证据，游玩期这是纯噪音。
+
+**做法**：不删除调用点，把 `STLog` 整体翻成**默认关闭**。一处改动静默全部 83 处，且日后要查还能打开 —— 相比删掉 83 行代码，可诊断性完全保留。
+
+| 打开方式 | 写法 | 用途 |
+|---|---|---|
+| JVM 参数（首选） | `-Dsimpletweaks.debug=true` | 正式客户端：加到启动器 profile 的 `arguments.jvm` |
+| 环境变量 | `SIMPLETWEAKS_DEBUG=true`（等价 `=1`） | 开发：`$env:SIMPLETWEAKS_DEBUG='true'; gradlew runClient`，**不用改 `build.gradle`** |
+
+**实现要点**：`enabled` 在**类初始化时读一次**并缓存（启动开关，不是运行时开关；热路径只剩一次字段读取）。`log(enchant) { ... }` 的 lambda 重载本就懒求值，开关关闭时连细节字符串都不会拼。
+
+**同批一并门控**：`EnchantmentScreenHandlerMixin` 的 `[enchant-table] re-enchant ...`（原来无条件 `LOGGER.info`）——改为 `STLog.INSTANCE.getEnabled()` 判定，与其余诊断日志同一开关。
+
+**保持无条件输出**（这些是启动信息与真异常，不该被开关吞掉）：`v2.0.0 loading` / `load complete` / `client ready: ... (build=...)` / `Config loaded from ...` / `Registered N enchantment handler(s)`，以及 `ForgeEventBus` 与配置读写的全部 `warn` / `error`。
+
+> ⚠️ **验收影响**：本文件与 `docs/acceptance-checklist.md` 里所有"日志应出现 `[ST-...]`"的判据，**现在都必须先打开开关**，否则那些行根本不会出现 —— 这是预期，不是功能失效。清单 §M 已加对应检查项。

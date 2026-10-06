@@ -1,18 +1,20 @@
 # 客户端验收清单（`simple_tweaks-2.0.0.jar`）
 
 > 目标 jar：`fabric-1.21.1/build/libs/simple_tweaks-2.0.0.jar`
-> SHA256 `6E6BB15082DFCF53EFA7FF7171E45B5BB3DEB45F0508778F6B43522EE56E510D`（529136 bytes）
-> 启动标识：**`build=cleanup2`**
+> SHA256 `A40C60CAED6BA69F54BD8BDDBF08EB0AAB820500CC2D83774E1A8798138BC26A`（529459 bytes）
+> 启动标识：**`build=cleanup3`**
 > 安装位置：`F:\.minecraft\versions\1.21.1-Fabric 0.19.3\mods\simple_tweaks-2.0.0.jar`
 > 配置/日志：`<gameDir>\config\simple_tweaks.json`、`<gameDir>\logs\latest.log`
-> 回退点：`simple_tweaks-2.0.0.jar.prev`（上一版 `build=cleanup1`）、`.bak`（最原始版）
+> 回退点：`simple_tweaks-2.0.0.jar.prev`（上一版 `build=cleanup2`）、`.bak`（最原始版）
 >
-> **前置**：单人世界 + 开作弊。日志行都带 `[ST-*]` 前缀，方便 `Select-String '\[ST-'`。
+> **前置**：单人世界 + 开作弊。
+> ⚠️ **`[ST-*]` 调试日志默认关闭**（`build=cleanup3` 起，见 §M 与 `MIGRATION.md` §12）。本清单里凡
+> "日志应出现 `[ST-...]`"的判据（B8、F3、K1.3、K2.1…），**都要先按 §M5 的方法打开开关**，
+> 否则那些行根本不会出现 —— 这是预期，不是功能失效。
 >
 > ⚠️ `build=cleanup2` 只删掉了**开发期自测入口**：`/sttest` 指令、Carpet 假玩家依赖、`tools/acceptance.ps1`、
 > `tools/rcon.ps1`（见 §M 与 `MIGRATION.md` §11）。**`/stconfig` 与 `/enchantinfo` 未受任何影响** ——
 > 本清单各组照常按客户端做法测，E/F 等组本来就不依赖 `/sttest` 或假玩家。
-> ⚠️ `build=cleanup2` 起**旧配置里的 `yStartFactor=2.0` 不再是致命值**（见 §M3）。
 
 ---
 
@@ -500,21 +502,34 @@
 
 ---
 
-## M. 收尾改动验证（`build=cleanup2`）—— 本轮只验这 5 条
+## M. 收尾改动验证（`build=cleanup3`）—— 本轮只验这 7 条
 
-> 本轮删了测试指令 + Carpet 附属，并把 `yStartFactor` 的乘数从「世界高度」改成「实体高度」。
-> 其余功能**代码未动**，无需重测前面各组。
+> 本轮删了测试指令 + Carpet 附属，把 `yStartFactor` 的乘数从「世界高度」改成「实体高度」，
+> 并把 `[ST-*]` 调试日志改成**默认关闭**（含 `[enchant-table] re-enchant`）。其余功能**代码未动**，
+> 无需重测前面各组。
 
 | # | 操作 | 期望 |
 |---|---|---|
-| M1 | 启动看日志 | `client ready: ... (build=cleanup2)` ← 不是这个标识就别往下测 |
+| M1 | 启动看日志 | `client ready: ... (build=cleanup3)` ← 不是这个标识就别往下测 |
 | M2 | 输入 `/sttest` | **指令不存在**（原版"未知指令"红字）—— **这是预期**，测试指令已删除 |
-| M3 | 把 `config\simple_tweaks.json` 里 `yStartFactor` 改成 **2.0** 并重启，打一只怪 | 飘字**仍然显示**，位置明显高于实体；**改前这个值会让飘字彻底消失**（锚点被推到 `maxDistance` 之外） |
-| M4 | 改回 **1.0** 并重启，再打一只怪 | 飘字紧贴实体头顶 —— 与 1.12.2 默认位置一致（默认值行为**未变**） |
-| M5 | `/stconfig`、`/enchantinfo` | 都照常打开、照常可用（确认删掉的只是测试指令，正式功能未受影响） |
+| M3 | `/stconfig`、`/enchantinfo` | 都照常打开、照常可用（确认删掉的只是测试指令，正式功能未受影响） |
+| M4 | **不加任何启动参数**，正常打怪 / 附魔玩几分钟，再 `Select-String '\[ST-\|enchant-table' logs\latest.log` | **一行都没有** ← 本轮的默认行为 |
+| M5 | 按下面加 `-Dsimpletweaks.debug=true` 重进，再打怪 / 附魔 | `[ST-...]` 日志**重新出现**（开关有效） |
+| M6 | 把 `config\simple_tweaks.json` 里 `yStartFactor` 改成 **2.0** 并重启，打一只怪 | 飘字**仍然显示**，位置明显高于实体；**改前这个值会让飘字彻底消失** |
+| M7 | 改回 **1.0** 并重启，再打一只怪 | 飘字紧贴实体头顶 —— 与 1.12.2 默认位置一致（默认值行为**未变**） |
 
-> M3/M4 的判据是**同一次构建内改配置即可对比**：2.0 比 1.0 高，而不是 2.0 消失。
-> 若 M3 仍然完全不显示飘字，请把 `config\simple_tweaks.json` 发我 —— 那就说明问题不在公式。
+> M6/M7 的判据是**同一次构建内改配置即可对比**：2.0 比 1.0 高，而不是 2.0 消失。
+> 若 M6 仍然完全不显示飘字，请把 `config\simple_tweaks.json` 发我 —— 那就说明问题不在公式。
+
+### M5 的启动参数加在哪
+
+| 你从哪启动 | 怎么加 |
+|---|---|
+| 正式客户端（官方启动器 / HMCL） | 该版本 profile 的 **JVM 参数**里加 `-Dsimpletweaks.debug=true` |
+| IDEA `runClient` | Run Configuration → **VM options** 填 `-Dsimpletweaks.debug=true` |
+| 命令行 `gradlew runClient` | 先 `$env:SIMPLETWEAKS_DEBUG='true'` 再执行（等价的**环境变量**写法，不用改 `build.gradle`） |
+
+> 开关是**启动时读一次**的，改完必须重启客户端才生效（运行时改没用）。
 
 ---
 

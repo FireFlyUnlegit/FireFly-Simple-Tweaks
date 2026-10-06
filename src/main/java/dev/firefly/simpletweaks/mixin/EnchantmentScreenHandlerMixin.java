@@ -1,5 +1,6 @@
 package dev.firefly.simpletweaks.mixin;
 
+import dev.firefly.simpletweaks.compat.STLog;
 import dev.firefly.simpletweaks.core.EnchantTableGate;
 import net.minecraft.component.ComponentType;
 import net.minecraft.component.DataComponentTypes;
@@ -182,7 +183,9 @@ public abstract class EnchantmentScreenHandlerMixin {
         // is absent, which silently discards every following addEnchantment. See the class KDoc.
         stack.set(type, ItemEnchantmentsComponent.DEFAULT);
 
-        LOGGER.info("[enchant-table] re-enchant on {}: replaced {} existing enchantment(s)",
-                Registries.ITEM.getId(stack.getItem()), old.getEnchantments().size());
+        if (STLog.INSTANCE.getEnabled()) {
+            LOGGER.info("[enchant-table] re-enchant on {}: replaced {} existing enchantment(s)",
+                    Registries.ITEM.getId(stack.getItem()), old.getEnchantments().size());
+        }
     }
 }
