@@ -33,7 +33,7 @@ object EnchantDamageLimiterHandler : Listenable {
     @SubscribeEvent(priority = EventPriority.LOW)
     fun onLivingDamage(e: LivingDamageEvent) {
         if (e.invalid) return
-        val p = e.entityLiving ?: return
+        val p = e.entityLiving
 
         var lvl = 0
         for (slot in EquipmentSlot.entries) {

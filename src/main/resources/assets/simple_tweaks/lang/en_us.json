@@ -55,6 +55,7 @@
   "enchantment.simple_tweaks.combat_master": "Combat Master",
   "enchantment.simple_tweaks.resilience": "Resilience",
   "enchantment.simple_tweaks.gravity_strike": "Gravity Strike",
+  "enchantment.simple_tweaks.fast_bow": "Fast Bow",
   "enchantment.simple_tweaks.adopted_armor": "Adopted Armor",
 
   "enchantment.simple_tweaks.bloodlust.desc": "Increases damage based on the attacker\u0027s missing health. Higher levels improve the bonus.",
@@ -113,8 +114,8 @@
   "enchantment.simple_tweaks.combat_master.desc": "Consecutive hits on the same target build up a combo. Each stack adds 2%% x level bonus damage, up to a maximum of 20%% x level. Taking any damage or switching targets resets the combo. The combo also expires after 5 seconds without attacking.",
   "enchantment.simple_tweaks.resilience.desc": "Reduces incoming damage the lower your health drops. No bonus at full health; with all four armor pieces at level III and health down to 10%%, the reduction reaches 84%%. Higher levels increase the reduction.",
   "enchantment.simple_tweaks.gravity_strike.desc": "Increases damage based on how far you have fallen. The higher you drop from, the harder you hit, up to a cap. No bonus from a flat jump. Releasing the strike mid-air keeps the momentum until you land.",
+  "enchantment.simple_tweaks.fast_bow.desc": "Reduces bow draw time. Higher levels draw faster.",
   "enchantment.simple_tweaks.adopted_armor.desc": "Taking repeated damage of the same type builds up to 6 stacks of damage reduction. Each stack reduces incoming damage by 0.9% per level; switching damage type or going 5 seconds without being hit resets the stacks.",
-
   "death.attack.celestial_particle": "%1$s was purified by the holy light",
   "death.attack.celestial_particle.player": "%1$s was purified by %2$s\u0027s Holy Light",
   "gui.simple_tweaks.enchant_info.title": "Enchantment List",
@@ -172,7 +173,5 @@
   "gui.simple_tweaks.config.damageIndicator.scale": "Text scale",
   "gui.simple_tweaks.config.damageIndicator.yStartFactor": "Start height factor",
   "gui.simple_tweaks.config.autoSprintEnabled": "Auto sprint",
-  "gui.simple_tweaks.config.autoSprintOmniSprint": "Omni sprint (any direction)",
-  "enchantment.simple_tweaks.fast_bow": "Fast Bow",
-  "enchantment.simple_tweaks.fast_bow.desc": "Reduces bow draw time. Higher levels draw faster."
+  "gui.simple_tweaks.config.autoSprintOmniSprint": "Omni sprint (any direction)"
 }
