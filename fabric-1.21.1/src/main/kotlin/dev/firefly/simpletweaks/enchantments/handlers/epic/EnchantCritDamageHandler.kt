@@ -27,7 +27,14 @@ import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
  */
 object EnchantCritDamageHandler : Listenable {
 
-    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    // ⚠️ `HIGH`, deliberately NOT `HIGHEST`. `EnchantCritHandler` is the only `HIGHEST` listener on
+    // `CriticalHitEvent`, so it always runs first and its forced crit is visible to the `e.isCrit`
+    // test below. Expressing the order through the priority (instead of relying on this handler being
+    // registered right after `EnchantCritHandler` in `EnchantmentManager.handlerList`) is what makes
+    // the crit chain survive a move to `@ModEnchantment`, whose handlers are appended at the end of
+    // the bus. Ordering among the two `HIGH` listeners (this one, then `EnchantDoubleCritHandler`) is
+    // still registration order -- keep this handler ahead of DoubleCrit in `handlerList`.
+    @SubscribeEvent(priority = EventPriority.HIGH)
     fun onCrit(e: CriticalHitEvent) {
         if (e.invalid) return
 

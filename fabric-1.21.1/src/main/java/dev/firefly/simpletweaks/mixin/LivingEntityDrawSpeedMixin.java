@@ -1,7 +1,7 @@
 package dev.firefly.simpletweaks.mixin;
 
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
-import dev.firefly.simpletweaks.enchantments.handlers.rare.EnchantFastBowHandler;
+import dev.firefly.simpletweaks.enchantments.handlers.epic.EnchantFastBowHandler;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.item.ItemStack;
 import org.spongepowered.asm.mixin.Mixin;

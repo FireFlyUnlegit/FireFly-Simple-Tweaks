@@ -20,13 +20,11 @@ import dev.firefly.simpletweaks.enchantments.handlers.epic.EnchantTrueDamageHand
 import dev.firefly.simpletweaks.enchantments.handlers.epic.EnchantTunnelingHandler
 import dev.firefly.simpletweaks.enchantments.handlers.epic.EnchantVitalityHandler
 import dev.firefly.simpletweaks.enchantments.handlers.legendary.EnchantComboHandler
-import dev.firefly.simpletweaks.enchantments.handlers.legendary.EnchantCritHandler
 import dev.firefly.simpletweaks.enchantments.handlers.legendary.EnchantDamageLimiterHandler
 import dev.firefly.simpletweaks.enchantments.handlers.legendary.EnchantDoubleCritHandler
 import dev.firefly.simpletweaks.enchantments.handlers.legendary.EnchantDoubleStrikeHandler
 import dev.firefly.simpletweaks.enchantments.handlers.epic.EnchantMultishotHandler
 import dev.firefly.simpletweaks.enchantments.handlers.mystery.EnchantCelestialBlessingHandler
-import dev.firefly.simpletweaks.enchantments.handlers.rare.EnchantPiercingArrowHandler
 import dev.firefly.simpletweaks.enchantments.handlers.rare.EnchantTrackingArrowHandler
 import dev.firefly.simpletweaks.enchantments.handlers.legendary.EnchantEchoShotHandler
 import dev.firefly.simpletweaks.enchantments.handlers.legendary.EnchantFlightHandler
@@ -166,7 +164,13 @@ object EnchantmentManager {
         EnchantItemFixerHandler,
         // Bow enchantments of this tier. TrackingArrow is server-only steering; PiercingArrow
         // re-implements the projectile-hit seam (see its KDoc for why a blanket cancel would break).
-        EnchantPiercingArrowHandler,
+        //
+        // `EnchantPiercingArrowHandler` is no longer listed here: it is declared with `@ModEnchantment`
+        // and therefore arrives through `GeneratedEnchantments.HANDLERS`, i.e. appended *after* this
+        // list. That is safe for this handler specifically -- its only seam is `EntityJoinWorldEvent`,
+        // where it and TrackingArrow touch disjoint state -- but it is exactly why an order-sensitive
+        // handler must not be migrated without first expressing its ordering as an `EventPriority`
+        // (see the crit note above).
         EnchantTrackingArrowHandler,
         // --- epic ---
         EnchantChargedStrikeHandler,
@@ -181,15 +185,22 @@ object EnchantmentManager {
         EnchantVitalityHandler,
         // --- legendary ---
         EnchantComboHandler,
-        // ⚠️ Same-priority order is load-bearing here, which is why this list is NOT purely grouped
-        // by tier. ForgeEventBus sorts by EventPriority with a STABLE sort, so listeners that share a
-        // priority run in handlerList order. EnchantCritHandler and EnchantCritDamageHandler are both
-        // HIGHEST: Crit must run first so that its forced crit is visible to CritDamage's
-        // `if (lvl > 0 && e.isCrit)` test. The 1.12.2 list had exactly this adjacency
-        // (EnchantCritHandler at 96, EnchantCritDamageHandler at 97, EnchantDoubleCritHandler at 100);
-        // a purely tier-grouped port would have registered CritDamage in the epic block, i.e. BEFORE
-        // Crit, silently disabling CritDamage on every forced crit.
-        EnchantCritHandler,
+        // ⚠️ History: this list is NOT purely grouped by tier, because the crit chain *used* to depend
+        // on same-priority registration order. ForgeEventBus sorts by EventPriority with a STABLE sort,
+        // so listeners sharing a priority run in handlerList order -- and 1.12.2 had
+        // EnchantCritHandler at 96, EnchantCritDamageHandler at 97, EnchantDoubleCritHandler at 100.
+        // A purely tier-grouped port registered CritDamage (epic) BEFORE Crit (legendary) and silently
+        // disabled CritDamage on every forced crit.
+        //
+        // That coupling is now GONE, on purpose: `EnchantCritHandler` is the only `HIGHEST` listener on
+        // `CriticalHitEvent`, while `EnchantCritDamageHandler` runs at `HIGH`
+        // (`EnchantDoubleCritHandler` was always `HIGH`). Their relative order is decided by priority,
+        // not by position in this list -- which is exactly what let `EnchantCritHandler` move to
+        // `@ModEnchantment` even though `GeneratedEnchantments.HANDLERS` is appended *after* this list
+        // (see `initHandlers`). It is no longer listed here. `EnchantCritDamageHandler` and
+        // `EnchantDoubleCritHandler` stay, in this order, because they share `HIGH` and their relative
+        // order is therefore still registration order.
+        // Keep the distinct priorities; do not "tidy" them back to the same value.
         EnchantCritDamageHandler,
         EnchantDamageLimiterHandler,
         EnchantDoubleCritHandler,
