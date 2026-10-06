@@ -7,7 +7,7 @@ import net.minecraft.registry.RegistryKeys
 import net.minecraft.util.Identifier
 
 /**
- * RegistryKeys for all 56 enchantments.
+ * RegistryKeys for all 54 enchantments.
  *
  * Since 1.21 the enchantment *definitions* live in the data/simple_tweaks/enchantment/ folder
  * (one JSON per enchantment), so code only ever holds a [RegistryKey]. This replaces the 1.12.2
@@ -38,7 +38,6 @@ object ModEnchantmentKeys {
     val CHARGED_STRIKE: RegistryKey<Enchantment> = of("charged_strike")
     val COMBAT_MASTER: RegistryKey<Enchantment> = of("combat_master")
     val COMBO: RegistryKey<Enchantment> = of("combo")
-    val CRIT: RegistryKey<Enchantment> = of("crit")
     val CRIT_DAMAGE: RegistryKey<Enchantment> = of("crit_damage")
     val DAMAGE_LIMITER: RegistryKey<Enchantment> = of("damage_limiter")
     val DAMAGE_REDUCTION: RegistryKey<Enchantment> = of("damage_reduction")
@@ -67,7 +66,6 @@ object ModEnchantmentKeys {
     val MOMENTUM: RegistryKey<Enchantment> = of("momentum")
     val MOTION_BONUS: RegistryKey<Enchantment> = of("motion_bonus")
     val MULTISHOT: RegistryKey<Enchantment> = of("multishot")
-    val PIERCING_ARROW: RegistryKey<Enchantment> = of("piercing_arrow")
     val PRISMATIC_BLESSING: RegistryKey<Enchantment> = of("prismatic_blessing")
     val REFORGE: RegistryKey<Enchantment> = of("reforge")
     val REGENERATION: RegistryKey<Enchantment> = of("regeneration")
@@ -83,11 +81,9 @@ object ModEnchantmentKeys {
     val UNBREAKABLE: RegistryKey<Enchantment> = of("unbreakable")
     val VITALITY: RegistryKey<Enchantment> = of("vitality")
     val VOID_PROTECTION: RegistryKey<Enchantment> = of("void_protection")
-    // NOTE: `fast_bow` is deliberately NOT here. It is declared with @ModEnchantment on
-    // EnchantFastBowHandler and its key comes from the KSP-generated GeneratedEnchantments.FAST_BOW,
-    // merged into EnchantmentMeta.allKeys(). Adding it to this table as well would create a second
-    // source of truth -- which is the bug this whole mechanism exists to remove.
+
+
 
     /** All  keys, for diagnostics/iteration. */
-    val ALL: List<RegistryKey<Enchantment>> = listOf(ACID_ATTACK, ANTI_KNOCKBACK, AOE_ATTACK, ARMOR_BREAKER, ASSASSIN, AUTO_SMELT, BLOODLUST, CELESTIAL_BLESSING, CHARGED_STRIKE, COMBAT_MASTER, COMBO, CRIT, CRIT_DAMAGE, DAMAGE_LIMITER, DAMAGE_REDUCTION, DEATH_PROTECTION, DELAYED_RECOVERY, DOUBLE_CRIT, DOUBLE_STRIKE, ECHO_SHIELD, ECHO_SHOT, EFFECT_BONUS, EXECUTE, EXPERIENCE_STEALER, EXTRA_ARMOR, FIRE_MASTER, FLIGHT, GRAVITY_STRIKE, GRIEVOUS_WOUNDS, HEALER, HEALING_BLADE, HEAVENLY_PUNISHMENT, HUNTERS_MARK, IMMORTAL, INFINITE_POWER, ITEM_FIXER, KILL_AURA, MOMENTUM, MOTION_BONUS, MULTISHOT, PIERCING_ARROW, PRISMATIC_BLESSING, REFORGE, REGENERATION, RESILIENCE, SATURATION, SOUL_BOUND, STARFALL, SUPER_KNOCKBACK, SWIFT_SNEAK, TRACKING_ARROW, TRUE_DAMAGE, TUNNELING, UNBREAKABLE, VITALITY, VOID_PROTECTION)
+    val ALL: List<RegistryKey<Enchantment>> = listOf(ACID_ATTACK, ANTI_KNOCKBACK, AOE_ATTACK, ARMOR_BREAKER, ASSASSIN, AUTO_SMELT, BLOODLUST, CELESTIAL_BLESSING, CHARGED_STRIKE, COMBAT_MASTER, COMBO, CRIT_DAMAGE, DAMAGE_LIMITER, DAMAGE_REDUCTION, DEATH_PROTECTION, DELAYED_RECOVERY, DOUBLE_CRIT, DOUBLE_STRIKE, ECHO_SHIELD, ECHO_SHOT, EFFECT_BONUS, EXECUTE, EXPERIENCE_STEALER, EXTRA_ARMOR, FIRE_MASTER, FLIGHT, GRAVITY_STRIKE, GRIEVOUS_WOUNDS, HEALER, HEALING_BLADE, HEAVENLY_PUNISHMENT, HUNTERS_MARK, IMMORTAL, INFINITE_POWER, ITEM_FIXER, KILL_AURA, MOMENTUM, MOTION_BONUS, MULTISHOT, PRISMATIC_BLESSING, REFORGE, REGENERATION, RESILIENCE, SATURATION, SOUL_BOUND, STARFALL, SUPER_KNOCKBACK, SWIFT_SNEAK, TRACKING_ARROW, TRUE_DAMAGE, TUNNELING, UNBREAKABLE, VITALITY, VOID_PROTECTION)
 }

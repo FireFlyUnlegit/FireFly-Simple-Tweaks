@@ -10,15 +10,15 @@
 
 ## 0. 三十秒速览
 
-| 事实 | 值 |
-|---|---|
+| 事实                    | 值                                                                             |
+|-----------------------|-------------------------------------------------------------------------------|
 | 两个**互相独立**的 Gradle 工程 | 本目录 = MC 1.21.1 / Fabric / Yarn；上一级 `../` = MC 1.12.2 / Forge，**原样保留供对照**，不要改 |
-| 产物 | `build/libs/simple_tweaks-2.0.0.jar` |
-| 部署 | 复制到 `F:\.minecraft\versions\1.21.1-Fabric 0.19.3\mods\`（旧的先存成 `.prev`） |
-| 当前构建标识 | `build=cleanup6`（每次改动客户端可见行为都要**推进**这个标识，见 §2.4） |
-| 附魔定义方式 | **两代并存**：56 个旧的（PS1 生成的表驱动）+ 新增的走 KSP `@ModEnchantment`（见 §3） |
-| 验收 | **由作者本人在客户端进行**。代理**不要**跑 `runClient`（需要真实客户端 + 人工判读手感/画面） |
-| 规模 | kotlin 127 文件 / java 30 文件 / 附魔 JSON 56 份 / mixin 注册 24 个 / 处理器 56 个 |
+| 产物                    | `build/libs/simple_tweaks-2.0.0.jar`                                          |
+| 部署                    | 复制到 `F:\.minecraft\versions\1.21.1-Fabric 0.19.3\mods\`（旧的先存成 `.prev`）        |
+| 当前构建标识                | `build=cleanup6`（每次改动客户端可见行为都要**推进**这个标识，见 §2.4）                              |
+| 附魔定义方式                | **两代并存**：56 个旧的（PS1 生成的表驱动）+ 新增的走 KSP `@ModEnchantment`（见 §3）                 |
+| 验收                    | **由作者本人在客户端进行**。代理**不要**跑 `runClient`（需要真实客户端 + 人工判读手感/画面）                    |
+| 规模                    | kotlin 127 文件 / java 30 文件 / 附魔 JSON 56 份 / mixin 注册 24 个 / 处理器 56 个          |
 
 ---
 
@@ -54,10 +54,10 @@ FireFly's Simple Tweaks-1.12.2/          ← 仓库根（1.12.2 Forge 工程，r
         │   ├── client/                  ← 配置界面、图鉴界面、客户端指令、粒子、tooltip
         │   ├── damageindicator/         ← 伤害飘字
         │   ├── enchantments/
-        │   │   ├── annotations/         ← **@ModEnchantment**（注解本体）
+        │   │   ├── annotations/         ← **@ModEnchantment** 本体 + `Enums.kt`（Category/Color/Type/Slot）
         │   │   ├── generated/           ← **KSP 生成**（不要手改）
-        │   │   ├── EnchantmentMeta.kt   ← 手写门面：合并"旧表 + KSP 表"
-        │   │   ├── ModEnchantmentKeys.kt / EnchantmentTiers.kt / EnchantmentNameColors.kt ← 旧表（PS1 生成，勿手改）
+        │   │   ├── EnchantmentMeta.kt   ← 手写门面：合并"旧表 + KSP 表"；**名字颜色在这里由 tier 推导**
+        │   │   ├── ModEnchantmentKeys.kt / EnchantmentTiers.kt ← 旧表（PS1 生成，勿手改）
         │   │   └── handlers/{common,uncommon,rare,epic,legendary,mythic,mystery,unique}/
         │   ├── network/                 ← 自定义包（ID + 编解码 + 收发）
         │   ├── particle/                ← 粒子类型注册
@@ -77,16 +77,30 @@ FireFly's Simple Tweaks-1.12.2/          ← 仓库根（1.12.2 Forge 工程，r
 ### 2.1 命令（**必须设这两个环境变量**）
 
 ```powershell
-$env:JAVA_HOME='C:\Users\Administrator\.jdks\temurin-21.0.8'
-$env:GRADLE_USER_HOME='E:\gradle'
+$env:JAVA_HOME = "C:\Users\Administrator\.jdks\temurin-21.0.8"
+$env:GRADLE_USER_HOME = "E:\gradle"
 cd 'F:\Codes\Mod\FireFly''s Simple Tweaks-1.12.2\fabric-1.21.1'
 .\gradlew.bat clean build
 ```
 
-| 变量 | 为什么 |
-|---|---|
-| `JAVA_HOME` | **本机默认是指向 JDK 8 的**（1.12.2 工程需要它）。不覆盖就会得到 `You are using an outdated version of Java (8). Java 17 or higher is required.` —— 看起来像 Loom 坏了，其实是环境变量。**这是第一个坑，每台新机器都会踩。** |
-| `GRADLE_USER_HOME` | 本机 Gradle 缓存固定在 `E:\gradle`（默认位置不在这里）。不设会重新下载全部依赖。 |
+> ⚠️ **这两个环境变量不设 = 构建失败**（不是"可能有点慢"）。两种失败模式都实测过：
+>
+> - **不设 `JAVA_HOME`** → Gradle 跑在 **JVM ≤ 16** 上（本机默认指向 JDK 8，因为 1.12.2 工程要求它），
+>   Loom 在**配置阶段**就中止。实测症状是 `BUILD FAILED in 8s` 且**一条 `e:` 编译错误都没有** ——
+>   所以**不要**去翻源码，去看构建自己写的报告：
+>   `build/reports/problems/problems-report.html` 里明写
+>   `Executing Gradle on JVM versions 16 and lower has been deprecated.`
+>   直接文案是 `You are using an outdated version of Java (8). Java 17 or higher is required.`，
+>   看着像 Loom 坏了，其实只是环境变量。
+> - **不设 `GRADLE_USER_HOME`** → 本机 Gradle 缓存固定在 `E:\gradle`，默认位置不在这里 ⇒
+>   MC / Yarn / Fabric API / Kotlin **全部重新下载一遍**（首次约 8 分钟）。
+>
+> 两者都只作用于**当前 shell 会话**，每开一个新终端都要重设一次。上面的表格给"为什么"，这一段给"不设会怎样"。
+
+| 变量                 | 为什么                                                                                                                                                                    |
+|--------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `JAVA_HOME`        | **本机默认是指向 JDK 8 的**（1.12.2 工程需要它）。不覆盖就会得到 `You are using an outdated version of Java (8). Java 17 or higher is required.` —— 看起来像 Loom 坏了，其实是环境变量。**这是第一个坑，每台新机器都会踩。** |
+| `GRADLE_USER_HOME` | 本机 Gradle 缓存固定在 `E:\gradle`（默认位置不在这里）。不设会重新下载全部依赖。                                                                                                                     |
 
 也可以 `.\gradlew.bat build`（增量），但见 §2.2。
 
@@ -150,17 +164,17 @@ Copy-Item 'build\libs\simple_tweaks-2.0.0.jar' "$mods\simple_tweaks-2.0.0.jar" -
     maxCostBase = 65535,          // 可选
     maxCostPerLevel = 0,          // 可选
 )
-object EnchantFastBowHandler : Listenable { ... }
+object EnchantFastBowHandler : Listenable {  }
 ```
 
 `category` 写错（不在 8 个值里）、`id` 不合规、`maxLevel < 1`、`slots` 为空、两个 `@ModEnchantment` 用了同一个 `id` —— 这些都会**在构建期报错**，不会静默通过。处理器会打印一行 `ModEnchantment: N annotated handler(s) -> M enchantment(s)`。
 
 ### 3.2 生成物
 
-| 生成物 | 位置 |
-|---|---|
-| `<id>.json` | `build/generated/ksp/main/resources/data/simple_tweaks/enchantment/` |
-| `GeneratedEnchantments.kt`（`<ID>` 键 / `KEYS` / `CATEGORY` / `TYPE` / `COLOR` / `MAX_LEVEL` / `HANDLERS`） | `build/generated/ksp/main/kotlin/.../enchantments/generated/` |
+| 生成物                                                                                                      | 位置                                                                   |
+|----------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------|
+| `<id>.json`                                                                                              | `build/generated/ksp/main/resources/data/simple_tweaks/enchantment/` |
+| `GeneratedEnchantments.kt`（`<ID>` 键 / `KEYS` / `CATEGORY` / `TYPE` / `COLOR` / `MAX_LEVEL` / `HANDLERS`） | `build/generated/ksp/main/kotlin/.../enchantments/generated/`        |
 
 KSP 会把 `resources` 与 `kotlin` 两个输出目录自动挂到 `main` source set，**不需要在 `build.gradle` 里写任何 `sourceSets` 接线**。
 
@@ -177,7 +191,7 @@ KSP 会把 `resources` 与 `kotlin` 两个输出目录自动挂到 `main` source
 object EnchantXxxHandler : Listenable {          // 必须实现 Listenable
 
     @SubscribeEvent                               // priority 默认 NORMAL
-    fun onSomething(e: SomeEvent) { ... }         // 方法名随意，靠注解发现
+    fun onSomething(e: SomeEvent) {  }         // 方法名随意，靠注解发现
 }
 ```
 
@@ -202,11 +216,11 @@ object EnchantXxxHandler : Listenable {          // 必须实现 Listenable
 
 文件放 `src/main/java/dev/firefly/simpletweaks/mixin/`，然后**必须**注册进 `src/main/resources/simple_tweaks.mixins.json`：
 
-| 列表 | 用于 |
-|---|---|
-| `mixins` | 双端都要的（逻辑/数据） |
+| 列表       | 用于                                                   |
+|----------|------------------------------------------------------|
+| `mixins` | 双端都要的（逻辑/数据）                                         |
 | `client` | 纯视觉/客户端。**注意：单机下内置服务端也在这个 JVM 里，同一个类同样被改** —— 见 §4.5 |
-| `server` | 目前为空 |
+| `server` | 目前为空                                                 |
 
 `"required": true` + `"injectors": { "defaultRequire": 1 }`：**注入目标找不到 = 启动崩溃**。这是好事（不静默），但意味着目标方法名写错会立刻炸。
 
@@ -232,12 +246,12 @@ foreach ($c in 'net.minecraft.entity.LivingEntity','net.minecraft.entity.player.
 
 ### 4.3 注入点选择
 
-| 场景 | 用法 |
-|---|---|
-| 精确改某个常量 | `@ModifyConstant`，**但先数清常量出现了几次** |
+| 场景          | 用法                                                  |
+|-------------|-----------------------------------------------------|
+| 精确改某个常量     | `@ModifyConstant`，**但先数清常量出现了几次**                   |
 | 改方法参数 / 返回值 | `@ModifyArg` / `@ModifyReturnValue`（MixinExtras 可用） |
-| 通知/取消 | `@Inject(at = @At("HEAD"), cancellable = true)` |
-| 需要改局部变量 | `@ModifyVariable` |
+| 通知/取消       | `@Inject(at = @At("HEAD"), cancellable = true)`     |
+| 需要改局部变量     | `@ModifyVariable`                                   |
 
 **`ordinal` 是 `@Constant` 的元素，不是 `@ModifyConstant` 的。** 这条由 `javap` 查 `sponge-mixin` 注解定义确认过（`MIGRATION.md` §14.2）。
 
@@ -305,22 +319,22 @@ Mixin 只改写 `@Mixin` 那个类的方法体。1.21 里不少基类方法被**
 
 ## 6. 常见坑（全部真踩过）
 
-| # | 现象 | 根因 / 规避 |
-|---|---|---|
-| 1 | Loom 报 `outdated version of Java (8)` | `JAVA_HOME` 指向 JDK 8（1.12.2 工程需要）。构建 1.21.1 前必须覆盖成 JDK 21（§2.1） |
-| 2 | 源码里删了，jar 里还在 | Kotlin 增量编译不删 `.class`。**删源文件后必须 `clean build`**（§2.2） |
-| 3 | 配置项能改能存，但游戏里没反应 | **配置键存在 ≠ 有代码读它**。已发生 3 次：`maxEnchantmentPower` / `disableEnchantmentTableLimit`、`anvilDisenchant`、`yStartFactor`（公式语义错）。新增配置项时，**必须同时写清"谁读它"**，并加一条验收 |
-| 4 | 新生成的数据/表没生效 | **生成了 ≠ 接上了**。已发生 2 次：KSP 生成的 `COLOR` 表没人读（fast_bow 显示成 COMMON 的灰）、`FAST_BOW` 键没进 `ALL`（图鉴里看不见）。新增任何表/清单，**必须同时接消费点** |
-| 5 | 改了"看起来对"的地方却没效果 | **先确认客户端真正读的是哪条路径**。fast_bow 第一版只改 `BowItem.getPullProgress`（松手威力），而 `HeldItemRenderer` 读的是 `getItemUseTimeLeft()` —— 拉弓动画完全没变（§5③） |
-| 6 | 单机比预期强 / 与画面不符 | `client` mixin 在单机下也改内置服务端。两侧都乘会平方（§4.5） |
-| 7 | KSP 报 `FileAlreadyExistsException` | `process()` 每轮都调用 + `validate()` deferral 死锁（§3.6） |
-| 8 | 改了 `build.gradle` 后 mod 完全不加载 | IDEA 用缓存的旧 Gradle 模型启动。**Reload Gradle Project**（§2.6）。判据：日志 `Loading N mods` 里没有 `simple_tweaks` |
-| 9 | 画面/手感类改动"看不出来" | **验收判据要可感知**：写清基准线（无附魔）与对比量（tick 数 / 落点 / 颜色），不要只写"变快了" |
-| 10 | `Slot.x`/`y` 写入报 `IllegalAccessError` | 1.21.1 里它们是 `final`，需要 `@Mutable @Shadow` |
-| 11 | 找不到 `[ST-*]` 日志 | **调试日志默认关闭**，要 `-Dsimpletweaks.debug=true`（或环境变量 `SIMPLETWEAKS_DEBUG=true`） |
-| 12 | Git 提交后编辑工具报"文件已变化" | 仓库开了 `core.autocrlf`，`git add` 会按 CRLF 重写工作区文件。重新读一次即可（代理向的坑） |
-| 13 | `AnvilScreen`/`AnvilScreenHandler` 的 40 改错 | 同一字面量在方法里出现多次，**必须核实个数再决定 ordinal**（§4.3） |
-| 14 | `getMaxUseTime` 当成"拉弓时间" | 弓的它是 72000（最长持有时长），**不是**蓄满所需的 20 tick |
+| #  | 现象                                         | 根因 / 规避                                                                                                                                                |
+|----|--------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
+| 1  | Loom 报 `outdated version of Java (8)`      | `JAVA_HOME` 指向 JDK 8（1.12.2 工程需要）。构建 1.21.1 前必须覆盖成 JDK 21（§2.1）                                                                                        |
+| 2  | 源码里删了，jar 里还在                              | Kotlin 增量编译不删 `.class`。**删源文件后必须 `clean build`**（§2.2）                                                                                                 |
+| 3  | 配置项能改能存，但游戏里没反应                            | **配置键存在 ≠ 有代码读它**。已发生 3 次：`maxEnchantmentPower` / `disableEnchantmentTableLimit`、`anvilDisenchant`、`yStartFactor`（公式语义错）。新增配置项时，**必须同时写清"谁读它"**，并加一条验收 |
+| 4  | 新生成的数据/表没生效                                | **生成了 ≠ 接上了**。已发生 2 次：KSP 生成的 `COLOR` 表没人读（fast_bow 显示成 COMMON 的灰）、`FAST_BOW` 键没进 `ALL`（图鉴里看不见）。新增任何表/清单，**必须同时接消费点**                                  |
+| 5  | 改了"看起来对"的地方却没效果                            | **先确认客户端真正读的是哪条路径**。fast_bow 第一版只改 `BowItem.getPullProgress`（松手威力），而 `HeldItemRenderer` 读的是 `getItemUseTimeLeft()` —— 拉弓动画完全没变（§5③）                    |
+| 6  | 单机比预期强 / 与画面不符                             | `client` mixin 在单机下也改内置服务端。两侧都乘会平方（§4.5）                                                                                                               |
+| 7  | KSP 报 `FileAlreadyExistsException`         | `process()` 每轮都调用 + `validate()` deferral 死锁（§3.6）                                                                                                     |
+| 8  | 改了 `build.gradle` 后 mod 完全不加载              | IDEA 用缓存的旧 Gradle 模型启动。**Reload Gradle Project**（§2.6）。判据：日志 `Loading N mods` 里没有 `simple_tweaks`                                                      |
+| 9  | 画面/手感类改动"看不出来"                             | **验收判据要可感知**：写清基准线（无附魔）与对比量（tick 数 / 落点 / 颜色），不要只写"变快了"                                                                                                |
+| 10 | `Slot.x`/`y` 写入报 `IllegalAccessError`      | 1.21.1 里它们是 `final`，需要 `@Mutable @Shadow`                                                                                                              |
+| 11 | 找不到 `[ST-*]` 日志                            | **调试日志默认关闭**，要 `-Dsimpletweaks.debug=true`（或环境变量 `SIMPLETWEAKS_DEBUG=true`）                                                                            |
+| 12 | Git 提交后编辑工具报"文件已变化"                        | 仓库开了 `core.autocrlf`，`git add` 会按 CRLF 重写工作区文件。重新读一次即可（代理向的坑）                                                                                          |
+| 13 | `AnvilScreen`/`AnvilScreenHandler` 的 40 改错 | 同一字面量在方法里出现多次，**必须核实个数再决定 ordinal**（§4.3）                                                                                                              |
+| 14 | `getMaxUseTime` 当成"拉弓时间"                   | 弓的它是 72000（最长持有时长），**不是**蓄满所需的 20 tick                                                                                                                 |
 
 ---
 
@@ -340,10 +354,10 @@ Mixin 只改写 `@Mixin` 那个类的方法体。1.21 里不少基类方法被**
 
 ### 7.3 调试日志开关
 
-| 方式 | 写法 |
-|---|---|
-| JVM 参数 | `-Dsimpletweaks.debug=true` |
-| 环境变量 | `SIMPLETWEAKS_DEBUG=true`（等价 `=1`），便于 `gradlew runClient` 不改 `build.gradle` |
+| 方式     | 写法                                                                          |
+|--------|-----------------------------------------------------------------------------|
+| JVM 参数 | `-Dsimpletweaks.debug=true`                                                 |
+| 环境变量   | `SIMPLETWEAKS_DEBUG=true`（等价 `=1`），便于 `gradlew runClient` 不改 `build.gradle` |
 
 **启动时读一次**，改了要重启。开出来的日志形如 `[ST-FastBow] boost=1.75, charge=20`，用 `Select-String '\[ST-'` 抓取。
 
@@ -368,14 +382,14 @@ $mcJar  = (Get-ChildItem -Recurse -Path '.gradle\loom-cache\minecraftMaven' `
 & $javap -v -p -cp build\libs\simple_tweaks-2.0.0.jar dev.firefly.simpletweaks.mixin.XxxMixin  # 注解实际取值
 ```
 
-| 要看什么 | 位置 |
-|---|---|
-| 未 remap 的 class（验证源码改动） | `build/classes/{kotlin,java}/main/...` |
-| refmap | `build/libs/simple_tweaks-2.0.0.jar` 内的 `simple_tweaks-refmap.json` |
-| KSP 生成物 | `build/generated/ksp/main/{kotlin,resources}/` |
-| 游戏日志 | 正式客户端 `<gameDir>\logs\latest.log`；开发 `run/logs/latest.log` |
-| 离线查 Yarn 名称 | `tools/yarn-query.ps1` |
-| 旧附魔表生成器（迁移时用） | `tools/gen-enchantments.ps1` |
+| 要看什么                    | 位置                                                                  |
+|-------------------------|---------------------------------------------------------------------|
+| 未 remap 的 class（验证源码改动） | `build/classes/{kotlin,java}/main/...`                              |
+| refmap                  | `build/libs/simple_tweaks-2.0.0.jar` 内的 `simple_tweaks-refmap.json` |
+| KSP 生成物                 | `build/generated/ksp/main/{kotlin,resources}/`                      |
+| 游戏日志                    | 正式客户端 `<gameDir>\logs\latest.log`；开发 `run/logs/latest.log`          |
+| 离线查 Yarn 名称             | `tools/yarn-query.ps1`                                              |
+| 旧附魔表生成器（迁移时用）           | `tools/gen-enchantments.ps1`                                        |
 
 **验证 jar 内容**（PowerShell，`-match` 默认不区分大小写，注意误命中）：
 
@@ -390,14 +404,14 @@ $z.Dispose()
 
 ## 9. 文档地图
 
-| 文件 | 负责回答 |
-|---|---|
-| `DEV_GUIDE_1.21.1.md`（本文件） | **怎么做** —— 结构 / 构建 / 加附魔 / 写 Mixin / 铁律 / 坑 / 验收 |
-| `MIGRATION.md` | **当初为什么** —— 阶段流水账、决策记录、踩坑经过、版本核实、§10 声明式 vs Kotlin 的判定表、§14 铁砧、§15 KSP。**append-only** |
-| `docs/acceptance-checklist.md` | 客户端验收清单 + **已知未做**表（未做事项的唯一去处） |
-| `docs/phase4-mixin-notes.md` | Mixin 目标选择的早期考古（含被主动删除的粒子抑制 mixin） |
-| `docs/phase6-client-notes.md` | 阶段 6 客户端细节：飘字、图鉴、Starfall 世界地板、Multishot 无敌帧 |
-| `docs/infinite-power-deferred.md` | InfinitePower 全记录，含**背包为何被舍弃**（§17） |
-| `docs/phase3-{member-map,port-spec}.md` | 阶段 3 的成员映射与移植规格（历史） |
+| 文件                                      | 负责回答                                                                                    |
+|-----------------------------------------|-----------------------------------------------------------------------------------------|
+| `DEV_GUIDE_1.21.1.md`（本文件）              | **怎么做** —— 结构 / 构建 / 加附魔 / 写 Mixin / 铁律 / 坑 / 验收                                        |
+| `MIGRATION.md`                          | **当初为什么** —— 阶段流水账、决策记录、踩坑经过、版本核实、§10 声明式 vs Kotlin 的判定表、§14 铁砧、§15 KSP。**append-only** |
+| `docs/acceptance-checklist.md`          | 客户端验收清单 + **已知未做**表（未做事项的唯一去处）                                                          |
+| `docs/phase4-mixin-notes.md`            | Mixin 目标选择的早期考古（含被主动删除的粒子抑制 mixin）                                                      |
+| `docs/phase6-client-notes.md`           | 阶段 6 客户端细节：飘字、图鉴、Starfall 世界地板、Multishot 无敌帧                                            |
+| `docs/infinite-power-deferred.md`       | InfinitePower 全记录，含**背包为何被舍弃**（§17）                                                     |
+| `docs/phase3-{member-map,port-spec}.md` | 阶段 3 的成员映射与移植规格（历史）                                                                     |
 
 > 迁移已结束，功能状态：附魔台 / 弓箭三件套 + Starfall / CelestialBlessing / InfinitePower 核心 + 激光 **均已实测通过**；Velocity 与铁砧祛魔 **作者裁定不需要**；InfinitePower 背包 **8 次尝试后舍弃**。

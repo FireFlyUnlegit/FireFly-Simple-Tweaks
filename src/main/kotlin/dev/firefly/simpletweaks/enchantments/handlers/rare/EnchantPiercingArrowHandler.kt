@@ -3,7 +3,11 @@ package dev.firefly.simpletweaks.enchantments.handlers.rare
 import dev.firefly.simpletweaks.compat.event.EntityJoinWorldEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.core.Listenable
-import dev.firefly.simpletweaks.enchantments.ModEnchantmentKeys
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
+import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
+import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 import dev.firefly.simpletweaks.interfaces.SimpleTweaksArrow
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import dev.firefly.simpletweaks.util.runPlayerAttack
@@ -52,6 +56,22 @@ import net.minecraft.util.math.MathHelper
  * per-target counts into an NBT string and re-parsed it on every collision, and the port keeps the same
  * information as a map on the projectile instead (see the state mixin's KDoc).
  */
+// Declared with `@ModEnchantment`, so KSP generates `piercing_arrow.json`, its registry key and its
+// index metadata. Every value below was copied from the JSON this replaced
+// (`anvilCost=6, maxLevel=5, minCost 32+12/level, weight=6`); `piercing_arrow` is a bow enchantment
+// with **no** effect components.
+@ModEnchantment(
+    id = "piercing_arrow",
+    category = EnchantCategory.RARE,
+    type = EnchantType.BOW,
+    maxLevel = 5,
+    weight = 6,
+    anvilCost = 6,
+    minCostBase = 32,
+    minCostPerLevel = 12,
+    supportedItems = "#minecraft:enchantable/bow",
+    slots = [EnchantSlot.MAINHAND, EnchantSlot.OFFHAND],
+)
 object EnchantPiercingArrowHandler : Listenable {
 
     @SubscribeEvent
@@ -59,7 +79,7 @@ object EnchantPiercingArrowHandler : Listenable {
         if (e.world.isClient) return
         val arrow = e.entity as? PersistentProjectileEntity ?: return
         val shooter = arrow.owner as? PlayerEntity ?: return
-        val lvl = getItemSpecificEnchantLevel(shooter.mainHandStack, ModEnchantmentKeys.PIERCING_ARROW)
+        val lvl = getItemSpecificEnchantLevel(shooter.mainHandStack, GeneratedEnchantments.PIERCING_ARROW)
         if (lvl <= 0) return
 
         val state = arrow as SimpleTweaksArrow

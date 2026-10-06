@@ -1,16 +1,19 @@
 package dev.firefly.simpletweaks.client
 
+import dev.firefly.simpletweaks.SimpleTweaks
 import dev.firefly.simpletweaks.enchantments.EnchantmentMeta
-import dev.firefly.simpletweaks.enchantments.EnchantmentNameColors
+import net.minecraft.client.MinecraftClient
 import net.minecraft.client.gui.DrawContext
 import net.minecraft.client.gui.screen.Screen
 import net.minecraft.component.DataComponentTypes
 import net.minecraft.item.Item
 import net.minecraft.item.ItemStack
 import net.minecraft.item.Items
+import net.minecraft.registry.RegistryKeys
 import net.minecraft.text.MutableText
 import net.minecraft.text.Text
 import net.minecraft.util.Formatting
+import net.minecraft.util.Identifier
 import org.lwjgl.glfw.GLFW
 
 /**
@@ -37,16 +40,23 @@ import org.lwjgl.glfw.GLFW
  *   <tr><td>`EnchantmentCategories` enum</td><td>[EnchantmentMeta.category]</td></tr>
  *   <tr><td>`ModEnchantmentType` enum</td><td>[EnchantmentMeta.type]</td></tr>
  *   <tr><td>`ench.getMaxLevel()`</td><td>[EnchantmentMeta.maxLevel]</td></tr>
- *   <tr><td>iterate `Enchantment.REGISTRY`</td><td>iterate `EnchantmentMeta.allKeys()` — the legacy table **plus** every `@ModEnchantment` declaration</td></tr>
+ *   <tr><td>iterate `Enchantment.REGISTRY`</td><td>iterate the live enchantment **registry** — see [refreshIds]; no key list to maintain</td></tr>
  *   <tr><td>`ItemStack(Blocks.WOOL, 1, meta)`</td><td>the matching 1.21 `Items.*_WOOL`</td></tr>
  *   <tr><td>`ItemEnchantedBook.addEnchantment(book, ...)`</td><td>`ENCHANTMENT_GLINT_OVERRIDE`</td></tr>
  *   <tr><td>`drawTexturedModalRect(generic_54.png)`</td><td>`DrawContext.fill` panels</td></tr>
  * </table>
  *
- * <p><b>Why the tier/type/max-level tables are generated rather than read from the registry:</b> 1.21
- * enchantments are data-driven, so none of the three concepts exists in code — and reading them back
- * from the client's registry would add a "is the registry synced yet" failure mode for information
- * that is fixed at build time. The whole screen is therefore static data plus rendering.
+ * <p><b>Membership comes from the registry; tier / "applies to" / colour cannot.</b> The live registry
+ * is the only source that cannot drift — a datapack that registers `simple_tweaks:&lt;id&gt;` shows up in
+ * the index with no table to update. The previous union of a generated key list plus the KSP keys could
+ * not do that: an enchantment stayed invisible until its key was added to a generated list, which is
+ * exactly how `fast_bow` went missing. Max level is read from the registry for the same reason.
+ *
+ * <p>The other three — 1.12.2's `EnchantmentCategories` tier, `ModEnchantmentType` and the name colour —
+ * have no 1.21 counterpart in code at all (1.21 enchantments have no rarity field, and the JSON's
+ * `weight` is ambiguous because 1.12.2 clamped it), so they still come from [EnchantmentMeta]. An
+ * enchantment that is registered but carries no metadata therefore lands under `common` with no
+ * "applies to" line: visible if it happens, rather than silently mis-grouped.
  *
  * <p><b>Two deliberate cosmetic deviations</b>, both recorded in `docs/phase6-client-notes.md`:
  * <ul>
@@ -130,17 +140,53 @@ class EnchantInfoScreen(private val parent: Screen?) :
     }
 
     /**
-     * id -> tier, and the reverse, both derived once from the merged key set.
-     *
-     * The keys come from [EnchantmentMeta], not `ModEnchantmentKeys.ALL`: the latter is generated from
-     * the 1.12.2 sources and by definition cannot know about an enchantment declared with
-     * `@ModEnchantment`. Reading it directly is exactly how `fast_bow` went missing from this screen.
+     * id -> tier, rebuilt from the live registry by [refreshIds]. `idsByCategory` is what the whole
+     * screen renders; [registryMaxLevel] backs the tooltip's max-level line.
      */
-    private val idsByCategory: Map<String, List<String>> =
-        EnchantmentMeta.allKeys()
-            .map { it.value.path }
-            .sorted()
-            .groupBy { EnchantmentMeta.category(it) ?: "common" }
+    private var idsByCategory: Map<String, List<String>> = emptyMap()
+
+    /** Max level per id, straight out of the registry (the value the game itself uses). */
+    private var registryMaxLevel: Map<String, Int> = emptyMap()
+
+    /**
+     * Enumerate the **live** enchantment registry instead of a generated key list.
+     *
+     * This is 1.12.2's `Enchantment.REGISTRY` iteration restored, and it is the only membership source
+     * that cannot drift: anything registering `simple_tweaks:<id>` — the PS1-generated JSONs, a KSP
+     * declaration, or a future datapack — appears here with nothing to maintain.
+     *
+     * Notes on reading a *dynamic* registry from a screen:
+     *  - Enchantments are datapack-loaded and synced to the client, so this must go through the current
+     *    world's registry manager. [init] is called when the screen opens (and on resize), which is
+     *    always after the world exists.
+     *  - If the registry is somehow unavailable, the old [EnchantmentMeta.allKeys] union is used as a
+     *    fallback so the index is never silently empty. In practice `/enchantinfo` needs a world, so
+     *    that branch does not fire; it exists so a lookup failure degrades instead of blanking the UI.
+     *  - Only the mod's own namespace is listed, which is what the previous key-set lookup did too
+     *    (vanilla enchantments have no 1.12.2 tier and never belonged in this index).
+     */
+    private fun refreshIds() {
+        val registry = MinecraftClient.getInstance().world
+            ?.registryManager
+            ?.get(RegistryKeys.ENCHANTMENT)
+
+        val fromRegistry = registry?.ids
+            ?.filter { it.namespace == SimpleTweaks.MOD_ID }
+            ?.map { it.path }
+
+        val paths = fromRegistry?.takeIf { it.isNotEmpty() }
+            ?: EnchantmentMeta.allKeys().map { it.value.path }
+
+        registryMaxLevel = registry
+            ?.let { reg ->
+                paths.mapNotNull { path ->
+                    reg.get(Identifier.of(SimpleTweaks.MOD_ID, path))?.let { path to it.maxLevel }
+                }.toMap()
+            }
+            ?: emptyMap()
+
+        idsByCategory = paths.sorted().groupBy { EnchantmentMeta.category(it) ?: "common" }
+    }
 
     private var selected: String? = null
     private var page = 0
@@ -148,6 +194,7 @@ class EnchantInfoScreen(private val parent: Screen?) :
     private var guiTop = 0
 
     override fun init() {
+        refreshIds()
         val w = if (selected == null) MAIN_WIDTH else LIST_WIDTH
         val h = if (selected == null) MAIN_HEIGHT else LIST_HEIGHT
         guiLeft = (this.width - w) / 2
@@ -308,10 +355,13 @@ class EnchantInfoScreen(private val parent: Screen?) :
             )
         }
 
+        // Registry first — that is the value the game actually enforces. [EnchantmentMeta] is only a
+        // fallback for an enchantment that is registered but carries no metadata of its own; for every
+        // enchantment this mod ships, the two agree.
         lines.add(
             Text.translatable(
                 "gui.simple_tweaks.enchant_info.max_level",
-                EnchantmentMeta.maxLevel(id) ?: 1,
+                registryMaxLevel[id] ?: EnchantmentMeta.maxLevel(id) ?: 1,
             ).formatted(Formatting.GRAY)
         )
         lines.add(Text.empty())

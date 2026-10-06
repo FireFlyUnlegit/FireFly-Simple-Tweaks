@@ -6,76 +6,112 @@
   "effects": {
     "minecraft:attributes": [
       {
-        "amount": {
-          "type": "minecraft:linear",
-          "base": 0.04,
-          "per_level_above_first": 0.04
-        },
+        "amount": { "type": "minecraft:linear", "base": 0.04, "per_level_above_first": 0.04 },
         "attribute": "minecraft:generic.max_health",
         "id": "simple_tweaks:enchantment.prismatic_blessing.max_health",
         "operation": "add_multiplied_base"
       },
       {
-        "amount": {
-          "type": "minecraft:linear",
-          "base": 0.04,
-          "per_level_above_first": 0.04
-        },
+        "amount": { "type": "minecraft:linear", "base": 0.04, "per_level_above_first": 0.04 },
         "attribute": "minecraft:generic.movement_speed",
         "id": "simple_tweaks:enchantment.prismatic_blessing.movement_speed",
         "operation": "add_multiplied_base"
       },
       {
-        "amount": {
-          "type": "minecraft:linear",
-          "base": 0.04,
-          "per_level_above_first": 0.04
-        },
+        "amount": { "type": "minecraft:linear", "base": 0.04, "per_level_above_first": 0.04 },
         "attribute": "minecraft:generic.attack_damage",
         "id": "simple_tweaks:enchantment.prismatic_blessing.attack_damage",
         "operation": "add_multiplied_base"
       },
       {
-        "amount": {
-          "type": "minecraft:linear",
-          "base": 0.04,
-          "per_level_above_first": 0.04
-        },
+        "amount": { "type": "minecraft:linear", "base": 0.04, "per_level_above_first": 0.04 },
         "attribute": "minecraft:generic.attack_speed",
         "id": "simple_tweaks:enchantment.prismatic_blessing.attack_speed",
         "operation": "add_multiplied_base"
       },
       {
-        "amount": {
-          "type": "minecraft:linear",
-          "base": 0.04,
-          "per_level_above_first": 0.04
-        },
+        "amount": { "type": "minecraft:linear", "base": 0.04, "per_level_above_first": 0.04 },
         "attribute": "minecraft:generic.armor",
         "id": "simple_tweaks:enchantment.prismatic_blessing.armor",
         "operation": "add_multiplied_base"
       },
       {
-        "amount": {
-          "type": "minecraft:linear",
-          "base": 0.04,
-          "per_level_above_first": 0.04
-        },
+        "amount": { "type": "minecraft:linear", "base": 0.04, "per_level_above_first": 0.04 },
         "attribute": "minecraft:generic.armor_toughness",
         "id": "simple_tweaks:enchantment.prismatic_blessing.armor_toughness",
+        "operation": "add_multiplied_base"
+      },
+      {
+        "amount": { "type": "minecraft:linear", "base": 0.04, "per_level_above_first": 0.04 },
+        "attribute": "minecraft:generic.knockback_resistance",
+        "id": "simple_tweaks:enchantment.prismatic_blessing.knockback_resistance",
+        "operation": "add_multiplied_base"
+      },
+      {
+        "amount": { "type": "minecraft:linear", "base": 0.04, "per_level_above_first": 0.04 },
+        "attribute": "minecraft:generic.attack_knockback",
+        "id": "simple_tweaks:enchantment.prismatic_blessing.attack_knockback",
+        "operation": "add_multiplied_base"
+      },
+      {
+        "amount": { "type": "minecraft:linear", "base": 0.04, "per_level_above_first": 0.04 },
+        "attribute": "minecraft:generic.flying_speed",
+        "id": "simple_tweaks:enchantment.prismatic_blessing.flying_speed",
+        "operation": "add_multiplied_base"
+      },
+      {
+        "amount": { "type": "minecraft:linear", "base": 0.04, "per_level_above_first": 0.04 },
+        "attribute": "minecraft:generic.explosion_knockback_resistance",
+        "id": "simple_tweaks:enchantment.prismatic_blessing.explosion_knockback_resistance",
+        "operation": "add_multiplied_base"
+      },
+      {
+        "amount": { "type": "minecraft:linear", "base": 0.04, "per_level_above_first": 0.04 },
+        "attribute": "minecraft:generic.water_movement_efficiency",
+        "id": "simple_tweaks:enchantment.prismatic_blessing.water_movement_efficiency",
+        "operation": "add_multiplied_base"
+      },
+      {
+        "amount": { "type": "minecraft:linear", "base": 0.04, "per_level_above_first": 0.04 },
+        "attribute": "minecraft:generic.luck",
+        "id": "simple_tweaks:enchantment.prismatic_blessing.luck",
+        "operation": "add_multiplied_base"
+      },
+      {
+        "amount": { "type": "minecraft:linear", "base": 0.04, "per_level_above_first": 0.04 },
+        "attribute": "minecraft:generic.safe_fall_distance",
+        "id": "simple_tweaks:enchantment.prismatic_blessing.safe_fall_distance",
+        "operation": "add_multiplied_base"
+      },
+      {
+        "amount": { "type": "minecraft:linear", "base": 0.04, "per_level_above_first": 0.04 },
+        "attribute": "minecraft:player.block_break_speed",
+        "id": "simple_tweaks:enchantment.prismatic_blessing.block_break_speed",
+        "operation": "add_multiplied_base"
+      },
+      {
+        "amount": { "type": "minecraft:linear", "base": 0.04, "per_level_above_first": 0.04 },
+        "attribute": "minecraft:player.mining_efficiency",
+        "id": "simple_tweaks:enchantment.prismatic_blessing.mining_efficiency",
+        "operation": "add_multiplied_base"
+      },
+      {
+        "amount": { "type": "minecraft:linear", "base": 0.04, "per_level_above_first": 0.04 },
+        "attribute": "minecraft:player.submerged_mining_speed",
+        "id": "simple_tweaks:enchantment.prismatic_blessing.submerged_mining_speed",
+        "operation": "add_multiplied_base"
+      },
+      {
+        "amount": { "type": "minecraft:linear", "base": 0.04, "per_level_above_first": 0.04 },
+        "attribute": "minecraft:player.sweeping_damage_ratio",
+        "id": "simple_tweaks:enchantment.prismatic_blessing.sweeping_damage_ratio",
         "operation": "add_multiplied_base"
       }
     ]
   },
-  "max_cost": {
-    "base": 65535,
-    "per_level_above_first": 0
-  },
+  "max_cost": { "base": 65535, "per_level_above_first": 0 },
   "max_level": 5,
-  "min_cost": {
-    "base": 45,
-    "per_level_above_first": 15
-  },
+  "min_cost": { "base": 45, "per_level_above_first": 15 },
   "primary_items": "#minecraft:enchantable/durability",
   "slots": ["any"],
   "supported_items": "#minecraft:enchantable/durability",
