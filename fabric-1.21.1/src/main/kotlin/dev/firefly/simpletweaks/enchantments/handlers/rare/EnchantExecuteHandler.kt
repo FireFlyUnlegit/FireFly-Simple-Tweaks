@@ -27,7 +27,7 @@ object EnchantExecuteHandler : Listenable {
     fun onLivingHurt(e: LivingHurtEvent) {
         if (e.invalid) return
         val attacker = (e.source.attacker as? LivingEntity)?: return
-        val target = e.entityLiving?: return
+        val target = e.entityLiving
         val lvl = getItemSpecificEnchantLevel(attacker.mainHandStack, ModEnchantmentKeys.EXECUTE)
         if (lvl > 0) {
             val lostHealth = ((target.maxHealth + target.absorptionAmount) - (target.health+ target.absorptionAmount)) * 0.02f * lvl
