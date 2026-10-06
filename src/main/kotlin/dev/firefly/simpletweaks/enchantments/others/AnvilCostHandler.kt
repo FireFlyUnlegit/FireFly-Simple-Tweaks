@@ -12,6 +12,7 @@ object AnvilCostHandler : Listenable {
 
     /** 稀有度 → 附魔成本倍率，越稀有越贵 */
     private fun multiplier(category: EnchantmentCategories): Float = when (category) {
+        EnchantmentCategories.UNIQUE    -> 0.0f
         EnchantmentCategories.COMMON    -> 1.0f
         EnchantmentCategories.UNCOMMON  -> 1.25f
         EnchantmentCategories.RARE      -> 1.5f

@@ -7,7 +7,7 @@ import net.minecraft.entity.EnumCreatureAttribute
 
 object EnchantHealingBlade : ModEnchantments(
     "healing_blade",
-    ModEnchantmentType.WEAPON,
+    ModEnchantmentType.SWORD,
     8,
     {25 + 8 * it},
     category = EnchantmentCategories.MYTHIC

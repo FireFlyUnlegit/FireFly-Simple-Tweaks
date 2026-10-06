@@ -7,7 +7,7 @@ import dev.firefly.simpletweaks.enchantments.baseclass.ModEnchantments
 object EnchantRegeneration : ModEnchantments(
     "regeneration",
     ModEnchantmentType.LEGGINGS,
-    4,
+    8,
     { 24 + 4 * it },
     EnchantmentCategories.UNCOMMON
 ) {

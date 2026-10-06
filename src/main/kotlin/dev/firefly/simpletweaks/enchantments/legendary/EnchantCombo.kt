@@ -7,7 +7,7 @@ import net.minecraft.entity.EnumCreatureAttribute
 
 object EnchantCombo : ModEnchantments(
     "combo",
-    ModEnchantmentType.WEAPON,
+    ModEnchantmentType.SWORD,
     10,
     {15 + 5 * it},
     EnchantmentCategories.LEGENDARY

@@ -4,9 +4,9 @@ import dev.firefly.simpletweaks.core.Listenable
 import dev.firefly.simpletweaks.enchantments.uncommon.EnchantAoeAttack
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import dev.firefly.simpletweaks.util.invalid
+import dev.firefly.simpletweaks.util.runPlayerAttack
 import net.minecraft.entity.EntityLivingBase
 import net.minecraft.entity.player.EntityPlayer
-import net.minecraft.util.DamageSource
 import net.minecraftforge.event.entity.living.LivingHurtEvent
 import net.minecraftforge.fml.common.eventhandler.EventPriority
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
@@ -25,7 +25,7 @@ object EnchantAoeAttackHandler : Listenable {
         val lvl = getItemSpecificEnchantLevel(attacker.heldItemMainhand, EnchantAoeAttack)
         if (lvl <= 0) return
 
-        val box = target.entityBoundingBox.grow(0.2 * lvl)
+        val box = target.entityBoundingBox.grow((0.5 * lvl).coerceAtMost(2.0))
         val others = target.world.getEntitiesWithinAABB(EntityLivingBase::class.java, box)
             .filter {
                 it !== attacker && it !== target && it.isEntityAlive &&
@@ -41,8 +41,7 @@ object EnchantAoeAttackHandler : Listenable {
         inAoe.set(true)
         try {
             for (other in others) {
-                other.hurtResistantTime = 0
-                other.attackEntityFrom(DamageSource.causePlayerDamage(attacker), perTarget)
+                other.runPlayerAttack(attacker,perTarget,true)
             }
         } finally {
             inAoe.set(false)

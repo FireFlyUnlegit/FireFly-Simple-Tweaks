@@ -6,7 +6,7 @@ import dev.firefly.simpletweaks.core.EnchantmentManager
 import dev.firefly.simpletweaks.core.ModuleManager
 import dev.firefly.simpletweaks.damageindicator.DamageIndicatorHandler
 import dev.firefly.simpletweaks.damageindicator.DamageIndicatorRenderer
-import dev.firefly.simpletweaks.enchantments.others.AnvilCostHandler
+import dev.firefly.simpletweaks.enchantments.others.*
 import dev.firefly.simpletweaks.gui.ModGuiScreen
 import dev.firefly.simpletweaks.network.NetworkManager
 import net.minecraft.client.Minecraft
@@ -28,7 +28,17 @@ class SimpleTweaks {
     companion object {
         const val MOD_ID = "simple_tweaks"
         const val NAME = "FireFly's Simple Tweaks"
-        const val VERSION = "1.0.6"
+        const val VERSION = "1.0.7"
+        val extraHandlers = listOf(
+            DamageIndicatorRenderer,
+            DamageIndicatorHandler,
+            ManaPoolToolTipHandler,
+            AnvilCostHandler,
+            DisenchanterExpHandler,
+            HealthNaNFixer,
+            NaNOriginTracker,
+            CommandEnchantHandler,
+        )
         val LOGGER: Logger = LogManager.getLogger(NAME)
 
         private val configFile = File("config/simpletweaks/gui.properties")
@@ -68,10 +78,11 @@ class SimpleTweaks {
         ModuleManager.registerModules()
         NetworkManager.registerPackets()
         EnchantmentManager.registerEnchantments()
-        MinecraftForge.EVENT_BUS.register(DamageIndicatorRenderer)
-        MinecraftForge.EVENT_BUS.register(DamageIndicatorHandler)
-        MinecraftForge.EVENT_BUS.register(ManaPoolToolTipHandler)
-        MinecraftForge.EVENT_BUS.register(AnvilCostHandler)
+        extraHandlers.forEach { it ->
+            MinecraftForge.EVENT_BUS.register(it)
+            LOGGER.info("Registered $it")
+        }
+
         CommandManager.registerCommands()
         LOGGER.info("GUI Open Key: ${Keyboard.getKeyName(guiKey)}")
     }

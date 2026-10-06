@@ -1,3 +1,4 @@
+# 附魔
 enchantment.simple_tweaks.infinite_power=无尽之力
 enchantment.simple_tweaks.flight=飞行
 enchantment.simple_tweaks.item_fixer=物品修复者
@@ -32,7 +33,30 @@ enchantment.simple_tweaks.vitality=生机
 enchantment.simple_tweaks.anti_knockback=反击退
 enchantment.simple_tweaks.damage_reduction=额外减伤
 enchantment.simple_tweaks.extra_armor=额外护甲
+enchantment.simple_tweaks.experience_stealer=经验偷取
+enchantment.simple_tweaks.reforge=重铸
+enchantment.simple_tweaks.soul_bound=灵魂绑定
+enchantment.simple_tweaks.momentum=势头
+enchantment.simple_tweaks.tunneling=隧道挖掘
+enchantment.simple_tweaks.kill_aura=杀戮光环
+enchantment.simple_tweaks.prismatic_blessing=棱彩祝福
+enchantment.simple_tweaks.grievous_wounds=重伤
+enchantment.simple_tweaks.hunters_mark=猎手印记
+enchantment.simple_tweaks.multishot=多重射击
+enchantment.simple_tweaks.tracking_arrow=追踪箭
+enchantment.simple_tweaks.piercing_arrow=穿透箭
+enchantment.simple_tweaks.starfall=星落
+enchantment.simple_tweaks.echo_shot=回响射击
+enchantment.simple_tweaks.unbreakable=无法破坏
+enchantment.simple_tweaks.echo_shield=回响之盾
+enchantment.simple_tweaks.auto_smelt=自动熔炼
+enchantment.simple_tweaks.delayed_recovery=延迟回复
+enchantment.simple_tweaks.heavenly_punishment=天罚
+enchantment.simple_tweaks.combat_master=战斗大师
+enchantment.simple_tweaks.resilience=韧性
+enchantment.simple_tweaks.gravity_strike=重力打击
 
+# 附魔描述
 enchantment.simple_tweaks.bloodlust.desc=根据攻击者已损失的生命值比例提升伤害，等级越高加成越高。
 enchantment.simple_tweaks.crit.desc=攻击时有几率触发暴击（无需跳跃），等级越高几率越大。
 enchantment.simple_tweaks.crit_damage.desc=提升暴击造成的额外伤害，等级越高加成越多。
@@ -67,6 +91,59 @@ enchantment.simple_tweaks.vitality.desc=增加你的最大生命值
 enchantment.simple_tweaks.anti_knockback.desc=增加你的击退抗性
 enchantment.simple_tweaks.damage_reduction.desc=按百分比减少你所受到的伤害
 enchantment.simple_tweaks.extra_armor.desc=提供更多的盔甲值与盔甲韧性
+enchantment.simple_tweaks.experience_stealer.desc=基于你造成的伤害获得额外经验
+enchantment.simple_tweaks.reforge.desc=附加到物品后立即消失，并重置该物品的铁砧累计成本。用于清除物品的修理惩罚。
+enchantment.simple_tweaks.soul_bound.desc=死亡时该物品不会掉落，重生后自动回到背包。
+enchantment.simple_tweaks.momentum.desc=持续挖掘同一方块时，挖掘速度会逐渐加快，最多额外增加 100% * lvl。
+enchantment.simple_tweaks.tunneling.desc=破坏方块时自动破坏相邻的同类方块。I 级破坏上下两格，II 级拓展为十字形，III 级覆盖 3x3 平面。蹲下时效果不生效。
+enchantment.simple_tweaks.kill_aura.desc=手持此武器时，自动攻击附近最近的敌人。每次攻击消耗一点耐久。等级越高范围越大、冷却越短。
+enchantment.simple_tweaks.prismatic_blessing.desc=每级为最大生命、攻击力、攻击速度、移动速度、护甲值与盔甲韧性提供 +5% 加成。
+enchantment.simple_tweaks.grievous_wounds.desc=命中后使目标受到的治疗降低 20%/lvl，持续 1+0.25 * lvl 秒。V 级时目标完全无法回血。多次命中刷新持续时间，但减疗比例不叠加。
+enchantment.simple_tweaks.hunters_mark.desc=箭矢命中后给目标打上 10 秒的印记。对目标造成的下一次任意类型伤害提升 20%/级，随后印记消失。重复命中刷新持续时间，等级取最高。
+enchantment.simple_tweaks.multishot.desc=每级额外射出一支箭，水平方向扇形散布。每支箭各消耗一发弹药。多重射击的箭不会重置目标的受击无敌时间，因此一轮齐射的每支箭都能命中。
+enchantment.simple_tweaks.tracking_arrow.desc=射出的箭会缓慢转向 2+1×等级 格内最近的敌人。等级越高追踪范围越大、转向越快。箭命中方块或被墙挡住后将停止追踪。
+enchantment.simple_tweaks.piercing_arrow.desc=箭矢可额外穿透与等级相同的敌人数量。命中方块时仍会插在地上并可以被正常拾取。
+enchantment.simple_tweaks.starfall.desc=箭矢命中后召唤天外陨星锁定目标。陨星持续追踪目标并在撞击时引发范围爆炸，对周围敌人造成伤害。等级越高召唤的陨星越多、范围越大、伤害越高。
+enchantment.simple_tweaks.echo_shot.desc=箭矢命中后会在目标身上再次回响，造成额外伤害。等级越高，回响伤害越高、延迟越短。
+enchantment.simple_tweaks.unbreakable.desc=该物品永不消耗耐久。
+enchantment.simple_tweaks.echo_shield.desc=每次受到的伤害都会被减免一部分，减免的部分存入回响储值。当储值不小于本次伤害时，完全免疫该次伤害，并将全部储值原路返还给攻击者。死亡时储值清空。
+enchantment.simple_tweaks.auto_smelt.desc=挖掘方块时直接掉落熔炉烧炼后的产物。与精准采集冲突。可与时运叠加。
+enchantment.simple_tweaks.delayed_recovery.desc=受到伤害后，部分伤害将在接下来几秒内以治疗形式返还。死亡会取消所有待回复。
+enchantment.simple_tweaks.heavenly_punishment.desc=大幅提升你造成的最终伤害。命中目标会削弱它对你造成的攻击、短暂定身目标、并将其攻击速度压制至无法出手。每次命中都会降下天雷。等级越高，伤害越高、削弱越久。
+enchantment.simple_tweaks.combat_master.desc=连续命中同一目标会累积连击层数。每层提供 2%%×等级 的额外伤害，最高 20%%×等级。受到任意伤害或切换目标会清空连击，5 秒未攻击也会自动清空。
+enchantment.simple_tweaks.resilience.desc=生命值越低，受到的伤害减免越高。满血无加成；四件护甲全 III 级、血量降至 10%% 时减免达到 84%%。等级越高，减伤越强。
+enchantment.simple_tweaks.gravity_strike.desc=根据你下落的高度提升攻击伤害。下落越高，打击越重，但有上限。平地跳跃无法触发加成。空中发起攻击时，下落高度会一直保留到你落地。
 
+# 伤害源
 death.attack.celestial_particle=%1$s 被圣光净化了
 death.attack.celestial_particle.player=%1$s 被 %2$s 的圣光净化了
+
+# 附魔列表
+gui.simple_tweaks.enchant_info.title=附魔图鉴
+gui.simple_tweaks.enchant_info.count=%s 个附魔
+gui.simple_tweaks.enchant_info.click_hint=点击打开
+gui.simple_tweaks.enchant_info.back=返回
+gui.simple_tweaks.enchant_info.category=分类:%s
+gui.simple_tweaks.enchant_info.max_level=最大等级:%s
+
+gui.simple_tweaks.category.unique=唯一
+gui.simple_tweaks.category.common=普通
+gui.simple_tweaks.category.uncommon=罕见
+gui.simple_tweaks.category.rare=稀有
+gui.simple_tweaks.category.epic=史诗
+gui.simple_tweaks.category.legendary=传说
+gui.simple_tweaks.category.mythic=神话
+gui.simple_tweaks.category.mystery=神秘
+
+gui.simple_tweaks.enchant_info.applies_to=适用:%s
+gui.simple_tweaks.enchant_info.applies_to.sword=剑
+gui.simple_tweaks.enchant_info.applies_to.sword_bow=剑、弓
+gui.simple_tweaks.enchant_info.applies_to.bow=弓
+gui.simple_tweaks.enchant_info.applies_to.armor=任意盔甲
+gui.simple_tweaks.enchant_info.applies_to.helmet=头盔
+gui.simple_tweaks.enchant_info.applies_to.chestplate=胸甲
+gui.simple_tweaks.enchant_info.applies_to.leggings=护腿
+gui.simple_tweaks.enchant_info.applies_to.boots=靴子
+gui.simple_tweaks.enchant_info.applies_to.breakable=任意有耐久的物品
+gui.simple_tweaks.enchant_info.applies_to.tool=工具
+gui.simple_tweaks.enchant_info.applies_to.held=任意手持物品

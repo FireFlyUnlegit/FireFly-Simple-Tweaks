@@ -56,11 +56,11 @@ fun hasEnchantment(itemStack: ItemStack, enchantment: Enchantment): Boolean {
 /**
  * 获取实体所有盔甲上指定附魔的总等级
  */
-fun EntityLivingBase.getArmorEnchantLevel(enchant: Enchantment): Int {
+fun EntityLivingBase.getArmorEnchantLevel(enchant: Enchantment,maxTotal: Int = Int.MAX_VALUE): Int {
     var total = 0
     for (slot in EntityEquipmentSlot.entries) {
         if (slot.slotType != EntityEquipmentSlot.Type.ARMOR) continue
         total += EnchantmentHelper.getEnchantmentLevel(enchant, this.getItemStackFromSlot(slot))
     }
-    return total
+    return total.coerceAtMost(maxTotal)
 }

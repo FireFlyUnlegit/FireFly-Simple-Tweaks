@@ -7,7 +7,7 @@ import net.minecraft.util.text.TextFormatting
 
 object EnchantHealer : ModEnchantments(
     "healer",
-    ModEnchantmentType.WEAPON,
+    ModEnchantmentType.SWORD,
     5,
     {it * 11 + 20},
     textColor = TextFormatting.GREEN,

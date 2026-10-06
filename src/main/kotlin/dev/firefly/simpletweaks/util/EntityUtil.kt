@@ -11,5 +11,5 @@ fun relativeSpeed(a: Entity, b: Entity, includeY: Boolean = false): Double {
     return sqrt(diff.x * diff.x + diff.y * diff.y + diff.z * diff.z).toDouble()
 }
 var Entity.fireTime: Int
-    get() = (this as EntityFireTimeAccessor).`simplemod$getFire`()
-    set(value) = (this as EntityFireTimeAccessor).`simplemod$setFire`(value)
+    get() = (this as EntityFireTimeAccessor).`simpletweaks$getFire`()
+    set(value) = (this as EntityFireTimeAccessor).`simpletweaks$setFire`(value)

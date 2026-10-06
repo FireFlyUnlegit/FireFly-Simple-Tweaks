@@ -2,6 +2,7 @@ package dev.firefly.simpletweaks.core
 
 import dev.firefly.simpletweaks.SimpleTweaks
 import dev.firefly.simpletweaks.commands.CommandAttribute
+import dev.firefly.simpletweaks.commands.CommandEnchantInfo
 import net.minecraft.command.ICommand
 import net.minecraftforge.fml.common.event.FMLServerStartingEvent
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
@@ -11,7 +12,8 @@ object CommandManager {
     private val commands = mutableListOf<ICommand>()
 
     private val commandList = listOf(
-        CommandAttribute(),
+        CommandAttribute,
+        CommandEnchantInfo,
     )
 
     fun registerCommands() {

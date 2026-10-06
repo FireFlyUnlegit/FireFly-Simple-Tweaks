@@ -6,7 +6,7 @@ import dev.firefly.simpletweaks.enchantments.baseclass.ModEnchantments
 
 object EnchantDoubleCrit : ModEnchantments(
     "double_crit",
-    ModEnchantmentType.WEAPON,
+    ModEnchantmentType.SWORD,
     5,
     {30 + it * 10},
     EnchantmentCategories.LEGENDARY

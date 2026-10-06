@@ -6,7 +6,7 @@ import dev.firefly.simpletweaks.enchantments.baseclass.ModEnchantments
 
 object EnchantMotionBonus : ModEnchantments(
     "motion_bonus",
-    ModEnchantmentType.WEAPON,
+    ModEnchantmentType.SWORD,
     5,
     {15 + 4 * it},
     EnchantmentCategories.COMMON

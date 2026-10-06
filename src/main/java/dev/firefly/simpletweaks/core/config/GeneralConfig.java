@@ -35,13 +35,19 @@ public class GeneralConfig {
     @Config.Comment(
             "Let Enchantments have themselves display color."
     )
-    @Config.RequiresMcRestart
     public static boolean enabledEnchantmentColor = true;
     @Config.Name("Enabled Enchantments' Special Particles")
     @Config.Comment(
             "Let some enchantments have themselves special particles"
     )
     public static boolean enabledSpecialParticles = true;
+
+    @Config.Name("Enabled Enchantments' Special Particles")
+    @Config.Comment(
+            "Let some enchantments have themselves special particles"
+    )
+    public static boolean anvilDisenchant = true;
+
 }
 @Mod.EventBusSubscriber(modid = "simple_tweaks")
 class GeneralConfigSync {

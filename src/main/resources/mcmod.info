@@ -2,7 +2,7 @@
 	"modid": "simple_tweaks",
 	"name": "FireFly's Simple Tweaks",
 	"description": "A lightweight mod that adds custom enchantments, client-side QoL modules, and visual feedback.",
-	"version": "1.0.6",
+	"version": "1.0.7",
 	"mcversion": "1.12.2",
 	"url": "",
 	"updateUrl": "",

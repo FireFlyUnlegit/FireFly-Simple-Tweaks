@@ -13,6 +13,7 @@ import net.minecraft.entity.EntityCreature
 import net.minecraft.entity.EntityLivingBase
 import net.minecraft.entity.EnumCreatureType
 import net.minecraft.entity.SharedMonsterAttributes
+import net.minecraft.entity.ai.attributes.AttributeModifier
 import net.minecraft.entity.passive.EntityAnimal
 import net.minecraft.entity.passive.EntityTameable
 import net.minecraft.entity.passive.EntityVillager
@@ -29,12 +30,14 @@ import net.minecraftforge.fml.common.eventhandler.EventPriority
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
 import net.minecraftforge.fml.common.gameevent.PlayerEvent
 import net.minecraftforge.fml.common.gameevent.TickEvent
+import java.lang.ref.WeakReference
 import java.util.*
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
 object EnchantCelestialBlessingHandler : Listenable {
+
     val manaPool = mutableMapOf<UUID, Float>()
 
     private val targetQueue = mutableMapOf<UUID, MutableList<UUID>>()
@@ -46,6 +49,15 @@ object EnchantCelestialBlessingHandler : Listenable {
     private val SHRED_UUID: UUID = UUID.nameUUIDFromBytes("simple_tweaks_celestial_shred".toByteArray())
     private val lastSyncedMana = mutableMapOf<UUID, Float>()
     private val lastSyncTick = mutableMapOf<UUID, Int>()
+
+    /** 60 秒 = 1200 tick */
+    private const val SHRED_DURATION_TICKS = 1200
+
+    /** 记录被削减最大生命值的目标及其过期 tick */
+    private class ShredState(val ref: WeakReference<EntityLivingBase>) {
+        var expiryTick: Long = 0
+    }
+    private val shredStates = mutableMapOf<UUID, ShredState>()
 
     private fun EntityLivingBase.isFriendlyTo(player: EntityPlayer): Boolean {
         if (this == player) return true
@@ -113,11 +125,11 @@ object EnchantCelestialBlessingHandler : Listenable {
         val reclvl = getItemSpecificEnchantLevel(t.heldItemMainhand, EnchantCelestialBlessing)
 
         if (atklvl > 0) {
-            val healing = (e.amount * 0.24f * atklvl)
-            val manaBoost = (e.amount * 0.01f * atklvl)
+            val healing = (e.amount * 0.18f * atklvl)
+            val manaBoost = (e.amount * 0.025f * atklvl)
             val cost = ((manaPool[pid] ?: 0f) * 0.02f * atklvl).coerceAtMost(t.maxHealth * 2f)
             val extraDMG = healing + cost
-            manaPool[pid] = (manaPool[pid] ?: 0f) + (healing + manaBoost - cost).coerceIn(0f,t.maxHealth * 2f)
+            manaPool[pid] = (manaPool[pid] ?: 0f) + (healing + manaBoost - cost).coerceIn(0f, t.maxHealth * 2f)
             p.heal(healing)
             e.amount += extraDMG
             val reduction = (e.amount) * 0.04f * atklvl + 1f
@@ -125,17 +137,30 @@ object EnchantCelestialBlessingHandler : Listenable {
 
             val maxHealthAttr = t.getEntityAttribute(SharedMonsterAttributes.MAX_HEALTH)
             if (maxHealthAttr != null) {
-                val modifierUUID = SHRED_UUID
-                val existingModifier = maxHealthAttr.getModifier(modifierUUID)
-                if (existingModifier != null) maxHealthAttr.removeModifier(existingModifier)
+                val now = t.world.totalWorldTime
+                val state = shredStates[tid]
+                if (state != null && now > state.expiryTick) {
+                    maxHealthAttr.removeModifier(SHRED_UUID)
+                    shredStates.remove(tid)
+                }
+
+                val existingModifier = maxHealthAttr.getModifier(SHRED_UUID)
                 val currentReduction = existingModifier?.amount ?: 0.0
                 val newReduction = currentReduction - reduction
                 val maxPossibleReduction = -(maxHealthAttr.baseValue - 1.0)
                 val safeReduction = newReduction.coerceAtLeast(maxPossibleReduction)
-                val newModifier = net.minecraft.entity.ai.attributes.AttributeModifier(
-                    modifierUUID, "Celestial Blessing Shred", safeReduction, 0
+
+                if (existingModifier != null) maxHealthAttr.removeModifier(existingModifier)
+                val newModifier = AttributeModifier(
+                    SHRED_UUID, "Celestial Blessing Shred", safeReduction, 0
                 )
+                newModifier.setSaved(false)
                 maxHealthAttr.applyModifier(newModifier)
+
+                shredStates[tid] = ShredState(WeakReference(t)).also {
+                    it.expiryTick = now + SHRED_DURATION_TICKS
+                }
+
                 if (t.health > t.maxHealth) t.health = t.maxHealth
             }
         }
@@ -158,6 +183,29 @@ object EnchantCelestialBlessingHandler : Listenable {
                 e.amount = overflowDamage
                 t.hurtResistantTime += reclvl * 4
                 manaPool[tid] = 0f
+            }
+        }
+    }
+
+    @SubscribeEvent
+    fun onServerTick(e: TickEvent.ServerTickEvent) {
+        if (e.phase != TickEvent.Phase.END) return
+        if (shredStates.isEmpty()) return
+
+        val iter = shredStates.iterator()
+        while (iter.hasNext()) {
+            val (_, state) = iter.next()
+            val entity = state.ref.get()
+            if (entity == null || entity.isDead || !entity.isEntityAlive) {
+                iter.remove()
+                continue
+            }
+            val now = entity.world.totalWorldTime
+            if (now > state.expiryTick) {
+                entity.getEntityAttribute(SharedMonsterAttributes.MAX_HEALTH)
+                    ?.removeModifier(SHRED_UUID)
+                if (entity.health > entity.maxHealth) entity.health = entity.maxHealth
+                iter.remove()
             }
         }
     }
@@ -243,7 +291,7 @@ object EnchantCelestialBlessingHandler : Listenable {
             }
         }
         if (currentMana > 0f) {
-            val cost = (currentMana * 0.001f).coerceIn(0.05f,50f)
+            val cost = (currentMana * 0.001f).coerceIn(0.05f, 50f)
             e.player.addExperience((cost).roundToInt())
             currentMana -= cost
         } else {
@@ -264,7 +312,6 @@ object EnchantCelestialBlessingHandler : Listenable {
         }
         tickProjectiles(e.player.world)
 
-
         if (reclvl > 0) {
             val kbAttr = e.player.getEntityAttribute(
                 SharedMonsterAttributes.KNOCKBACK_RESISTANCE
@@ -276,7 +323,7 @@ object EnchantCelestialBlessingHandler : Listenable {
                 val hasKBModifier = kbAttr.getModifier(KNOCKBACK_UUID) != null
                 if (currentMana > 0f && !hasKBModifier) {
                     kbAttr.applyModifier(
-                        net.minecraft.entity.ai.attributes.AttributeModifier(
+                        AttributeModifier(
                             KNOCKBACK_UUID,
                             "Celestial Blessing Knockback Resist Booster",
                             1.0,
@@ -291,7 +338,7 @@ object EnchantCelestialBlessingHandler : Listenable {
                 val hasATKSpeedModifier = speedAttr.getModifier(ATTACK_SPEED_UUID) != null
                 if (currentMana > 0f && !hasATKSpeedModifier) {
                     speedAttr.applyModifier(
-                        net.minecraft.entity.ai.attributes.AttributeModifier(
+                        AttributeModifier(
                             ATTACK_SPEED_UUID,
                             "Celestial Blessing Attack Speed Booster",
                             0.750 * reclvl,
@@ -302,6 +349,7 @@ object EnchantCelestialBlessingHandler : Listenable {
                     speedAttr.removeModifier(ATTACK_SPEED_UUID)
                 }
             }
+            e.player.syncAttributes()
         }
         val lastSync = lastSyncedMana[id]
         val lastTick = lastSyncTick[id] ?: -100
@@ -340,6 +388,7 @@ object EnchantCelestialBlessingHandler : Listenable {
         }
         return null
     }
+
     private fun tickProjectiles(world: World) {
         val iterator = projectiles.iterator()
         while (iterator.hasNext()) {
@@ -373,7 +422,6 @@ object EnchantCelestialBlessingHandler : Listenable {
                 if (proj.hitCooldown <= 0) {
                     val owner = world.getPlayerEntityByUUID(proj.ownerUUID)
                     if (owner != null && target.isEntityAlive) {
-
                         target.runPlayerAttack(owner, proj.damage, true, CelestialDamageSources.dealDamage(owner))
                     }
 
@@ -440,12 +488,14 @@ object EnchantCelestialBlessingHandler : Listenable {
         }
         return candidates.minByOrNull { it.getDistance(proj.x, proj.y, proj.z) }
     }
+
     private fun clearAttributeModifiers(p: EntityPlayer) {
         p.getEntityAttribute(SharedMonsterAttributes.KNOCKBACK_RESISTANCE)
             .removeModifier(KNOCKBACK_UUID)
         p.getEntityAttribute(SharedMonsterAttributes.ATTACK_SPEED)
             .removeModifier(ATTACK_SPEED_UUID)
     }
+
     @SubscribeEvent
     fun onPlayerClone(event: net.minecraftforge.event.entity.player.PlayerEvent.Clone) {
         if (!event.isWasDeath) return
