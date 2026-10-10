@@ -8,12 +8,12 @@ import org.slf4j.LoggerFactory
  *
  * Emits exactly the agreed shape:
  * ```
- * [ST-<EnchantName>] <key=value, key=value, ...>
+ * [FST-<EnchantName>] <key=value, key=value, ...>
  * ```
- * via `LOGGER.info("[ST-{}] {}", enchant, details)`.
+ * via `LOGGER.info("[FST-{}] {}", enchant, details)`.
  *
  * ## Off by default
- * A normal play session must not write a single `[ST-*]` line. This used to be on by default, which
+ * A normal play session must not write a single `[FST-*]` line. This used to be on by default, which
  * meant every handler that acted also logged — fine for a verification run, pure noise for actually
  * playing. Debug output is now a **startup switch**:
  *
@@ -31,8 +31,8 @@ import org.slf4j.LoggerFactory
  *
  * ## Why a helper instead of inlining the logger call
  *  - one place to switch the noise off
- *  - guarantees the `[ST-...]` prefix stays greppable, which is what the acceptance checklist relies
- *    on (`Select-String '\[ST-'` in `run/logs/latest.log`) — see §M of `docs/acceptance-checklist.md`
+ *  - guarantees the `[FST-...]` prefix stays greppable, which is what the acceptance checklist relies
+ *    on (`Select-String '\[FST-'` in `run/logs/latest.log`) — see §M of `docs/acceptance-checklist.md`
  *
  * ## Volume
  * Handlers must only log where the enchantment **acts**, never on an early-return path and never
@@ -59,7 +59,7 @@ object STLog {
 
     fun log(enchant: String, details: String) {
         if (!enabled) return
-        LOGGER.info("[ST-{}] {}", enchant, details)
+        LOGGER.info("[FST-{}] {}", enchant, details)
     }
 
     /**

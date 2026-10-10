@@ -6,7 +6,7 @@ import dev.firefly.simpletweaks.compat.event.LivingDamageEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.invalid
 import dev.firefly.simpletweaks.core.Listenable
-import dev.firefly.simpletweaks.enchantments.ModEnchantmentKeys
+import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 import dev.firefly.simpletweaks.util.chestplate
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import net.minecraft.component.type.ItemEnchantmentsComponent
@@ -15,6 +15,10 @@ import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.sound.SoundCategory
 import net.minecraft.sound.SoundEvents
 import net.minecraft.text.Text
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
+import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 
 /**
  * 1.21 port of `enchantments/handlers/mythic/EnchantDeathProtectionHandler.kt`.
@@ -31,7 +35,7 @@ import net.minecraft.text.Text
  * | `player.world.playSound(player, x, y, z, SoundEvent, ...)`  | identical overload `World.playSound(PlayerEntity, double, double, double, SoundEvent, SoundCategory, float, float)` |
  * | `player.posX/posY/posZ`                                     | `player.x/y/z`                                                       |
  * | `player.sendMessage(TextComponentString("..."))`            | `player.sendMessage(Text.literal("..."))`                            |
- * | `EnchantDeathProtection` (Enchantment object)               | `ModEnchantmentKeys.DEATH_PROTECTION` (RegistryKey)                  |
+ * | `EnchantDeathProtection` (Enchantment object)               | `GeneratedEnchantments.DEATH_PROTECTION` (RegistryKey)                  |
  *
  * ⚠️ One forced mapping — the enchantment-level decrement.
  * 1.12.2 read the chest's `Map<Enchantment, Integer>` via `EnchantmentHelper.getEnchantments`,
@@ -40,6 +44,19 @@ import net.minecraft.text.Text
  * `ItemEnchantmentsComponent.Builder` rebuild handed to `EnchantmentHelper.set`. The stored levels
  * are identical; only the container type differs.
  */
+@ModEnchantment(
+    id = "death_protection",
+    category = EnchantCategory.MYTHIC,
+    type = EnchantType.CHESTPLATE,
+    maxLevel = 3,
+    weight = 1,
+    anvilCost = 12,
+    minCostBase = 30,
+    minCostPerLevel = 20,
+    supportedItems = "#minecraft:enchantable/chest_armor",
+    slots = [EnchantSlot.CHEST],
+    order = 40,
+)
 object EnchantDeathProtectionHandler : Listenable {
 
     @SubscribeEvent(priority = EventPriority.LOWEST)
@@ -50,7 +67,7 @@ object EnchantDeathProtectionHandler : Listenable {
         if (player.health - e.amount >= 0f) return
 
         val chest = player.chestplate
-        val lvl = getItemSpecificEnchantLevel(chest, ModEnchantmentKeys.DEATH_PROTECTION)
+        val lvl = getItemSpecificEnchantLevel(chest, GeneratedEnchantments.DEATH_PROTECTION)
         if (lvl <= 0) return
 
         val absorption = lvl * 20f
@@ -61,14 +78,14 @@ object EnchantDeathProtectionHandler : Listenable {
         // 1.21: rebuild the enchantment component with the same two outcomes.
         val enchants = EnchantmentHelper.getEnchantments(chest)
         val entry = enchants.enchantments.firstOrNull {
-            it.matchesKey(ModEnchantmentKeys.DEATH_PROTECTION)
+            it.matchesKey(GeneratedEnchantments.DEATH_PROTECTION)
         }
         if (entry != null) {
             val builder = ItemEnchantmentsComponent.Builder(enchants)
             if (lvl - 1 > 0) {
                 builder.set(entry, lvl - 1)
             } else {
-                builder.remove { it.matchesKey(ModEnchantmentKeys.DEATH_PROTECTION) }
+                builder.remove { it.matchesKey(GeneratedEnchantments.DEATH_PROTECTION) }
             }
             EnchantmentHelper.set(chest, builder.build())
         }

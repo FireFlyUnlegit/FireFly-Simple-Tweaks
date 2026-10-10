@@ -6,12 +6,16 @@ import dev.firefly.simpletweaks.compat.event.LivingHurtEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.invalid
 import dev.firefly.simpletweaks.core.Listenable
-import dev.firefly.simpletweaks.enchantments.ModEnchantmentKeys
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import dev.firefly.simpletweaks.util.runPlayerAttack
 import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.damage.DamageSource
 import net.minecraft.entity.player.PlayerEntity
+import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
+import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 
 /**
  * 1.21 port of `enchantments/handlers/uncommon/EnchantAoeAttackHandler.kt`.
@@ -29,7 +33,7 @@ import net.minecraft.entity.player.PlayerEntity
  * | `it.isEntityAlive`                           | `it.isAlive` (method_5805)                                       |
  * | `it.canBeAttackedWithItem()`                 | `it.isAttackable` (method_5732) — 1.12.2's `EntityLivingBase#canBeAttackedWithItem` has no 1.21 name; `Entity.isAttackable()` is the flag vanilla's `PlayerEntity#attack` checks and non-living entities override to `false`, which is the same role |
  * | `it.isEntityInvulnerable(source)`            | `it.isInvulnerableTo(source)` (method_5679)                      |
- * | `EnchantAoeAttack` (Enchantment object)      | `ModEnchantmentKeys.AOE_ATTACK` (RegistryKey)                    |
+ * | `EnchantAoeAttack` (Enchantment object)      | `GeneratedEnchantments.AOE_ATTACK` (RegistryKey)                    |
  * | `net.minecraft.util.DamageSource`            | `net.minecraft.entity.damage.DamageSource` (kept unused, exactly as in 1.12.2) |
  *
  * <h2>This handler was blocked on the crit seam, and no longer is</h2>
@@ -43,6 +47,20 @@ import net.minecraft.entity.player.PlayerEntity
  * The re-entrancy guard matters: the splash goes through `LivingEntity#damage`, which re-fires
  * `LivingHurtEvent`, so without `inAoe` the handler would recurse.
  */
+@ModEnchantment(
+    id = "aoe_attack",
+    category = EnchantCategory.UNCOMMON,
+    type = EnchantType.SWORD,
+    maxLevel = 5,
+    weight = 8,
+    anvilCost = 4,
+    minCostBase = 30,
+    minCostPerLevel = 5,
+    supportedItems = "#minecraft:enchantable/sword",
+    slots = [EnchantSlot.MAINHAND],
+    damagePerLevel = 0.25,
+    order = 6,
+)
 object EnchantAoeAttackHandler : Listenable {
 
     private val inAoe = ThreadLocal.withInitial { false }
@@ -54,7 +72,7 @@ object EnchantAoeAttackHandler : Listenable {
         val attacker = e.source.attacker as? PlayerEntity ?: return
         val target = e.entityLiving ?: return
 
-        val lvl = getItemSpecificEnchantLevel(attacker.mainHandStack, ModEnchantmentKeys.AOE_ATTACK)
+        val lvl = getItemSpecificEnchantLevel(attacker.mainHandStack, GeneratedEnchantments.AOE_ATTACK)
         if (lvl <= 0) return
 
         val box = target.boundingBox.expand((0.5 * lvl).coerceAtMost(2.0))

@@ -12,7 +12,6 @@ import dev.firefly.simpletweaks.compat.cancel
 import dev.firefly.simpletweaks.compat.invalid
 import dev.firefly.simpletweaks.core.Listenable
 import dev.firefly.simpletweaks.core.config.GeneralConfig
-import dev.firefly.simpletweaks.enchantments.ModEnchantmentKeys
 import dev.firefly.simpletweaks.network.NetworkManager
 import dev.firefly.simpletweaks.network.packets.PacketCelestialRing
 import dev.firefly.simpletweaks.network.packets.PacketManaPoolSync
@@ -47,6 +46,11 @@ import java.util.UUID
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
+import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
+import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 
 /**
  * `celestial_blessing` — the mod's largest single handler. Port of 1.12.2
@@ -87,6 +91,21 @@ import kotlin.math.sqrt
  * instead done in [dev.firefly.simpletweaks.SimpleTweaksClient] via
  * `ClientPlayConnectionEvents.DISCONNECT`, where it belongs in 1.21.
  */
+@ModEnchantment(
+    id = "celestial_blessing",
+    category = EnchantCategory.MYSTERY,
+    type = EnchantType.SWORD,
+    maxLevel = 5,
+    weight = 1,
+    anvilCost = 14,
+    minCostBase = 30,
+    minCostPerLevel = 30,
+    supportedItems = "#minecraft:enchantable/sword",
+    slots = [EnchantSlot.MAINHAND],
+    damagePerLevel = 2.0,
+    order = 50,
+    jsonEmit = false,
+)
 object EnchantCelestialBlessingHandler : Listenable {
 
     val manaPool = mutableMapOf<UUID, Float>()
@@ -156,7 +175,7 @@ object EnchantCelestialBlessingHandler : Listenable {
         val player = event.player
         val target = event.target
         if (target is LivingEntity) {
-            val atklvl = getItemSpecificEnchantLevel(player.mainHandStack, ModEnchantmentKeys.CELESTIAL_BLESSING)
+            val atklvl = getItemSpecificEnchantLevel(player.mainHandStack, GeneratedEnchantments.CELESTIAL_BLESSING)
             if (atklvl > 0) {
                 val queue = targetQueue.getOrPut(player.uuid) { mutableListOf() }
                 if (!queue.contains(target.uuid)) {
@@ -174,8 +193,8 @@ object EnchantCelestialBlessingHandler : Listenable {
         val t = e.entityLiving
         val pid = p.uuid
         val tid = t.uuid
-        val atklvl = getItemSpecificEnchantLevel(p.mainHandStack, ModEnchantmentKeys.CELESTIAL_BLESSING)
-        val reclvl = getItemSpecificEnchantLevel(t.mainHandStack, ModEnchantmentKeys.CELESTIAL_BLESSING)
+        val atklvl = getItemSpecificEnchantLevel(p.mainHandStack, GeneratedEnchantments.CELESTIAL_BLESSING)
+        val reclvl = getItemSpecificEnchantLevel(t.mainHandStack, GeneratedEnchantments.CELESTIAL_BLESSING)
 
         if (atklvl > 0) {
             val healing = (e.amount * 0.18f * atklvl)
@@ -269,7 +288,7 @@ object EnchantCelestialBlessingHandler : Listenable {
         val player = e.player
         val id = player.uuid
         var currentMana = manaPool[id] ?: 0f
-        val reclvl = getItemSpecificEnchantLevel(player.mainHandStack, ModEnchantmentKeys.CELESTIAL_BLESSING)
+        val reclvl = getItemSpecificEnchantLevel(player.mainHandStack, GeneratedEnchantments.CELESTIAL_BLESSING)
 
         if (currentMana > 1f && reclvl > 0 && !player.world.isClient) {
             val hunger = player.hungerManager
@@ -330,7 +349,7 @@ object EnchantCelestialBlessingHandler : Listenable {
                 val target = findNextTarget(player, queue)
 
                 if (target != null) {
-                    val lvl = getItemSpecificEnchantLevel(player.mainHandStack, ModEnchantmentKeys.CELESTIAL_BLESSING)
+                    val lvl = getItemSpecificEnchantLevel(player.mainHandStack, GeneratedEnchantments.CELESTIAL_BLESSING)
                     val cost = (currentMana * 0.01f * lvl).coerceAtLeast(1f)
                     if (currentMana >= cost) {
                         currentMana -= cost

@@ -1,7 +1,11 @@
 package dev.firefly.simpletweaks.core.config
 
 /**
- * 1.21 port of `core/config/GeneralConfig.java` (8 options).
+ * 1.21 port of `core/config/GeneralConfig.java`.
+ *
+ * Every field here has a real consumer; switches that had none were removed (see the note before the
+ * AutoSprint block). "Config key exists" must never be mistaken for "something reads it" — that
+ * mistake is recorded three times in this project's history.
  *
  * <h2>Forge → Fabric mapping</h2>
  * 1.12.2 used Forge's annotation config system, which produced `config/simple_tweaks.cfg` with a
@@ -14,9 +18,9 @@ package dev.firefly.simpletweaks.core.config
  * be a new dependency and a new GUI, i.e. phase-6 work). Instead the options live in
  * [SimpleTweaksConfig]'s JSON file and are mirrored here as `&#64;JvmStatic` properties, so:
  * <ul>
- *   <li>Kotlin reads them exactly like 1.12.2 did: {@code GeneralConfig.anvilDisenchant}</li>
- *   <li>Java mixins read {@code GeneralConfig.getAnvilDisenchant()} instead of
- *       {@code GeneralConfig.anvilDisenchant} — the only call-site edit this port costs.</li>
+ *   <li>Kotlin reads them exactly like 1.12.2 did: {@code GeneralConfig.disableAnvilCostLimit}</li>
+ *   <li>Java mixins read {@code GeneralConfig.getDisableAnvilCostLimit()} instead of
+ *       {@code GeneralConfig.disableAnvilCostLimit} — the only call-site edit this port costs.</li>
  * </ul>
  *
  * <h2>Why the ranges are enforced in code</h2>
@@ -74,42 +78,23 @@ object GeneralConfig {
     @JvmStatic
     var enabledSpecialParticles: Boolean = true
 
-    /**
-     * `anvilDisenchant` — enables the anvil-based disenchanter.
-     *
-     * Note the 1.12.2 source gave this the `Enabled Enchantments' Special Particles` display name by
-     * copy-paste (its `&#64;Config.Name` duplicates the one above). That is preserved here as a comment
-     * rather than silently "fixed", because it is what an existing `.cfg` would have contained.
-     */
-    @JvmStatic
-    var anvilDisenchant: Boolean = true
-
-    // ------------------------------------------------- NoFOV module — DEPRECATED, NOT IMPLEMENTED
+    // --------------------------------------------------------- removed: inert switches
     //
-    // 1.12.2 had `modules/NoFov.kt`: `object NoFov : Module("NoFOV", "Render")` with a single
-    // `float("Fov", 90f, 30f, 120f)`, applied by a `@Redirect`-style RETURN injection on
-    // `EntityRenderer#getFOVModifier(FZ)F`.
+    // Two feature switches used to live here with no implementation behind them. Both were deleted
+    // on the author's decision, keeping only the record:
     //
-    // Phase-6 batch 1 implemented the 1.21.1 equivalent (`GameRenderer#getFov(Camera,F,Z)D` RETURN,
-    // seam verified through all three gates: override audit, refmap, and a `[ST-NoFov]` runtime
-    // probe). It was then **deleted on the author's decision**, because:
-    //   1. NoFOV was never a core feature of the mod, and
-    //   2. forcing the value also flattens the **spyglass zoom** — a 1.21-only feature reached
-    //      through the same `fovMultiplier` — which shows the module genuinely conflicts with
-    //      1.21's FOV model rather than merely needing a port.
+    //   * `anvilDisenchant` — the 1.12.2 anvil-based disenchanter. Never ported; 1.21's grindstone
+    //     covers the use case, so the switch went along with its config-GUI row and its lang key.
+    //     (The 1.12.2 source had given it the `Enabled Enchantments' Special Particles` display name
+    //     by copy-paste — an existing `.cfg` would have carried that duplicate.)
+    //   * `noFovEnabled` / `noFovValue` — the NoFOV module. A working 1.21.1 seam existed
+    //     (`GameRenderer#getFov(Camera,F,Z)D` RETURN, verified through all three gates) and was then
+    //     deleted: NoFOV was never a core feature, and forcing the value also flattens the
+    //     **spyglass zoom**, which is reached through the same `fovMultiplier` — so the module
+    //     genuinely conflicts with 1.21's FOV model rather than merely needing a port.
     //
-    // The two keys below are therefore **kept but inert**. Keeping them is deliberate: the JSON file
-    // is user-editable and already-distributed configs contain them, so removing the keys would make
-    // existing files lose data for no benefit. Nothing reads them; `noFovValue` is still clamped on
-    // load so a hand-edited file cannot carry an out-of-range value forward.
-
-    /** **Deprecated, no implementation.** 1.12.2 `NoFov.state`. Retained only for config compatibility. */
-    @JvmStatic
-    var noFovEnabled: Boolean = false
-
-    /** **Deprecated, no implementation.** 1.12.2 `NoFov.fov` (`float("Fov", 90f, 30f, 120f)`). */
-    @JvmStatic
-    var noFovValue: Float = 90f
+    // Deleting the keys costs a hand-edited config nothing: [SimpleTweaksConfig] ignores unknown keys
+    // and writes the normalised file back on load, so stale entries simply disappear.
 
     // ------------------------------------------------------------- AutoSprint module
     //

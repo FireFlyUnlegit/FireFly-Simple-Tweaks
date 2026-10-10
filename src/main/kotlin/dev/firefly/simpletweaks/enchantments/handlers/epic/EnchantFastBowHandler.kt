@@ -40,9 +40,20 @@ object EnchantFastBowHandler : Listenable {
      * It reads the enchantment out of the stack's own component: no registry lookup, no world access,
      * so it is safe on the client while rendering **another** player's bow.
      */
+    /**
+     * Level of `fast_bow` on [bow], `0` when absent.
+     *
+     * Split out of [chargeBoost] because a consumer can need the *level* rather than the multiplier
+     * (multishot shortens its anti-tap gate by it), and keeping the component read in one place means
+     * the two can never disagree about what the bow carries.
+     */
+    @JvmStatic
+    fun fastBowLevel(bow: ItemStack): Int =
+        getItemSpecificEnchantLevel(bow, GeneratedEnchantments.FAST_BOW)
+
     @JvmStatic
     fun chargeBoost(bow: ItemStack): Float {
-        val level = getItemSpecificEnchantLevel(bow, GeneratedEnchantments.FAST_BOW)
+        val level = fastBowLevel(bow)
         return if (level <= 0) 1.0f else 1.0f + 0.8f * level
     }
 

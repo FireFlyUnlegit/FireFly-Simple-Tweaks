@@ -7,7 +7,6 @@ import dev.firefly.simpletweaks.compat.event.PlayerEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.event.TickEvent
 import dev.firefly.simpletweaks.core.Listenable
-import dev.firefly.simpletweaks.enchantments.ModEnchantmentKeys
 import dev.firefly.simpletweaks.util.canEntitySee
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import dev.firefly.simpletweaks.util.runPlayerAttack
@@ -21,6 +20,11 @@ import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.server.world.ServerWorld
 import java.util.UUID
 import java.util.WeakHashMap
+import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
+import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 
 /**
  * 1.21 port of `enchantments/handlers/mythic/EnchantKillAuraHandler.kt`.
@@ -50,7 +54,7 @@ import java.util.WeakHashMap
  * | `e.isEntityAlive` / `e.isDead`                                | `e.isAlive` / `e.isRemoved`                                             |
  * | `p.world.canEntitySee(p, e)`                                  | same extension, ported to `util/WorldExtensions.kt` over `World.raycast` |
  * | `DamageSource.causePlayerDamage(p)`                           | `p.damageSources.playerAttack(p)` (`method_48802`)                      |
- * | `EnchantKillAura` (Enchantment object)                        | `ModEnchantmentKeys.KILL_AURA` (RegistryKey)                            |
+ * | `EnchantKillAura` (Enchantment object)                        | `GeneratedEnchantments.KILL_AURA` (RegistryKey)                            |
  *
  * ⚠️ One forced mapping — the weapon's enchantment damage bonus.
  * 1.12.2 called `EnchantmentHelper.getModifierForCreature(weapon, target.creatureAttribute)`, which
@@ -74,6 +78,20 @@ import java.util.WeakHashMap
  * vanilla crit roll here; this handler passes no `allowCrit` argument, i.e. it accepted the default
  * `true`.
  */
+@ModEnchantment(
+    id = "kill_aura",
+    category = EnchantCategory.MYTHIC,
+    type = EnchantType.SWORD,
+    maxLevel = 6,
+    weight = 1,
+    anvilCost = 12,
+    minCostBase = 40,
+    minCostPerLevel = 15,
+    supportedItems = "#minecraft:enchantable/sword",
+    slots = [EnchantSlot.MAINHAND],
+    damagePerLevel = 0.45,
+    order = 44,
+)
 object EnchantKillAuraHandler : Listenable {
 
     private val cooldown = WeakHashMap<UUID, Int>()
@@ -96,7 +114,7 @@ object EnchantKillAuraHandler : Listenable {
         if (WorldSide.isClient(p.world)) return
         if (p.isRemoved) return
 
-        val lvl = getItemSpecificEnchantLevel(p.mainHandStack, ModEnchantmentKeys.KILL_AURA)
+        val lvl = getItemSpecificEnchantLevel(p.mainHandStack, GeneratedEnchantments.KILL_AURA)
 
         cleanPriorityTargets(p, if (lvl > 0) rangeFor(lvl) else 1.5)
 
@@ -151,7 +169,7 @@ object EnchantKillAuraHandler : Listenable {
         val p = e.player
         if (WorldSide.isClient(p.world)) return
 
-        val lvl = getItemSpecificEnchantLevel(p.mainHandStack, ModEnchantmentKeys.KILL_AURA)
+        val lvl = getItemSpecificEnchantLevel(p.mainHandStack, GeneratedEnchantments.KILL_AURA)
         if (lvl <= 0) return
 
         (e.target as? LivingEntity)?.let { addPriorityTarget(p, it) }

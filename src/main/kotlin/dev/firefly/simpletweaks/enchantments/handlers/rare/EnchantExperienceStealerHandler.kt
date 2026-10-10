@@ -8,10 +8,14 @@ import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.invalid
 import dev.firefly.simpletweaks.compat.target
 import dev.firefly.simpletweaks.core.Listenable
-import dev.firefly.simpletweaks.enchantments.ModEnchantmentKeys
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import net.minecraft.entity.player.PlayerEntity
 import java.util.WeakHashMap
+import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
+import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 
 /**
  * 1.21 port of `enchantments/handlers/rare/EnchantExperienceStealerHandler.kt`.
@@ -25,12 +29,26 @@ import java.util.WeakHashMap
  * | `atk.heldItemMainhand`                      | `atk.mainHandStack` (method_6047)                               |
  * | `EntityPlayer.addExperience(int)`           | unchanged (`method_7258`)                                       |
  * | `EntityPlayer.experience` (the 0..1 progress float, **not** total XP) | `PlayerEntity.experienceProgress` (public field `field_7531`) |
- * | `EnchantExperienceStealer` (Enchantment)    | `ModEnchantmentKeys.EXPERIENCE_STEALER` (RegistryKey)           |
+ * | `EnchantExperienceStealer` (Enchantment)    | `GeneratedEnchantments.EXPERIENCE_STEALER` (RegistryKey)           |
  *
  * Non-obvious mapping worth calling out: 1.21 renamed the two XP fields. `experienceLevel` (int) is
  * still the level and `totalExperience` still exists, but the float that 1.12.2 called `experience`
  * is now `experienceProgress` — hence the rename on the drain branch below.
  */
+@ModEnchantment(
+    id = "experience_stealer",
+    category = EnchantCategory.RARE,
+    type = EnchantType.SWORD,
+    maxLevel = 8,
+    weight = 6,
+    anvilCost = 6,
+    minCostBase = 25,
+    minCostPerLevel = 5,
+    supportedItems = "#minecraft:enchantable/sword",
+    slots = [EnchantSlot.MAINHAND],
+    damagePerLevel = 0.3,
+    order = 17,
+)
 object EnchantExperienceStealerHandler : Listenable {
 
     private val pendingXp = WeakHashMap<PlayerEntity, Float>()
@@ -39,7 +57,7 @@ object EnchantExperienceStealerHandler : Listenable {
     fun onLivingHurt(e: LivingHurtEvent) {
         if (e.invalid) return
         val atk = e.attacker ?: return
-        val lvl = getItemSpecificEnchantLevel(atk.mainHandStack, ModEnchantmentKeys.EXPERIENCE_STEALER)
+        val lvl = getItemSpecificEnchantLevel(atk.mainHandStack, GeneratedEnchantments.EXPERIENCE_STEALER)
         if (lvl <= 0) return
 
         val raw = e.amount * 0.1f * lvl

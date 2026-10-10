@@ -7,10 +7,14 @@ import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.invalid
 import dev.firefly.simpletweaks.compat.target
 import dev.firefly.simpletweaks.core.Listenable
-import dev.firefly.simpletweaks.enchantments.ModEnchantmentKeys
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import net.minecraft.util.math.Vec3d
 import kotlin.random.Random
+import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
+import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 
 /**
  * 1.21 port of `enchantments/handlers/uncommon/EnchantSuperKnockbackHandler.kt`.
@@ -22,7 +26,7 @@ import kotlin.random.Random
  * | `e.attacker` / `e.target`                     | `compat.attacker` / `compat.target` extensions (same names)        |
  * | `attacker.heldItemMainhand`                   | `attacker.mainHandStack` (method_6047)                             |
  * | `target.positionVector` / `attacker.positionVector` | `target.pos` / `attacker.pos` (`Entity.getPos()`)            |
- * | `EnchantSuperKnockback` (Enchantment object)  | `ModEnchantmentKeys.SUPER_KNOCKBACK` (RegistryKey)                 |
+ * | `EnchantSuperKnockback` (Enchantment object)  | `GeneratedEnchantments.SUPER_KNOCKBACK` (RegistryKey)                 |
  * | `target.isRiding`                             | `target.hasVehicle()` (`Entity.hasVehicle()`, method_5765 — no `is` prefix, so it stays a call) |
  * | `target.dismountRidingEntity()`               | `target.stopRiding()` (method_5848)                                |
  * | `target.motionX/Y/Z = ...`                    | one `target.setVelocity(x, y, z)` (method_18800 — 1.21 has no `motion*` fields) |
@@ -33,6 +37,20 @@ import kotlin.random.Random
  * the port's `util/EnchantmentsUtil.kt` names the second parameter `key`, so the argument label here
  * is `key = ...`. The call itself, the order and the values are unchanged.
  */
+@ModEnchantment(
+    id = "super_knockback",
+    category = EnchantCategory.UNCOMMON,
+    type = EnchantType.SWORD,
+    maxLevel = 3,
+    weight = 8,
+    anvilCost = 4,
+    minCostBase = 10,
+    minCostPerLevel = 10,
+    supportedItems = "#minecraft:enchantable/sword",
+    slots = [EnchantSlot.MAINHAND],
+    damagePerLevel = 0.25,
+    order = 14,
+)
 object EnchantSuperKnockbackHandler : Listenable {
     @SubscribeEvent
     fun onLivingHurt(e: LivingHurtEvent) {
@@ -41,7 +59,7 @@ object EnchantSuperKnockbackHandler : Listenable {
         val target = e.target
         val lvl = getItemSpecificEnchantLevel(
             itemStack = attacker.mainHandStack,
-            key = ModEnchantmentKeys.SUPER_KNOCKBACK
+            key = GeneratedEnchantments.SUPER_KNOCKBACK
         )
         if (lvl>0) {
             val lookVec =

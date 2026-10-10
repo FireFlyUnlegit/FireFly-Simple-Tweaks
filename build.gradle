@@ -46,14 +46,6 @@ dependencies {
     ksp project(':ksp-processor')
 }
 
-// The processor owns the vanilla enchantment tags plus the merged index tables, and for those it needs the
-// 1.12.2-derived half of the enchantment set: `tools/legacy-enchantments.json`, written once by
-// `tools/gen-enchantments.ps1` and committed. It reports an error if this option is missing or the file is
-// unreadable — a silently short tag would only show up as "the enchanting table offers too little".
-ksp {
-    arg('simpleTweaks.legacyManifest', file('tools/legacy-enchantments.json').absolutePath)
-}
-
 processResources {
     inputs.property 'version', project.version
 

@@ -8,12 +8,16 @@ import dev.firefly.simpletweaks.compat.event.PlayerEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.invalid
 import dev.firefly.simpletweaks.core.Listenable
-import dev.firefly.simpletweaks.enchantments.ModEnchantmentKeys
+import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 import dev.firefly.simpletweaks.util.getArmorEnchantLevel
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.sound.SoundCategory
 import net.minecraft.sound.SoundEvents
 import java.util.*
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
+import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 
 /**
  * 1.21 port of `enchantments/handlers/rare/EnchantImmortalHandler.kt`.
@@ -27,8 +31,20 @@ import java.util.*
  * | `chance(0.2 + 0.2 * lvl)`                       | `compat.chance(Double)` — unchanged helper                          |
  * | `attacker.world.playSound(attacker, x, y, z, SoundEvent, SoundCategory, vol, pitch)` | identical 1.21 overload `World.playSound(PlayerEntity, double, double, double, SoundEvent, SoundCategory, float, float)` exists, so nothing changes |
  * | `attacker.posX/posY/posZ`                       | `attacker.x/y/z`                                                   |
- * | `EnchantImmortal` (Enchantment object)          | `ModEnchantmentKeys.IMMORTAL` (RegistryKey)                        |
+ * | `EnchantImmortal` (Enchantment object)          | `GeneratedEnchantments.IMMORTAL` (RegistryKey)                        |
  */
+@ModEnchantment(
+    id = "immortal",
+    category = EnchantCategory.RARE,
+    type = EnchantType.ARMOR,
+    maxLevel = 1,
+    weight = 6,
+    anvilCost = 6,
+    minCostBase = 30,
+    supportedItems = "#minecraft:enchantable/armor",
+    slots = [EnchantSlot.ARMOR],
+    order = 21,
+)
 object EnchantImmortalHandler : Listenable {
 
 
@@ -41,7 +57,7 @@ object EnchantImmortalHandler : Listenable {
         val target = e.entityLiving
         val id = target.uuid
         val attacker = e.attacker?: return
-        val lvl = target.getArmorEnchantLevel(ModEnchantmentKeys.IMMORTAL)
+        val lvl = target.getArmorEnchantLevel(GeneratedEnchantments.IMMORTAL)
         if (lvl <= 0) {
             hitCounter.remove(id)
             shieldCounter.remove(id)

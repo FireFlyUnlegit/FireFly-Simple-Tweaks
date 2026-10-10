@@ -5,11 +5,15 @@ import dev.firefly.simpletweaks.compat.event.EventPriority
 import dev.firefly.simpletweaks.compat.event.PlayerEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.core.Listenable
-import dev.firefly.simpletweaks.enchantments.ModEnchantmentKeys
+import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.util.math.BlockPos
 import java.util.WeakHashMap
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
+import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 
 /**
  * 1.21 port of `enchantments/handlers/uncommon/EnchantMomentumHandler.kt`.
@@ -22,7 +26,7 @@ import java.util.WeakHashMap
  * | `e.heldItemMainhand`                                      | `p.mainHandStack` (`method_6047`)                          |
  * | `e.pos`                                                   | `e.pos` — now the **exact** block position (see below)      |
  * | `e.newSpeed`                                              | `e.newSpeed` (mutable property)                            |
- * | `EnchantMomentum` (Enchantment object)                    | `ModEnchantmentKeys.MOMENTUM` (RegistryKey)                |
+ * | `EnchantMomentum` (Enchantment object)                    | `GeneratedEnchantments.MOMENTUM` (RegistryKey)                |
  *
  * The 1.12.2 event carried `getPos()` (the block being mined) and this handler needs it to tell
  * "still mining the same block" from "started a new block" — the ramp only builds while the position
@@ -34,6 +38,19 @@ import java.util.WeakHashMap
  * Behaviour preserved exactly: the first tick on a new position stores state and applies **no**
  * bonus; subsequent ticks increment and apply `newSpeed *= 1 + min(0.05 * lvl * ticks, lvl)`.
  */
+@ModEnchantment(
+    id = "momentum",
+    category = EnchantCategory.UNCOMMON,
+    type = EnchantType.TOOL,
+    maxLevel = 8,
+    weight = 8,
+    anvilCost = 4,
+    minCostBase = 5,
+    minCostPerLevel = 5,
+    supportedItems = "#minecraft:enchantable/mining",
+    slots = [EnchantSlot.MAINHAND],
+    order = 10,
+)
 object EnchantMomentumHandler : Listenable {
 
     private class DigState(val pos: BlockPos) {
@@ -45,7 +62,7 @@ object EnchantMomentumHandler : Listenable {
     @SubscribeEvent(priority = EventPriority.LOW)
     fun onBreakSpeed(e: PlayerEvent.BreakSpeed) {
         val p = e.player
-        val lvl = getItemSpecificEnchantLevel(p.mainHandStack, ModEnchantmentKeys.MOMENTUM)
+        val lvl = getItemSpecificEnchantLevel(p.mainHandStack, GeneratedEnchantments.MOMENTUM)
         if (lvl <= 0) {
             digging.remove(p)
             return

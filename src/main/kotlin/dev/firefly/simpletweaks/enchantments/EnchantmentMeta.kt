@@ -9,36 +9,23 @@ import net.minecraft.util.Formatting
 /**
  * The single lookup point for enchantment metadata.
  *
- * **All of it now comes from one generated file**, [GeneratedEnchantments]: KSP merges the
- * `@ModEnchantment` declarations with `tools/legacy-enchantments.json` — the 1.12.2-derived half, written
- * once by `tools/gen-enchantments.ps1` — and emits `CATEGORY` / `TYPE` / `MAX_LEVEL` covering both. That
- * is why the two-generation bridging this object used to do is gone: there is nothing left to bridge, and
- * the split was precisely what once let `fast_bow` render grey and go missing from the index.
+ * **All of it comes from one generated file**, [GeneratedEnchantments]: every enchantment is declared with
+ * `@ModEnchantment`, and KSP emits `CATEGORY` / `TYPE` / `MAX_LEVEL` / `KEYS` from those declarations. The
+ * two-generation bridging this object used to do is gone — there is nothing left to bridge, and that split
+ * was precisely what once let `fast_bow` render grey and go missing from the index.
  *
  * ## Why the lookups are string-shaped
  * The generated tables are typed (`EnchantCategory` / `EnchantType`), but every caller — the tooltip
  * mixin and `client/EnchantInfoScreen` — wants the 1.12.2 name as a lowercase string, which is what
  * [EnchantCategory.toString] / [EnchantType.toString] already produce. The enum-ness stops here.
  *
- * Only the enchantment **keys** still come from the PS1 generator ([ModEnchantmentKeys]): the 54 legacy
- * handlers reference their keys by name and those declarations predate KSP. [allKeys] is the union of
- * both, legacy first then annotated; nothing may depend on that order beyond "stable".
+ * [allKeys] is that generated key list and nothing else; nothing may depend on its order beyond "stable",
+ * since the index sorts by id itself.
  */
 object EnchantmentMeta {
 
-    /**
-     * The one 1.12.2 `decorateName` override that no colour can express, because the name is animated
-     * rather than coloured — see `InfinitePowerRainbow` and `EnchantmentNameColorMixin`.
-     *
-     * `infinite_power` is still generator-era, so it has no `@ModEnchantment` declaration to carry
-     * `color = EnchantColor.RAINBOW`; this set keeps the behaviour alive in the meantime. When it is
-     * migrated, delete the entry and declare the colour on the handler instead — [isRainbow] consults
-     * both, so that is a one-line change with no other caller to touch.
-     */
-    private val LEGACY_RAINBOW = setOf("infinite_power")
-
-    /** Every known enchantment key, legacy + `@ModEnchantment`. */
-    fun allKeys(): List<RegistryKey<Enchantment>> = ModEnchantmentKeys.ALL + GeneratedEnchantments.KEYS
+    /** Every known enchantment key. */
+    fun allKeys(): List<RegistryKey<Enchantment>> = GeneratedEnchantments.KEYS
 
     /** 1.12.2 `EnchantmentCategories` name, lowercased; `null` if unknown. */
     fun category(id: String): String? = GeneratedEnchantments.CATEGORY[id]?.toString()
@@ -70,8 +57,7 @@ object EnchantmentMeta {
      * method from a static context").
      */
     @JvmStatic
-    fun isRainbow(id: String): Boolean =
-        GeneratedEnchantments.COLOR[id] == EnchantColor.RAINBOW || id in LEGACY_RAINBOW
+    fun isRainbow(id: String): Boolean = GeneratedEnchantments.COLOR[id] == EnchantColor.RAINBOW
 
     /**
      * `Formatting` for the enchantment's displayed name, or `null` to leave the vanilla colour alone.

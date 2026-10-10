@@ -7,7 +7,7 @@ import dev.firefly.simpletweaks.compat.event.LivingHurtEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.event.TickEvent
 import dev.firefly.simpletweaks.core.Listenable
-import dev.firefly.simpletweaks.enchantments.ModEnchantmentKeys
+import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import dev.firefly.simpletweaks.util.runPlayerAttack
 import net.minecraft.entity.LivingEntity
@@ -18,6 +18,10 @@ import net.minecraft.registry.RegistryKey
 import net.minecraft.server.world.ServerWorld
 import net.minecraft.world.World
 import java.util.*
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
+import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 
 /**
  * 1.21 port of `enchantments/handlers/legendary/EnchantEchoShotHandler.kt`.
@@ -37,7 +41,7 @@ import java.util.*
  * | `EnumParticleTypes.CRIT_MAGIC`                             | `ParticleTypes.ENCHANTED_HIT` (1.13 renamed `critMagic` -> `enchanted_hit`) |
  * | `EnumParticleTypes.SPELL_WITCH`                            | `ParticleTypes.WITCH` (1.13 renamed `spell_witch` -> `witch`)            |
  * | `world.spawnParticle(type, x,y,z, n, dx,dy,dz, speed)`     | `ServerWorld#spawnParticles(effect, x,y,z, n, dx,dy,dz, speed)` (`method_14199`) |
- * | `EnchantEchoShot` (Enchantment object)                     | `ModEnchantmentKeys.ECHO_SHOT` (RegistryKey)                             |
+ * | `EnchantEchoShot` (Enchantment object)                     | `GeneratedEnchantments.ECHO_SHOT` (RegistryKey)                             |
  *
  * ⚠️ Two forced mappings, both reported in the batch report:
  *  1. **`world.loadedEntityList` -> `ServerWorld#getEntity(UUID)`.** 1.21 removed the public
@@ -51,6 +55,19 @@ import java.util.*
  *     branch cannot be ported (no `CriticalHitEvent` seam in this batch) — see that function's KDoc.
  *     This call site passes `allowCrit = false`, so the part that could not be mapped was inert here.
  */
+@ModEnchantment(
+    id = "echo_shot",
+    category = EnchantCategory.LEGENDARY,
+    type = EnchantType.BOW,
+    maxLevel = 5,
+    weight = 2,
+    anvilCost = 10,
+    minCostBase = 37,
+    minCostPerLevel = 12,
+    supportedItems = "#minecraft:enchantable/bow",
+    slots = [EnchantSlot.MAINHAND, EnchantSlot.OFFHAND],
+    order = 37,
+)
 object EnchantEchoShotHandler : Listenable {
 
     private class DelayedEcho(
@@ -70,7 +87,7 @@ object EnchantEchoShotHandler : Listenable {
         val target = e.entityLiving ?: return
         if (target === shooter) return
 
-        val lvl = getItemSpecificEnchantLevel(shooter.mainHandStack, ModEnchantmentKeys.ECHO_SHOT)
+        val lvl = getItemSpecificEnchantLevel(shooter.mainHandStack, GeneratedEnchantments.ECHO_SHOT)
         if (lvl <= 0) return
 
         val ratio = 0.35f + 0.07f * lvl

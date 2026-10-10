@@ -1,6 +1,7 @@
 package dev.firefly.simpletweaks
 
 import dev.firefly.simpletweaks.compat.bridge.ServerEventBridge
+import dev.firefly.simpletweaks.core.EnchantCommand
 import dev.firefly.simpletweaks.core.EnchantmentManager
 import dev.firefly.simpletweaks.core.config.SimpleTweaksConfig
 import dev.firefly.simpletweaks.core.registerEvents
@@ -49,6 +50,12 @@ class SimpleTweaks : ModInitializer {
         // The mod's particle types. Registered in common code because `Registries.PARTICLE_TYPE` is a
         // common registry; the sprite/factory half is client-only (see CelestialRingParticles).
         ModParticles.register()
+
+        // `/simple_tweaks enchant ...` -- the unrestricted testing command. Registered in common init
+        // (not the client initializer) because it mutates item components, which has to happen on the
+        // side that owns the inventory. See EnchantCommand's KDoc for what it bypasses and why the
+        // name cannot carry a `modid:` prefix.
+        EnchantCommand.register()
 
         LOGGER.info("{} load complete.", NAME)
     }

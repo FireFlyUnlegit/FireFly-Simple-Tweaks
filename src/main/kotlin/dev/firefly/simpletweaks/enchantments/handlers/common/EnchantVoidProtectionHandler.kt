@@ -6,7 +6,6 @@ import dev.firefly.simpletweaks.compat.event.LivingFallEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.event.TickEvent
 import dev.firefly.simpletweaks.core.Listenable
-import dev.firefly.simpletweaks.enchantments.ModEnchantmentKeys
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import dev.firefly.simpletweaks.util.tp
 import net.minecraft.component.DataComponentTypes
@@ -16,6 +15,11 @@ import net.minecraft.entity.EquipmentSlot
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.text.Text
 import java.util.*
+import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
+import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 
 /**
  * 1.21 port of `enchantments/handlers/common/EnchantVoidProtectionHandler.kt`.
@@ -33,7 +37,7 @@ import java.util.*
  * | `event.entity` (LivingEvent#getEntity)         | `event.entityLiving` (the port event's own field)                 |
  * | `TextComponentString("...")`                   | `Text.literal("...")`                                             |
  * | `p.sendMessage(Text)`                          | `p.sendMessage(Text, false)` — 1.21 `PlayerEntity` only declares the 2-arg `sendMessage(Text, boolean)` (method_7353); `false` = chat, not action bar |
- * | `EnchantVoidProtection` (Enchantment object)   | `ModEnchantmentKeys.VOID_PROTECTION` (RegistryKey)                |
+ * | `EnchantVoidProtection` (Enchantment object)   | `GeneratedEnchantments.VOID_PROTECTION` (RegistryKey)                |
  *
  * ⚠️ **DEVIATION — please review by hand (the only one in this file).**
  * `EnchantmentHelper.getEnchantments(stack)` no longer returns a mutable `Map` and
@@ -48,6 +52,19 @@ import java.util.*
  * `p.tp(y = 256.0)` is the `util/PlayerUtils.kt` extension (1.12.2's `setPositionAndUpdate`) — see the
  * batch report: its 1.21.1 port does not exist yet, so the call is kept 1:1.
  */
+@ModEnchantment(
+    id = "void_protection",
+    category = EnchantCategory.COMMON,
+    type = EnchantType.BOOTS,
+    maxLevel = 3,
+    weight = 10,
+    anvilCost = 2,
+    minCostBase = 30,
+    minCostPerLevel = 10,
+    supportedItems = "#minecraft:enchantable/foot_armor",
+    slots = [EnchantSlot.FEET],
+    order = 5,
+)
 object EnchantVoidProtectionHandler : Listenable {
     val waitForCancel = mutableMapOf<UUID, Boolean>()
     @SubscribeEvent
@@ -55,7 +72,7 @@ object EnchantVoidProtectionHandler : Listenable {
         if (e.phase != TickEvent.Phase.END) return
         val p = e.player
         val stack = p.getEquippedStack(EquipmentSlot.FEET)
-        val level = getItemSpecificEnchantLevel(stack, ModEnchantmentKeys.VOID_PROTECTION)
+        val level = getItemSpecificEnchantLevel(stack, GeneratedEnchantments.VOID_PROTECTION)
         val uuid = p.uuid
         if (level > 0) {
             if (p.y <= -64 && p.fallDistance > 32.0) {
@@ -63,11 +80,11 @@ object EnchantVoidProtectionHandler : Listenable {
                 val enchantsBuilder = ItemEnchantmentsComponent.Builder(enchants)
                 if (level - 1 > 0) {
                     enchantsBuilder.set(
-                        enchants.enchantments.first { it.matchesKey(ModEnchantmentKeys.VOID_PROTECTION) },
+                        enchants.enchantments.first { it.matchesKey(GeneratedEnchantments.VOID_PROTECTION) },
                         level - 1
                     )
                 } else {
-                    enchantsBuilder.remove { it.matchesKey(ModEnchantmentKeys.VOID_PROTECTION) }
+                    enchantsBuilder.remove { it.matchesKey(GeneratedEnchantments.VOID_PROTECTION) }
                 }
                 p.tp(y=256.0)
                 p.sendMessage(Text.literal("Triggered Void Protection!"), false)
@@ -95,7 +112,7 @@ object EnchantVoidProtectionHandler : Listenable {
         val stack = entity.getEquippedStack(EquipmentSlot.FEET)
         if (stack.isEmpty) return
 
-        val level = getItemSpecificEnchantLevel(stack, ModEnchantmentKeys.VOID_PROTECTION)
+        val level = getItemSpecificEnchantLevel(stack, GeneratedEnchantments.VOID_PROTECTION)
         if (level <= 0) return
 
         if (waitForCancel[entity.uuid] == true) {
