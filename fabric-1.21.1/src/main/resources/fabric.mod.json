@@ -3,7 +3,7 @@
   "id": "simple_tweaks",
   "version": "${version}",
   "name": "FireFly's Simple Tweaks",
-  "description": "A lightweight mod that adds custom enchantments, client-side QoL modules, and visual feedback.",
+  "description": "A mod that adds custom enchantments, client-side QoL modules, and visual feedback.",
   "authors": [
     "FireFly"
   ],

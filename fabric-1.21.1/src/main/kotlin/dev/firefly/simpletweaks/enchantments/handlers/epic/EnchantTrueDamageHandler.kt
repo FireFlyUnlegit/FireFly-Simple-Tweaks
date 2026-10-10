@@ -9,9 +9,13 @@ import dev.firefly.simpletweaks.compat.event.PlayerEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.invalid
 import dev.firefly.simpletweaks.core.Listenable
-import dev.firefly.simpletweaks.enchantments.ModEnchantmentKeys
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import java.util.*
+import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
+import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 
 /**
  * 1.21 port of `enchantments/handlers/epic/EnchantTrueDamageHandler.kt`.
@@ -25,7 +29,7 @@ import java.util.*
  * | `net.minecraftforge...EventPriority`       | `compat.event.EventPriority` (annotation keeps `priority = HIGHEST`) |
  * | `attacker.uniqueID`                        | `attacker.uuid` (`EntityLike.getUuid`, method_5667)             |
  * | `attacker.heldItemMainhand`                | `attacker.mainHandStack` (method_6047)                          |
- * | `EnchantTrueDamage` (Enchantment)          | `ModEnchantmentKeys.TRUE_DAMAGE` (RegistryKey)                  |
+ * | `EnchantTrueDamage` (Enchantment)          | `GeneratedEnchantments.TRUE_DAMAGE` (RegistryKey)                  |
  *
  * ⚠️ The only line that could not be copied token-for-token is the 1.12.2
  * `if (e.isCanceled && damagePool[e.attacker?.uniqueID] != null) damagePool[e.attacker?.uniqueID?: return] = 0f`
@@ -34,13 +38,27 @@ import java.util.*
  * hoisted into a local and null-checked first; the control flow (`isCanceled` + entry present → zero
  * the entry) is identical.
  */
+@ModEnchantment(
+    id = "true_damage",
+    category = EnchantCategory.EPIC,
+    type = EnchantType.SWORD,
+    maxLevel = 7,
+    weight = 4,
+    anvilCost = 8,
+    minCostBase = 30,
+    minCostPerLevel = 5,
+    supportedItems = "#minecraft:enchantable/sword",
+    slots = [EnchantSlot.MAINHAND],
+    damagePerLevel = 0.35,
+    order = 29,
+)
 object EnchantTrueDamageHandler : Listenable {
     val damagePool = mutableMapOf<UUID, Float>()
     @SubscribeEvent
     fun onLivingHurt(e: LivingHurtEvent) {
         val attacker = e.attacker?: return
         val aid = attacker.uuid
-        val lvl = getItemSpecificEnchantLevel(attacker.mainHandStack, ModEnchantmentKeys.TRUE_DAMAGE)
+        val lvl = getItemSpecificEnchantLevel(attacker.mainHandStack, GeneratedEnchantments.TRUE_DAMAGE)
         if (lvl > 0) {
             val addition = e.amount * 0.025f * (lvl + 1).coerceAtMost(8)
             val damageBefore = e.amount
@@ -59,7 +77,7 @@ object EnchantTrueDamageHandler : Listenable {
         if (e.invalid) return
         val attacker = e.attacker?: return
         val aid = attacker.uuid
-        val lvl = getItemSpecificEnchantLevel(attacker.mainHandStack, ModEnchantmentKeys.TRUE_DAMAGE)
+        val lvl = getItemSpecificEnchantLevel(attacker.mainHandStack, GeneratedEnchantments.TRUE_DAMAGE)
         if (lvl > 0 && damagePool[aid] != null) {
             val pooled = damagePool[aid]?: 0f
             val damageBefore = e.amount

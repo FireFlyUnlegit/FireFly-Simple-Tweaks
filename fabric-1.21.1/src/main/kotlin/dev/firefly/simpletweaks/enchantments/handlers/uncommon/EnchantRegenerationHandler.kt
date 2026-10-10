@@ -6,10 +6,14 @@ import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.event.TickEvent
 import dev.firefly.simpletweaks.compat.invalid
 import dev.firefly.simpletweaks.core.Listenable
-import dev.firefly.simpletweaks.enchantments.ModEnchantmentKeys
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import dev.firefly.simpletweaks.util.leggings
 import java.util.UUID
+import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
+import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 
 /**
  * 1.21 port of `enchantments/handlers/uncommon/EnchantRegenerationHandler.kt`.
@@ -25,8 +29,21 @@ import java.util.UUID
  * | `p.heal(heal)`                                                | unchanged (`LivingEntity.heal(float)`, method_6025)           |
  * | `e.isWasDeath`                                                | `e.wasDeath` (the port's `PlayerEvent.Clone` field)            |
  * | `e.original.uniqueID`                                         | `e.original.uuid`                                            |
- * | `EnchantRegeneration` (Enchantment object)                    | `ModEnchantmentKeys.REGENERATION` (RegistryKey)               |
+ * | `EnchantRegeneration` (Enchantment object)                    | `GeneratedEnchantments.REGENERATION` (RegistryKey)               |
  */
+@ModEnchantment(
+    id = "regeneration",
+    category = EnchantCategory.UNCOMMON,
+    type = EnchantType.LEGGINGS,
+    maxLevel = 8,
+    weight = 8,
+    anvilCost = 4,
+    minCostBase = 28,
+    minCostPerLevel = 4,
+    supportedItems = "#minecraft:enchantable/leg_armor",
+    slots = [EnchantSlot.LEGS],
+    order = 11,
+)
 object EnchantRegenerationHandler : Listenable {
 
     private val regenCounter = mutableMapOf<UUID, Int>()
@@ -36,7 +53,7 @@ object EnchantRegenerationHandler : Listenable {
         if (e.invalid) return
         val p = e.player
 
-        val lvl = getItemSpecificEnchantLevel(p.leggings, ModEnchantmentKeys.REGENERATION)
+        val lvl = getItemSpecificEnchantLevel(p.leggings, GeneratedEnchantments.REGENERATION)
         if (lvl <= 0 || p.health >= p.maxHealth) {
             regenCounter.remove(p.uuid)
             return

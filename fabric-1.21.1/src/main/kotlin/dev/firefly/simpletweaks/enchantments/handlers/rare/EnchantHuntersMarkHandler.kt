@@ -7,7 +7,7 @@ import dev.firefly.simpletweaks.compat.event.LivingHurtEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.event.TickEvent
 import dev.firefly.simpletweaks.core.Listenable
-import dev.firefly.simpletweaks.enchantments.ModEnchantmentKeys
+import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.player.PlayerEntity
@@ -16,6 +16,10 @@ import net.minecraft.particle.ParticleTypes
 import net.minecraft.server.world.ServerWorld
 import java.lang.ref.WeakReference
 import java.util.UUID
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
+import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 
 /**
  * 1.21 port of `enchantments/handlers/rare/EnchantHuntersMarkHandler.kt`.
@@ -37,11 +41,24 @@ import java.util.UUID
  * | `world.isRemote`                                  | `WorldSide.isClient(world)` (field_9236 is a FIELD)                   |
  * | `WorldServer.spawnParticle(EnumParticleTypes.CRIT, ...)` | `ServerWorld.spawnParticles(ParticleTypes.CRIT, ...)` (`method_14199`) |
  * | `EnumParticleTypes.CRIT_MAGIC`                    | `ParticleTypes.ENCHANTED_HIT` (1.13 renamed the `crit_magic` particle to `enchanted_hit`) |
- * | `EnchantHuntersMark` (Enchantment object)         | `ModEnchantmentKeys.HUNTERS_MARK` (RegistryKey)                       |
+ * | `EnchantHuntersMark` (Enchantment object)         | `GeneratedEnchantments.HUNTERS_MARK` (RegistryKey)                       |
  *
  * No behavioural change: the whole state machine (10 s expiry, level refresh taking the max, the
  * one-shot consume on the next non-arrow hit) is carried over verbatim.
  */
+@ModEnchantment(
+    id = "hunters_mark",
+    category = EnchantCategory.RARE,
+    type = EnchantType.BOW,
+    maxLevel = 3,
+    weight = 6,
+    anvilCost = 6,
+    minCostBase = 30,
+    minCostPerLevel = 10,
+    supportedItems = "#minecraft:enchantable/bow",
+    slots = [EnchantSlot.MAINHAND, EnchantSlot.OFFHAND],
+    order = 20,
+)
 object EnchantHuntersMarkHandler : Listenable {
     private class MarkState(val ref: WeakReference<LivingEntity>) {
         var expireAtMs: Long = 0
@@ -60,7 +77,7 @@ object EnchantHuntersMarkHandler : Listenable {
         val isArrowHit = arrow != null && arrow.owner === attacker
 
         if (isArrowHit) {
-            val lvl = getItemSpecificEnchantLevel(attacker.mainHandStack, ModEnchantmentKeys.HUNTERS_MARK)
+            val lvl = getItemSpecificEnchantLevel(attacker.mainHandStack, GeneratedEnchantments.HUNTERS_MARK)
             if (lvl <= 0) return
             applyMark(target, lvl)
             spawnMarkFx(target)

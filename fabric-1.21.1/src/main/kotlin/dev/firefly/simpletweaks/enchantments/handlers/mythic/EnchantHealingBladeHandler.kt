@@ -11,10 +11,14 @@ import dev.firefly.simpletweaks.compat.event.TickEvent
 import dev.firefly.simpletweaks.compat.invalid
 import dev.firefly.simpletweaks.compat.target
 import dev.firefly.simpletweaks.core.Listenable
-import dev.firefly.simpletweaks.enchantments.ModEnchantmentKeys
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import net.minecraft.entity.player.PlayerEntity
 import java.util.*
+import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
+import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 
 /**
  * 1.21 port of `enchantments/handlers/mythic/EnchantHealingBladeHandler.kt`.
@@ -35,12 +39,26 @@ import java.util.*
  * | `attacker.heal(healing)`                                   | unchanged (`method_6025`)                                          |
  * | `p.world.isRemote`                                         | `WorldSide.isClient(p.world)` (field_9236 is a FIELD)              |
  * | `Clone.entityPlayer` (the NEW player)                      | `Clone.player` (the port keeps Forge's direction: player = new)     |
- * | `EnchantHealingBlade` (Enchantment object)                 | `ModEnchantmentKeys.HEALING_BLADE` (RegistryKey)                    |
+ * | `EnchantHealingBlade` (Enchantment object)                 | `GeneratedEnchantments.HEALING_BLADE` (RegistryKey)                    |
  *
  * The three state maps (`absorptionCounter`, `absorptionAliveTimer`, `healingPool`), the
  * `20 * level` absorption expiry, the `0.05f`-per-hit pool growth / per-tick decay and the
  * `e.amount += healing` self-feedback are all preserved verbatim.
  */
+@ModEnchantment(
+    id = "healing_blade",
+    category = EnchantCategory.MYTHIC,
+    type = EnchantType.SWORD,
+    maxLevel = 8,
+    weight = 1,
+    anvilCost = 12,
+    minCostBase = 33,
+    minCostPerLevel = 8,
+    supportedItems = "#minecraft:enchantable/sword",
+    slots = [EnchantSlot.MAINHAND],
+    damagePerLevel = 1.0,
+    order = 43,
+)
 object EnchantHealingBladeHandler : Listenable {
 
     private val absorptionCounter = mutableMapOf<UUID, Float>()
@@ -53,7 +71,7 @@ object EnchantHealingBladeHandler : Listenable {
         val attacker = e.attacker ?: return
         val id = attacker.uuid
 
-        val level = getItemSpecificEnchantLevel(attacker.mainHandStack, ModEnchantmentKeys.HEALING_BLADE)
+        val level = getItemSpecificEnchantLevel(attacker.mainHandStack, GeneratedEnchantments.HEALING_BLADE)
         if (level <= 0) return
 
         val dmg = e.amount
