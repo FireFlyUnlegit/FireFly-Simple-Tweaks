@@ -8,13 +8,17 @@ import dev.firefly.simpletweaks.compat.event.LivingEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.invalid
 import dev.firefly.simpletweaks.core.Listenable
-import dev.firefly.simpletweaks.enchantments.ModEnchantmentKeys
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import net.minecraft.entity.Entity
 import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.nbt.NbtCompound
 import java.util.WeakHashMap
+import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
+import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 
 /**
  * 1.21 port of `enchantments/handlers/common/EnchantCombatMasterHandler.kt`.
@@ -30,7 +34,7 @@ import java.util.WeakHashMap
  * | `world.isRemote`                             | `WorldSide.isClient(world)` (field_9236 is a FIELD, see MIGRATION) |
  * | `world.totalWorldTime`                       | `world.time` (Yarn `World.getTime()`, method_8510)                 |
  * | `target.uniqueID`                            | `target.uuid` (inherited from `EntityLike`, method_5667)           |
- * | `EnchantCombatMaster` (object)               | `ModEnchantmentKeys.COMBAT_MASTER` (RegistryKey)                   |
+ * | `EnchantCombatMaster` (object)               | `GeneratedEnchantments.COMBAT_MASTER` (RegistryKey)                   |
  * | NBT `getInteger/setInteger/getString/...`    | `getInt/putInt/getString/putString/getLong/putLong/remove`         |
  *
  * ⚠️ **DEVIATION — please review by hand (the only one in this file).**
@@ -43,6 +47,20 @@ import java.util.WeakHashMap
  * and dies with the entity **instance** instead of being written to disk with it. Replacing
  * [entityData] with `AttachmentRegistry.createPersistent(...)` restores the original persistence.
  */
+@ModEnchantment(
+    id = "combat_master",
+    category = EnchantCategory.COMMON,
+    type = EnchantType.SWORD,
+    maxLevel = 5,
+    weight = 10,
+    anvilCost = 2,
+    minCostBase = 8,
+    minCostPerLevel = 8,
+    supportedItems = "#minecraft:enchantable/sword",
+    slots = [EnchantSlot.MAINHAND],
+    damagePerLevel = 0.2,
+    order = 3,
+)
 object EnchantCombatMasterHandler : Listenable {
     private const val NBT_COMBO_TARGET   = "st_combo_target"
     private const val NBT_COMBO_STACKS   = "st_combo_stacks"   
@@ -80,7 +98,7 @@ object EnchantCombatMasterHandler : Listenable {
         if (attacker is LivingEntity && attacker !== target) {
             val level = getItemSpecificEnchantLevel(
                 attacker.mainHandStack,
-                ModEnchantmentKeys.COMBAT_MASTER
+                GeneratedEnchantments.COMBAT_MASTER
             )
             if (level > 0) {
                 val data = attacker.data()

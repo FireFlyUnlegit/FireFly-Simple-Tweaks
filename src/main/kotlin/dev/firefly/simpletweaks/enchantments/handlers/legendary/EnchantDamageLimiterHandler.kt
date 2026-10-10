@@ -6,10 +6,14 @@ import dev.firefly.simpletweaks.compat.event.LivingDamageEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.invalid
 import dev.firefly.simpletweaks.core.Listenable
-import dev.firefly.simpletweaks.enchantments.ModEnchantmentKeys
+import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import net.minecraft.entity.EquipmentSlot
 import kotlin.math.max
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
+import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 
 /**
  * 1.21 port of `enchantments/handlers/legendary/EnchantDamageLimiterHandler.kt`.
@@ -23,11 +27,24 @@ import kotlin.math.max
  * | `p.getItemStackFromSlot(slot)`                               | `p.getEquippedStack(slot)` (`method_6118`)                       |
  * | `p.maxHealth`                                                | `p.maxHealth` (`getMaxHealth()`, `method_6063`)                  |
  * | `e.amount` (read + write)                                    | `e.amount` (mutable `Float`, same as Forge)                      |
- * | `EnchantDamageLimiter` (Enchantment object)                  | `ModEnchantmentKeys.DAMAGE_LIMITER` (RegistryKey)                |
+ * | `EnchantDamageLimiter` (Enchantment object)                  | `GeneratedEnchantments.DAMAGE_LIMITER` (RegistryKey)                |
  *
  * No forced mappings: the clamp formula, the `in limit..maxLimit` window, the LOW priority and the
  * max-over-armour-slots scan are all copied verbatim.
  */
+@ModEnchantment(
+    id = "damage_limiter",
+    category = EnchantCategory.LEGENDARY,
+    type = EnchantType.ARMOR,
+    maxLevel = 3,
+    weight = 2,
+    anvilCost = 10,
+    minCostBase = 30,
+    minCostPerLevel = 8,
+    supportedItems = "#minecraft:enchantable/armor",
+    slots = [EnchantSlot.ARMOR],
+    order = 34,
+)
 object EnchantDamageLimiterHandler : Listenable {
 
     @SubscribeEvent(priority = EventPriority.LOW)
@@ -38,7 +55,7 @@ object EnchantDamageLimiterHandler : Listenable {
         var lvl = 0
         for (slot in EquipmentSlot.entries) {
             if (slot.type != EquipmentSlot.Type.HUMANOID_ARMOR) continue
-            lvl = max(lvl, getItemSpecificEnchantLevel(p.getEquippedStack(slot), ModEnchantmentKeys.DAMAGE_LIMITER))
+            lvl = max(lvl, getItemSpecificEnchantLevel(p.getEquippedStack(slot), GeneratedEnchantments.DAMAGE_LIMITER))
         }
         if (lvl <= 0) return
 

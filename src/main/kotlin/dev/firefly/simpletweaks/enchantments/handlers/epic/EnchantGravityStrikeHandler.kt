@@ -7,11 +7,15 @@ import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.invalid
 import dev.firefly.simpletweaks.compat.target
 import dev.firefly.simpletweaks.core.Listenable
-import dev.firefly.simpletweaks.enchantments.ModEnchantmentKeys
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import dev.firefly.simpletweaks.util.spawnRingParticles
 import net.minecraft.particle.ParticleTypes
 import net.minecraft.server.world.ServerWorld
+import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
+import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 
 /**
  * 1.21 port of `enchantments/handlers/epic/EnchantGravityStrikeHandler.kt`.
@@ -26,17 +30,31 @@ import net.minecraft.server.world.ServerWorld
  * | `WorldServer`                                 | `net.minecraft.server.world.ServerWorld`                        |
  * | `world.spawnRingParticles(EnumParticleTypes, ...)` | `util/WorldExtensions.kt` extension, now typed on `ParticleEffect` |
  * | `EnumParticleTypes.CRIT` / `.EXPLOSION_NORMAL` / `.CLOUD` | `ParticleTypes.CRIT` / `ParticleTypes.POOF` (1.13 renamed `explosion_normal` to `poof`) / `ParticleTypes.CLOUD` |
- * | `EnchantGravityStrike` (Enchantment)          | `ModEnchantmentKeys.GRAVITY_STRIKE` (RegistryKey)               |
+ * | `EnchantGravityStrike` (Enchantment)          | `GeneratedEnchantments.GRAVITY_STRIKE` (RegistryKey)               |
  *
  * The 1.5-block fall gate, the `min(fall × 2.5 % × lvl, 50 % × lvl)` multiplier and every particle
  * count/offset are copied verbatim.
  */
+@ModEnchantment(
+    id = "gravity_strike",
+    category = EnchantCategory.EPIC,
+    type = EnchantType.SWORD,
+    maxLevel = 6,
+    weight = 4,
+    anvilCost = 8,
+    minCostBase = 15,
+    minCostPerLevel = 15,
+    supportedItems = "#minecraft:enchantable/sword",
+    slots = [EnchantSlot.MAINHAND],
+    damagePerLevel = 0.35,
+    order = 27,
+)
 object EnchantGravityStrikeHandler : Listenable {
     @SubscribeEvent
     fun onLivingHurt(e: LivingHurtEvent) {
         if (e.invalid) return
         val attacker = e.attacker ?: return
-        val lvl = getItemSpecificEnchantLevel(attacker.mainHandStack, ModEnchantmentKeys.GRAVITY_STRIKE)
+        val lvl = getItemSpecificEnchantLevel(attacker.mainHandStack, GeneratedEnchantments.GRAVITY_STRIKE)
         if (lvl <= 0) return
         val fall = attacker.fallDistance
         if (fall < 1.5f) return

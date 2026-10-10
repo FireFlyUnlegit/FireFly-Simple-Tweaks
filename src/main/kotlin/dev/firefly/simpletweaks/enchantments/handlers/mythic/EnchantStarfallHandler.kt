@@ -7,7 +7,6 @@ import dev.firefly.simpletweaks.compat.event.LivingHurtEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.event.TickEvent
 import dev.firefly.simpletweaks.core.Listenable
-import dev.firefly.simpletweaks.enchantments.ModEnchantmentKeys
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import dev.firefly.simpletweaks.util.runPlayerAttack
 import net.minecraft.entity.LivingEntity
@@ -27,6 +26,11 @@ import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.sqrt
 import kotlin.random.Random
+import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
+import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 
 /**
  * 1.21 port of `enchantments/handlers/mythic/EnchantStarfallHandler.kt`.
@@ -60,7 +64,7 @@ import kotlin.random.Random
  * | `DamageSource.causePlayerDamage(owner)`                       | `owner.damageSources.playerAttack(owner)` (`method_48802`)               |
  * | `DamageSource.MAGIC`                                          | `entity.damageSources.magic()` (`method_48831`)                         |
  * | `entity.attackEntityFrom(source, dmg)`                        | `entity.damage(source, dmg)` (`method_5643`)                            |
- * | `EnchantStarfall` (Enchantment object)                        | `ModEnchantmentKeys.STARFALL` (RegistryKey)                             |
+ * | `EnchantStarfall` (Enchantment object)                        | `GeneratedEnchantments.STARFALL` (RegistryKey)                             |
  *
  * No `ArrowLooseEvent` is used: the enchantment fires on arrow **hit**, exactly as in 1.12.2.
  * The whole state machine (2-7 block random spawn ring, 1/2/3 stars by level, spawn-height probe,
@@ -82,6 +86,19 @@ import kotlin.random.Random
  * <p>Note the failure was invisible on the surface (y&gt;0), which is why it survived the earlier
  * acceptance round: it only manifests at or below y=0.
  */
+@ModEnchantment(
+    id = "starfall",
+    category = EnchantCategory.MYTHIC,
+    type = EnchantType.BOW,
+    maxLevel = 5,
+    weight = 1,
+    anvilCost = 12,
+    minCostBase = 45,
+    minCostPerLevel = 15,
+    supportedItems = "#minecraft:enchantable/bow",
+    slots = [EnchantSlot.MAINHAND, EnchantSlot.OFFHAND],
+    order = 45,
+)
 object EnchantStarfallHandler : Listenable {
 
     private class FallingStar(
@@ -104,7 +121,7 @@ object EnchantStarfallHandler : Listenable {
         val target = e.entityLiving ?: return
         if (target === shooter) return
 
-        val lvl = getItemSpecificEnchantLevel(shooter.mainHandStack, ModEnchantmentKeys.STARFALL)
+        val lvl = getItemSpecificEnchantLevel(shooter.mainHandStack, GeneratedEnchantments.STARFALL)
         if (lvl <= 0) return
 
         val count = when {

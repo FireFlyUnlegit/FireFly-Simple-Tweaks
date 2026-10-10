@@ -12,7 +12,6 @@ import dev.firefly.simpletweaks.compat.event.TickEvent
 import dev.firefly.simpletweaks.compat.invalid
 import dev.firefly.simpletweaks.compat.target
 import dev.firefly.simpletweaks.core.Listenable
-import dev.firefly.simpletweaks.enchantments.ModEnchantmentKeys
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import dev.firefly.simpletweaks.util.syncAttributes
 import net.minecraft.entity.attribute.EntityAttributeModifier
@@ -20,6 +19,11 @@ import net.minecraft.entity.attribute.EntityAttributes
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.util.Identifier
 import java.util.*
+import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
+import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 
 /**
  * 1.21 port of `enchantments/handlers/legendary/EnchantComboHandler.kt`.
@@ -39,7 +43,7 @@ import java.util.*
  * | `AttributeModifier(uuid, "Combo Attack Speed", x, 2)`       | `EntityAttributeModifier(id, x, Operation.ADD_MULTIPLIED_TOTAL)` (1.21 operation 2 = `ADD_MULTIPLIED_TOTAL`) |
  * | `attr.applyModifier(...)`                                   | `attr.addPersistentModifier(...)` (1.12.2's `applyModifier` was serialised with the entity; the temporary variant would be lost on reload) |
  * | `p.connection.sendPacket(SPacketEntityProperties(...))`     | `p.syncAttributes()` (`util/PlayerUtils.kt`, now `EntityAttributesS2CPacket`) |
- * | `EnchantCombo` (Enchantment object)                         | `ModEnchantmentKeys.COMBO` (RegistryKey)                                |
+ * | `EnchantCombo` (Enchantment object)                         | `GeneratedEnchantments.COMBO` (RegistryKey)                                |
  *
  * ⚠️ Two forced mappings, both inherited from the project-wide attribute-modifier pattern used by
  * `EnchantExtraArmorHandler` / `EnchantVitalityHandler`: the UUID (from
@@ -58,6 +62,20 @@ import java.util.*
  * today. If the JSON is ever given that `minecraft:attributes` block, the bonus will be applied
  * twice and this tick half must be deleted.
  */
+@ModEnchantment(
+    id = "combo",
+    category = EnchantCategory.LEGENDARY,
+    type = EnchantType.SWORD,
+    maxLevel = 10,
+    weight = 2,
+    anvilCost = 10,
+    minCostBase = 20,
+    minCostPerLevel = 5,
+    supportedItems = "#minecraft:enchantable/sword",
+    slots = [EnchantSlot.MAINHAND],
+    damagePerLevel = 0.15,
+    order = 32,
+)
 object EnchantComboHandler : Listenable {
 
     private const val ATTACK_SPEED_PER_LEVEL = 0.35
@@ -71,7 +89,7 @@ object EnchantComboHandler : Listenable {
         val attacker = e.attacker ?: return
         val target = e.target
 
-        val level = getItemSpecificEnchantLevel(attacker.mainHandStack, ModEnchantmentKeys.COMBO)
+        val level = getItemSpecificEnchantLevel(attacker.mainHandStack, GeneratedEnchantments.COMBO)
         if (level <= 0) return
 
         val multiplier = (1f - level * 0.1f).coerceAtLeast(0f)
@@ -90,7 +108,7 @@ object EnchantComboHandler : Listenable {
         if (WorldSide.isClient(p.world)) return
 
         val attr = p.getAttributeInstance(EntityAttributes.GENERIC_ATTACK_SPEED) ?: return
-        val level = getItemSpecificEnchantLevel(p.mainHandStack, ModEnchantmentKeys.COMBO)
+        val level = getItemSpecificEnchantLevel(p.mainHandStack, GeneratedEnchantments.COMBO)
         val hasModifier = attr.getModifier(ATTACK_SPEED_ID) != null
 
         if (level <= 0 && !hasModifier) {

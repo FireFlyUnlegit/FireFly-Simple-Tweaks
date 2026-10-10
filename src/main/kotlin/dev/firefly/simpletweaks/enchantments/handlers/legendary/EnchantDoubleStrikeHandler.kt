@@ -8,12 +8,16 @@ import dev.firefly.simpletweaks.compat.event.LivingHurtEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.invalid
 import dev.firefly.simpletweaks.core.Listenable
-import dev.firefly.simpletweaks.enchantments.ModEnchantmentKeys
 import dev.firefly.simpletweaks.util.attackCharge
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import net.minecraft.entity.player.PlayerEntity
 import java.util.*
 import kotlin.random.Random.Default.nextFloat
+import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
+import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 
 /**
  * 1.21 port of `enchantments/handlers/legendary/EnchantDoubleStrikeHandler.kt`.
@@ -32,7 +36,7 @@ import kotlin.random.Random.Default.nextFloat
  * | `target.attackEntityFrom(DamageSource.causePlayerDamage(attacker), x)` | `target.damage(attacker.damageSources.playerAttack(attacker), x)` (`DamageSources.playerAttack` is the 1.21 `causePlayerDamage`; it sets BOTH the source and attacker entity, verified in the constructor bytecode) |
  * | `target.motionX/motionY/motionZ`                          | `target.velocity` (single `Vec3d`, `getVelocity`/`setVelocity`)             |
  * | `inExtraStrike` (`ThreadLocal<Boolean>`)                  | unchanged — still the re-entrancy guard for the nested damage event        |
- * | `EnchantDoubleStrike` (Enchantment object)                | `ModEnchantmentKeys.DOUBLE_STRIKE` (RegistryKey)                           |
+ * | `EnchantDoubleStrike` (Enchantment object)                | `GeneratedEnchantments.DOUBLE_STRIKE` (RegistryKey)                           |
  *
  * ⚠️ `player.attackCharge`: the 1.12.2 value came from a mixin (`interfaces/AttackChargeAccessor` +
  * `MixinEntityPlayer`, which `@Redirect`-ed `getCooledAttackStrength(0.5F)` inside
@@ -46,6 +50,20 @@ import kotlin.random.Random.Default.nextFloat
  * on the same thread, which is exactly why `inExtraStrike` exists; the guard is kept verbatim, so the
  * nested event returns immediately and the strike stays a single extra hit.
  */
+@ModEnchantment(
+    id = "double_strike",
+    category = EnchantCategory.LEGENDARY,
+    type = EnchantType.SWORD,
+    maxLevel = 6,
+    weight = 2,
+    anvilCost = 10,
+    minCostBase = 33,
+    minCostPerLevel = 4,
+    supportedItems = "#minecraft:enchantable/sword",
+    slots = [EnchantSlot.MAINHAND],
+    damagePerLevel = 0.4,
+    order = 36,
+)
 object EnchantDoubleStrikeHandler : Listenable {
 
     private val inExtraStrike = ThreadLocal.withInitial { false }
@@ -59,7 +77,7 @@ object EnchantDoubleStrikeHandler : Listenable {
 
         armed.remove(player)
         if (player.attackCharge < 0.848) return
-        val lvl = getItemSpecificEnchantLevel(player.mainHandStack, ModEnchantmentKeys.DOUBLE_STRIKE)
+        val lvl = getItemSpecificEnchantLevel(player.mainHandStack, GeneratedEnchantments.DOUBLE_STRIKE)
         if (lvl <= 0) return
         val roll = nextFloat()
         if (roll < 0.25f + 0.05f * lvl) {

@@ -8,7 +8,6 @@ import dev.firefly.simpletweaks.compat.event.LivingEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.invalid
 import dev.firefly.simpletweaks.core.Listenable
-import dev.firefly.simpletweaks.enchantments.ModEnchantmentKeys
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import net.minecraft.entity.Entity
 import net.minecraft.entity.EntityType
@@ -24,6 +23,11 @@ import net.minecraft.sound.SoundEvents
 import net.minecraft.util.Identifier
 import net.minecraft.world.World
 import java.util.WeakHashMap
+import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
+import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 
 /**
  * 1.21 port of `enchantments/handlers/mystery/EnchantHeavenlyPunishmentHandler.kt`.
@@ -41,11 +45,11 @@ import java.util.WeakHashMap
  * | `world.totalWorldTime`                                       | `world.time` (`World.getTime()`, `method_8510`)                           |
  * | `attacker.heldItemMainhand`                                  | `attacker.mainHandStack` (`method_6047`)                                  |
  * | `attacker.uniqueID` / `target.uniqueID`                      | `.uuid` (inherited from `EntityLike`, `method_5667`)                      |
- * | `EnchantHeavenlyPunishment` (Enchantment object)             | `ModEnchantmentKeys.HEAVENLY_PUNISHMENT` (RegistryKey)                    |
+ * | `EnchantHeavenlyPunishment` (Enchantment object)             | `GeneratedEnchantments.HEAVENLY_PUNISHMENT` (RegistryKey)                    |
  * | `entity.motionX = motionY = motionZ = 0.0`                   | `entity.setVelocity(0.0, 0.0, 0.0)` (`method_18800`; 1.21 has one `Vec3d` velocity, not three fields) |
  * | `SharedMonsterAttributes.ATTACK_SPEED`                       | `EntityAttributes.GENERIC_ATTACK_SPEED` (1.21.1 kept the `GENERIC_` prefix) |
  * | `AttributeModifier(uuid, name, amount, 0)`                   | `EntityAttributeModifier(id, amount, Operation.ADD_VALUE)` (1.12.2 operation 0 = `ADD_VALUE`) |
- * | `applyModifier(...)` / `setSaved(false)`                     | `addPersistentModifier(...)` (1.12.2's `applyModifier` was serialised with the entity; the 1.12.2 `setSaved(false)` only skipped the *saved* attributes list, which 1.21 does not have — see the note below) |
+ * | `applyModifier(...)` + `setSaved(false)`                     | **`addTemporaryModifier(...)`** — the per-modifier flag 1.21 *does* have. `setSaved(false)` meant "do not write this modifier into the entity's `Attributes` NBT"; `EntityAttributeInstance`'s persistent/temporary split is the exact counterpart, so the temporary call is the faithful mapping. Originally mapped to `addPersistentModifier` on the false premise that no such flag exists — see DEVIATION 3 |
  * | `removeModifier(UUID)`                                       | `removeModifier(Identifier)`                                              |
  * | `EntityLightningBolt(world, x, y, z, true)`                  | `EntityType.LIGHTNING_BOLT.create(world)` (`method_5883`; 1.21's `class_1538` has **no** `(World, double, double, double, boolean)` constructor) + `setCosmetic(true)` + `refreshPositionAndAngles(...)`. The 1.12.2 trailing `true` was already "effect-only", so `cosmetic` is the faithful flag |
  * | `world.addWeatherEffect(bolt)`                               | `World.spawnEntity(bolt)` (`ModifiableWorld.method_8649`; `addWeatherEffect` no longer exists in 1.21) |
@@ -69,12 +73,49 @@ import java.util.WeakHashMap
  * thrown on a living entity without an attack-speed attribute, which cannot happen in practice.
  * This matches the `?.` already used by `EnchantComboHandler` / `EnchantExtraArmorHandler`.
  *
- * ⚠️ **DEVIATION 3 — `setSaved(false)` is dropped.** 1.12.2 called it so the modifier would not be
- * written to the entity's `Attributes` NBT list. 1.21 tracks "saved" at the
- * `AttributeContainer`/`TrackedData` level rather than per modifier and exposes no equivalent flag,
- * so the modifier is now persistent. It is re-applied every frozen tick and explicitly removed by
- * [removeAttackSpeedSlow], so the observable behaviour is unchanged.
+ * ⚠️ **DEVIATION 3 (CORRECTED) — `setSaved(false)` is honoured, not dropped.**
+ *
+ * The original note here claimed that 1.21 "tracks `saved` at the `AttributeContainer`/`TrackedData`
+ * level rather than per modifier and exposes no equivalent flag". **That is wrong twice over.** The
+ * flag is per modifier — `EntityAttributeInstance` has both `addPersistentModifier` (serialised) and
+ * `addTemporaryModifier` (not serialised) — and this file's own sibling,
+ * [EnchantCelestialBlessingHandler], maps the *identical* 1.12.2 `setSaved(false)` pattern onto
+ * `addTemporaryModifier`.
+ *
+ * The premise mattered, because it let a leak through. 1.12.2 had **two independent safeguards**: the
+ * modifier was not written to disk, *and* the deadline that removes it lived in Forge's **persistent**
+ * per-entity NBT. This port gives up the second deliberately (DEVIATION 1 — the deadline moved to the
+ * in-memory [entityData]); keeping the modifier persistent then gives up the first as well, and the
+ * failure is silent and permanent:
+ *
+ * <pre>
+ *   victim's entityData entry is gone (chunk unload/reload, world restart, player relog)
+ *     -> weakUntil reads 0
+ *       -> the sweep in [onLivingUpdate] can never fire
+ *         -> the -100 attack-speed modifier stays in the save file
+ *           -> the victim never attacks again (mobs accumulate this across the world)
+ * </pre>
+ *
+ * With `addTemporaryModifier` a lost deadline leaves nothing behind: the debuff ends at the latest on
+ * reload, which is exactly the property `setSaved(false)` gave 1.12.2. The modifier is still
+ * re-applied on every frozen tick ([onLivingUpdate]) and removed by [removeAttackSpeedSlow]; only its
+ * ability to outlive the deadline is gone.
  */
+@ModEnchantment(
+    id = "heavenly_punishment",
+    category = EnchantCategory.MYSTERY,
+    type = EnchantType.SWORD,
+    maxLevel = 4,
+    weight = 1,
+    anvilCost = 14,
+    minCostBase = 30,
+    minCostPerLevel = 30,
+    supportedItems = "#minecraft:enchantable/sword",
+    slots = [EnchantSlot.MAINHAND],
+    damagePerLevel = 5.0,
+    order = 51,
+    jsonEmit = false,
+)
 object EnchantHeavenlyPunishmentHandler : Listenable {
 
     private const val NBT_WEAK_UNTIL   = "st_hp_weak_until"
@@ -108,7 +149,7 @@ object EnchantHeavenlyPunishmentHandler : Listenable {
         if (attacker is LivingEntity && attacker !== target) {
             val level = getItemSpecificEnchantLevel(
                 attacker.mainHandStack,
-                ModEnchantmentKeys.HEAVENLY_PUNISHMENT
+                GeneratedEnchantments.HEAVENLY_PUNISHMENT
             )
             if (level > 0) {
                 event.amount *= 1.0f * level + 1f
@@ -202,7 +243,10 @@ object EnchantHeavenlyPunishmentHandler : Listenable {
             -100.0,
             EntityAttributeModifier.Operation.ADD_VALUE
         )
-        attr.addPersistentModifier(modifier)
+        // TEMPORARY, not persistent: this is 1.12.2's `setSaved(false)`. See DEVIATION 3 -- persisting
+        // it is what turned a 10-tick suppression into a permanent attack lockout after any reload,
+        // because the deadline that removes it lives in memory ([entityData]) and is gone by then.
+        attr.addTemporaryModifier(modifier)
     }
     private fun removeAttackSpeedSlow(entity: LivingEntity) {
         val attr: EntityAttributeInstance? = entity.getAttributeInstance(EntityAttributes.GENERIC_ATTACK_SPEED)

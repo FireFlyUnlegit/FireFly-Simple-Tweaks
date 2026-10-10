@@ -7,7 +7,6 @@ import dev.firefly.simpletweaks.compat.event.PlayerEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.event.TickEvent
 import dev.firefly.simpletweaks.core.Listenable
-import dev.firefly.simpletweaks.enchantments.ModEnchantmentKeys
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import dev.firefly.simpletweaks.util.syncAttributes
 import net.minecraft.entity.EquipmentSlot
@@ -16,6 +15,11 @@ import net.minecraft.entity.attribute.EntityAttributes
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.util.Identifier
 import java.util.*
+import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
+import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 
 /**
  * 1.21 port of `enchantments/handlers/epic/EnchantVitalityHandler.kt`.
@@ -32,7 +36,7 @@ import java.util.*
  * | `EntityEquipmentSlot.entries` + `slotType == Type.ARMOR`    | `EquipmentSlot.entries` + `slot.type == EquipmentSlot.Type.HUMANOID_ARMOR` (1.21 renamed the slot-type constant; `ANIMAL_ARMOR` is the new non-humanoid one) |
  * | `p.getItemStackFromSlot(slot)`                             | `p.getEquippedStack(slot)` (method_6118)                              |
  * | `p.syncAttributes()`                                       | `util/PlayerUtils.kt` extension (now `EntityAttributesS2CPacket`)       |
- * | `EnchantVitality` (Enchantment)                            | `ModEnchantmentKeys.VITALITY` (RegistryKey)                            |
+ * | `EnchantVitality` (Enchantment)                            | `GeneratedEnchantments.VITALITY` (RegistryKey)                            |
  *
  * ⚠️ Two forced mappings (same shapes as `EnchantExtraArmorHandler`): a UUID-keyed modifier plus its
  * `"Vitality"` display name collapse into the single `Identifier` `simple_tweaks:vitality`, and
@@ -43,6 +47,19 @@ import java.util.*
  * quirk that the "unchanged?" comparison uses `bonus` while the stored amount is `bonus + percentage`
  * (which makes the modifier get re-applied every tick), are preserved verbatim.
  */
+@ModEnchantment(
+    id = "vitality",
+    category = EnchantCategory.EPIC,
+    type = EnchantType.ARMOR,
+    maxLevel = 10,
+    weight = 4,
+    anvilCost = 8,
+    minCostBase = 10,
+    minCostPerLevel = 10,
+    supportedItems = "#minecraft:enchantable/armor",
+    slots = [EnchantSlot.ARMOR],
+    order = 31,
+)
 object EnchantVitalityHandler : Listenable {
 
     private val MODIFIER_ID: Identifier = Identifier.of(SimpleTweaks.MOD_ID, "vitality")
@@ -104,7 +121,7 @@ object EnchantVitalityHandler : Listenable {
         var total = 0
         for (slot in EquipmentSlot.entries) {
             if (slot.type != EquipmentSlot.Type.HUMANOID_ARMOR) continue
-            total += getItemSpecificEnchantLevel(p.getEquippedStack(slot), ModEnchantmentKeys.VITALITY)
+            total += getItemSpecificEnchantLevel(p.getEquippedStack(slot), GeneratedEnchantments.VITALITY)
         }
         return total
     }

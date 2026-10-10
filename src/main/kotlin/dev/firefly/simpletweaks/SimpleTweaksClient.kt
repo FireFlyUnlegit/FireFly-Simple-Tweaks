@@ -5,8 +5,9 @@ import dev.firefly.simpletweaks.compat.bridge.ClientEventBridge
 import dev.firefly.simpletweaks.client.AutoSprintHandler
 import dev.firefly.simpletweaks.client.ClientManaPoolCache
 import dev.firefly.simpletweaks.client.ClientScreenOpener
-import dev.firefly.simpletweaks.client.ConfigCommand
-import dev.firefly.simpletweaks.client.EnchantInfoCommand
+import dev.firefly.simpletweaks.client.EnchantInfoScreen
+import dev.firefly.simpletweaks.client.SimpleTweaksConfigScreen
+import dev.firefly.simpletweaks.network.packets.PacketOpenModScreen
 import dev.firefly.simpletweaks.client.InfinitePowerLaserClient
 import dev.firefly.simpletweaks.client.particle.CelestialRingParticles
 import dev.firefly.simpletweaks.client.tooltips.ManaPoolToolTipHandler
@@ -40,11 +41,12 @@ class SimpleTweaksClient : ClientModInitializer {
         registerDamageIndicatorReceiver()
         DamageIndicatorRenderer.register()
 
-        // `/stconfig` -> in-game config screen, `/enchantinfo` -> enchantment index. Both are client
-        // commands; ClientScreenOpener is what actually puts the screen up, on the next tick.
+        // `/stconfig` -> in-game config screen, `/enchantinfo` -> enchantment index. Those commands are
+        // **server**-side now: a name registered client-side claims the whole root and makes the
+        // server's children unreachable (see core/ScreenCommands.kt), so the server sends a request and
+        // this side only opens the screen. ClientScreenOpener is what actually puts it up, next tick.
         ClientScreenOpener.register()
-        ConfigCommand.register()
-        EnchantInfoCommand.register()
+        registerScreenReceiver()
 
         // AutoSprint module: rides the client player tick the bridge already dispatches, so it adds
         // no mixin at all (phase-6 §17).
@@ -75,9 +77,55 @@ class SimpleTweaksClient : ClientModInitializer {
                 "+ enchant index enumerates the live registry " +
                 "+ name colour derived from tier (EnchantmentNameColors deleted) " +
                 "+ villagers no longer trade mod enchantments " +
-                "+ KSP owns non_treasure/in_enchanting_table/tradeable (build=cleanup12)",
+                "+ KSP owns non_treasure/in_enchanting_table/tradeable " +
+                "+ @ModEnchantment attributes (prismatic_blessing migrated) " +
+                "+ @ModEnchantment.order + order-preserving handler merge + lang no longer generated " +
+                "+ @ModEnchantment.jsonEmit (build=cleanup15) " +
+                "+ batch 1: 25 empty-effects enchantments migrated " +
+                "+ batch 2: 25 damage enchantments migrated " +
+                "+ batches 3+4: attributes + jsonEmit carriers; ModEnchantmentKeys deleted (build=cleanup18) " +
+                "+ multishot volley applies fast_bow's draw boost + fast_bow relaxes the charge gate " +
+                "+ /simple_tweaks enchant (lang'd) + blessing_extension/curse_resistance effect sync " +
+                "+ clear_sight 30m night vision " +
+                "+ echo_shield soaks reflection without bouncing it " +
+                "+ all commands merged under /simple_tweaks + /fst alias " +
+                "+ [FST-*] log prefix + inert config switches deleted + event dispatch indexed " +
+                "+ multishot volley no longer capped by ammo, costs 1 arrow " +
+                "+ heavenly_punishment attack-speed suppression is no longer persisted " +
+                "+ all commands server-side (a client-registered root shadowed the server's children) " +
+                "(build=cleanup20)",
             SimpleTweaks.NAME,
         )
+    }
+
+    /**
+     * Client half of [PacketOpenModScreen]: the server names a screen, this side opens it.
+     *
+     * <p>This is 1.12.2's payload-less `PacketOpenEnchantInfo` generalised to two screens, and it exists
+     * for the same reason 1.12.2 had it: the command lives on the server, so opening a client-only
+     * screen needs a message. The port's detour through client commands is gone — a shared command root
+     * cannot work in Fabric, because a client-registered name is resolved before the server's tree and
+     * swallows the server's children (see core/ScreenCommands.kt).
+     *
+     * <p>Unknown ids are ignored rather than throwing, so a server with a newer build cannot disconnect
+     * this client over a screen it does not have.
+     */
+    private fun registerScreenReceiver() {
+        ClientPlayNetworking.registerGlobalReceiver(PacketOpenModScreen.ID) { payload, context ->
+            context.client().execute {
+                val parent = context.client().currentScreen
+                val opened = when (payload.screen) {
+                    PacketOpenModScreen.CONFIG -> {
+                        ClientScreenOpener.queue(SimpleTweaksConfigScreen(parent)); true
+                    }
+                    PacketOpenModScreen.ENCHANT_INDEX -> {
+                        ClientScreenOpener.queue(EnchantInfoScreen(parent)); true
+                    }
+                    else -> false
+                }
+                if (opened) STLog.log("Screen") { "screen=${payload.screen}, outcome=opening" }
+            }
+        }
     }
 
     /**

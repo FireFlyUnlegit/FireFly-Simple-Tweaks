@@ -6,11 +6,15 @@ import dev.firefly.simpletweaks.compat.event.PlayerDropsEvent
 import dev.firefly.simpletweaks.compat.event.PlayerEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.core.Listenable
-import dev.firefly.simpletweaks.enchantments.ModEnchantmentKeys
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import net.minecraft.entity.ItemEntity
 import net.minecraft.item.ItemStack
 import java.util.UUID
+import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
+import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 
 /**
  * 1.21 port of `enchantments/handlers/legendary/EnchantSoulBoundHandler.kt` (63 lines).
@@ -27,7 +31,7 @@ import java.util.UUID
  * | `e.isWasDeath`                                      | `e.wasDeath`                                                       |
  * | `newPlayer.inventory.addItemStackToInventory(s)`    | `e.player.inventory.insertStack(s)` (`PlayerInventory.insertStack`) |
  * | `newPlayer.dropItem(stack, false)`                  | `e.player.dropItem(stack, false)` (same name, 2-arg overload)        |
- * | `EnchantSoulBound` (Enchantment object)             | `ModEnchantmentKeys.SOUL_BOUND` (RegistryKey)                       |
+ * | `EnchantSoulBound` (Enchantment object)             | `GeneratedEnchantments.SOUL_BOUND` (RegistryKey)                       |
  *
  * ⚠️ **Forced mapping — please review by hand (the only one in this file).**
  * 1.12.2 persisted the saved drops inside Forge's per-entity NBT
@@ -47,6 +51,18 @@ import java.util.UUID
  * restart (neither did Forge's in practice for an unloaded player, but this is the honest statement
  * for the port).
  */
+@ModEnchantment(
+    id = "soul_bound",
+    category = EnchantCategory.LEGENDARY,
+    type = EnchantType.BREAKABLE,
+    maxLevel = 1,
+    weight = 2,
+    anvilCost = 10,
+    minCostBase = 25,
+    supportedItems = "#minecraft:enchantable/durability",
+    slots = [EnchantSlot.ANY],
+    order = 39,
+)
 object EnchantSoulBoundHandler : Listenable {
 
     /** Forge tag name kept for traceability against the 1.12.2 source. */
@@ -66,7 +82,7 @@ object EnchantSoulBoundHandler : Listenable {
         for (drop in e.drops) {
             val stack = drop.stack
             if (stack.isEmpty) continue
-            if (getItemSpecificEnchantLevel(stack, ModEnchantmentKeys.SOUL_BOUND) <= 0) continue
+            if (getItemSpecificEnchantLevel(stack, GeneratedEnchantments.SOUL_BOUND) <= 0) continue
 
             kept.add(stack.copy())
             toRemove.add(drop)
