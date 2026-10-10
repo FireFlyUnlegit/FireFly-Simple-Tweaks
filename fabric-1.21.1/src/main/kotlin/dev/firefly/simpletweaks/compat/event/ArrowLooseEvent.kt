@@ -10,7 +10,7 @@ import net.minecraft.item.ItemStack
  * same point Forge used (the bow has been released, the shot has not been fired yet).
  *
  * <p>Handlers can cancel the event to replace vanilla's shot entirely — that is what
- * [dev.firefly.simpletweaks.enchantments.handlers.epic.EnchantMultishotHandler] does.
+ * [dev.firefly.simpletweaks.enchantments.handlers.legendary.EnchantMultishotHandler] does.
  *
  * <p>1.12.2 field names are kept so handler bodies port unchanged:
  * [entityPlayer], [bow], [charge]. [charge] is **ticks drawn**, i.e.

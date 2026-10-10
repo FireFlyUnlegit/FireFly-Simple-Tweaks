@@ -5,10 +5,14 @@ import dev.firefly.simpletweaks.compat.event.PlayerEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.event.TickEvent
 import dev.firefly.simpletweaks.core.Listenable
-import dev.firefly.simpletweaks.enchantments.ModEnchantmentKeys
+import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import net.minecraft.server.network.ServerPlayerEntity
 import java.util.*
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
+import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 
 /**
  * 1.21 port of `enchantments/handlers/legendary/EnchantFlightHandler.kt`.
@@ -27,7 +31,7 @@ import java.util.*
  * | `p.isCreative` / `p.isSpectator`                | unchanged (`isCreative()` / `isSpectator()`)                            |
  * | `stack.itemDamage += 2`                         | `stack.damage += 2` (`ItemStack#getDamage`/`setDamage`, both public and neither clamped — same as the raw 1.12.2 field write) |
  * | `EnchantFlight.maxLevel`                        | `MAX_LEVEL` constant — see below                                        |
- * | `EnchantFlight` (Enchantment object)            | `ModEnchantmentKeys.FLIGHT` (RegistryKey)                               |
+ * | `EnchantFlight` (Enchantment object)            | `GeneratedEnchantments.FLIGHT` (RegistryKey)                               |
  *
  * ⚠️ Forced mapping: 1.12.2 read `EnchantFlight.maxLevel` (3). Since 1.21 the max level lives in the
  * enchantment JSON (`data/simple_tweaks/enchantment/flight.json`, `"max_level": 3`), so the value is
@@ -37,6 +41,19 @@ import java.util.*
  * on `PlayerEntity`: 1.12.2 only sent the packet from `EntityPlayerMP`, and the packet is what makes
  * the client's ability flags follow the server.
  */
+@ModEnchantment(
+    id = "flight",
+    category = EnchantCategory.LEGENDARY,
+    type = EnchantType.CHESTPLATE,
+    maxLevel = 3,
+    weight = 2,
+    anvilCost = 10,
+    minCostBase = 40,
+    minCostPerLevel = 10,
+    supportedItems = "#minecraft:enchantable/chest_armor",
+    slots = [EnchantSlot.CHEST],
+    order = 38,
+)
 object EnchantFlightHandler : Listenable {
     private val isControllingFlight = mutableMapOf<UUID, Boolean>()
     private val flyingTick = mutableMapOf<UUID, Int>()
@@ -50,7 +67,7 @@ object EnchantFlightHandler : Listenable {
         val p = e.player
         val uuid = p.uuid
         val stack = p.inventory.getArmorStack(2)
-        val enchantment = ModEnchantmentKeys.FLIGHT
+        val enchantment = GeneratedEnchantments.FLIGHT
         val level = getItemSpecificEnchantLevel(stack, enchantment)
         if (level > 0 && p.hungerManager.foodLevel > 0) {
             val wasControlling = isControllingFlight[uuid] == true

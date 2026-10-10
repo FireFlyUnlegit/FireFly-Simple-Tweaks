@@ -1,13 +1,13 @@
 package dev.firefly.simpletweaks.client.tooltips
 
 import dev.firefly.simpletweaks.client.ClientManaPoolCache
-import dev.firefly.simpletweaks.enchantments.ModEnchantmentKeys
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import net.fabricmc.fabric.api.client.item.v1.ItemTooltipCallback
 import net.minecraft.client.MinecraftClient
 import net.minecraft.text.Text
 import net.minecraft.util.Formatting
 import kotlin.math.roundToInt
+import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 
 /**
  * Adds a `ManaPool: N` line to the tooltip of an item carrying `celestial_blessing`.
@@ -40,7 +40,7 @@ object ManaPoolToolTipHandler {
 
             val player = MinecraftClient.getInstance().player ?: return@register
 
-            val lvl = getItemSpecificEnchantLevel(stack, ModEnchantmentKeys.CELESTIAL_BLESSING)
+            val lvl = getItemSpecificEnchantLevel(stack, GeneratedEnchantments.CELESTIAL_BLESSING)
             if (lvl <= 0) return@register
 
             val pool = ClientManaPoolCache.get(player.uuid)

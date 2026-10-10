@@ -1,7 +1,6 @@
 package dev.firefly.simpletweaks.enchantments.handlers.mythic
 
 import dev.firefly.simpletweaks.compat.STLog
-import dev.firefly.simpletweaks.enchantments.ModEnchantmentKeys
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import net.minecraft.entity.Entity
 import net.minecraft.entity.LivingEntity
@@ -20,6 +19,7 @@ import net.minecraft.world.World
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.random.Random
+import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 
 /**
  * `infinite_power` core: the one-shot kill, plus the laser body.
@@ -362,10 +362,10 @@ object EnchantInfinitePowerHandler {
     /** Convenience for the sub-handlers: the level of `infinite_power` on the held stack. */
     @JvmStatic
     fun heldLevel(player: PlayerEntity): Int =
-        getItemSpecificEnchantLevel(player.mainHandStack, ModEnchantmentKeys.INFINITE_POWER)
+        getItemSpecificEnchantLevel(player.mainHandStack, GeneratedEnchantments.INFINITE_POWER)
 
     /** Convenience for the sub-handlers: whether the given stack carries `infinite_power`. */
     @JvmStatic
     fun hasPower(stack: ItemStack): Boolean =
-        getItemSpecificEnchantLevel(stack, ModEnchantmentKeys.INFINITE_POWER) > 0
+        getItemSpecificEnchantLevel(stack, GeneratedEnchantments.INFINITE_POWER) > 0
 }

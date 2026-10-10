@@ -84,4 +84,41 @@ annotation class ModEnchantment(
      * `0.2 + rarity/20` rule in two places.
      */
     val damagePerLevel: Double = 0.0,
+
+    /**
+     * `minecraft:attributes` entries, one per attribute. Empty (the default) emits no attributes block.
+     *
+     * Independent of [damagePerLevel]: when both are set the JSON carries both components.
+     */
+    val attributes: Array<AttributeSpec> = [],
+
+    /**
+     * Registration order. `GeneratedEnchantments.HANDLERS` is sorted by this, and since
+     * `ForgeEventBus` sorts by `EventPriority` with a **stable** sort, this is what decides dispatch
+     * order among listeners that share a priority — i.e. it is *semantically load bearing*, not
+     * cosmetic.
+     *
+     * Default `Int.MAX_VALUE` = appended after everything else, which is what a brand-new KSP
+     * enchantment wants. A handler migrated out of `EnchantmentManager.handlerList` must instead carry
+     * the position it had there, or its listeners silently move to the end of the bus (that is what once
+     * disabled `EnchantCritDamageHandler` on every forced crit).
+     */
+    val order: Int = Int.MAX_VALUE,
+
+    /**
+     * Whether KSP generates the datapack JSON for this declaration.
+     *
+     * `true` (default): the generated JSON is the definition — delete the hand-written copy under
+     * `src/main/resources/data/simple_tweaks/enchantment/`, or the two would land at the same jar path.
+     *
+     * `false`: the JSON is **not** generated and the hand-written file stays the definition. Everything
+     * else is still generated — key, `HANDLERS`, index metadata — which is the point: an enchantment whose
+     * `effects` use a component this processor cannot emit yet can still get its key and index entry from
+     * the annotation. Nothing else needs to change for that: the hand-written JSON simply stays where it is.
+     *
+     * As of the 1.21.1 port this is **not needed by any of the 53 legacy enchantments**: their `effects`
+     * are either `{}`, `minecraft:damage`, or `minecraft:attributes` — the first two are covered by
+     * [damagePerLevel] and the third by [attributes]. It exists for the next exotic one.
+     */
+    val jsonEmit: Boolean = true,
 )

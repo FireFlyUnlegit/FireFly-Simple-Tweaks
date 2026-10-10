@@ -7,10 +7,14 @@ import dev.firefly.simpletweaks.compat.event.LivingHurtEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.invalid
 import dev.firefly.simpletweaks.core.Listenable
-import dev.firefly.simpletweaks.enchantments.ModEnchantmentKeys
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import net.minecraft.entity.player.PlayerEntity
 import java.util.*
+import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
+import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 
 /**
  * 1.21 port of `enchantments/handlers/epic/EnchantChargedStrikeHandler.kt`.
@@ -24,10 +28,24 @@ import java.util.*
  * | `EntityPlayer`                             | `net.minecraft.entity.player.PlayerEntity`                      |
  * | `e.source.trueSource`                      | `e.source.attacker` (Yarn `DamageSource.getAttacker`, method_5529) |
  * | `attacker.heldItemMainhand`                | `attacker.mainHandStack` (method_6047)                          |
- * | `EnchantChargedStrike` (Enchantment)       | `ModEnchantmentKeys.CHARGED_STRIKE` (RegistryKey)               |
+ * | `EnchantChargedStrike` (Enchantment)       | `GeneratedEnchantments.CHARGED_STRIKE` (RegistryKey)               |
  *
  * The per-player "stored damage" map, the 15 %×level carry-over and the death cleanup are unchanged.
  */
+@ModEnchantment(
+    id = "charged_strike",
+    category = EnchantCategory.EPIC,
+    type = EnchantType.SWORD,
+    maxLevel = 5,
+    weight = 4,
+    anvilCost = 8,
+    minCostBase = 30,
+    minCostPerLevel = 5,
+    supportedItems = "#minecraft:enchantable/sword",
+    slots = [EnchantSlot.MAINHAND],
+    damagePerLevel = 0.35,
+    order = 24,
+)
 object EnchantChargedStrikeHandler : Listenable {
 
     private val stored = WeakHashMap<PlayerEntity, Float>()
@@ -37,7 +55,7 @@ object EnchantChargedStrikeHandler : Listenable {
         if (e.invalid) return
         val attacker = e.source.attacker as? PlayerEntity ?: return
 
-        val lvl = getItemSpecificEnchantLevel(attacker.mainHandStack, ModEnchantmentKeys.CHARGED_STRIKE)
+        val lvl = getItemSpecificEnchantLevel(attacker.mainHandStack, GeneratedEnchantments.CHARGED_STRIKE)
         if (lvl <= 0) {
             stored.remove(attacker)
             return

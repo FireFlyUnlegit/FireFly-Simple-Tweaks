@@ -6,7 +6,6 @@ import dev.firefly.simpletweaks.compat.event.BlockEvent
 import dev.firefly.simpletweaks.compat.event.EventPriority
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.core.Listenable
-import dev.firefly.simpletweaks.enchantments.ModEnchantmentKeys
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import net.minecraft.block.Block
 import net.minecraft.block.Blocks
@@ -15,6 +14,11 @@ import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 import kotlin.math.abs
+import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
+import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 
 /**
  * 1.21 port of `enchantments/handlers/epic/EnchantTunnelingHandler.kt`.
@@ -34,7 +38,7 @@ import kotlin.math.abs
  * | `world.setBlockToAir(pos)`                               | `world.removeBlock(pos, false)` (method_8652; `false` = no `MOVED` flag, the `setBlockToAir` behaviour) |
  * | `state.block.harvestBlock(world, player, pos, state, te, tool)` | `Block.dropStacks(state, world, pos, te, player, tool)` (`method_9565`) — the 1.21 entry point for "break this block and drop its loot as this player" |
  * | `tool.damageItem(1, player)`                             | `tool.damage(1, player, EquipmentSlot.MAINHAND)` (method_7970)          |
- * | `EnchantTunneling` (Enchantment)                         | `ModEnchantmentKeys.TUNNELING` (RegistryKey)                            |
+ * | `EnchantTunneling` (Enchantment)                         | `GeneratedEnchantments.TUNNELING` (RegistryKey)                            |
  *
  * The 3-level offset masks, the `inTunneling` re-entrancy guard, the "same block, finite hardness, no
  * block entity" filters and the added 1-durability cost per extra block are unchanged.
@@ -42,6 +46,19 @@ import kotlin.math.abs
  * Note: `e.player ?: return` is kept from the 1.12.2 source even though this port's `BreakEvent.player`
  * is declared non-null — the guard is inert, not a behaviour change.
  */
+@ModEnchantment(
+    id = "tunneling",
+    category = EnchantCategory.EPIC,
+    type = EnchantType.TOOL,
+    maxLevel = 3,
+    weight = 4,
+    anvilCost = 8,
+    minCostBase = 30,
+    minCostPerLevel = 10,
+    supportedItems = "#minecraft:enchantable/mining",
+    slots = [EnchantSlot.MAINHAND],
+    order = 30,
+)
 object EnchantTunnelingHandler : Listenable {
 
     private const val MAX_LEVEL = 3
@@ -55,7 +72,7 @@ object EnchantTunnelingHandler : Listenable {
         if (player.isSneaking) return
 
         val tool = player.mainHandStack
-        val lvl = getItemSpecificEnchantLevel(tool, ModEnchantmentKeys.TUNNELING)
+        val lvl = getItemSpecificEnchantLevel(tool, GeneratedEnchantments.TUNNELING)
         if (lvl <= 0) return
 
         val world = player.world

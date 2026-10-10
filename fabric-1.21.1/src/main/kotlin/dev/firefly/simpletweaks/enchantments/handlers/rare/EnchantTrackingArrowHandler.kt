@@ -4,9 +4,8 @@ import dev.firefly.simpletweaks.compat.event.EntityJoinWorldEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.event.TickEvent
 import dev.firefly.simpletweaks.core.Listenable
-import dev.firefly.simpletweaks.enchantments.ModEnchantmentKeys
 import dev.firefly.simpletweaks.interfaces.SimpleTweaksArrow
-import dev.firefly.simpletweaks.mixin.PersistentProjectileEntityAccessor
+import dev.firefly.simpletweaks.mixin.accessors.PersistentProjectileEntityAccessor
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.player.PlayerEntity
@@ -15,6 +14,11 @@ import net.minecraft.particle.ParticleTypes
 import net.minecraft.server.world.ServerWorld
 import net.minecraft.util.math.Vec3d
 import kotlin.math.acos
+import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
+import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 
 /**
  * `tracking_arrow`: arrows home in on nearby mobs, turning a limited number of degrees per tick.
@@ -47,6 +51,19 @@ import kotlin.math.acos
  * targets it has not hit yet, and only falls back to targets it can still hit (below `maxPerTarget`),
  * which is why the per-target hit map lives on the projectile rather than in this handler.
  */
+@ModEnchantment(
+    id = "tracking_arrow",
+    category = EnchantCategory.RARE,
+    type = EnchantType.BOW,
+    maxLevel = 5,
+    weight = 6,
+    anvilCost = 6,
+    minCostBase = 32,
+    minCostPerLevel = 12,
+    supportedItems = "#minecraft:enchantable/bow",
+    slots = [EnchantSlot.MAINHAND, EnchantSlot.OFFHAND],
+    order = 23,
+)
 object EnchantTrackingArrowHandler : Listenable {
 
     @SubscribeEvent
@@ -54,7 +71,7 @@ object EnchantTrackingArrowHandler : Listenable {
         if (e.world.isClient) return
         val arrow = e.entity as? PersistentProjectileEntity ?: return
         val shooter = arrow.owner as? PlayerEntity ?: return
-        val lvl = getItemSpecificEnchantLevel(shooter.mainHandStack, ModEnchantmentKeys.TRACKING_ARROW)
+        val lvl = getItemSpecificEnchantLevel(shooter.mainHandStack, GeneratedEnchantments.TRACKING_ARROW)
         if (lvl <= 0) return
         (arrow as SimpleTweaksArrow).`simpletweaks$setTrackingLevel`(lvl)
     }

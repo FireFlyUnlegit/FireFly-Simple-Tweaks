@@ -3,61 +3,11 @@ package dev.firefly.simpletweaks.core
 import dev.firefly.simpletweaks.SimpleTweaks
 import dev.firefly.simpletweaks.compat.ForgeEventBus
 import dev.firefly.simpletweaks.enchantments.EnchantmentMeta
-import dev.firefly.simpletweaks.enchantments.ModEnchantmentKeys
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
-import dev.firefly.simpletweaks.enchantments.handlers.common.EnchantAcidAttackHandler
-import dev.firefly.simpletweaks.enchantments.handlers.common.EnchantArmorBreakerHandler
-import dev.firefly.simpletweaks.enchantments.handlers.common.EnchantAutoSmeltHandler
-import dev.firefly.simpletweaks.enchantments.handlers.common.EnchantCombatMasterHandler
-import dev.firefly.simpletweaks.enchantments.handlers.common.EnchantMotionBonusHandler
-import dev.firefly.simpletweaks.enchantments.handlers.common.EnchantVoidProtectionHandler
-import dev.firefly.simpletweaks.enchantments.handlers.epic.EnchantChargedStrikeHandler
-import dev.firefly.simpletweaks.enchantments.handlers.epic.EnchantCritDamageHandler
-import dev.firefly.simpletweaks.enchantments.handlers.epic.EnchantDamageReductionHandler
-import dev.firefly.simpletweaks.enchantments.handlers.epic.EnchantDelayedRecoveryHandler
-import dev.firefly.simpletweaks.enchantments.handlers.epic.EnchantGravityStrikeHandler
-import dev.firefly.simpletweaks.enchantments.handlers.epic.EnchantTrueDamageHandler
-import dev.firefly.simpletweaks.enchantments.handlers.epic.EnchantTunnelingHandler
-import dev.firefly.simpletweaks.enchantments.handlers.epic.EnchantVitalityHandler
-import dev.firefly.simpletweaks.enchantments.handlers.legendary.EnchantComboHandler
-import dev.firefly.simpletweaks.enchantments.handlers.legendary.EnchantDamageLimiterHandler
-import dev.firefly.simpletweaks.enchantments.handlers.legendary.EnchantDoubleCritHandler
-import dev.firefly.simpletweaks.enchantments.handlers.legendary.EnchantDoubleStrikeHandler
-import dev.firefly.simpletweaks.enchantments.handlers.epic.EnchantMultishotHandler
-import dev.firefly.simpletweaks.enchantments.handlers.mystery.EnchantCelestialBlessingHandler
-import dev.firefly.simpletweaks.enchantments.handlers.rare.EnchantTrackingArrowHandler
-import dev.firefly.simpletweaks.enchantments.handlers.legendary.EnchantEchoShotHandler
-import dev.firefly.simpletweaks.enchantments.handlers.legendary.EnchantFlightHandler
-import dev.firefly.simpletweaks.enchantments.handlers.legendary.EnchantSoulBoundHandler
-import dev.firefly.simpletweaks.enchantments.handlers.mythic.EnchantDeathProtectionHandler
-import dev.firefly.simpletweaks.enchantments.handlers.mythic.EnchantEchoShieldHandler
-import dev.firefly.simpletweaks.enchantments.handlers.mythic.EnchantGrievousWoundsHandler
-import dev.firefly.simpletweaks.enchantments.handlers.mythic.EnchantHealingBladeHandler
-import dev.firefly.simpletweaks.enchantments.handlers.mythic.EnchantKillAuraHandler
-import dev.firefly.simpletweaks.enchantments.handlers.mythic.EnchantStarfallHandler
 import dev.firefly.simpletweaks.enchantments.handlers.mythic.infinitepower.FlightHandler
 import dev.firefly.simpletweaks.enchantments.handlers.mythic.infinitepower.ForgeHandler
 import dev.firefly.simpletweaks.enchantments.handlers.mythic.infinitepower.SoulBindHandler
 import dev.firefly.simpletweaks.enchantments.handlers.mythic.infinitepower.ToolHandler
-import dev.firefly.simpletweaks.enchantments.handlers.mystery.EnchantHeavenlyPunishmentHandler
-import dev.firefly.simpletweaks.enchantments.handlers.rare.EnchantAssassinHandler
-import dev.firefly.simpletweaks.enchantments.handlers.rare.EnchantExecuteHandler
-import dev.firefly.simpletweaks.enchantments.handlers.rare.EnchantExperienceStealerHandler
-import dev.firefly.simpletweaks.enchantments.handlers.rare.EnchantExtraArmorHandler
-import dev.firefly.simpletweaks.enchantments.handlers.rare.EnchantFireMasterHandler
-import dev.firefly.simpletweaks.enchantments.handlers.rare.EnchantHuntersMarkHandler
-import dev.firefly.simpletweaks.enchantments.handlers.rare.EnchantImmortalHandler
-import dev.firefly.simpletweaks.enchantments.handlers.rare.EnchantItemFixerHandler
-import dev.firefly.simpletweaks.enchantments.handlers.uncommon.EnchantAoeAttackHandler
-import dev.firefly.simpletweaks.enchantments.handlers.uncommon.EnchantBloodLustHandler
-import dev.firefly.simpletweaks.enchantments.handlers.uncommon.EnchantEffectBonusHandler
-import dev.firefly.simpletweaks.enchantments.handlers.uncommon.EnchantHealerHandler
-import dev.firefly.simpletweaks.enchantments.handlers.uncommon.EnchantMomentumHandler
-import dev.firefly.simpletweaks.enchantments.handlers.uncommon.EnchantRegenerationHandler
-import dev.firefly.simpletweaks.enchantments.handlers.uncommon.EnchantResilienceHandler
-import dev.firefly.simpletweaks.enchantments.handlers.uncommon.EnchantSaturationHandler
-import dev.firefly.simpletweaks.enchantments.handlers.uncommon.EnchantSuperKnockbackHandler
-import dev.firefly.simpletweaks.enchantments.handlers.unique.EnchantReForgeHandler
 import net.minecraft.enchantment.Enchantment
 import net.minecraft.registry.RegistryKey
 
@@ -76,7 +26,16 @@ import net.minecraft.registry.RegistryKey
 object EnchantmentManager {
 
     /**
-     * Handlers to register, in registration order.
+     * Handlers to register, as `order to handler`.
+     *
+     * The numbers are **the original 1.12.2 registration order** and they are load bearing, not
+     * decorative: `ForgeEventBus` sorts by `EventPriority` with a stable sort, so within one priority the
+     * dispatch order *is* registration order, and a handler that changes place can silently stop seeing
+     * state a sibling sets. They are written out explicitly rather than implied by list position so that
+     * deleting a migrated entry cannot shift every entry after it.
+     *
+     * When a handler moves to `@ModEnchantment` its number goes with it (`order = N`) and the entry here
+     * is deleted; `initHandlers` merges both sources by that number.
      *
      * Batch 1 (common + uncommon) + batch 2 (rare + epic). Grown batch by batch — see
      * `docs/phase3-port-spec.md` for which handlers were dropped, deferred, or are blocked on a seam
@@ -135,91 +94,35 @@ object EnchantmentManager {
      * config (`GeneralConfig.enabledSpecialParticles`); none of those exist in this tree yet. It now
      * lives in `deferred/EnchantCelestialBlessingHandler.kt.disabled`.
      */
-    private val handlerList = listOf(
+    private val handlerList: List<Pair<Int, Listenable>> = listOf(
         // --- common ---
-        EnchantAcidAttackHandler,
-        EnchantArmorBreakerHandler,
-        EnchantAutoSmeltHandler,
-        EnchantCombatMasterHandler,
-        EnchantMotionBonusHandler,
-        EnchantVoidProtectionHandler,
         // --- uncommon ---
-        EnchantAoeAttackHandler,
-        EnchantBloodLustHandler,
-        EnchantEffectBonusHandler,
-        EnchantHealerHandler,
-        EnchantMomentumHandler,
-        EnchantRegenerationHandler,
-        EnchantResilienceHandler,
-        EnchantSaturationHandler,
-        EnchantSuperKnockbackHandler,
         // --- rare ---
-        EnchantAssassinHandler,
-        EnchantExecuteHandler,
-        EnchantExperienceStealerHandler,
-        EnchantExtraArmorHandler,
-        EnchantFireMasterHandler,
-        EnchantHuntersMarkHandler,
-        EnchantImmortalHandler,
-        EnchantItemFixerHandler,
         // Bow enchantments of this tier. TrackingArrow is server-only steering; PiercingArrow
         // re-implements the projectile-hit seam (see its KDoc for why a blanket cancel would break).
         //
         // `EnchantPiercingArrowHandler` is no longer listed here: it is declared with `@ModEnchantment`
-        // and therefore arrives through `GeneratedEnchantments.HANDLERS`, i.e. appended *after* this
-        // list. That is safe for this handler specifically -- its only seam is `EntityJoinWorldEvent`,
-        // where it and TrackingArrow touch disjoint state -- but it is exactly why an order-sensitive
-        // handler must not be migrated without first expressing its ordering as an `EventPriority`
-        // (see the crit note above).
-        EnchantTrackingArrowHandler,
+        // and therefore arrives through `GeneratedEnchantments.HANDLERS`. That is safe for this handler
+        // specifically -- its only seam is `EntityJoinWorldEvent`, where it and TrackingArrow touch
+        // disjoint state -- and it is exactly why a migrated handler must carry the number it had here.
         // --- epic ---
-        EnchantChargedStrikeHandler,
-        EnchantDamageReductionHandler,
-        EnchantDelayedRecoveryHandler,
-        EnchantGravityStrikeHandler,
         // Bow enchantments: `EnchantMultishotHandler` replaced vanilla's shot via `ArrowLooseEvent`,
         // and is therefore the only user of that seam. Placed with its tier (epic) like the rest.
-        EnchantMultishotHandler,
-        EnchantTrueDamageHandler,
-        EnchantTunnelingHandler,
-        EnchantVitalityHandler,
         // --- legendary ---
-        EnchantComboHandler,
-        // ⚠️ History: this list is NOT purely grouped by tier, because the crit chain *used* to depend
-        // on same-priority registration order. ForgeEventBus sorts by EventPriority with a STABLE sort,
-        // so listeners sharing a priority run in handlerList order -- and 1.12.2 had
-        // EnchantCritHandler at 96, EnchantCritDamageHandler at 97, EnchantDoubleCritHandler at 100.
-        // A purely tier-grouped port registered CritDamage (epic) BEFORE Crit (legendary) and silently
-        // disabled CritDamage on every forced crit.
-        //
-        // That coupling is now GONE, on purpose: `EnchantCritHandler` is the only `HIGHEST` listener on
-        // `CriticalHitEvent`, while `EnchantCritDamageHandler` runs at `HIGH`
-        // (`EnchantDoubleCritHandler` was always `HIGH`). Their relative order is decided by priority,
-        // not by position in this list -- which is exactly what let `EnchantCritHandler` move to
-        // `@ModEnchantment` even though `GeneratedEnchantments.HANDLERS` is appended *after* this list
-        // (see `initHandlers`). It is no longer listed here. `EnchantCritDamageHandler` and
-        // `EnchantDoubleCritHandler` stay, in this order, because they share `HIGH` and their relative
-        // order is therefore still registration order.
+        // ⚠️ History: the numbers below are the 1.12.2 order (Crit 96 / CritDamage 97 / DoubleCrit 100),
+        // because same-priority listeners dispatch in registration order and the crit chain depended on
+        // CritDamage running after Crit. That coupling is now expressed by `EventPriority` instead --
+        // Crit is the only `HIGHEST` listener on `CriticalHitEvent`, CritDamage runs at `HIGH` -- which is
+        // what let `EnchantCritHandler` become a `@ModEnchantment` declaration carrying its number.
         // Keep the distinct priorities; do not "tidy" them back to the same value.
-        EnchantCritDamageHandler,
-        EnchantDamageLimiterHandler,
-        EnchantDoubleCritHandler,
-        EnchantDoubleStrikeHandler,
-        EnchantEchoShotHandler,
-        EnchantFlightHandler,
-        EnchantSoulBoundHandler,
         // --- mythic ---
-        EnchantDeathProtectionHandler,
-        EnchantEchoShieldHandler,
-        EnchantGrievousWoundsHandler,
-        EnchantHealingBladeHandler,
-        EnchantKillAuraHandler,
-        EnchantStarfallHandler,
         // --- infinite_power ---
         // `EnchantInfinitePowerHandler` itself is NOT a Listenable: its one-shot kill is invoked
         // directly from `PlayerEntityAttackMixin` (the same HEAD seam 1.12.2's
         // `MixinEntityPlayerAttack` used, except it does not cancel — see that handler's KDoc), so
-        // only the four aura handlers register here.
+        // only the four aura handlers register here. They are the reason this list must keep explicit
+        // numbers: they sit in the middle of the sequence, so a migrated handler that merely *appended*
+        // itself would come after them.
         //
         // Still missing, each blocked on a seam that does not exist yet: the bag (inventory +
         // container + GUI + its right-click opener) needs a registered `ScreenHandlerType`, an
@@ -227,25 +130,27 @@ object EnchantmentManager {
         // `PlayerInteractEvent.LeftClickEmpty` plus a packet. `DropHandler` (the 64x drop multiplier)
         // was ported and then **dropped at the author's request**, so nothing else is outstanding
         // there.
-        FlightHandler,
-        ForgeHandler,
-        SoulBindHandler,
-        ToolHandler,
+        46 to FlightHandler,
+        47 to ForgeHandler,
+        48 to SoulBindHandler,
+        49 to ToolHandler,
         // --- mystery ---
         // CelestialBlessing is the mod's largest handler and the only one that uses the network
         // layer (ring packet + mana sync) plus the config's `enabledSpecialParticles`.
-        EnchantCelestialBlessingHandler,
-        EnchantHeavenlyPunishmentHandler,
         // --- unique ---
-        EnchantReForgeHandler,
     )
 
     fun initHandlers() {
-        // The hand-written list above (the 1.12.2 port, order-sensitive -- see its comments) plus
-        // everything declared with @ModEnchantment. KSP renders those into
-        // GeneratedEnchantments.HANDLERS, which is what makes "one file per enchantment" true: a new
-        // handler is registered without editing this file at all.
-        val all = handlerList + GeneratedEnchantments.HANDLERS
+        // Hand-listed survivors and `@ModEnchantment` declarations, merged **by order** rather than by
+        // concatenation. The distinction is not cosmetic: `infinite_power`'s four aura handlers stay
+        // listed above (they are not the object carrying that enchantment's annotation) and they sit in
+        // the middle of the original sequence, so appending the declared handlers would move every
+        // listener after them. `order` is `Int.MAX_VALUE` for a brand-new declaration, which is how a new
+        // KSP enchantment lands at the end without anyone renumbering anything.
+        // ORDERS.zip(HANDLERS), not the other way round: the result must be `Pair<Int, Listenable>` to
+        // match `handlerList` above, or the two lists have no common element type.
+        val declared = GeneratedEnchantments.HANDLER_ORDERS.zip(GeneratedEnchantments.HANDLERS)
+        val all = (handlerList + declared).sortedBy { it.first }.map { it.second }
         all.forEach { it.registerEvents() }
         SimpleTweaks.LOGGER.info(
             "Registered {} enchantment handler(s) ({} hand-listed + {} @ModEnchantment)",
@@ -254,11 +159,11 @@ object EnchantmentManager {
     }
 
     /**
-     * Every known key, across both generations of this port — see [EnchantmentMeta].
+     * Every known key — see [EnchantmentMeta].
      *
      * This is only used for diagnostics now (enchantments themselves come from the data pack), so a
-     * missing entry is not a functional bug — but it *was* one until this became a merge:
-     * `ModEnchantmentKeys.ALL` did not contain `fast_bow`, so the enchant index silently omitted it.
+     * missing entry is not a functional bug — but it *was* one: the old generated key table omitted
+     * `fast_bow`, so the enchant index silently left it out.
      */
     fun getAllKeys(): List<RegistryKey<Enchantment>> = EnchantmentMeta.allKeys()
 

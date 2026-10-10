@@ -29,10 +29,9 @@ import net.minecraft.text.Text
  *
  * <h2>Labels</h2>
  * Every label is a translation key looked up in `gui.simple_tweaks.config.*`. Those keys are **not** in
- * the 1.12.2 `.lang` files (the config screen only exists in this port) and are declared in
- * `tools/gen-enchantments.ps1` under `$extraLang`, which merges them into the generated lang JSON and
- * **throws** on a collision with a 1.12.2 key. Editing the generated JSON by hand would not survive
- * the next generator run.
+ * the 1.12.2 `.lang` files (the config screen only exists in this port), so they are hand-written in
+ * `assets/simple_tweaks/lang/{en_us,zh_cn}.json` alongside every enchantment name and description. Those
+ * two files are the source of truth — no generator writes them.
  *
  * <h2>Persistence</h2>
  * Every widget writes through [SimpleTweaksConfig.save] immediately, so a change survives a crash and
@@ -138,9 +137,6 @@ class SimpleTweaksConfigScreen(private val parent: Screen?) :
                 }
                 boolRow("enabledSpecialParticles", { GeneralConfig.enabledSpecialParticles }) {
                     GeneralConfig.enabledSpecialParticles = it
-                }
-                boolRow("anvilDisenchant", { GeneralConfig.anvilDisenchant }) {
-                    GeneralConfig.anvilDisenchant = it
                 }
             }
 

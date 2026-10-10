@@ -9,10 +9,10 @@ import com.google.devtools.ksp.processing.SymbolProcessorEnvironment
 import com.google.devtools.ksp.processing.SymbolProcessorProvider
 import com.google.devtools.ksp.symbol.ClassKind
 import com.google.devtools.ksp.symbol.KSAnnotated
+import com.google.devtools.ksp.symbol.KSAnnotation
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSFile
 import com.google.devtools.ksp.symbol.KSType
-import java.io.File
 
 private const val ANNOTATION_FQN = "dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment"
 private const val MOD_ID = "simple_tweaks"
@@ -25,23 +25,11 @@ private const val RESOURCE_PACKAGE = "data/$MOD_ID/enchantment"
  */
 private const val TAG_PACKAGE = "data/minecraft/tags/enchantment"
 
-/**
- * KSP option holding the path of `tools/legacy-enchantments.json` — the 1.12.2-derived half of the
- * enchantment set, written once by `tools/gen-enchantments.ps1` and committed.
- *
- * Passed in by `build.gradle`. It is required, not optional: without it the tags could only cover the
- * `@ModEnchantment` declarations and would silently drop the other 54 enchantments.
- */
-private const val LEGACY_MANIFEST_OPTION = "simpleTweaks.legacyManifest"
+/** A namespaced id such as `minecraft:generic.max_health`. */
+private val RESOURCE_LOCATION = Regex("[a-z_0-9]+:[a-z_0-9_./-]+")
 
-/**
- * One entry of that manifest. A strict whole-object match on purpose: a format change must fail loudly
- * (see `readLegacyManifest`) rather than half-parse into a shorter list.
- */
-private val LEGACY_ENTRY = Regex(
-    "\\{\\s*\"id\"\\s*:\\s*\"([a-z][a-z0-9_]*)\"\\s*,\\s*\"category\"\\s*:\\s*\"([a-z]+)\"\\s*," +
-        "\\s*\"type\"\\s*:\\s*\"([a-z_]+)\"\\s*,\\s*\"maxLevel\"\\s*:\\s*(\\d+)\\s*\\}",
-)
+/** The three vanilla attribute modifier operations. */
+private val ATTRIBUTE_OPERATIONS = setOf("add_value", "add_multiplied_base", "add_multiplied_total")
 
 /**
  * Categories kept out of the enchanting table: MYSTERY and UNIQUE.
@@ -77,6 +65,22 @@ private val ID_PATTERN = Regex("[a-z][a-z0-9_]*")
  */
 private val ENUM_NAME_PATTERN = Regex("[A-Z][A-Z0-9_]*")
 
+/**
+ * One `minecraft:attributes` entry, read from a nested `AttributeSpec` argument.
+ *
+ * [tail] is derived rather than passed because the generated `id` must be unique per entry — vanilla uses
+ * it to keep one item from stacking the same modifier twice — and `<enchantment>.<attribute tail>` is
+ * unique by construction and legible in a `/attribute` listing.
+ */
+private data class AttrSpec(
+    val attribute: String,
+    val perLevel: Double,
+    val operation: String,
+) {
+    /** `minecraft:generic.max_health` -> `max_health`. */
+    val tail: String = attribute.substringAfterLast('.')
+}
+
 private data class Spec(
     val id: String,
     val category: String,   // 枚举名，如 "RARE"
@@ -90,6 +94,11 @@ private data class Spec(
     val maxCostBase: Int,
     val maxCostPerLevel: Int,
     val damagePerLevel: Double,
+    val attributes: List<AttrSpec>,
+    /** Registration position; `Int.MAX_VALUE` means "append last". See `@ModEnchantment.order`. */
+    val order: Int,
+    /** `false` = leave the datapack JSON to the hand-written file. See `@ModEnchantment.jsonEmit`. */
+    val jsonEmit: Boolean,
     val supportedItems: String,
     val primaryItems: String,
     val slots: List<String>,  // 枚举名，如 ["MAINHAND", "OFFHAND"]
@@ -98,16 +107,21 @@ private data class Spec(
     val source: KSFile?,
 ) {
     val constantName: String = id.uppercase()
+
+    /**
+     * The index-metadata projection: the tags and `CATEGORY`/`TYPE`/`MAX_LEVEL` need only these four
+     * fields. Both text fields are lowercased here because every consumer — the enchant index, the tier
+     * colour lookup — works in lowercase, while [Spec] carries enum constant names.
+     */
+    fun toMeta(): Meta = Meta(id, category.lowercase(), type.lowercase(), maxLevel)
 }
 
 /**
- * Index metadata for **one** enchantment, whichever generation declares it — this is what the two
- * sources are merged into. The tags and `CATEGORY`/`TYPE`/`MAX_LEVEL` must cover both sets, and those
- * are the only fields the two sides have in common: everything else in [Spec] is datapack-JSON detail
- * that the legacy side wrote for itself long ago.
+ * Index metadata for one enchantment — everything the tags and the index tables need.
  *
- * Both fields are stored **lowercased** regardless of origin, because the legacy half arrives that way
- * (from the 1.12.2 parse) while [Spec] carries enum constant names.
+ * There used to be a second source of these (a manifest written by `tools/gen-enchantments.ps1` for the
+ * enchantments that were still generated rather than declared); the migration finished, so this is now a
+ * plain projection of [Spec].
  */
 private data class Meta(
     val id: String,
@@ -119,7 +133,6 @@ private data class Meta(
 class ModEnchantmentProcessor(
     private val codeGenerator: CodeGenerator,
     private val logger: KSPLogger,
-    private val options: Map<String, String>,
 ) : SymbolProcessor {
 
     private var done = false
@@ -134,72 +147,17 @@ class ModEnchantmentProcessor(
 
         val specs = annotated.mapNotNull { spec(it) }
         val unique = reportDuplicates(specs)
-        val merged = merge(readLegacyManifest(), unique)
+        val metas = unique.map { it.toMeta() }
 
-        logger.info(
-            "ModEnchantment: ${annotated.size} annotated handler(s) -> ${unique.size} enchantment(s); " +
-                "merged with the legacy manifest -> ${merged.size} total",
-        )
+        logger.info("ModEnchantment: ${annotated.size} annotated handler(s) -> ${unique.size} enchantment(s)")
 
-        writeResources(unique)
-        writeTags(merged)
-        writeKotlin(unique, merged)
+        // Only the declarations that asked for a generated JSON. `jsonEmit = false` still contributes the
+        // key, the HANDLERS entry and the index metadata -- it just leaves the datapack file to the
+        // hand-written copy already in `src/main/resources`.
+        writeResources(unique.filter { it.jsonEmit })
+        writeTags(metas)
+        writeKotlin(unique, metas)
         return emptyList()
-    }
-
-    // ---------- the other half of the enchantment set ----------
-
-    /**
-     * Reads the 1.12.2-derived manifest named by [LEGACY_MANIFEST_OPTION].
-     *
-     * Every failure here is reported, never defaulted: a missing option, a missing file or a manifest
-     * that does not parse would all silently shrink the tags, and a tag missing enchantments is
-     * invisible until somebody notices the enchanting table offering too little.
-     */
-    private fun readLegacyManifest(): List<Meta> {
-        val path = options[LEGACY_MANIFEST_OPTION]
-        if (path.isNullOrBlank()) {
-            logger.error(
-                "KSP option '$LEGACY_MANIFEST_OPTION' is not set; it must point at " +
-                    "tools/legacy-enchantments.json. Without it the generated tags would only cover the " +
-                    "@ModEnchantment declarations.",
-            )
-            return emptyList()
-        }
-        val file = File(path)
-        if (!file.isFile) {
-            logger.error("'$LEGACY_MANIFEST_OPTION' points at '$path', which is not a file.")
-            return emptyList()
-        }
-        val metas = LEGACY_ENTRY.findAll(file.readText()).map { m ->
-            Meta(m.groupValues[1], m.groupValues[2], m.groupValues[3], m.groupValues[4].toInt())
-        }.toList()
-        if (metas.isEmpty()) {
-            logger.error("No entries could be read from '$path' -- has the manifest format changed?")
-        }
-        return metas
-    }
-
-    /**
-     * The union that the tags and the index tables are built from, sorted by id.
-     *
-     * A clash is an error: it means `tools/gen-enchantments.ps1` failed to exclude a migrated
-     * enchantment, and two definitions of one id would end up at the same jar path.
-     */
-    private fun merge(legacy: List<Meta>, specs: List<Spec>): List<Meta> {
-        val byId = linkedMapOf<String, Meta>()
-        legacy.forEach { byId[it.id] = it }
-        specs.forEach { s ->
-            val clash = byId.put(s.id, Meta(s.id, s.category.lowercase(), s.type.lowercase(), s.maxLevel))
-            if (clash != null) {
-                logger.error(
-                    "id '${s.id}' is declared with @ModEnchantment but is also in the legacy manifest. " +
-                        "That script is supposed to exclude @ModEnchantment ids from its outputs, so a " +
-                        "leftover entry means its annotation parse failed.",
-                )
-            }
-        }
-        return byId.values.sortedBy { it.id }
     }
 
     // ---------- reading ----------
@@ -242,6 +200,67 @@ class ModEnchantmentProcessor(
             return null
         }
         return raw
+    }
+
+    /**
+     * Reads the nested `AttributeSpec` arguments of the `attributes` parameter.
+     *
+     * This is not an enum argument, so [validEnum] does not apply — but the failure mode it guards against
+     * is the same, and so is the response: anything unreadable makes this return `null`, which drops the
+     * whole declaration. A nested annotation built from a non-constant expression arrives as an error
+     * placeholder rather than a value, and writing that out yields a JSON file that fails to parse at load
+     * time, far from the line that caused it.
+     */
+    private fun readAttributes(raw: Any?, where: String, decl: KSClassDeclaration): List<AttrSpec>? {
+        if (raw == null) return emptyList()
+        val list = raw as? List<*> ?: run {
+            logger.error("@ModEnchantment on '$where': `attributes` is not a list.", decl)
+            return null
+        }
+        val out = mutableListOf<AttrSpec>()
+        list.forEachIndexed { i, element ->
+            val annotation = element as? KSAnnotation ?: run {
+                logger.error(
+                    "@ModEnchantment on '$where': `attributes[$i]` is not an AttributeSpec. Each entry " +
+                        "must be a compile-time constant, so it cannot come from a variable or a call.",
+                    decl,
+                )
+                return null
+            }
+            val args = annotation.arguments.associateBy { it.name?.asString() }
+            val attribute = args["attribute"]?.value as? String
+            val perLevel = (args["perLevel"]?.value as? Number)?.toDouble()
+            // Defaulted here as well as in the annotation, because KSP does not guarantee that a nested
+            // annotation's omitted arguments appear at all.
+            val operation = args["operation"]?.value as? String ?: "add_multiplied_base"
+
+            if (attribute == null || !RESOURCE_LOCATION.matches(attribute)) {
+                logger.error(
+                    "@ModEnchantment on '$where': `attributes[$i].attribute` must be a namespaced id such " +
+                        "as 'minecraft:generic.max_health' (read: '$attribute').",
+                    decl,
+                )
+                return null
+            }
+            if (perLevel == null) {
+                logger.error(
+                    "@ModEnchantment on '$where': `attributes[$i].perLevel` could not be read as a number. " +
+                        "A non-constant expression arrives as an error placeholder rather than a value.",
+                    decl,
+                )
+                return null
+            }
+            if (operation !in ATTRIBUTE_OPERATIONS) {
+                logger.error(
+                    "@ModEnchantment on '$where': `attributes[$i].operation` must be one of " +
+                        "${ATTRIBUTE_OPERATIONS.joinToString()}, but read '$operation'.",
+                    decl,
+                )
+                return null
+            }
+            out += AttrSpec(attribute, perLevel, operation)
+        }
+        return out
     }
 
     private fun spec(decl: KSClassDeclaration): Spec? {
@@ -309,6 +328,8 @@ class ModEnchantmentProcessor(
             return null
         }
 
+        val attributes = readAttributes(args["attributes"]?.value, where, decl) ?: return null
+
         return Spec(
             id = id!!,
             category = category!!,
@@ -322,7 +343,15 @@ class ModEnchantmentProcessor(
             maxCostBase = number("maxCostBase", 65535),
             maxCostPerLevel = number("maxCostPerLevel", 0),
             damagePerLevel = (args["damagePerLevel"]?.value as? Number)?.toDouble() ?: 0.0,
+            attributes = attributes,
+            order = number("order", Int.MAX_VALUE),
+            // Defaults to true here as well as in the annotation: an omitted argument may or may not appear
+            // in `arguments`, and the wrong default would silently delete a datapack definition.
+            jsonEmit = args["jsonEmit"]?.value as? Boolean ?: true,
             supportedItems = supportedItems,
+            // Blank means "same as supportedItems" -- the rule `tools/gen-enchantments.ps1` applied for every
+            // non-treasure enchantment. The treasure ones omit the field entirely, which is why they set
+            // `jsonEmit = false` instead of trying to express it here.
             primaryItems = text("primaryItems").takeUnless { it.isNullOrBlank() } ?: supportedItems,
             slots = slots,
             handlerFqn = decl.qualifiedName?.asString() ?: where,
@@ -353,10 +382,7 @@ class ModEnchantmentProcessor(
     }
 
     /**
-     * The three vanilla tags this processor owns, for the **merged** set.
-     *
-     * KSP is the single producer of each: a tag file has exactly one producer, and only this side knows
-     * both the `@ModEnchantment` declarations and the 1.12.2-derived manifest.
+     * The three vanilla tags this processor owns, for every declared enchantment.
      *
      * `replace` is **false** for all three, deliberately. `replace: true` means "these values replace the
      * whole tag" — and while we do own these files, we do not own the tags: vanilla's own
@@ -364,9 +390,9 @@ class ModEnchantmentProcessor(
      * reference to `#minecraft:non_treasure`. Replacing either would take the vanilla enchantments out of
      * the enchanting table.
      */
-    private fun writeTags(merged: List<Meta>) {
+    private fun writeTags(metas: List<Meta>) {
         val deps = Dependencies(aggregating = true, *sources(emptyList()))
-        val offered = merged
+        val offered = metas
             .filter {
                 it.category !in NOT_IN_ENCHANTING_TABLE_CATEGORIES && it.id != NOT_IN_ENCHANTING_TABLE_ID
             }
@@ -385,7 +411,7 @@ class ModEnchantmentProcessor(
             appendLine("  \"replace\": false,")
             appendLine("  \"values\": [],")
             appendLine("  \"fabric:remove\": [")
-            appendLine(merged.joinToString(",\n") { "    \"$MOD_ID:${it.id}\"" })
+            appendLine(metas.joinToString(",\n") { "    \"$MOD_ID:${it.id}\"" })
             appendLine("  ]")
             appendLine("}")
         }
@@ -406,10 +432,10 @@ class ModEnchantmentProcessor(
             .bufferedWriter().use { it.write(text) }
     }
 
-    private fun writeKotlin(specs: List<Spec>, merged: List<Meta>) {
+    private fun writeKotlin(specs: List<Spec>, metas: List<Meta>) {
         val deps = Dependencies(aggregating = true, *sources(specs))
         codeGenerator.createNewFile(deps, GENERATED_PACKAGE, "GeneratedEnchantments")
-            .bufferedWriter().use { it.write(kotlin(specs, merged)) }
+            .bufferedWriter().use { it.write(kotlin(specs, metas)) }
     }
 
     private fun json(s: Spec): String = buildString {
@@ -418,8 +444,35 @@ class ModEnchantmentProcessor(
         appendLine("  \"description\": {")
         appendLine("    \"translate\": \"enchantment.$MOD_ID.${s.id}\"")
         appendLine("  },")
-        if (s.damagePerLevel > 0.0) {
-            appendLine("  \"effects\": {")
+        jsonEffects(s)
+        // `max_cost` / `min_cost` on one line, and the `amount` object of each attribute likewise: this is
+        // the formatting of the hand-written `prismatic_blessing.json` this processor took over, kept so the
+        // migration can be checked with a byte-for-byte diff rather than a structural one.
+        appendLine("  \"max_cost\": { \"base\": ${s.maxCostBase}, \"per_level_above_first\": ${s.maxCostPerLevel} },")
+        appendLine("  \"max_level\": ${s.maxLevel},")
+        appendLine("  \"min_cost\": { \"base\": ${s.minCostBase}, \"per_level_above_first\": ${s.minCostPerLevel} },")
+        appendLine("  \"primary_items\": \"${s.primaryItems}\",")
+        appendLine("  \"slots\": [${s.slots.joinToString(", ") { "\"${it.lowercase()}\"" }}],")
+        appendLine("  \"supported_items\": \"${s.supportedItems}\",")
+        appendLine("  \"weight\": ${s.weight}")
+        appendLine("}")
+    }
+
+    /**
+     * The `effects` object, or `{}` when the declaration sets no effect component at all.
+     *
+     * `minecraft:damage` and `minecraft:attributes` are independent and can both be present — damage first,
+     * matching the order `tools/gen-enchantments.ps1` used when it wrote these files by hand.
+     */
+    private fun StringBuilder.jsonEffects(s: Spec) {
+        val damage = s.damagePerLevel > 0.0
+        val attrs = s.attributes.isNotEmpty()
+        if (!damage && !attrs) {
+            appendLine("  \"effects\": {},")
+            return
+        }
+        appendLine("  \"effects\": {")
+        if (damage) {
             appendLine("    \"minecraft:damage\": [")
             appendLine("      {")
             appendLine("        \"effect\": {")
@@ -431,29 +484,28 @@ class ModEnchantmentProcessor(
             appendLine("          }")
             appendLine("        }")
             appendLine("      }")
-            appendLine("    ]")
-            appendLine("  },")
-        } else {
-            appendLine("  \"effects\": {},")
+            appendLine("    ]${if (attrs) "," else ""}")
         }
-        appendLine("  \"max_cost\": {")
-        appendLine("    \"base\": ${s.maxCostBase},")
-        appendLine("    \"per_level_above_first\": ${s.maxCostPerLevel}")
+        if (attrs) {
+            appendLine("    \"minecraft:attributes\": [")
+            s.attributes.forEachIndexed { i, a ->
+                appendLine("      {")
+                appendLine(
+                    "        \"amount\": { \"type\": \"minecraft:linear\", \"base\": ${a.perLevel}, " +
+                        "\"per_level_above_first\": ${a.perLevel} },",
+                )
+                appendLine("        \"attribute\": \"${a.attribute}\",")
+                appendLine("        \"id\": \"$MOD_ID:enchantment.${s.id}.${a.tail}\",")
+                appendLine("        \"operation\": \"${a.operation}\"")
+                appendLine(if (i == s.attributes.lastIndex) "      }" else "      },")
+            }
+            appendLine("    ]")
+        }
         appendLine("  },")
-        appendLine("  \"max_level\": ${s.maxLevel},")
-        appendLine("  \"min_cost\": {")
-        appendLine("    \"base\": ${s.minCostBase},")
-        appendLine("    \"per_level_above_first\": ${s.minCostPerLevel}")
-        appendLine("  },")
-        appendLine("  \"primary_items\": \"${s.primaryItems}\",")
-        appendLine("  \"slots\": [${s.slots.joinToString(", ") { "\"${it.lowercase()}\"" }}],")
-        appendLine("  \"supported_items\": \"${s.supportedItems}\",")
-        appendLine("  \"weight\": ${s.weight}")
-        appendLine("}")
     }
 
-    private fun kotlin(specs: List<Spec>, merged: List<Meta>): String = buildString {
-        appendLine("// GENERATED by ModEnchantmentProcessor from @ModEnchantment + tools/legacy-enchantments.json -- DO NOT EDIT.")
+    private fun kotlin(specs: List<Spec>, metas: List<Meta>): String = buildString {
+        appendLine("// GENERATED by ModEnchantmentProcessor from @ModEnchantment -- DO NOT EDIT.")
         appendLine("package $GENERATED_PACKAGE")
         appendLine()
         appendLine("import dev.firefly.simpletweaks.SimpleTweaks")
@@ -481,26 +533,36 @@ class ModEnchantmentProcessor(
         val keys = if (specs.isEmpty()) "emptyList()" else "listOf(${specs.joinToString(", ") { it.constantName }})"
         appendLine("    val KEYS: List<RegistryKey<Enchantment>> = $keys")
         appendLine()
-        // id -> category / type / max level for **every** enchantment, not just the annotated ones: this
-        // file is now the only source, since `tools/gen-enchantments.ps1` stopped writing
-        // `EnchantmentTiers.kt` and supplies the legacy half as a manifest instead.
+        // id -> category / type / max level. The annotations are the only source of these now:
+        // `tools/gen-enchantments.ps1` is gone, so nothing else contributes index metadata.
         appendLine("    val CATEGORY: Map<String, EnchantCategory> = ${
-            mapEntries(merged) { "\"${it.id}\" to EnchantCategory.${it.category.uppercase()}" }
+            mapEntries(metas) { "\"${it.id}\" to EnchantCategory.${it.category.uppercase()}" }
         }")
         appendLine("    val TYPE: Map<String, EnchantType> = ${
-            mapEntries(merged) { "\"${it.id}\" to EnchantType.${it.type.uppercase()}" }
+            mapEntries(metas) { "\"${it.id}\" to EnchantType.${it.type.uppercase()}" }
         }")
-        // Only an annotated declaration can name a colour; the legacy half keeps its category's.
+        // Only a declaration can name a colour; the rest take their category's.
         val explicitColors = specs.filter { it.color != "INHERIT" }
         appendLine("    val COLOR: Map<String, EnchantColor> = ${
             mapEntries(explicitColors) { "\"${it.id}\" to EnchantColor.${it.color}" }
         }")
         appendLine("    val MAX_LEVEL: Map<String, Int> = ${
-            mapEntries(merged) { "\"${it.id}\" to ${it.maxLevel}" }
+            mapEntries(metas) { "\"${it.id}\" to ${it.maxLevel}" }
         }")
         appendLine()
+        // Sorted by the declaration's `order`. A handler migrated out of `EnchantmentManager.handlerList`
+        // carries the position it had there, so the bus ends up dispatching in the same sequence as before
+        // -- registration order is what decides among listeners sharing an EventPriority.
+        //
+        // HANDLER_ORDERS is emitted alongside because sorting alone cannot interleave: `handlerList` still
+        // holds the handlers that are not `@ModEnchantment`-declared (e.g. `infinite_power`'s four aura
+        // handlers), and the merge needs to place this list *among* them, not after them.
+        val ordered = specs.sortedBy { it.order }
         appendLine("    val HANDLERS: List<Listenable> = ${
-            if (specs.isEmpty()) "emptyList()" else "listOf(${specs.joinToString(", ") { it.handlerSimpleName }})"
+            if (ordered.isEmpty()) "emptyList()" else "listOf(${ordered.joinToString(", ") { it.handlerSimpleName }})"
+        }")
+        appendLine("    val HANDLER_ORDERS: List<Int> = ${
+            if (ordered.isEmpty()) "emptyList()" else "listOf(${ordered.joinToString(", ") { it.order.toString() }})"
         }")
         appendLine("}")
     }
@@ -511,5 +573,5 @@ class ModEnchantmentProcessor(
 
 class ModEnchantmentProcessorProvider : SymbolProcessorProvider {
     override fun create(environment: SymbolProcessorEnvironment): SymbolProcessor =
-        ModEnchantmentProcessor(environment.codeGenerator, environment.logger, environment.options)
+        ModEnchantmentProcessor(environment.codeGenerator, environment.logger)
 }

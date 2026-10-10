@@ -1,11 +1,11 @@
 package dev.firefly.simpletweaks.client
 
-import dev.firefly.simpletweaks.enchantments.ModEnchantmentKeys
 import dev.firefly.simpletweaks.network.packets.PacketLaser
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking
 import net.minecraft.util.hit.HitResult
+import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 
 /**
  * Client half of the `infinite_power` laser: turn a "swing at nothing" into a C2S [PacketLaser].
@@ -48,7 +48,7 @@ object InfinitePowerLaserClient {
             if (!justPressed) return@register
 
             val player = client.player ?: return@register
-            if (getItemSpecificEnchantLevel(player.mainHandStack, ModEnchantmentKeys.INFINITE_POWER) <= 0) {
+            if (getItemSpecificEnchantLevel(player.mainHandStack, GeneratedEnchantments.INFINITE_POWER) <= 0) {
                 return@register
             }
 

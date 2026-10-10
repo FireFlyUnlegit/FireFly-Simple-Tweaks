@@ -1,19 +1,19 @@
-# 客户端验收清单（`simple_tweaks-2.0.0.jar`）
+# 客户端验收清单（`simple_tweaks-2.1.0.jar`）
 
-> 目标 jar：`fabric-1.21.1/build/libs/simple_tweaks-2.0.0.jar`
-> SHA256 `7EA26FEF6F5C03F5D179492E5127F1DE870802426D4A0758F496C5CF2DF2AFB9`（556393 bytes）
-> 启动标识：**`build=cleanup12`**
-> 安装位置：`F:\.minecraft\versions\1.21.1-Fabric 0.19.3\mods\simple_tweaks-2.0.0.jar`
+> 目标 jar：`fabric-1.21.1/build/libs/simple_tweaks-2.1.0.jar`
+> SHA256 `965E51EE850BB00BF3EB001BE79BF436B392501B146B562B2BCFED574827F4AA`（600650 bytes）
+> 启动标识：**`build=cleanup20`**
+> 安装位置：`F:\.minecraft\versions\1.21.1-Fabric 0.19.3\mods\simple_tweaks-2.1.0.jar`
 > 配置/日志：`<gameDir>\config\simple_tweaks.json`、`<gameDir>\logs\latest.log`
-> 回退点：`simple_tweaks-2.0.0.jar.prev`（上一版 `build=cleanup10`）
+> 回退点：`simple_tweaks-2.1.0.jar.prev`（安装后会变成 `build=cleanup18`，567975 bytes）
 >
 > **前置**：单人世界 + 开作弊。
-> ⚠️ **`[ST-*]` 调试日志默认关闭**（`build=cleanup3` 起，见 §M 与 `MIGRATION.md` §12）。本清单里凡
-> "日志应出现 `[ST-...]`"的判据（B8、F3、K1.3、K2.1…），**都要先按 §M5 的方法打开开关**，
+> ⚠️ **`[FST-*]` 调试日志默认关闭**（`build=cleanup3` 起，见 §M 与 `MIGRATION.md` §12）。本清单里凡
+> "日志应出现 `[FST-...]`"的判据（B8、F3、K1.3、K2.1…），**都要先按 §M5 的方法打开开关**，
 > 否则那些行根本不会出现 —— 这是预期，不是功能失效。
 >
 > ⚠️ `build=cleanup2` 只删掉了**开发期自测入口**：`/sttest` 指令、Carpet 假玩家依赖、`tools/acceptance.ps1`、
-> `tools/rcon.ps1`（见 §M 与 `MIGRATION.md` §11）。**`/stconfig` 与 `/enchantinfo` 未受任何影响** ——
+> `tools/rcon.ps1`（见 §M 与 `MIGRATION.md` §11）。**`/simple_tweaks stconfig` 与 `/simple_tweaks enchantinfo` 未受任何影响** ——
 > 本清单各组照常按客户端做法测，E/F 等组本来就不依赖 `/sttest` 或假玩家。
 
 ---
@@ -22,8 +22,8 @@
 
 | # | 检查 | 期望 |
 |---|---|---|
-| 0.1 | 日志有 `client ready: damage indicator + /stconfig + /enchantinfo ... (build=cleanup2)` | 证明加载的是新 jar；**注意结尾的 build 标识**，不是 `cleanup2` 就是旧 jar |
-| 0.2 | 日志 `Config loaded from ... (anvilLimit=..., damageIndicator=..., cancelVanillaDmgIndicator=..., noFov=false@90.0)` | 配置读取正常 |
+| 0.1 | 日志有 `client ready: damage indicator + /simple_tweaks stconfig + /simple_tweaks enchantinfo ... (build=cleanup2)` | 证明加载的是新 jar；**注意结尾的 build 标识**，不是 `cleanup2` 就是旧 jar |
+| 0.2 | 日志 `Config loaded from ... (anvilLimit=..., damageIndicator=..., cancelVanillaDmgIndicator=...)` | 配置读取正常 |
 | 0.3 | 全日志 `ERROR` / `Exception` = 0（`PDH Counter` 那两条是 Windows 噪音，忽略） | 无异常 |
 
 ---
@@ -44,7 +44,7 @@
 | A5 | `reforge`（UNIQUE） | 白色 |
 | A6 | **`infinite_power`** | **逐字符彩虹，约 3 秒流动循环** ← 唯一特例 |
 | A7 | 原版 `sharpness` | **不受影响**，原版色 |
-| A8 | `/stconfig` 第 1 页关「附魔名彩色」 | 全部回原版色（含彩虹失色） |
+| A8 | `/simple_tweaks stconfig` 第 1 页关「附魔名彩色」 | 全部回原版色（含彩虹失色） |
 
 ---
 
@@ -59,9 +59,9 @@
 | B5 | **背对**一只正在受伤的怪 | 飘字**不显示**（背面剔除） |
 | B6 | 打生物时看原版粒子 | **原版红色伤害粒子消失** |
 | B7 | **同一击看爆击** | **爆击星星仍在、附魔命中特效仍在** ← **窄版关键判据**；若这两个也消失，说明范围过宽，请立刻告知 |
-| B8 | 日志 | 出现 `[ST-DamageIndicator] packet=received` 与 `seam=alive ... scaleSigns=+,-,+` |
+| B8 | 日志 | 出现 `[FST-DamageIndicator] packet=received` 与 `seam=alive ... scaleSigns=+,-,+` |
 
-**`/stconfig` 第 2 页，逐个切换应即时生效（不用重启）：**
+**`/simple_tweaks stconfig` 第 2 页，逐个切换应即时生效（不用重启）：**
 
 | # | 开关 | 期望 |
 |---|---|---|
@@ -78,7 +78,7 @@
 
 | # | 操作 | 期望 |
 |---|---|---|
-| C1 | `/stconfig` | 界面出现 |
+| C1 | `/simple_tweaks stconfig` | 界面出现 |
 | C2 | 「下一页 ▶」循环翻 3 页 | 通用 / 伤害飘字 / 移动 |
 | C3 | 任改一项后关界面，看 `config\simple_tweaks.json` | **改动已落盘**；且**不重启仍生效** |
 | C4 | 第 1 页「铁砧最大花费」显示 | 满值时显示 **无限** |
@@ -89,7 +89,7 @@
 
 | # | 操作 | 期望 |
 |---|---|---|
-| D1 | `/enchantinfo`、`/ei`、`/enchinfo` | 三者**都能打开** |
+| D1 | `/simple_tweaks enchantinfo`、`/ei`、`/enchinfo` | 三者**都能打开** |
 | D2 | 分类版式 | **上行 5 个**：COMMON→UNCOMMON→RARE→EPIC→LEGENDARY<br>**下行 3 个**：UNIQUE / MYTHIC / MYSTERY，**两行各自居中** |
 | D3 | **逐个**悬停并点击 8 个图标 | 每个都命中正确分类（重点是**下行那 3 个** —— 坐标只算一处，最易错位） |
 | D4 | 悬停提示 | `分类名` / `N 个附魔` / `点击打开` |
@@ -105,7 +105,7 @@
 
 | # | 操作 | 期望 |
 |---|---|---|
-| E1 | `/stconfig` 第 3 页开「自动冲刺」，**关界面后**前进 | 持续冲刺（界面开着时会跳过，这是 1.12.2 的行为） |
+| E1 | `/simple_tweaks stconfig` 第 3 页开「自动冲刺」，**关界面后**前进 | 持续冲刺（界面开着时会跳过，这是 1.12.2 的行为） |
 | E2 | 蹲下前进 | **不冲刺** |
 | E3 | 再开「全向冲刺」 | 蹲下 / 侧向也应冲刺 |
 | E4 | 关掉「自动冲刺」 | **冲刺立刻停止**（下降沿行为，不是等下次输入变化） |
@@ -134,7 +134,7 @@
 | # | 检查 | 期望 |
 |---|---|---|
 | G1 | 普通攻击 / 暴击 / 附魔台 / 铁砧 | 行为无异常 |
-| G2 | `/stconfig` 与 `/enchantinfo` **交替打开**再关闭 | 不串屏、不残留（两者共用 `ClientScreenOpener`） |
+| G2 | `/simple_tweaks stconfig` 与 `/simple_tweaks enchantinfo` **交替打开**再关闭 | 不串屏、不残留（两者共用 `ClientScreenOpener`） |
 | G3 | 打开界面时玩家是否暂停 | **不暂停**（与原版 GUI 一致） |
 
 ---
@@ -351,7 +351,7 @@
 
 | # | 期望 |
 |---|---|
-| K2.1 | 把 `logs/latest.log` 里所有 `[ST-Multishot]` 行发我（这轮就是要这个数据） |
+| K2.1 | 把 `logs/latest.log` 里所有 `[FST-Multishot]` 行发我（这轮就是要这个数据） |
 | K2.2 | 若出现 `outcome=hurt-hook-ran` 且 `flagged=false` → 问题在箭上的标记位 |
 | K2.3 | 若**完全没有** `outcome=hurt-hook-ran` → 问题在事件钩子没被调用 |
 | K2.4 | 若出现 `outcome=iframe-cleared` 且 `regenAfter=0` 但仍只掉一次血 → 问题在别处，需要新的观测量 |
@@ -378,7 +378,7 @@
 > 这两个配置项**之前是死的**（写得进配置文件，但没有任何代码读它）。现在生效。
 > 注意 `maxEnchantmentPower` 默认就是 **15**（= 原版），所以**必须调大**才看得出区别。
 
-用 `/stconfig` 改（配置界面直接写 `GeneralConfig`，不需要重启），改完**把物品从附魔台槽位拿出来再放回去**
+用 `/simple_tweaks stconfig` 改（配置界面直接写 `GeneralConfig`，不需要重启），改完**把物品从附魔台槽位拿出来再放回去**
 （报价在 `onContentChanged` 里算，不重算就还是旧值）。
 
 | # | 期望 |
@@ -432,7 +432,7 @@
 | L1.1 | 一刀砍死**监守者** |
 | L1.2 | 一刀砍死普通怪，**掉落正常**（2 格内的掉落物会被自动收进背包） |
 | L1.3 | 落点 2×3×2 范围内的**其它怪一起被秒**（AOE） |
-| L1.4 | ✅ **实测通过**（`build=infpower2`）：末影龙一刀秒杀、DYING 阶段、出口传送门正常。`build=infpower1` 时此項**失败**：龙一行 `[ST-InfinitePower]` 日志都没有 —— 击杀钩子在原版解包 `EnderDragonPart` 之前，而部位实体不是 `LivingEntity`（1.12.2 有同一个 bug）。详见 `infinite-power-deferred.md` §8 |
+| L1.4 | ✅ **实测通过**（`build=infpower2`）：末影龙一刀秒杀、DYING 阶段、出口传送门正常。`build=infpower1` 时此項**失败**：龙一行 `[FST-InfinitePower]` 日志都没有 —— 击杀钩子在原版解包 `EnderDragonPart` 之前，而部位实体不是 `LivingEntity`（1.12.2 有同一个 bug）。详见 `infinite-power-deferred.md` §8 |
 | L1.5 | 死亡时 5 圈粒子 + 爆炸音效 |
 | L1.6 | **攻击冷却照常**（本移植**故意不取消攻击**）：连砍的节奏与普通剑一致，不是无限连击 |
 | L1.7 | 砍完一刀再砍别的怪 → **暴击判定正常**，不会"永远暴击"（这是 1.12.2 取消攻击会引入的缺陷） |
@@ -505,16 +505,16 @@
 ## M. 收尾改动验证（`build=cleanup3`）—— 本轮只验这 7 条
 
 > 本轮删了测试指令 + Carpet 附属，把 `yStartFactor` 的乘数从「世界高度」改成「实体高度」，
-> 并把 `[ST-*]` 调试日志改成**默认关闭**（含 `[enchant-table] re-enchant`）。其余功能**代码未动**，
+> 并把 `[FST-*]` 调试日志改成**默认关闭**（含 `[enchant-table] re-enchant`）。其余功能**代码未动**，
 > 无需重测前面各组。
 
 | # | 操作 | 期望 |
 |---|---|---|
 | M1 | 启动看日志 | `client ready: ... (build=cleanup5)` ← **每次改动都会推进这个标识**，认准页首写的那一个 |
 | M2 | 输入 `/sttest` | **指令不存在**（原版"未知指令"红字）—— **这是预期**，测试指令已删除 |
-| M3 | `/stconfig`、`/enchantinfo` | 都照常打开、照常可用（确认删掉的只是测试指令，正式功能未受影响） |
-| M4 | **不加任何启动参数**，正常打怪 / 附魔玩几分钟，再 `Select-String '\[ST-\|enchant-table' logs\latest.log` | **一行都没有** ← 本轮的默认行为 |
-| M5 | 按下面加 `-Dsimpletweaks.debug=true` 重进，再打怪 / 附魔 | `[ST-...]` 日志**重新出现**（开关有效） |
+| M3 | `/simple_tweaks stconfig`、`/simple_tweaks enchantinfo` | 都照常打开、照常可用（确认删掉的只是测试指令，正式功能未受影响） |
+| M4 | **不加任何启动参数**，正常打怪 / 附魔玩几分钟，再 `Select-String '\[FST-\|enchant-table' logs\latest.log` | **一行都没有** ← 本轮的默认行为 |
+| M5 | 按下面加 `-Dsimpletweaks.debug=true` 重进，再打怪 / 附魔 | `[FST-...]` 日志**重新出现**（开关有效） |
 | M6 | 把 `config\simple_tweaks.json` 里 `yStartFactor` 改成 **2.0** 并重启，打一只怪 | 飘字**仍然显示**，位置明显高于实体；**改前这个值会让飘字彻底消失** |
 | M7 | 改回 **1.0** 并重启，再打一只怪 | 飘字紧贴实体头顶 —— 与 1.12.2 默认位置一致（默认值行为**未变**） |
 
@@ -547,7 +547,7 @@
 | N1 | 把铁砧代价推到 **40 以上**（给剑打一堆附魔后用同种剑合并，或反复合并同件物品） | 产物**不再显示红色「过于昂贵！」**，而是正常显示代价 `Cost: N`（N ≥ 40） |
 | N2 | 等级 ≥ N 时点产物 | **能取出**，等级正常扣除 |
 | N3 | 等级 < N 时点产物 | 仍然**取不出**（红字）—— 这是**对的**：只取消上限，不取消价格 |
-| N4 | `/stconfig` 关掉「移除铁砧『过于昂贵』」 | 立刻恢复原版：≥ 40 就红字「过于昂贵」 |
+| N4 | `/simple_tweaks stconfig` 关掉「移除铁砧『过于昂贵』」 | 立刻恢复原版：≥ 40 就红字「过于昂贵」 |
 | N5 | 「铁砧最大花费」改成 **100**（开关保持开启），把物品拿开再放回去重算 | 代价 40–99 正常可取出；**≥ 100 才**变红「过于昂贵」 |
 | N6 | 用**一叠材料**（如 2 个铁锭修护甲）在铁砧上修 | 代价**仍是原版那个小数字**，不会变成天文数字 |
 
@@ -576,7 +576,7 @@
 | # | 操作 | 期望 |
 |---|---|---|
 | O1.1 | 用上面命令拿到弓，悬停看提示 | 附魔名**蓝色**「快速拉弓」，且有描述行 ← **`cleanup5` 时是灰色，本轮已修** |
-| O1.2 | 打开 `/enchantinfo` → 点 **RARE** 分类 | 列表里**有 Fast Bow** ← KSP 生成的图鉴元数据（旧 bug 就是它不在 `ALL` 里所以看不见） |
+| O1.2 | 打开 `/simple_tweaks enchantinfo` → 点 **RARE** 分类 | 列表里**有 Fast Bow** ← KSP 生成的图鉴元数据（旧 bug 就是它不在 `ALL` 里所以看不见） |
 | O1.3 | 悬停它 | 分类 RARE / 适用**弓** / **最大等级 3** / 名字蓝色 / 描述正常 |
 | O1.4 | 用附魔台或铁砧给弓刷附魔 | **能刷出 `fast_bow`**（说明生成的 datapack JSON 被正常加载） |
 | O1.5 | 逐个看 56 个老附魔的名字颜色 | **全部照旧**（本轮把颜色查询改成走门面 + 回落旧表，理论上零变化，但值得抽查） |
@@ -608,6 +608,149 @@
 | O3.2 | `multishot` / `tracking_arrow` / `piercing_arrow` / `starfall` **全部照旧** ← 风险最高处，四个都过一遍 |
 | O3.3 | 快速点击（蓄力不足 `charge < 5`）→ 与之前一样不多发、不异常 |
 | O3.4 | **其它带使用进度的物品**：吃食物、喝药水、举盾、拉弩 → 时长与动画**都没变**（本轮动了 `getItemUseTimeLeft`，这是共用 getter） |
+| O3.5 | **`multishot` + `fast_bow:3` 同一把弓**，只拉到 **10 tick（0.5 秒，动画上远没满）**就松手 → 齐射每支箭**满威满速**（与拉满放一致）。`[FST-Multishot]` 应显示 `charge=10, boost=3.4, drawn=34, speed=3.0` ← `build=cleanup20` 修的就是这条 |
+| O3.6 | **反例**：只附 `multishot`（不给 fast_bow），同样拉到 10 tick 松手 → `boost=1.0, drawn=10, speed=1.5`，半蓄力仍是半威力（证明修复没有连带加强无 fast_bow 的弓） |
+| O3.7 | **门槛联动**：`multishot` + `fast_bow:3` 同一把弓 → 按 **1 tick** 松手**不多发**，按 **2 tick** 松手**正常齐射**（`[FST-Multishot]` 的 `minCharge=2, fastBow=3`）。反例：**只附 `multishot`** 时 2 tick 必须**不发**（`minCharge=5`）← 门槛按 fast_bow 等级放宽，但**下限夹在 1 tick** |
+| O3.8 | **只剩 1 支箭**时用 `multishot:3` 的弓拉满放箭 | 依旧射出 **4 支**（不再按剩余箭数缩水），且**只消耗 1 支**（`ammo=1` → 0）。`[FST-Multishot]` 应显示 `arrows=4, ammo=1`。反例：同一把弓**不带** `multishot` 时只射 1 支、也消耗 1 支 |
+
+> **O3.5 的成因（`build=cleanup20`）**：`fast_bow` 的倍率本来靠 `BowItemArrowLooseMixin` 里 `getPullProgress` 上的
+> `@ModifyArg`（**offset 44**）送达，而 `multishot` 在 **HEAD** 就 `ci.cancel()` —— 方法在 offset 0 返回，
+> 那个注入器**永远不执行**，倍率被写进 `ChargeBoost` 却无人读取（`multishot` 声明 `order = 28`，
+> 而 fast_bow 用默认 `Int.MAX_VALUE`，所以它也读不到刚被重置的值）。
+> 修复是让 `multishot` 自己调 `EnchantFastBowHandler.chargeBoost(bow)` 重算 —— 与客户端动画 mixin **同一个函数**，
+> 所以威力与动画不会脱节 —— 并按该注入器的合约**把蓄力夹到满值**（可以补足，不能超过）。
+>
+> 症状很好认：**拉弓动画变快了，箭却是软的** —— 因为客户端那侧 `multishot` 提前返回、**不取消**事件，
+> 动画那一半一直是好的，坏的只有服务端的威力。
+
+---
+
+## P. `/simple_tweaks enchant`（`build=cleanup20` 新增，测试用指令）
+
+> ⚠️ **不是 `/simple_tweaks:enchant`。** Brigadier 的 `isAllowedInUnquotedString` 不承认 `:` ——
+> 1.3.10 字节码里逐条比较的是 48–57、65–90、97–122 以及 `_`(95)、`-`(45)、`.`(46)、`+`(43)，
+> **没有 58（`:`）**，而 `CommandManager` 只剥离开头的 `/`。带冒号的字面量**永远匹配不上**，
+> 所以用「根字面量 + 子命令」这种可解析的等价形式。
+>
+> ⚠️ **全部命令都是服务端命令 —— 这条不是风格，是 Fabric 的硬约束。**
+> 一开始把 `stconfig`/`enchantinfo` 做成**客户端**命令并和服务端共用根名，结果
+> `/simple_tweaks enchant …` **完全不可用**：实测日志 `Syntax exception for client-sided command
+> 'fst enchant @s'` / `错误的命令参数 at position 4`。原因是 Fabric 先拿「只含客户端指令」的 dispatcher
+> 试解析（`ClientCommandInternals#executeCommand`），而它的 `#isIgnoredException` **只放行**
+> `dispatcherUnknownCommand` 与 `dispatcherParseException` —— 共用根名时匹配到了客户端的根、
+> 只是子命令不认，得到的是 `dispatcherUnknownArgument`，于是**报错给玩家、永不转发服务端**
+> （Fabric 源码里那句 `TODO: Check for server commands before executing` 就是承认这个缺口）。
+> 现在**没有任何客户端注册**，开界面走 `PacketOpenModScreen`（即 1.12.2 的 `PacketOpenEnchantInfo` 的复活）。
+>
+> `enchant` 需要 **OP（权限等级 2）**；`stconfig` / `enchantinfo` **不需要** —— 它们只在自己的客户端开界面。
+> 语法：`/simple_tweaks enchant <targets> <enchantment> <level> [slot]`，`slot` 默认 `mainhand`。
+
+| # | 操作 | 期望 |
+|---|---|---|
+| P1 | 只打 `/simple_tweaks` | 输出用法行（含 `level 0 removes`、`slot defaults to mainhand`） |
+| P2 | `/simple_tweaks enchant @s simple_tweaks:multishot 3`（手持弓） | 弓上 multishot 立刻变 **3 级**，tooltip 同步 |
+| P3 | 接着**再执行一次**，等级改成 `7` | 变 **7 级**（**超上限被接受**）；**不是** 10 —— 等级是**覆盖**不是叠加 |
+| P4 | 再执行同一条，等级填 `0` | 该附魔**被移除**，tooltip 里消失 ← 原版 `/enchant` 做不到这条 |
+| P5 | `/simple_tweaks enchant @s simple_tweaks:echo_shield 5 armor` | **四件护甲同时**获得 5 级（不必手拿盔甲） |
+| P6 | 对**附魔书**执行同样命令 | 书拿到附魔（走 `STORED_ENCHANTMENTS`）。若组件选错会是**静默无效** —— 这条专门盯它 |
+| P7 | `/simple_tweaks enchant @s minecraft:sharpness 3`（手持**弓**） | **成功** —— 绕过 `supported_items` 适用性检查（原版会拒） |
+| P8 | 槽位位置按 TAB | 补全 `mainhand / offhand / hand / head / chest / legs / feet / armor / body / any` |
+| P9 | 用**非 OP** 身份执行 | 指令被拒（`requires.hasPermissionLevel(2)`） |
+| P10 | `<enchantment>` 填一个不存在的 id | **报错**，不是静默成功 |
+| P11 | 把游戏语言切到**简体中文**，重跑 P2 与 P4 | 反馈文本是**中文**（走 `commands.simple_tweaks.enchant.*`，不是硬编码英文） |
+| P12 | `/fst enchant @s simple_tweaks:multishot 3`（**用 `/fst` 而不是全名**） | 与 P2 完全相同 —— 这是本轮修的：修复前 `fst <子命令>` 只会在客户端报 `错误的命令参数 at position 4`，**根本到不了服务端** |
+| P13 | `/fst stconfig` 与 `/fst enchantinfo` | 分别打开配置界面与附魔图鉴；`[FST-Screen]` 出现 `outcome=packet-sent`（服务端发）与 `outcome=opening`（客户端收）。`ei` / `enchinfo` 同理 |
+| P14 | **TAB 补全**：打 `/` 后补全，再打 `/fst ` + TAB | 根名 `simple_tweaks` / `fst` 都可补全；`/fst ` 应列出 `enchant / stconfig / enchantinfo / ei / enchinfo` 五项；再补 `enchant ` 应列出全部 61 个附魔 id |
+| P15 | 只打 `/simple_tweaks` 与 `/simple_tweaks enchant` | 前者输出**根用法**（列出三个子命令、注明 `/fst` 简写）；后者输出 **enchant 自己的语法**（不再是解析错误） |
+
+---
+
+## Q. 效果同步 + 清晰视界 + 回响之盾反伤（`build=cleanup20`）
+
+| # | 操作 | 期望 |
+|---|---|---|
+| Q1 | 喝一瓶 **3:00** 的力量/速度药水，穿 `blessing_extension:4` 护甲 | **盯着物品栏 HUD 的计时**：应比 3:00 走得慢（被逐 tick 延长），**不要**在原定 3:00 处消失。反例：不穿该附魔时正好 3:00 结束 |
+| Q2 | 身上有**负面**效果（如缓慢 3:00），穿 `curse_resistance:4` 护甲 | HUD 计时应比 3:00 **走得快**；归零时**立刻消失**（不是 HUD 先归零、身上还带着） |
+| Q3 | 卸下护甲后继续观察 Q1/Q2 的效果 | 延长/缩短**立即停止** |
+| Q4 | 戴 `clear_sight` 头盔进黑暗处 | 夜视生效；**全程不闪** |
+| Q5 | 戴着头盔**连续观察 1 分钟以上** | 不应出现"夜视断一下又回来"的周期性闪烁 |
+| Q6 | **两名玩家都穿 `echo_shield:5` 四件套**（合计 lvl 20），A 反复攻击 B（间隔 > 1 秒，避开无敌帧） | B 的储值满时反弹给 A；**A 只按基础倍率吃下这次反伤**（lvl 20 → 减免 60%、实吃 40%），**不反弹回去**、**不能被完全免疫**。`[FST-EchoShield]` 应出现 `outcome=soaked-reflection`；服务器**不卡顿、不崩**、无 StackOverflowError |
+| Q7 | **反例**：只有 B 有回响之盾，A 没有 | A 照常受到 B 的反弹伤害 —— 单侧场景**行为不变**（守卫只拦"反弹被反弹"） |
+
+> **Q1/Q2 盯的就是 `build=cleanup20` 修的同步问题。** 这两个附魔原本**原地改 `StatusEffectInstance.duration`**，
+> 而 vanilla 只在 `addStatusEffect` 那条路上给玩家**自己的连接**发 `EntityStatusEffectS2CPacket`
+> （`ServerPlayerEntity` 重写了 `onStatusEffectApplied/Upgraded`；基类只通过 `sendEffectToControllingPlayer` 通知**乘客**）。
+> 绕开 `addStatusEffect` 就等于绕开了那个包 —— 客户端一直按它**最后收到的**时长倒计时，两边静默分叉：
+> 增益在客户端提前结束（HUD 掉图标、夜视这类客户端渲染直接关掉），减益在客户端滞留。
+> 现在改完补发一个 `EntityStatusEffectS2CPacket(..., keepFading = false)`，与 `onStatusEffectUpgraded` 同款参数
+> （已可见的效果不重放淡入）。**移除**那条路不用管 —— `removeStatusEffect` 自己会发包。
+>
+> **Q4/Q5 盯的是清晰视界的时长。** 旧值是给 20 s、剩 10 s 就续 ⇒ 每约 10 秒给客户端重发一次效果，
+> 而每次重发都会让客户端重新评估光照。现在一次给 **30 分钟**，续期只发生在最后 10 秒（每 tick 检查，所以不会断档），
+> 即从"每 10 秒一次"变成"每半小时一次"。
+
+> **Q6/Q7 盯的是回响之盾的反伤循环（`build=cleanup20` 修）。** 递归是**结构性成立**的，不是偶发：
+> `damageBypassingArmor` 用 `DamageSources#create(REFLECTION, attacker)` 造伤害源，而这个**两参**构造器
+> 把同一个 entity **同时**写进 `source` 和 `attacker`（字节码实测：`DamageSource(RegistryEntry, Entity)`
+> 转发 `(type, entity, entity)`，三参构造器把第 3 个参数 `putfield attacker`）。所以反弹伤害到达对方时
+> `getAttacker()` **非空**，而本 handler 恰好只认这个字段 —— 对方再弹回来是必然的。
+>
+> 修之前有**两条**路径，都只在**双方都带**时成立：
+> - `onDamage`：每次落地命中都把那部分立刻弹给攻击者，对方再弹 `ratio²`（满级 0.36）回来 —— 数值衰减但
+>   **深度不衰减**，一个 tick 内套出**约一百层**伤害事件（float 下溢才停）。
+> - `onHurt`：弹的是**整个储值**，而储值原本在嵌套调用**之后**才清 —— 每层金额完全相同，两个储值相等时
+>   **无限递归 → StackOverflowError**。
+>
+> 而且 `damageBypassingArmor` 里有 `timeUntilRegen = 0`（强制命中），所以无敌帧**也不会**截断这条链。
+>
+> **修法是"降级"而不是"整段跳过"（按作者要求）**：反伤伤害**仍然吃基础倍率减免** —— `0.03 × lvl`，
+> 所以 lvl 20 减免 60%、实吃 40% —— 除此之外一律不做：
+> **不回弹**、**不进储值**、**不被完全免疫**（`onHurt` 对反伤整段 `return`，所以"储值 ≥ 本次伤害 → 取消 + 全额反弹"
+> 那条分支根本够不到），`markNoHeal` 也跳过（那是盾的反击动作，反伤不值得反击）。
+>
+> **"不进储值"是刻意的一条**：否则**由反伤攒出来的储值**日后还能被弹出去，等于绕个圈子把反伤反弹了。
+> 若你希望反伤也进储值（只禁止"当场回弹"），那只要在 `onDamage` 的反伤分支里补回累加那几行。
+
+---
+
+## R. 属性修饰符持久化（`build=cleanup20`）
+
+> 修的是 `heavenly_punishment` 的攻速压制。1.12.2 用 `modifier.setSaved(false)` **故意不落盘**，
+> 移植时误映射成 `addPersistentModifier` —— 理由是"1.21 在 `AttributeContainer`/`TrackedData` 层记 `saved`、
+> 没有逐修饰符的对应物"，**该论断被字节码否证**：`EntityAttributeInstance` 里就是一个
+> `private final Map<Identifier, EntityAttributeModifier> persistentModifiers`，逐修饰符，
+> 而 `addPersistentModifier` / `addTemporaryModifier` 正是那两个旗标
+> （同门的 `EnchantCelestialBlessingHandler` 面对**完全相同**的 `setSaved(false)` 就用对了 `addTemporaryModifier`）。
+>
+> 而解除压制的期限存在**内存** `WeakHashMap`（DEVIATION 1），重载即丢 →
+> 落盘的 `-100` 攻速压制**再也无人移除**，受害者从此不出手。
+> 1.12.2 靠两道保险（不落盘 + 期限本身持久化），移植把两道都拆了；现在恢复第一道，故障即自愈。
+> **触发窗口较窄**：压制只在冻结期间施加、`等级 × 10` tick 后解除（I 级 0.5 秒 / IV 级 2 秒），
+> 所以必须在**这 0.5–2 秒内**让受害者的实体对象消失（登出、区块卸载、传送、重启）才会泄漏。
+
+| # | 操作 | 期望 |
+|---|---|---|
+| R1 | 用 `heavenly_punishment`**IV 级**的剑打一只僵尸一下，在压制仍生效的约 2 秒内执行 `/data get entity <僵尸>` | 输出里**不应**出现字符串 `heavenly_punishment_atk_speed` —— 临时修饰符不写 NBT。修复前它会出现，那条就是"永久压制"的来源 |
+| R2 | 等 `等级 × 10` tick（IV 级约 2 秒） | `[FST-HeavenlyPunishment]` 出现 `outcome=weakness-expired`；`/attribute <僵尸> minecraft:generic.attack_speed get` 回到**基础值**，僵尸恢复正常攻击 |
+| R3 | **反例**：打一只僵尸后**立刻登出再登入**（在 2 秒内），回来后查攻速并让它攻击 | 攻速为**基础值**、僵尸能正常攻击 —— 即丢失的期限不再留下永久后果 |
+
+---
+
+## S. 新附魔 `armor_enhance`（`build=cleanup20` 新增，MYTHIC / ARMOR）
+
+> 1.12.2 工程里**没有**这个附魔，是全新设计：`onLivingDamage`（priority HIGHEST）把
+> `(sqrt(0.005 × 护甲值) + sqrt(0.008 × 盔甲韧性)) × 等级 × 0.2` 从本次伤害里减掉（上限为伤害本身）。
+> 声明用的是**位置参数**写法，`maxLevel 8`、`slots [armor]`。
+
+| # | 操作 | 期望 |
+|---|---|---|
+| S1 | 给护甲附上 `armor_enhance`，悬停看 tooltip（中英各看一次） | 名称与描述都显示（`enchantment.simple_tweaks.armor_enhance` / `.desc`）；名称颜色 = MYTHIC 继承的分类色 |
+| S2 | `/simple_tweaks enchant @s simple_tweaks:armor_enhance 8 armor` 给四件护甲，然后被同一只怪打 | 受到伤害比**不附魔**时少约 `(sqrt(0.005×护甲)+sqrt(0.008×韧性))×8×0.2` 点（铁甲量级约 **1.0**；可用 `/damage` 定量对比） |
+| S3 | 把 `armor_enhance` 附到**主手物品**上再被打 | **不生效** —— handler 只读四个护甲槽（`getArmorEnchantLevel`） |
+
+> ⚠️ **留待作者确认两处**（未改代码）：① 变量名叫 `armorLoss` / `armorToughnessLoss`，但语义是**减伤**（名字与实际相反）；
+> ② 量级偏弱 —— 护甲 20 / 韧性 12 / 满级 8 时减免约 **1.0** 点，护甲 30 / 韧性 20 也只有约 **1.26** 点。
+> 若 `0.005` / `0.008` 是为模组护甲的高数值环境准备的，建议在 KDoc 里写明。
 
 ---
 
@@ -618,14 +761,14 @@
 | **InfinitePower 背包**（GUI / 右键开启 / 存档） | **已舍弃**；源码保留在 `src/**/disabled/`，结论见 `infinite-power-deferred.md` §17 |
 | **Velocity** | 作者裁定不移植 |
 | `/attribute` | 1.21 原版自带且更强，不移植 |
-| `/enchant ... 0` 移除附魔 | 作者裁定不移植（1.21 参数在**解析阶段**就拒绝 0，需两个 mixin，性价比不足） |
+| `/enchant ... 0` 移除附魔 | **原版那条路仍不移植**，但 `build=cleanup20` 起有等价物：**`/simple_tweaks enchant <targets> <附魔> 0 [slot]`**（见 §P4）。原版 0 在**解析阶段**就被 `integer(1)` 拒掉，自建指令才绕得开 |
 | **铁砧祛魔**（`anvilDisenchant`） | **作者裁定不需要**（`build=cleanup4` 核实：从未移植）。配置键/界面/lang 仍在但**无任何实现**，属惰性键（同 `noFovEnabled` 的处理），**不要当 bug 报** |
 | **附魔成本倍率**（稀有度越高越贵） | **作者裁定不需要**（同上，从未移植）。1.12.2 靠 Forge 的 `AnvilUpdateEvent`，Fabric 无对应事件 |
 | `SlowDownEvent` 的第三方注册门面 | **事件本身已移植且行为正确**，但只挂在本模组总线上；要对外需再加一个公开门面 |
 | 原版箱子贴图式的界面底板 | 图鉴面板用纯色填充而非 `generic_54.png` 贴图 |
 | 图鉴里的附魔书是"假"的 | 只用 `ENCHANTMENT_GLINT_OVERRIDE` 加闪光，**没有真的 `STORED_ENCHANTMENTS` 组件** |
 | `infinite_power` 在图鉴里的名字 | 显示分类色而非流动彩虹（图鉴不读注册表） |
-| `noFovEnabled` / `noFovValue` 配置键 | NoFov 实现后又删掉了（见 `MIGRATION.md`），两个键保留但**惰性** |
+| ~~`noFovEnabled` / `noFovValue` 配置键~~ | **`build=cleanup20` 起两个键已删除**（NoFov 实现后又删掉，见 `MIGRATION.md`；留着只是惰性负担。旧配置文件里的残留会被加载器忽略并回写掉） |
 | `cancelVanillaDamageIndicator` 范围窄 | 只取消 `DAMAGE_INDICATOR`，不含暴击/附魔命中粒子 |
 
 **已完成的项**（保留在此以防误报）：4 个箭矢处理器 ✅（H 组）、CelestialBlessing ✅（I 组）、

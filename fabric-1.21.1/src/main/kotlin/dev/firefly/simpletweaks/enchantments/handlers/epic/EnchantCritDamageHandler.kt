@@ -7,8 +7,12 @@ import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.invalid
 import dev.firefly.simpletweaks.compat.isCrit
 import dev.firefly.simpletweaks.core.Listenable
-import dev.firefly.simpletweaks.enchantments.ModEnchantmentKeys
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
+import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
+import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 
 /**
  * 1.21 port of `enchantments/handlers/epic/EnchantCritDamageHandler.kt` (25 lines).
@@ -19,12 +23,26 @@ import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
  * | `net.minecraftforge...CriticalHitEvent` | `compat.event.CriticalHitEvent`                 |
  * | `e.entityLiving.heldItemMainhand`       | `e.entityLiving.mainHandStack` (`method_6047`)  |
  * | `util.isCrit` / `util.invalid`          | `compat.isCrit` / `compat.invalid`              |
- * | `EnchantCritDamage` (Enchantment)       | `ModEnchantmentKeys.CRIT_DAMAGE` (RegistryKey)  |
+ * | `EnchantCritDamage` (Enchantment)       | `GeneratedEnchantments.CRIT_DAMAGE` (RegistryKey)  |
  *
  * The three-step bonus ladder (`+0.1/level`, then `+0.05` from level 2, then `+0.025` from level 6)
  * is carried over verbatim — it is the same ladder `EnchantDoubleCritHandler` folds into its own
  * bonus, which is why both read `CRIT_DAMAGE`.
  */
+@ModEnchantment(
+    id = "crit_damage",
+    category = EnchantCategory.EPIC,
+    type = EnchantType.SWORD,
+    maxLevel = 10,
+    weight = 4,
+    anvilCost = 8,
+    minCostBase = 20,
+    minCostPerLevel = 5,
+    supportedItems = "#minecraft:enchantable/sword",
+    slots = [EnchantSlot.MAINHAND],
+    damagePerLevel = 0.35,
+    order = 33,
+)
 object EnchantCritDamageHandler : Listenable {
 
     // ⚠️ `HIGH`, deliberately NOT `HIGHEST`. `EnchantCritHandler` is the only `HIGHEST` listener on
@@ -38,7 +56,7 @@ object EnchantCritDamageHandler : Listenable {
     fun onCrit(e: CriticalHitEvent) {
         if (e.invalid) return
 
-        val lvl = getItemSpecificEnchantLevel(e.entityLiving.mainHandStack, ModEnchantmentKeys.CRIT_DAMAGE)
+        val lvl = getItemSpecificEnchantLevel(e.entityLiving.mainHandStack, GeneratedEnchantments.CRIT_DAMAGE)
         if (lvl > 0 && e.isCrit) {
             val before = e.damageModifier
 

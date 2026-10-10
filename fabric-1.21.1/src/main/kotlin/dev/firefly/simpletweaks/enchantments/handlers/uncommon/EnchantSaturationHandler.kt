@@ -6,11 +6,15 @@ import dev.firefly.simpletweaks.compat.event.PlayerEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.event.TickEvent
 import dev.firefly.simpletweaks.core.Listenable
-import dev.firefly.simpletweaks.enchantments.ModEnchantmentKeys
 import dev.firefly.simpletweaks.util.chestplate
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import java.util.*
 import kotlin.random.Random.Default.nextFloat
+import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
+import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 
 /**
  * 1.21 port of `enchantments/handlers/uncommon/EnchantSaturationHandler.kt`.
@@ -27,12 +31,25 @@ import kotlin.random.Random.Default.nextFloat
  * | `food.foodLevel`                      | `food.getFoodLevel()` / `food.setFoodLevel(int)` (method_7586 / method_7580) |
  * | `food.saturationLevel`                | `food.getSaturationLevel()` (method_7589)                              |
  * | `food.setFoodSaturationLevel(x)`      | `food.setSaturationLevel(x)` (method_7581 — **renamed**, there is no `setFoodSaturationLevel` in 1.21.1) |
- * | `EnchantSaturation` (Enchantment)     | `ModEnchantmentKeys.SATURATION` (RegistryKey)                          |
+ * | `EnchantSaturation` (Enchantment)     | `GeneratedEnchantments.SATURATION` (RegistryKey)                          |
  *
  * The accessor calls above are written explicitly (`getFoodLevel()` rather than `food.foodLevel`)
  * because `HungerManager` exposes *both* public fields (`foodLevel`, `saturationLevel`) and
  * getters of the same name — the explicit form is the only unambiguous one in Kotlin.
  */
+@ModEnchantment(
+    id = "saturation",
+    category = EnchantCategory.UNCOMMON,
+    type = EnchantType.CHESTPLATE,
+    maxLevel = 8,
+    weight = 8,
+    anvilCost = 4,
+    minCostBase = 26,
+    minCostPerLevel = 3,
+    supportedItems = "#minecraft:enchantable/chest_armor",
+    slots = [EnchantSlot.CHEST],
+    order = 13,
+)
 object EnchantSaturationHandler : Listenable {
 
     private val cooldown = mutableMapOf<UUID, Int>()
@@ -43,7 +60,7 @@ object EnchantSaturationHandler : Listenable {
         val p = e.player
         if (WorldSide.isClient(p.world)) return
 
-        val lvl = getItemSpecificEnchantLevel(p.chestplate, ModEnchantmentKeys.SATURATION)
+        val lvl = getItemSpecificEnchantLevel(p.chestplate, GeneratedEnchantments.SATURATION)
         val recoveryCount: Int = lvl / 8 + 1
         if (lvl <= 0) {
             cooldown.remove(p.uuid)

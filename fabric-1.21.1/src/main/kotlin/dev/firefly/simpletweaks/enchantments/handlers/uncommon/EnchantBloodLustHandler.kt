@@ -5,9 +5,13 @@ import dev.firefly.simpletweaks.compat.event.LivingHurtEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.invalid
 import dev.firefly.simpletweaks.core.Listenable
-import dev.firefly.simpletweaks.enchantments.ModEnchantmentKeys
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import net.minecraft.entity.LivingEntity
+import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
+import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 
 /**
  * 1.21 port of `enchantments/handlers/uncommon/EnchantBloodLustHandler.kt`.
@@ -19,7 +23,7 @@ import net.minecraft.entity.LivingEntity
  * | `EntityLivingBase`                         | `LivingEntity`                                     |
  * | `source.trueSource`                        | `source.attacker` (method_5529)                    |
  * | `attacker.heldItemMainhand`                | `attacker.mainHandStack` (method_6047)             |
- * | `EnchantBloodLust` (Enchantment object)    | `ModEnchantmentKeys.BLOODLUST` (RegistryKey)       |
+ * | `EnchantBloodLust` (Enchantment object)    | `GeneratedEnchantments.BLOODLUST` (RegistryKey)       |
  *
  * ⚠️ **DEVIATION — please review by hand (the only one in this file).**
  * 1.12.2 wrote the two-step form `val attacker = source.trueSource ?: return` followed by
@@ -30,6 +34,20 @@ import net.minecraft.entity.LivingEntity
  * declaration here: `val attacker = (source.attacker as? LivingEntity) ?: return`, then
  * `attacker.mainHandStack`. Same filter, same order, no behaviour change — but it is a two-line merge.
  */
+@ModEnchantment(
+    id = "bloodlust",
+    category = EnchantCategory.UNCOMMON,
+    type = EnchantType.SWORD,
+    maxLevel = 5,
+    weight = 8,
+    anvilCost = 4,
+    minCostBase = 28,
+    minCostPerLevel = 3,
+    supportedItems = "#minecraft:enchantable/sword",
+    slots = [EnchantSlot.MAINHAND],
+    damagePerLevel = 0.25,
+    order = 7,
+)
 object EnchantBloodLustHandler : Listenable {
     @SubscribeEvent
     fun onLivingHurt(e: LivingHurtEvent) {
@@ -37,7 +55,7 @@ object EnchantBloodLustHandler : Listenable {
         val source = e.source
         val attacker = (source.attacker as? LivingEntity)?: return
         val stack = attacker.mainHandStack
-        val level = getItemSpecificEnchantLevel(stack, ModEnchantmentKeys.BLOODLUST)
+        val level = getItemSpecificEnchantLevel(stack, GeneratedEnchantments.BLOODLUST)
         if (level > 0) {
             val ratio = (attacker.maxHealth - attacker.health) / attacker.maxHealth
             val bonus = ratio * (0.005 + ((level-1) * 0.005))

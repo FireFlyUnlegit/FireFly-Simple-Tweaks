@@ -7,10 +7,14 @@ import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.invalid
 import dev.firefly.simpletweaks.compat.isCrit
 import dev.firefly.simpletweaks.core.Listenable
-import dev.firefly.simpletweaks.enchantments.ModEnchantmentKeys
 import dev.firefly.simpletweaks.util.attackCharge
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import kotlin.random.Random.Default.nextFloat
+import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
+import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 
 /**
  * 1.21 port of `enchantments/handlers/legendary/EnchantDoubleCritHandler.kt` (37 lines).
@@ -21,7 +25,7 @@ import kotlin.random.Random.Default.nextFloat
  * | `net.minecraftforge...CriticalHitEvent`      | `compat.event.CriticalHitEvent`                               |
  * | `living.safeGetCooledAttackStrength()`       | `e.attackCharge` — the value captured at the HEAD of `PlayerEntity#attack`, which is what the 1.12.2 `MixinEntityPlayer` `@Redirect` captured |
  * | `e.entityLiving.heldItemMainhand`            | `e.entityLiving.mainHandStack` (`method_6047`)                |
- * | `EnchantDoubleCrit` / `EnchantCritDamage`    | `ModEnchantmentKeys.DOUBLE_CRIT` / `ModEnchantmentKeys.CRIT_DAMAGE` |
+ * | `EnchantDoubleCrit` / `EnchantCritDamage`    | `GeneratedEnchantments.DOUBLE_CRIT` / `GeneratedEnchantments.CRIT_DAMAGE` |
  * | `util.isCrit` / `util.invalid`               | `compat.isCrit` / `compat.invalid`                            |
  *
  * ⚠️ **DEVIATION — please review by hand (the only one in this file).**
@@ -38,6 +42,20 @@ import kotlin.random.Random.Default.nextFloat
  *
  * The charge gate is what makes this "double" crit: it only fires on a fully charged swing.
  */
+@ModEnchantment(
+    id = "double_crit",
+    category = EnchantCategory.LEGENDARY,
+    type = EnchantType.SWORD,
+    maxLevel = 5,
+    weight = 2,
+    anvilCost = 10,
+    minCostBase = 40,
+    minCostPerLevel = 10,
+    supportedItems = "#minecraft:enchantable/sword",
+    slots = [EnchantSlot.MAINHAND],
+    damagePerLevel = 0.4,
+    order = 35,
+)
 object EnchantDoubleCritHandler : Listenable {
 
     @SubscribeEvent(priority = EventPriority.HIGH)
@@ -48,8 +66,8 @@ object EnchantDoubleCritHandler : Listenable {
         val charge = e.attackCharge
         if (charge < 0.848) return
 
-        val lvl = getItemSpecificEnchantLevel(living.mainHandStack, ModEnchantmentKeys.DOUBLE_CRIT)
-        val lvl2 = getItemSpecificEnchantLevel(living.mainHandStack, ModEnchantmentKeys.CRIT_DAMAGE)
+        val lvl = getItemSpecificEnchantLevel(living.mainHandStack, GeneratedEnchantments.DOUBLE_CRIT)
+        val lvl2 = getItemSpecificEnchantLevel(living.mainHandStack, GeneratedEnchantments.CRIT_DAMAGE)
 
         if (lvl > 0) {
             val critDMG = (

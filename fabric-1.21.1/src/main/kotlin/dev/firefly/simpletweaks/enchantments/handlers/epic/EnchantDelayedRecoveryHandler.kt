@@ -11,12 +11,16 @@ import dev.firefly.simpletweaks.compat.event.TickEvent
 import dev.firefly.simpletweaks.compat.invalid
 import dev.firefly.simpletweaks.compat.target
 import dev.firefly.simpletweaks.core.Listenable
-import dev.firefly.simpletweaks.enchantments.ModEnchantmentKeys
+import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 import dev.firefly.simpletweaks.util.getArmorEnchantLevel
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.particle.ParticleTypes
 import net.minecraft.server.world.ServerWorld
 import java.util.UUID
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
+import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 
 /**
  * 1.21 port of `enchantments/handlers/epic/EnchantDelayedRecoveryHandler.kt`.
@@ -38,11 +42,24 @@ import java.util.UUID
  * | `p.heal(f)`                                     | unchanged (`LivingEntity.heal`, method_6043)                          |
  * | `WorldServer` / `spawnParticle(...)`            | `ServerWorld` / `spawnParticles(ParticleTypes.HEART, ...)` (`method_14199`) |
  * | `EnumParticleTypes.HEART`                       | `ParticleTypes.HEART` (unchanged name)                               |
- * | `EnchantDelayedRecovery` (Enchantment)          | `ModEnchantmentKeys.DELAYED_RECOVERY` (RegistryKey)                  |
+ * | `EnchantDelayedRecovery` (Enchantment)          | `GeneratedEnchantments.DELAYED_RECOVERY` (RegistryKey)                  |
  *
  * The pending-heal list, the 30/40/50/60/70 % ratio ladder, `delay = max(8 - lvl, 3)` seconds, the
  * per-tick payout and the `amount <= 0.001f || ticksLeft <= 0` removal condition are all unchanged.
  */
+@ModEnchantment(
+    id = "delayed_recovery",
+    category = EnchantCategory.EPIC,
+    type = EnchantType.ARMOR,
+    maxLevel = 5,
+    weight = 4,
+    anvilCost = 8,
+    minCostBase = 37,
+    minCostPerLevel = 12,
+    supportedItems = "#minecraft:enchantable/armor",
+    slots = [EnchantSlot.ARMOR],
+    order = 26,
+)
 object EnchantDelayedRecoveryHandler : Listenable {
 
     private class PendingHeal(
@@ -58,7 +75,7 @@ object EnchantDelayedRecoveryHandler : Listenable {
         if (e.invalid) return
         val player = e.target as? PlayerEntity ?: return
 
-        val lvl = player.getArmorEnchantLevel(ModEnchantmentKeys.DELAYED_RECOVERY)
+        val lvl = player.getArmorEnchantLevel(GeneratedEnchantments.DELAYED_RECOVERY)
         if (lvl <= 0) return
 
         val ratio = when (lvl) {

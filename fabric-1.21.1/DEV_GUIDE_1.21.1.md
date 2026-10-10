@@ -1,8 +1,20 @@
-# DEV_GUIDE_1.21.1.md — 接手这个分支，从这一份开始
+# DEV_GUIDE_1.21.1.md — 接手这个分支，从这一份开始（**人类版**）
 
-> **给新会话 / 新协作者的操作手册。**
-> `MIGRATION.md` 是**流水账与决策记录**（append-only，只增不改，用来回答"当初为什么这么做"）；
-> 这份文件回答"我现在要动手，该怎么做"。
+> **给人类新协作者 / 新会话的叙事版操作手册。**
+> 回答"这个仓库是什么、为什么这样、我该怎么做"，以及每条铁律**为什么**成立。
+>
+> 🚩 **如果你是 AI 代理：请先读 [`AGENTS.md`](AGENTS.md)。** 那份是**契约版**：硬约束（必须/绝不）、
+> 确切命令、任务→文件查找表、**完成判据**、禁止事项、失败取证协议。紧凑、可执行、无叙事。
+>
+> 两份的边界是刻意划的 —— **事实只在一处定义**，另一份放指针，避免两份漂移：
+>
+> |             | 拥有                                                    |
+> |-------------|-------------------------------------------------------|
+> | `AGENTS.md` | 约束与流程：能做什么/绝不能做什么、跑什么命令、改哪些文件、什么算完成                   |
+> | **本文件**     | 结构与原理：项目布局、构建为什么这么配、KSP/Mixin 教程与例子、铁律的来龙去脉、坑的经过、诊断命令 |
+>
+> 逐批改动史见 [`DEVLOG.md`](DEVLOG.md)；逐条验收项见 [`docs/acceptance-checklist.md`](docs/acceptance-checklist.md)；
+> 迁移期的阶段流水见 `MIGRATION.md`（**append-only**）。
 >
 > 读者假设：会 Kotlin / Java，知道 Mixin 是什么，但**不了解这个仓库**。
 
@@ -10,15 +22,15 @@
 
 ## 0. 三十秒速览
 
-| 事实                    | 值                                                                             |
-|-----------------------|-------------------------------------------------------------------------------|
-| 两个**互相独立**的 Gradle 工程 | 本目录 = MC 1.21.1 / Fabric / Yarn；上一级 `../` = MC 1.12.2 / Forge，**原样保留供对照**，不要改 |
-| 产物                    | `build/libs/simple_tweaks-2.0.0.jar`                                          |
-| 部署                    | 复制到 `F:\.minecraft\versions\1.21.1-Fabric 0.19.3\mods\`（旧的先存成 `.prev`）        |
-| 当前构建标识                | `build=cleanup6`（每次改动客户端可见行为都要**推进**这个标识，见 §2.4）                              |
-| 附魔定义方式                | **两代并存**：56 个旧的（PS1 生成的表驱动）+ 新增的走 KSP `@ModEnchantment`（见 §3）                 |
-| 验收                    | **由作者本人在客户端进行**。代理**不要**跑 `runClient`（需要真实客户端 + 人工判读手感/画面）                    |
-| 规模                    | kotlin 127 文件 / java 30 文件 / 附魔 JSON 56 份 / mixin 注册 24 个 / 处理器 56 个          |
+| 事实                    | 值                                                                                                                                                              |
+|-----------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| 两个**互相独立**的 Gradle 工程 | 本目录 = MC 1.21.1 / Fabric / Yarn；上一级 `../` = MC 1.12.2 / Forge，**原样保留供对照**，不要改                                                                                  |
+| 产物                    | `build/libs/simple_tweaks-2.1.0.jar`（版本取自 `gradle.properties` 的 `mod_version`，**改版本号会换文件名**）                                                                   |
+| 部署                    | 复制到 `F:\.minecraft\versions\1.21.1-Fabric 0.19.3\mods\`（旧的先存成 `.prev`）                                                                                         |
+| 当前构建标识                | `build=cleanup20`（每次改动客户端可见行为都要**推进**这个标识，见 §2.4）                                                                                                              |
+| 附魔定义方式                | **全部由 KSP 生成**：一个附魔 = 一个 `@ModEnchantment`（见 §3）。键、图鉴表、三个 tag 全部由 KSP 独家产出 —— **无 PS1、无 manifest**                                                             |
+| 验收                    | **由作者本人在客户端进行**。代理**不要**跑 `runClient`（需要真实客户端 + 人工判读手感/画面）                                                                                                     |
+| 规模                    | kotlin 142 文件 / java 28 文件 / 附魔声明 62 个（KSP 生成 JSON 57 + `jsonEmit = false` 手写 5）/ mixin 注册 25 个（21 common + 4 client）/ 处理器 62 个 / 监听器方法 119 个 / 每语言 lang 187 键 |
 
 ---
 
@@ -37,11 +49,11 @@ FireFly's Simple Tweaks-1.12.2/          ← 仓库根（1.12.2 Forge 工程，r
     │   └── src/main/kotlin/.../ksp/ModEnchantmentProcessor.kt
     │   └── src/main/resources/META-INF/services/...SymbolProcessorProvider
     ├── docs/                            ← 专项笔记（地图见 §9）
-    ├── tools/                           ← gen-enchantments.ps1（旧表生成器）、yarn-query.ps1（离线名称查询）
+    ├── tools/                           ← yarn-query.ps1（离线 Yarn 名称查询）
     ├── run/                             ← runClient/runServer 的游戏目录（**与正式客户端是两份配置**）
     └── src/main/
         ├── java/dev/firefly/simpletweaks/
-        │   ├── mixin/                   ← 所有 Mixin（24 个注册 + disabled/ 3 个未注册）
+        │   ├── mixin/                   ← 所有 Mixin（25 个注册：21 个 dual-side + 4 个 client；无未注册残留）
         │   └── interfaces/              ← 给 Mixin 用的接口注入（如 SimpleTweaksArrow）
         ├── kotlin/dev/firefly/simpletweaks/
         │   ├── SimpleTweaks.kt          ← 入口（ModInitializer）：config → 事件桥 → 处理器 → 网络 → 粒子
@@ -49,15 +61,14 @@ FireFly's Simple Tweaks-1.12.2/          ← 仓库根（1.12.2 Forge 工程，r
         │   ├── compat/                  ← Forge 兼容层：ForgeEventBus / 事件类 / STLog / ChargeBoost
         │   │   ├── bridge/              ← Fabric 回调 → Forge 形状事件
         │   │   └── event/               ← 事件类型（ArrowLooseEvent / LivingHurtEvent / SubscribeEvent…）
-        │   ├── core/                    ← 总线注册、EnchantmentManager（手写 handler 清单）、Listenable
+        │   ├── core/                    ← 总线注册、EnchantmentManager（手写 handler 清单）、Listenable、CommandRoots + EnchantCommand（见 §10）
         │   │   └── config/              ← GeneralConfig / DamageIndicatorConfig / SimpleTweaksConfig（JSON 读写）
         │   ├── client/                  ← 配置界面、图鉴界面、客户端指令、粒子、tooltip
         │   ├── damageindicator/         ← 伤害飘字
         │   ├── enchantments/
         │   │   ├── annotations/         ← **@ModEnchantment** 本体 + `Enums.kt`（Category/Color/Type/Slot）
         │   │   ├── generated/           ← **KSP 生成**（不要手改）
-        │   │   ├── EnchantmentMeta.kt   ← 手写门面：合并"旧表 + KSP 表"；**名字颜色在这里由 tier 推导**
-        │   │   ├── ModEnchantmentKeys.kt / EnchantmentTiers.kt ← 旧表（PS1 生成，勿手改）
+        │   │   ├── EnchantmentMeta.kt   ← 元数据门面：全部读 `GeneratedEnchantments`；**名字颜色由 tier 推导**
         │   │   └── handlers/{common,uncommon,rare,epic,legendary,mythic,mystery,unique}/
         │   ├── network/                 ← 自定义包（ID + 编解码 + 收发）
         │   ├── particle/                ← 粒子类型注册
@@ -65,10 +76,29 @@ FireFly's Simple Tweaks-1.12.2/          ← 仓库根（1.12.2 Forge 工程，r
         └── resources/
             ├── fabric.mod.json  simple_tweaks.mixins.json
             ├── assets/simple_tweaks/lang/{en_us,zh_cn}.json    ← 附魔名与描述（**手写**）
-            └── data/simple_tweaks/enchantment/*.json           ← 旧附魔的 datapack 定义（PS1 生成）
+            └── data/simple_tweaks/enchantment/*.json           ← **只有 5 个** `jsonEmit = false` 的手写件；其余 56 个由 KSP 生成
 ```
 
-**handler 数量分布**（`enchantments/handlers/`）：mythic 14、rare 11、epic 9、uncommon 9、legendary 8、common 6、mystery 2、unique 1、infinitepower 7、disabled 3。
+**handler 数量分布**（按 `@ModEnchantment` 声明所在目录计）：legendary 11、rare 11、uncommon 10、epic 10、mythic 8、common 7、mystery 2、unique 1，再加 `mythic/infinitepower/` 1（`EnchantInfinitePowerDeclaration`）—— 合计 **61**，与 61 个附魔一一对应。
+
+`enchantments/handlers/` 递归共 **69** 个 `.kt`，其余 **8** 个**不携带声明**：
+
+| 不携带声明者                                                                                                           | 为什么                                                       |
+|------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------|
+| `mythic/EnchantInfinitePowerHandler.kt`                                                                          | **不是** `Listenable`：一次性击杀由 `PlayerEntityAttackMixin` 直接调用 |
+| `mythic/infinitepower/` 下 4 个 aura handler（`FlightHandler` / `ForgeHandler` / `SoulBindHandler` / `ToolHandler`） | **手写**在 `handlerList` 里（见下方注释）                            |
+| `mythic/infinitepower/disabled/` 下 3 个                                                                           | 未启用（背包模块，已舍弃）                                             |
+
+**未启用的文件**（不在任何构建路径上，别去找 `mixin/disabled/` —— **该目录已不存在**）：
+
+| 路径                                                     | 文件                                                                                              |
+|--------------------------------------------------------|-------------------------------------------------------------------------------------------------|
+| `enchantments/handlers/mythic/infinitepower/disabled/` | `ContainerInfiniteBag.kt`、`InfiniteBagInventory.kt`、`InfiniteContainerHandler.kt`（背包模块，**已舍弃**） |
+| `client/disabled/`                                     | `GuiInfiniteBag.kt`（同上）                                                                         |
+
+> **`handlerList` 现在只剩 4 项**（`46 FlightHandler` / `47 ForgeHandler` / `48 SoulBindHandler` / `49 ToolHandler`），
+> 其余全部经 `GeneratedEnchantments.HANDLERS` 到达 —— 那 4 项之所以仍手写，是因为它们**不是**自己那个附魔的 `@ModEnchantment` 载体，
+> 且位置在序列中间，改由声明携带 `order` 会挪动其后所有监听器。
 
 ---
 
@@ -127,8 +157,8 @@ Kotlin 增量编译**不会删除**已移除源文件对应的 `.class`，而 `j
 
 ```powershell
 $mods = 'F:\.minecraft\versions\1.21.1-Fabric 0.19.3\mods'
-Copy-Item "$mods\simple_tweaks-2.0.0.jar" "$mods\simple_tweaks-2.0.0.jar.prev" -Force
-Copy-Item 'build\libs\simple_tweaks-2.0.0.jar' "$mods\simple_tweaks-2.0.0.jar" -Force
+Copy-Item "$mods\simple_tweaks-2.1.0.jar" "$mods\simple_tweaks-2.1.0.jar.prev" -Force
+Copy-Item 'build\libs\simple_tweaks-2.1.0.jar' "$mods\simple_tweaks-2.1.0.jar" -Force
 ```
 
 装完顺手对比一次 SHA256（构建产物 vs 已安装），能挡住"复制了但没覆盖"这种低级事故。
@@ -149,22 +179,22 @@ Copy-Item 'build\libs\simple_tweaks-2.0.0.jar' "$mods\simple_tweaks-2.0.0.jar" -
 
 ```kotlin
 @ModEnchantment(
-    id = "fast_bow",              // 注册路径 / JSON 文件名 / lang 键后缀，必须 [a-z0-9_]
-    category = "rare",            // 1.12.2 EnchantmentCategories，小写；图鉴按它分组（也是名字颜色来源）
-    type = "bow",                 // 1.12.2 ModEnchantmentType，小写；图鉴显示为"适用"
-    color = "blue",               // 可选；留空 = 用 category 的颜色
-    maxLevel = 3,                 // >= 1
-    weight = 5,                   // 附魔台权重，>= 1
-    anvilCost = 6,
-    minCostBase = 20,
-    minCostPerLevel = 10,         // 可选，默认 0
-    supportedItems = "#minecraft:enchantable/bow",
-    primaryItems = "",            // 可选；留空 = 同 supportedItems
-    slots = ["mainhand", "offhand"],
-    maxCostBase = 65535,          // 可选
-    maxCostPerLevel = 0,          // 可选
+   id = "fast_bow",              // 注册路径 / JSON 文件名 / lang 键后缀，必须 [a-z0-9_]
+   category = "rare",            // 1.12.2 EnchantmentCategories，小写；图鉴按它分组（也是名字颜色来源）
+   type = "bow",                 // 1.12.2 ModEnchantmentType，小写；图鉴显示为"适用"
+   color = "blue",               // 可选；留空 = 用 category 的颜色
+   maxLevel = 3,                 // >= 1
+   weight = 5,                   // 附魔台权重，>= 1
+   anvilCost = 6,
+   minCostBase = 20,
+   minCostPerLevel = 10,         // 可选，默认 0
+   supportedItems = "#minecraft:enchantable/bow",
+   primaryItems = "",            // 可选；留空 = 同 supportedItems
+   slots = ["mainhand", "offhand"],
+   maxCostBase = 65535,          // 可选
+   maxCostPerLevel = 0,          // 可选
 )
-object EnchantFastBowHandler : Listenable {  }
+object EnchantFastBowHandler : Listenable {}
 ```
 
 `category` 写错（不在 8 个值里）、`id` 不合规、`maxLevel < 1`、`slots` 为空、两个 `@ModEnchantment` 用了同一个 `id` —— 这些都会**在构建期报错**，不会静默通过。处理器会打印一行 `ModEnchantment: N annotated handler(s) -> M enchantment(s)`。
@@ -199,9 +229,15 @@ object EnchantXxxHandler : Listenable {          // 必须实现 Listenable
 - 每 tick 的事件（`PlayerTickEvent` 等）**只在状态跃迁时打日志**，否则会刷爆日志。
 - 读等级用 `util/EnchantmentsUtil.kt` 的 `getItemSpecificEnchantLevel(stack, key)`（按组件匹配，不需要世界/注册表）。
 
-### 3.5 迁移旧附魔（一个一个搬，别一次全搬）
+### 3.5 迁移已经做完了（这一节保留作历史）
 
-给旧附魔的 handler 加注解 → 从 `tools/gen-enchantments.ps1` 的表里删掉它。`EnchantmentMeta` 里 **KSP 侧优先**，两代并存不冲突。一次性迁移 56 个等于制造 56 个潜在回归。
+1.21.1 的 61 个附魔**全部**是 `@ModEnchantment` 声明（批次 1–4，见 `MIGRATION.md` 末节）。
+`tools/gen-enchantments.ps1`、`tools/legacy-enchantments.json`、`ModEnchantmentKeys.kt`、
+`EnchantmentTiers.kt` 都已删除 —— 没有任何"旧表"需要维护，也没有"两代并存"需要协调。
+
+**唯一还记得旧机制的地方**是 5 个 `jsonEmit = false` 的附魔（`reforge`、`infinite_power`、
+`celestial_blessing`、`heavenly_punishment`、`unbreakable`）：它们的 datapack JSON 仍是手写件，
+因为它们的 `effects` 用到了 processor 还不会输出的组件（缺 `primary_items` 字段 / `item_damage`）。
 
 ### 3.6 处理器本身的两个反直觉点（改 processor 前必读）
 
@@ -286,6 +322,9 @@ foreach ($c in 'net.minecraft.entity.LivingEntity','net.minecraft.entity.player.
 ## 5. 四条铁律
 
 > 原文在 `MIGRATION.md` 开头（①②）与 §9 收尾（四条索引）。这里给操作版。
+>
+> 🚩 **代理用的紧凑契约版在 [`AGENTS.md`](AGENTS.md) §4**（每条一条硬约束 + 血债）。
+> 本节负责**解释为什么**；改本节时顺手看一眼那边有没有需要同步的规则。
 
 ### ① refmap 有映射 ≠ 接缝活着
 
@@ -319,25 +358,25 @@ Mixin 只改写 `@Mixin` 那个类的方法体。1.21 里不少基类方法被**
 
 ## 6. 常见坑（全部真踩过）
 
-| #  | 现象                                         | 根因 / 规避                                                                                                                                                |
-|----|--------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
-| 1  | Loom 报 `outdated version of Java (8)`      | `JAVA_HOME` 指向 JDK 8（1.12.2 工程需要）。构建 1.21.1 前必须覆盖成 JDK 21（§2.1）                                                                                        |
-| 2  | 源码里删了，jar 里还在                              | Kotlin 增量编译不删 `.class`。**删源文件后必须 `clean build`**（§2.2）                                                                                                 |
-| 3  | 配置项能改能存，但游戏里没反应                            | **配置键存在 ≠ 有代码读它**。已发生 3 次：`maxEnchantmentPower` / `disableEnchantmentTableLimit`、`anvilDisenchant`、`yStartFactor`（公式语义错）。新增配置项时，**必须同时写清"谁读它"**，并加一条验收 |
-| 4  | 新生成的数据/表没生效                                | **生成了 ≠ 接上了**。已发生 2 次：KSP 生成的 `COLOR` 表没人读（fast_bow 显示成 COMMON 的灰）、`FAST_BOW` 键没进 `ALL`（图鉴里看不见）。新增任何表/清单，**必须同时接消费点**                                  |
-| 5  | 改了"看起来对"的地方却没效果                            | **先确认客户端真正读的是哪条路径**。fast_bow 第一版只改 `BowItem.getPullProgress`（松手威力），而 `HeldItemRenderer` 读的是 `getItemUseTimeLeft()` —— 拉弓动画完全没变（§5③）                    |
-| 6  | 单机比预期强 / 与画面不符                             | `client` mixin 在单机下也改内置服务端。两侧都乘会平方（§4.5）                                                                                                               |
-| 7  | KSP 报 `FileAlreadyExistsException`         | `process()` 每轮都调用 + `validate()` deferral 死锁（§3.6）                                                                                                     |
-| 8  | 改了 `build.gradle` 后 mod 完全不加载              | IDEA 用缓存的旧 Gradle 模型启动。**Reload Gradle Project**（§2.6）。判据：日志 `Loading N mods` 里没有 `simple_tweaks`                                                      |
-| 9  | 画面/手感类改动"看不出来"                             | **验收判据要可感知**：写清基准线（无附魔）与对比量（tick 数 / 落点 / 颜色），不要只写"变快了"                                                                                                |
-| 10 | `Slot.x`/`y` 写入报 `IllegalAccessError`      | 1.21.1 里它们是 `final`，需要 `@Mutable @Shadow`                                                                                                              |
-| 11 | 找不到 `[ST-*]` 日志                            | **调试日志默认关闭**，要 `-Dsimpletweaks.debug=true`（或环境变量 `SIMPLETWEAKS_DEBUG=true`）                                                                            |
-| 12 | Git 提交后编辑工具报"文件已变化"                        | 仓库开了 `core.autocrlf`，`git add` 会按 CRLF 重写工作区文件。重新读一次即可（代理向的坑）                                                                                          |
-| 13 | `AnvilScreen`/`AnvilScreenHandler` 的 40 改错 | 同一字面量在方法里出现多次，**必须核实个数再决定 ordinal**（§4.3）                                                                                                              |
-| 14 | `getMaxUseTime` 当成"拉弓时间"                   | 弓的它是 72000（最长持有时长），**不是**蓄满所需的 20 tick                                                                                                                 |
-| 15 | tag 里写 `"remove"` 却毫无效果，**且不报错**          | **1.21.1 原版 tag 格式根本没有 `remove` 字段** —— `TagFile` 只有 `entries`(=`values`) 和 `replace`。`remove` 是 **Fabric Tag API** 的扩展，键名必须是 **`"fabric:remove"`**；写成裸 `remove` 会被**静默忽略**。原版 `values` 还是**必填**字段，所以"只移除、不添加"的文件也要写 `"values": []`。连带的坑：`replace: true` 表示"用本文件的 values **取代**整个 tag"，而 vanilla `non_treasure` 里有 35 个原版附魔、`in_enchanting_table` 整个就是 `#minecraft:non_treasure` 的引用 —— 对它们用 `replace: true` 会把**原版附魔逐出附魔台** |
-| 16 | 新写的 `@ModEnchantment` 没进附魔台 / 没被村民过滤          | KSP 是这两个 tag 的**唯一生产者**，而它需要 `tools/legacy-enchantments.json`（由 `tools/gen-enchantments.ps1` 跑一次生成、**要提交**）才能覆盖 54 个 legacy 附魔。该路径经 `build.gradle` 的 `ksp { arg('simpleTweaks.legacyManifest', …) }` 传入；缺失时 processor 会**报错**而不是生成一个短 tag |
-| 17 | 生成物里出现 `<ERROR TYPE: …>`                       | 注解实参**不是编译期常量**（例如 `color = EnchantCategory.EPIC.color` 是属性读取）。KSP 不报错，只回一个占位符；processor 现在有**枚举名护栏**会在声明处直接报错（§3.6），不要绕过它 |
+| #  | 现象                                         | 根因 / 规避                                                                                                                                                                                                                                                                                                                                                                                                                      |
+|----|--------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| 1  | Loom 报 `outdated version of Java (8)`      | `JAVA_HOME` 指向 JDK 8（1.12.2 工程需要）。构建 1.21.1 前必须覆盖成 JDK 21（§2.1）                                                                                                                                                                                                                                                                                                                                                              |
+| 2  | 源码里删了，jar 里还在                              | Kotlin 增量编译不删 `.class`。**删源文件后必须 `clean build`**（§2.2）                                                                                                                                                                                                                                                                                                                                                                       |
+| 3  | 配置项能改能存，但游戏里没反应                            | **配置键存在 ≠ 有代码读它**。已发生 3 次：`maxEnchantmentPower` / `disableEnchantmentTableLimit`、`anvilDisenchant`、`yStartFactor`（公式语义错）。新增配置项时，**必须同时写清"谁读它"**，并加一条验收                                                                                                                                                                                                                                                                       |
+| 4  | 新生成的数据/表没生效                                | **生成了 ≠ 接上了**。已发生 2 次：KSP 生成的 `COLOR` 表没人读（fast_bow 显示成 COMMON 的灰）、`FAST_BOW` 键没进 `ALL`（图鉴里看不见）。新增任何表/清单，**必须同时接消费点**                                                                                                                                                                                                                                                                                                        |
+| 5  | 改了"看起来对"的地方却没效果                            | **先确认客户端真正读的是哪条路径**。fast_bow 第一版只改 `BowItem.getPullProgress`（松手威力），而 `HeldItemRenderer` 读的是 `getItemUseTimeLeft()` —— 拉弓动画完全没变（§5③）                                                                                                                                                                                                                                                                                          |
+| 6  | 单机比预期强 / 与画面不符                             | `client` mixin 在单机下也改内置服务端。两侧都乘会平方（§4.5）                                                                                                                                                                                                                                                                                                                                                                                     |
+| 7  | KSP 报 `FileAlreadyExistsException`         | `process()` 每轮都调用 + `validate()` deferral 死锁（§3.6）                                                                                                                                                                                                                                                                                                                                                                           |
+| 8  | 改了 `build.gradle` 后 mod 完全不加载              | IDEA 用缓存的旧 Gradle 模型启动。**Reload Gradle Project**（§2.6）。判据：日志 `Loading N mods` 里没有 `simple_tweaks`                                                                                                                                                                                                                                                                                                                            |
+| 9  | 画面/手感类改动"看不出来"                             | **验收判据要可感知**：写清基准线（无附魔）与对比量（tick 数 / 落点 / 颜色），不要只写"变快了"                                                                                                                                                                                                                                                                                                                                                                      |
+| 10 | `Slot.x`/`y` 写入报 `IllegalAccessError`      | 1.21.1 里它们是 `final`，需要 `@Mutable @Shadow`                                                                                                                                                                                                                                                                                                                                                                                    |
+| 11 | 找不到 `[FST-*]` 日志                           | **调试日志默认关闭**，要 `-Dsimpletweaks.debug=true`（或环境变量 `SIMPLETWEAKS_DEBUG=true`）                                                                                                                                                                                                                                                                                                                                                  |
+| 12 | Git 提交后编辑工具报"文件已变化"                        | 仓库开了 `core.autocrlf`，`git add` 会按 CRLF 重写工作区文件。重新读一次即可（代理向的坑）                                                                                                                                                                                                                                                                                                                                                                |
+| 13 | `AnvilScreen`/`AnvilScreenHandler` 的 40 改错 | 同一字面量在方法里出现多次，**必须核实个数再决定 ordinal**（§4.3）                                                                                                                                                                                                                                                                                                                                                                                    |
+| 14 | `getMaxUseTime` 当成"拉弓时间"                   | 弓的它是 72000（最长持有时长），**不是**蓄满所需的 20 tick                                                                                                                                                                                                                                                                                                                                                                                       |
+| 15 | tag 里写 `"remove"` 却毫无效果，**且不报错**           | **1.21.1 原版 tag 格式根本没有 `remove` 字段** —— `TagFile` 只有 `entries`(=`values`) 和 `replace`。`remove` 是 **Fabric Tag API** 的扩展，键名必须是 **`"fabric:remove"`**；写成裸 `remove` 会被**静默忽略**。原版 `values` 还是**必填**字段，所以"只移除、不添加"的文件也要写 `"values": []`。连带的坑：`replace: true` 表示"用本文件的 values **取代**整个 tag"，而 vanilla `non_treasure` 里有 35 个原版附魔、`in_enchanting_table` 整个就是 `#minecraft:non_treasure` 的引用 —— 对它们用 `replace: true` 会把**原版附魔逐出附魔台** |
+| 16 | 新写的 `@ModEnchantment` 没进附魔台 / 没被村民过滤       | KSP 是这两个 tag 的**唯一生产者**，而它需要 `tools/legacy-enchantments.json`（由 `tools/gen-enchantments.ps1` 跑一次生成、**要提交**）才能覆盖 54 个 legacy 附魔。该路径经 `build.gradle` 的 `ksp { arg('simpleTweaks.legacyManifest', …) }` 传入；缺失时 processor 会**报错**而不是生成一个短 tag                                                                                                                                                                                    |
+| 17 | 生成物里出现 `<ERROR TYPE: …>`                   | 注解实参**不是编译期常量**（例如 `color = EnchantCategory.EPIC.color` 是属性读取）。KSP 不报错，只回一个占位符；processor 现在有**枚举名护栏**会在声明处直接报错（§3.6），不要绕过它                                                                                                                                                                                                                                                                                                   |
 
 ---
 
@@ -362,7 +401,7 @@ Mixin 只改写 `@Mixin` 那个类的方法体。1.21 里不少基类方法被**
 | JVM 参数 | `-Dsimpletweaks.debug=true`                                                 |
 | 环境变量   | `SIMPLETWEAKS_DEBUG=true`（等价 `=1`），便于 `gradlew runClient` 不改 `build.gradle` |
 
-**启动时读一次**，改了要重启。开出来的日志形如 `[ST-FastBow] boost=1.75, charge=20`，用 `Select-String '\[ST-'` 抓取。
+**启动时读一次**，改了要重启。开出来的日志形如 `[FST-FastBow] boost=1.75, charge=20`，用 `Select-String '\[FST-'` 抓取。
 
 **保持无条件输出**（不该被开关吞掉）：`loading` / `load complete` / `client ready: ... (build=cleanupN)` / `Config loaded from ...` / `Registered N enchantment handler(s)`，以及全部 `warn` / `error`。
 
@@ -382,13 +421,13 @@ $mcJar  = (Get-ChildItem -Recurse -Path '.gradle\loom-cache\minecraftMaven' `
 
 & $javap -p -cp $mcJar net.minecraft.item.BowItem              # 签名 + 字段
 & $javap -p -c -cp $mcJar net.minecraft.item.BowItem           # 字节码（常量、调用点）
-& $javap -v -p -cp build\libs\simple_tweaks-2.0.0.jar dev.firefly.simpletweaks.mixin.XxxMixin  # 注解实际取值
+& $javap -v -p -cp build\libs\simple_tweaks-2.1.0.jar dev.firefly.simpletweaks.mixin.XxxMixin  # 注解实际取值
 ```
 
 | 要看什么                    | 位置                                                                  |
 |-------------------------|---------------------------------------------------------------------|
 | 未 remap 的 class（验证源码改动） | `build/classes/{kotlin,java}/main/...`                              |
-| refmap                  | `build/libs/simple_tweaks-2.0.0.jar` 内的 `simple_tweaks-refmap.json` |
+| refmap                  | `build/libs/simple_tweaks-2.1.0.jar` 内的 `simple_tweaks-refmap.json` |
 | KSP 生成物                 | `build/generated/ksp/main/{kotlin,resources}/`                      |
 | 游戏日志                    | 正式客户端 `<gameDir>\logs\latest.log`；开发 `run/logs/latest.log`          |
 | 离线查 Yarn 名称             | `tools/yarn-query.ps1`                                              |
@@ -398,7 +437,7 @@ $mcJar  = (Get-ChildItem -Recurse -Path '.gradle\loom-cache\minecraftMaven' `
 
 ```powershell
 Add-Type -AssemblyName System.IO.Compression.FileSystem
-$z = [System.IO.Compression.ZipFile]::OpenRead((Resolve-Path 'build\libs\simple_tweaks-2.0.0.jar'))
+$z = [System.IO.Compression.ZipFile]::OpenRead((Resolve-Path 'build\libs\simple_tweaks-2.1.0.jar'))
 @($z.Entries | Where-Object { $_.FullName -like 'data/simple_tweaks/enchantment/*.json' }).Count
 $z.Dispose()
 ```
@@ -409,8 +448,11 @@ $z.Dispose()
 
 | 文件                                      | 负责回答                                                                                    |
 |-----------------------------------------|-----------------------------------------------------------------------------------------|
-| `DEV_GUIDE_1.21.1.md`（本文件）              | **怎么做** —— 结构 / 构建 / 加附魔 / 写 Mixin / 铁律 / 坑 / 验收                                        |
+| `AGENTS.md`                             | 🚩 **代理入口（契约版）** —— 硬约束 / 确切命令 / 任务→文件查找表 / 完成判据 / 禁止事项 / 失败取证协议                        |
+| `DEVLOG.md`                             | **本批改了什么、为什么** —— 迁移结束后的逐批流水（现象 → 证据 → 改法 → 验收编号），含「本批未验收」清单与教训                         |
+| `DEV_GUIDE_1.21.1.md`（本文件）              | **怎么做（人类版）** —— 结构 / 构建 / 加附魔 / 写 Mixin / 铁律的来龙去脉 / 坑 / 验收                              |
 | `MIGRATION.md`                          | **当初为什么** —— 阶段流水账、决策记录、踩坑经过、版本核实、§10 声明式 vs Kotlin 的判定表、§14 铁砧、§15 KSP。**append-only** |
+| `DEVLOG.md`                             | **本批改了什么、为什么** —— 迁移结束后的逐批流水（现象 → 证据 → 改法 → 验收编号），以及"本批未验收"清单与教训                        |
 | `docs/acceptance-checklist.md`          | 客户端验收清单 + **已知未做**表（未做事项的唯一去处）                                                          |
 | `docs/phase4-mixin-notes.md`            | Mixin 目标选择的早期考古（含被主动删除的粒子抑制 mixin）                                                      |
 | `docs/phase6-client-notes.md`           | 阶段 6 客户端细节：飘字、图鉴、Starfall 世界地板、Multishot 无敌帧                                            |
@@ -418,3 +460,51 @@ $z.Dispose()
 | `docs/phase3-{member-map,port-spec}.md` | 阶段 3 的成员映射与移植规格（历史）                                                                     |
 
 > 迁移已结束，功能状态：附魔台 / 弓箭三件套 + Starfall / CelestialBlessing / InfinitePower 核心 + 激光 **均已实测通过**；Velocity 与铁砧祛魔 **作者裁定不需要**；InfinitePower 背包 **8 次尝试后舍弃**。
+
+---
+
+## 10. 命令注册（`build=cleanup20` 起）
+
+> 🚩 **硬约束（一条就够）见 [`AGENTS.md`](AGENTS.md) §4.1：命令绝不能注册在客户端。**
+> 本节给的是**为什么**（Fabric 客户端指令层的判定逻辑）。
+
+**所有命令挂在同一个根下**，两个拼写：`/simple_tweaks …` 与简写 `/fst …`。根名只有一处定义 ——
+`core/CommandRoots.kt` 的 `CommandRoots.ALL`。
+
+**全部命令都由服务端注册**（只有一棵树），要开客户端界面就发一个包：
+
+| 子命令                                      | 权限           | 文件                                                              |
+|------------------------------------------|--------------|-----------------------------------------------------------------|
+| `<root> enchant <目标> <附魔> <等级> [槽位]`     | **OP（等级 2）** | `core/EnchantCommand.kt`                                        |
+| `<root> stconfig`                        | 无            | `core/ScreenCommands.kt` → `PacketOpenModScreen(CONFIG)`        |
+| `<root> enchantinfo` / `ei` / `enchinfo` | 无            | `core/ScreenCommands.kt` → `PacketOpenModScreen(ENCHANT_INDEX)` |
+
+### ⛔ 绝不能把命令注册在客户端（`build=cleanup20` 的血债）
+
+一开始把 `stconfig`/`enchantinfo` 做成**客户端**命令、与服务端**共用根名**，
+结果 `/simple_tweaks enchant …` **完全不可用**。机制（Fabric `ClientCommandInternals` 源码 +
+客户端日志双向确认）：
+
+1. 客户端**先**拿一个「只含客户端注册指令」的 dispatcher 试解析（`activeDispatcher.execute(...)`）；
+2. 只有 `dispatcherUnknownCommand` / `dispatcherParseException` 会 `return false`，即放行给服务端；
+3. 共用根名时，`/fst enchant …` **匹配到了客户端的 `fst` 根**、只是子命令不认 → 得到
+   `dispatcherUnknownArgument` → 命中"非忽略"分支 → **报错给玩家并 `return true`，永不发往服务端**；
+   日志原样：`Syntax exception for client-sided command 'fst enchant @s'` / `错误的命令参数 at position 4`；
+4. Fabric 源码里那句 `// TODO: Check for server commands before executing.` 就是承认这个缺口。
+
+> **判定式**：一个根名下只要有**任何**客户端注册，该根名下**所有服务端子命令**都不可达 ——
+> 客户端只在**裸根名**上放行（那种情况恰好是 `dispatcherUnknownCommand`）。
+> 所以：**要么全在服务端，要么别共用根名。**
+
+> **纠正一条曾经的错误结论**（本节上一版写的）：Brigadier 的节点合并**本身**没问题 ——
+> `CommandNode#addChild` 按名字合并，唯一的异常是"不能把 RootCommandNode 当子节点"，也**不比较 requirements**。
+> 坏的是**执行**根本没走到那一步。"`requires` 放共享根会被静默丢弃"在现在的单树设计下也不再适用，
+> 但**权限仍写在子节点上**（`enchant` 有、两个开界面的没有），这样一眼能看出哪条要 OP。
+
+> ⚠️ **根名不能带 `:` 前缀。** Brigadier 的 `isAllowedInUnquotedString` 不接受冒号 —— 1.3.10 字节码里
+> 逐条比较的是 48–57、65–90、97–122 以及 `_`(95) `-`(45) `.`(46) `+`(43)，**没有 58**；`CommandManager`
+> 也只剥离开头的 `/`。所以 `/simple_tweaks:enchant` 这种写法**永远匹配不上**，「根字面量 + 子命令」
+> 才是可解析的等价形式。
+
+> 日志前缀自 `build=cleanup20` 起是 **`[FST-*]`**（原 `[ST-*]`）：用 `Select-String '\[FST-'`。
+> `MIGRATION.md` 是 append-only 的历史记录，正文里仍是当时的 `[ST-*]`，**不要**照它 grep。
