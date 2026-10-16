@@ -966,3 +966,52 @@ if (!value.equals(this.field_48586)) throw new IllegalStateException("Can't enco
    **"空包 = 无状态"是错的推论：无状态 ≠ 无身份。**
 2. **这是"三关"的教科书案例**：编译与构建全绿（第一、二关），第三关（动态）一按就断连 —— 而且比静默失效更响。
    凡新增 `CustomPayload`，第一次真机出现必须当必测项（§AA0 就是它的固化形式）。
+
+---
+
+## 仓库布局迁移（2026-10-17 · 非代码改动）
+
+**背景**：`fabric-1.21.1` 分支一直是"在 1.12.2 仓库里塞了个子目录"——
+`git diff --shortstat origin/master origin/fabric-1.21.1` 原本是 `212 files changed, 24983 insertions(+), 1 deletion(-)`，
+即**分支根目录就是 `master` 的 1.12.2 树**（191 个 `src/` 文件 + `build.gradle` / `gradle.properties` /
+`tags.properties` …），Fabric 工程在 `fabric-1.21.1/` 子目录里。后果：在 GitHub 上浏览该分支会看到 1.12.2 源码；
+CI（`.github/workflows/deploy.yml`，1.12.2/Forge 模板，跑根 `gradlew`）也在构建 1.12.2。
+
+**改法**：`git filter-branch --subdirectory-filter fabric-1.21.1` **重写该分支历史** —— 14 个提交，
+每个提交树里都不存在 1.12.2 文件（逐提交扫 `tags.properties` 等标记，命中 0）；再补一个提交放回
+`LICENSE` 与 `README.md`（它们原本在仓库根，被 subdirectory-filter 丢掉了），并把 README 里
+指向 `./fabric-1.21.1/MIGRATION.md` 的链接改回 `./MIGRATION.md`。**`master` 与所有 tag 未动**；
+旧 tip `146123e` 仍由 tag `v2.1.0` 引用着，需要时可取回。
+
+**本地工作副本**：另建 `FireFly's Simple Tweaks-fabric-1.21.1/`（GitHub 分支的克隆，根 = 工程），
+把原 `fabric-1.21.1/` 里那 **105 项未提交改动**搬过去（101 复制 / 5 删除：`STLog.kt` 重命名的旧名 +
+4 个已交给 KSP 生成的附魔 JSON），提交为 `9c78ddd`；旧的 `FireFly's Simple Tweaks-1.12.2/` 目录
+**原样保留当备份**（那 105 项改动仍在里面）。
+
+**迁移的校验方式（可复用）**：不比字节，比"**会存进对象库的内容**"——
+`git hash-object`（应用 `autocrlf` 等过滤器）逐路径比对源/目标（101/101 一致），
+再用两侧 `git status --porcelain` 的**路径集合**核对（106 = 106，无遗漏无多余）。
+中途曾因源路径前缀拼重（`…\fabric-1.21.1\fabric-1.21.1\…`）导致 101 个文件一个都没复制成功，
+正是这步校验当场发现 —— **"复制成功"的日志不算证据，哈希一致才算**。
+
+**布局迁移连带的三件事**（都已随本批改掉）：
+
+1. **文档路径**：`AGENTS.md` §0/§4.7、`DEV_GUIDE` §0 与 §1 目录树、《清单》页首 jar 路径里的
+   `fabric-1.21.1/` 前缀全部去掉；1.12.2 对照物改为"同仓库 `master` 分支（`git show master:<path>`）"。
+   `docs/phase3-port-spec.md` 属专项考古，只在开头加了一行路径说明，正文不改写（历史保真）。
+2. **jar 多带一个 LICENSE**：根目录现在就是工程，`build.gradle` 里那句 `from('LICENSE')`
+   **第一次真的找到了文件**（旧布局里 LICENSE 在上一层，被静默跳过）⇒ jar 638328 → **639095 bytes**
+   （`9C26255D…`，代码完全相同）。《清单》页首 SHA / 字节数已按新布局更新，并把这笔差异写进解释。
+3. **`.gitignore` 覆盖变窄**：`run/`、`.idea/`、`*.iml`、`out/` 以前靠 1.12.2 那份根 `.gitignore` 忽略，
+   重写后只剩工程自己那份（`.gradle/`、`build/`、`MIGRATION.md`）⇒ 已补回 IDE / run 的覆盖
+   （否则在新目录跑一次客户端，`run/` 就会变成未跟踪文件，有误提交世界存档的风险）。
+
+**踩到的坑（已记入 `DEV_GUIDE` §6 #26）**：把旧 `.idea` 整份拷进新布局后，IDEA 弹
+「**检测到未注册的 VCS 根**」—— `vcs.xml` 里的 `$PROJECT_DIR$/..`（旧布局下等于仓库根）在新布局里
+指向一个**非 git 仓库**的父目录（实测 `F:\Codes\Mod` 不是仓库），IDEA 于是把父目录注册成 Git 根、
+又报告工程目录"未注册"（日志：`VcsRootProblemNotifier` + `VcsRootError{UNREGISTERED_ROOT - …}`）；
+同时 `.idea/runConfigurations/Minecraft_{Client,Server}.xml` 里写死了旧目录的绝对路径
+（`-Dfabric.dli.config=…\1.12.2\fabric-1.21.1\.gradle\loom-cache\launch.cfg`，点"运行"会去跑旧工程）。
+**结论：布局变了就别拷 `.idea`，让它自己重建。**
+
+**状态**：本节的文档 / `.gitignore` 改动先**留在本地**，攒够再 push；`9c78ddd`（WIP 迁移提交）同样未推送。

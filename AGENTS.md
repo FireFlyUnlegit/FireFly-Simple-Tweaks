@@ -15,8 +15,10 @@
 
 ## 0. 三条前置事实（先读）
 
-1. **工程根就是本目录**（`fabric-1.21.1/`，独立 Gradle 工程，自带 wrapper）。
-   上一级 `../` 是 1.12.2 Forge 原工程 —— **只读参考，绝不要修改**（它是对照物）。
+1. **工程根就是仓库根**（本目录，独立 Gradle 工程，自带 wrapper）—— 2026-10-17 分支历史被重写后，
+   仓库里**不再有 `fabric-1.21.1/` 这一层**（见 `DEVLOG.md` 的「仓库布局迁移」一节）。
+   1.12.2 / Forge 原工程在同仓库的 **`master` 分支**：要对照用 `git show master:<path>` —— **只读，绝不要改**。
+   磁盘上若还留着 `FireFly's Simple Tweaks-1.12.2/` 旧目录，那只是备份，不是构建依赖。
 2. **构建必须设两个环境变量。不设 = 失败，不是"变慢"**（详见 §1）。
 3. **验收由作者本人在正式客户端做。代理不要跑 `runClient`。**
    `runServer` 只用于冒烟（mixin 是否绑上、数据包是否加载），**不构成行为验收**。
@@ -155,7 +157,7 @@ dispatcher 试解析（`ClientCommandInternals#executeCommand`），而它只放
 
 ### 4.7 不要改的东西
 
-- `../`（1.12.2 原工程）
+- `master` 分支上的 1.12.2 原工程（只读参考）；磁盘上那份旧目录副本同样不要改
 - `build/generated/ksp/main/**`（KSP 生成物 —— 改它等于没改，下次编译就没了）
 - `mixin/disabled/`、`client/disabled/`、`.../infinitepower/disabled/` 下的未启用文件（**它们不在构建路径上**）
 

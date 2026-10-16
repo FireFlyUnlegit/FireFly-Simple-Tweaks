@@ -1,20 +1,24 @@
 # 客户端验收清单（`simple_tweaks-2.1.0.jar`）
 
-> 目标 jar：`fabric-1.21.1/build/libs/simple_tweaks-2.1.0.jar`
-> SHA256 `E0D72D5A0B82A80F8EEFA88B9C33B4BB44781745C04A0E01DD97D5A2B0472F5C`（638328 bytes）
+> 目标 jar：`build/libs/simple_tweaks-2.1.0.jar`（仓库根就是工程，**没有 `fabric-1.21.1/` 这一层了**）
+> SHA256 `9C26255DC2A515AEC44ADF5491A5EEA11B678C1976EA3BA2D0B69B8481EDA398`（639095 bytes）
 > 启动标识：**`build=cleanup23`**
 > 安装位置：`F:\.minecraft\versions\1.21.1-Fabric 0.19.3\mods\simple_tweaks-2.1.0.jar`
 > 配置/日志：`<gameDir>\config\simple_tweaks.json`、`<gameDir>\logs\latest.log`
 > 回退点：`simple_tweaks-2.1.0.jar.prev`（10-11 的 `build=cleanup21` 构建，640635 bytes ——
 > 该 jar 在 2026-10-16 18:22 的客户端日志里**正常加载过**，是现存唯一有动态证据的可用回退点）
 >
-> ⚠️ **本页 SHA / 字节数是 `gradlew build`（2026-10-17，`build=cleanup23`）的产物。**
-> Loom 会把 jar 内条目时间戳归一化成 1980-01-01，**同样输入 ⇒ 同样哈希**，所以这个 SHA 可复现。
-> 本批次更早记录过的 `FA1FB85B…` / 638116（cleanup22，**会断连**，见 §AA）、`C6099475…` / 634803
+> ⚠️ **本页 SHA / 字节数是 `gradlew build`（2026-10-17，`build=cleanup23`）的产物**，
+> 且是**仓库布局迁移之后**的产物：根目录现在就是本工程，于是 `build.gradle` 里那句
+> `from('LICENSE')` **第一次真的找到了 LICENSE** —— jar 里因此多了一个 `LICENSE_simple_tweaks`，
+> 字节数从 638328 变成 639095（**代码完全相同**，只是多带一个许可证文件）。
+> Loom 会把 jar 内条目时间戳归一化成 1980-01-01，`clean build` 前后实测同哈希，所以这个 SHA 可复现。
+> 本批次更早记录过的 `E0D72D5A…` / 638328（cleanup23 **旧布局**产物，缺 LICENSE）、
+> `FA1FB85B…` / 638116（cleanup22，**会断连**，见 §AA）、`C6099475…` / 634803
 > （cleanup21）、`965E51EE…` / 600650、`0F3111A6…` / 629379、`1D376095…` / 628851、`74E773AD…` / 628861、
-> `3223787F…` / 633876、`8AA37699…` / 635785、`D8661401…` / 639275 都已作废（依次是：cleanup22 断连版、
-> cleanup21、对不上任何现存 jar、§W 重构前、行尾规范化前、tooltip 第一版、改成"并进总伤行"之前、
-> sibling 修复前、noHurtCam 前）—— 核对时以本页为准。
+> `3223787F…` / 633876、`8AA37699…` / 635785、`D8661401…` / 639275 都已作废（依次是：cleanup23 旧布局、
+> cleanup22 断连版、cleanup21、对不上任何现存 jar、§W 重构前、行尾规范化前、tooltip 第一版、
+> 改成"并进总伤行"之前、sibling 修复前、noHurtCam 前）—— 核对时以本页为准。
 > 那份 cleanup22 的 jar 已改名为 `simple_tweaks-2.1.0-cleanup22-BROKEN.jar.disabled` 留在 mods 里
 > （**不要**把它当回退点）。
 >

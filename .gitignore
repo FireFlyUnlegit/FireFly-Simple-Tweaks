@@ -1,3 +1,16 @@
 .gradle/
 build/
 MIGRATION.md
+.idea/
+*.iml
+out/
+bin/
+.settings/
+.metadata/
+.classpath
+.project
+*.launch
+run/
+logs/
+*.kate-swp
+.kotlin/

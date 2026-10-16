@@ -24,7 +24,7 @@
 
 | 事实                    | 值                                                                                                                                                              |
 |-----------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| 两个**互相独立**的 Gradle 工程 | 本目录 = MC 1.21.1 / Fabric / Yarn；上一级 `../` = MC 1.12.2 / Forge，**原样保留供对照**，不要改                                                                                  |
+| 两个**互相独立**的 Gradle 工程 | 本分支（**仓库根就是本工程**）= MC 1.21.1 / Fabric / Yarn；MC 1.12.2 / Forge 在**同仓库的 `master` 分支**（对照用 `git show master:<path>`），不要改                                                                                  |
 | 产物                    | `build/libs/simple_tweaks-2.1.0.jar`（版本取自 `gradle.properties` 的 `mod_version`，**改版本号会换文件名**）                                                                   |
 | 部署                    | 复制 **`build/libs/simple_tweaks-2.1.0.jar`** 到 `F:\.minecraft\versions\1.21.1-Fabric 0.19.3\mods\`（旧的先存成 `.prev`）。**不要**复制 `build/devlibs\…-dev.jar`（未 remap，必崩，见 §2.5）                                                                                        |
 | 当前构建标识                | `build=cleanup22`（每次改动客户端可见行为都要**推进**这个标识，见 §2.4）                                                                                                              |
@@ -37,46 +37,45 @@
 ## 1. 项目结构
 
 ```
-FireFly's Simple Tweaks-1.12.2/          ← 仓库根（1.12.2 Forge 工程，reference only）
-├── build.gradle  src/  ...              ← 原版源码，随时对照；不要在此改动
-└── fabric-1.21.1/                       ← 本工程（独立 Gradle build，有自己的 wrapper）
-    ├── build.gradle                     ← Loom + Kotlin + KSP + fabric-api + fabric-language-kotlin
-    ├── settings.gradle                  ← include 'ksp-processor'
-    ├── gradle.properties                ← 版本坐标（**改前先看 §2.3**）
-    ├── MIGRATION.md                     ← 流水账 / 决策记录（append-only）
-    ├── DEV_GUIDE_1.21.1.md              ← 本文件
-    ├── ksp-processor/                   ← 纯 Kotlin/JVM 库：注解处理器（**不应用 Loom**）
-    │   └── src/main/kotlin/.../ksp/ModEnchantmentProcessor.kt
-    │   └── src/main/resources/META-INF/services/...SymbolProcessorProvider
-    ├── docs/                            ← 专项笔记（地图见 §9）
-    ├── tools/                           ← yarn-query.ps1（离线 Yarn 名称查询）
-    ├── run/                             ← runClient/runServer 的游戏目录（**与正式客户端是两份配置**）
-    └── src/main/
-        ├── java/dev/firefly/simpletweaks/
-        │   ├── mixin/                   ← 所有 Mixin（25 个注册：21 个 dual-side + 4 个 client；无未注册残留）
-        │   └── interfaces/              ← 给 Mixin 用的接口注入（如 SimpleTweaksArrow）
-        ├── kotlin/dev/firefly/simpletweaks/
-        │   ├── SimpleTweaks.kt          ← 入口（ModInitializer）：config → 事件桥 → 处理器 → 网络 → 粒子
-        │   ├── SimpleTweaksClient.kt    ← 客户端入口 + **构建标识日志**（§2.4）
-        │   ├── compat/                  ← Forge 兼容层：ForgeEventBus / 事件类 / STLog / ChargeBoost
-        │   │   ├── bridge/              ← Fabric 回调 → Forge 形状事件
-        │   │   └── event/               ← 事件类型（ArrowLooseEvent / LivingHurtEvent / SubscribeEvent…）
-        │   ├── core/                    ← 总线注册、EnchantmentManager（手写 handler 清单）、Listenable、CommandRoots + EnchantCommand（见 §10）
-        │   │   └── config/              ← GeneralConfig / DamageIndicatorConfig / SimpleTweaksConfig（JSON 读写）
-        │   ├── client/                  ← 配置界面、图鉴界面、客户端指令、粒子、tooltip
-        │   ├── damageindicator/         ← 伤害飘字
-        │   ├── enchantments/
-        │   │   ├── annotations/         ← **@ModEnchantment** 本体 + `Enums.kt`（Category/Color/Type/Slot）
-        │   │   ├── generated/           ← **KSP 生成**（不要手改）
-        │   │   ├── EnchantmentMeta.kt   ← 元数据门面：全部读 `GeneratedEnchantments`；**名字颜色由 tier 推导**
-        │   │   └── handlers/{common,uncommon,rare,epic,legendary,mythic,mystery,unique}/
-        │   ├── network/                 ← 自定义包（ID + 编解码 + 收发）
-        │   ├── particle/                ← 粒子类型注册
-        │   └── util/                    ← 附魔查询、玩家工具、伤害源
-        └── resources/
-            ├── fabric.mod.json  simple_tweaks.mixins.json
-            ├── assets/simple_tweaks/lang/{en_us,zh_cn}.json    ← 附魔名与描述（**手写**）
-            └── data/simple_tweaks/enchantment/*.json           ← **只有 5 个** `jsonEmit = false` 的手写件；其余 56 个由 KSP 生成
+FireFly's Simple Tweaks-fabric-1.21.1/   ← 仓库根 **就是** 本工程（独立 Gradle build，自带 wrapper）
+├── build.gradle                         ← Loom + Kotlin + KSP + fabric-api + fabric-language-kotlin
+├── settings.gradle                      ← include 'ksp-processor'
+├── gradle.properties                    ← 版本坐标（**改前先看 §2.3**）
+├── MIGRATION.md                         ← 流水账 / 决策记录（append-only）
+├── AGENTS.md                            ← 代理契约（见 §9 文档地图）
+├── DEV_GUIDE_1.21.1.md                  ← 本文件
+├── ksp-processor/                       ← 纯 Kotlin/JVM 库：注解处理器（**不应用 Loom**）
+│   └── src/main/kotlin/.../ksp/ModEnchantmentProcessor.kt
+│   └── src/main/resources/META-INF/services/...SymbolProcessorProvider
+├── docs/                                ← 专项笔记（地图见 §9）
+├── tools/                               ← yarn-query.ps1（离线 Yarn 名称查询）
+├── run/                                 ← runClient/runServer 的游戏目录（**与正式客户端是两份配置**）
+└── src/main/
+    ├── java/dev/firefly/simpletweaks/
+    │   ├── mixin/                       ← 所有 Mixin（25 个注册：21 个 dual-side + 4 个 client；无未注册残留）
+    │   └── interfaces/                  ← 给 Mixin 用的接口注入（如 SimpleTweaksArrow）
+    ├── kotlin/dev/firefly/simpletweaks/
+    │   ├── SimpleTweaks.kt              ← 入口（ModInitializer）：config → 事件桥 → 处理器 → 网络 → 粒子
+    │   ├── SimpleTweaksClient.kt        ← 客户端入口 + **构建标识日志**（§2.4）
+    │   ├── compat/                      ← Forge 兼容层：ForgeEventBus / 事件类 / FSTLog / ChargeBoost
+    │   │   ├── bridge/                  ← Fabric 回调 → Forge 形状事件
+    │   │   └── event/                   ← 事件类型（ArrowLooseEvent / LivingHurtEvent / SubscribeEvent…）
+    │   ├── core/                        ← 总线注册、EnchantmentManager（手写 handler 清单）、Listenable、CommandRoots + EnchantCommand（见 §10）
+    │   │   └── config/                  ← GeneralConfig / DamageIndicatorConfig / SimpleTweaksConfig（JSON 读写）
+    │   ├── client/                      ← 配置界面、图鉴界面、粒子、tooltip（**没有客户端指令** —— 见 §10 与 `AGENTS.md` §4.1）
+    │   ├── damageindicator/             ← 伤害飘字
+    │   ├── enchantments/
+    │   │   ├── annotations/             ← **@ModEnchantment** 本体 + `Enums.kt`（Category/Color/Type/Slot）
+    │   │   ├── generated/               ← **KSP 生成**（不要手改）
+    │   │   ├── EnchantmentMeta.kt       ← 元数据门面：全部读 `GeneratedEnchantments`；**名字颜色由 tier 推导**
+    │   │   └── handlers/{common,uncommon,rare,epic,legendary,mythic,mystery,unique}/
+    │   ├── network/                     ← 自定义包（ID + 编解码 + 收发）
+    │   ├── particle/                    ← 粒子类型注册
+    │   └── util/                        ← 附魔查询、玩家工具、伤害源
+    └── resources/
+        ├── fabric.mod.json  simple_tweaks.mixins.json
+        ├── assets/simple_tweaks/lang/{en_us,zh_cn}.json    ← 附魔名与描述（**手写**）
+        └── data/simple_tweaks/enchantment/*.json           ← **只有 1 个** `jsonEmit = false` 的手写件（`unbreakable`）；其余 65 个由 KSP 生成
 ```
 
 **handler 数量分布**（按 `@ModEnchantment` 声明所在目录计）：legendary 11、rare 11、uncommon 10、epic 10、mythic 8、common 7、mystery 2、unique 1，再加 `mythic/infinitepower/` 1（`EnchantInfinitePowerDeclaration`）—— 合计 **61**，与 61 个附魔一一对应。
@@ -431,6 +430,8 @@ Mixin 只改写 `@Mixin` 那个类的方法体。1.21 里不少基类方法被**
 | 23 | 一屏 `@Mixin target … was not found … from mod simple_tweaks`（25 个全中），最后崩在 `NoClassDefFoundError: net/minecraft/server/world/ServerWorld` | **装错 jar**：把未 remap 的 `build/devlibs/*-dev.jar` 复制成了 `mods/simple_tweaks-2.1.0-dev.jar`。判据是"**入口类自己的日志照打**（`loading` / `Config loaded from`），但所有 MC 名都找不到" ⇒ 先对已装 jar 的 SHA / 文件名（checklist §0.0），**别翻源码**。正误产物对照与取证命令见 §2.5。实锤：mods 里那个 jar 的 SHA256 与 `build/devlibs/…-dev.jar` 完全一致（`build=cleanup22` 记录，见 `DEVLOG.md`） |
 | 24 | 服务端把某个**每侧各自一份**的状态改了，游戏里却"没生效" | 见 `AGENTS.md` §4.11：`lastAttackedTicks`（攻击充能）、`itemCooldownManager`、各类计时器都**不是同步字段**，服务端改完客户端读的还是它自己那份。血债：kill_aura 的 `simulateCooldown` 只落了服务端一半 —— 攻击指示条一直满格（`build=cleanup22` 补了 S2C 的 `PacketResetAttackCooldown`）。**改这类状态前先问：另一侧谁读、谁写、有没有同步包** |
 | 25 | 进图后**立刻被踢**（连接已丢失）：`EncoderException: Failed to encode packet 'clientbound/minecraft:custom_payload' (模组:包名)`，内层 `IllegalStateException: Can't encode 'X@1dde5184', expected 'X@306b7db2'` | **空 body 的 payload 没做成单例**。`PacketCodec.unit(value)` 的编码器不是"什么都不写"，它会断言拿到的就是注册时那一个实例；发送时 `PacketResetAttackCooldown()` 新建实例 ⇒ 服务端编码期抛异常 ⇒ 踢人。改法：`val INSTANCE`（+ 私有构造让"新建实例"编译不过），发送用 `INSTANCE`。血债：`build=cleanup22` 的 `PacketResetAttackCooldown`（构建全绿、只在第三关暴露），`cleanup23` 修。**这也是"空包 = 无状态"的推论陷阱：无状态 ≠ 无身份** |
+
+| 26 | 换布局 / 搬目录后 IDEA 弹 **「检测到未注册的 VCS 根」**，且运行配置还指向旧目录 | **整份拷贝 `.idea` 的代价**（2026-10-17 仓库迁移时踩过）。`.idea/vcs.xml` 里的 `$PROJECT_DIR$/..` 是旧布局的产物（当时仓库根是工程目录的上一层），搬到"根 = 工程"的新布局后它指向一个**非 git 仓库**的父目录 ⇒ IDEA 把父目录注册成 Git 根、又报告工程目录"未注册"。同时 `.idea/runConfigurations/Minecraft_{Client,Server}.xml` 里写死了旧布局的绝对路径（`-Dfabric.dli.config=…\1.12.2\fabric-1.21.1\.gradle\loom-cache\launch.cfg`）—— 点"运行"会去跑旧目录那份工程。**规则**：布局变了就别拷 `.idea`，让它自己重建；必须拷时，只改 `vcs.xml` 为单条 `$PROJECT_DIR$`，并把 `runConfigurations/*.xml` 删掉/改名让 Loom 按新路径重新生成。取证：IDEA 日志 `VcsRootProblemNotifier` + `VcsRootError{UNREGISTERED_ROOT - …}` |
 
 ---
 
