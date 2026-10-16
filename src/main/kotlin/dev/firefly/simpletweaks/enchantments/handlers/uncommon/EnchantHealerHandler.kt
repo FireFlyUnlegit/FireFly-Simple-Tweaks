@@ -1,6 +1,6 @@
 package dev.firefly.simpletweaks.enchantments.handlers.uncommon
 
-import dev.firefly.simpletweaks.compat.STLog
+import dev.firefly.simpletweaks.compat.FSTLog
 import dev.firefly.simpletweaks.compat.event.EventPriority
 import dev.firefly.simpletweaks.compat.event.LivingDamageEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
@@ -10,7 +10,9 @@ import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import net.minecraft.entity.LivingEntity
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantItemWeights
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSupportedItemTags
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 
@@ -33,13 +35,12 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
     category = EnchantCategory.UNCOMMON,
     type = EnchantType.SWORD,
     maxLevel = 5,
-    weight = 8,
+    weight = EnchantItemWeights.UNCOMMON,
     anvilCost = 4,
     minCostBase = 31,
     minCostPerLevel = 11,
-    supportedItems = "#minecraft:enchantable/sword",
+    supportedItems = EnchantSupportedItemTags.SWORD,
     slots = [EnchantSlot.MAINHAND],
-    damagePerLevel = 0.25,
     order = 9,
 )
 object EnchantHealerHandler : Listenable{
@@ -57,7 +58,7 @@ object EnchantHealerHandler : Listenable{
             val healingFactor = 0.2f * lvl
             living.health = (originDMG * healingFactor + e.entityLiving.health).coerceAtMost(living.maxHealth)
             e.isCanceled = true
-            STLog.log("Healer") {
+            FSTLog.log("Healer") {
                 "attacker=${e.source.attacker?.name?.string}, healer=${living.name.string}, lvl=$lvl, " +
                     "damage=$originDMG, factor=$healingFactor, health=$healthBefore->${living.health}, " +
                     "outcome=damage-cancelled"

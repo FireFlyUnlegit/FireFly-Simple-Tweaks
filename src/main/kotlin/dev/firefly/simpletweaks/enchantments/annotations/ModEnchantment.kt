@@ -1,6 +1,22 @@
 package dev.firefly.simpletweaks.enchantments.annotations
 
 /**
+ * Sentinel for [ModEnchantment.weight]: "use the tier's canonical weight".
+ *
+ * A real weight is always `>= 1` (the processor rejects anything lower), so a negative value is free
+ * to mean "derive" — which is the default. See [EnchantItemWeights] for the curve.
+ */
+const val WEIGHT_FROM_CATEGORY = -1
+
+/**
+ * Sentinel for [ModEnchantment.damagePerLevel]: "use the tier's canonical damage".
+ *
+ * Same reasoning as [WEIGHT_FROM_CATEGORY] — a negative damage per level is meaningless, so it can
+ * carry the "derive" meaning. See [ModEnchantment.damagePerLevel] for the rule.
+ */
+const val DAMAGE_PER_LEVEL_FROM_CATEGORY = -1.0
+
+/**
  * Declares an enchantment on its handler: **one file is the whole definition.**
  *
  * Example:
@@ -49,8 +65,13 @@ annotation class ModEnchantment(
     /** Maximum level. */
     val maxLevel: Int,
 
-    /** Enchanting-table weight. */
-    val weight: Int,
+    /**
+     * Enchanting-table weight. **Defaults to the tier's canonical value** ([WEIGHT_FROM_CATEGORY]):
+     * the processor derives it from [category] with the `EnchantItemWeights` curve, so a declaration
+     * only writes this in order to **override** its tier (e.g. `fast_bow = 5`, where every other EPIC
+     * is 4). The processor logs every explicit value that disagrees with its table.
+     */
+    val weight: Int = WEIGHT_FROM_CATEGORY,
 
     /** `anvil_cost` in the datapack JSON. */
     val anvilCost: Int,
@@ -78,12 +99,28 @@ annotation class ModEnchantment(
 
     /**
      * Emits the standard `minecraft:damage` component — `linear { base = v, per_level_above_first = v }`,
-     * i.e. exactly `+v` damage per level. `0.0` (default) emits no damage component.
+     * i.e. exactly `+v` damage per level. Default (`DAMAGE_PER_LEVEL_FROM_CATEGORY`) or `0.0` emits no
+     * damage component.
      *
-     * Explicit per-enchantment (not derived from [category]) to avoid duplicating the
-     * `0.2 + rarity/20` rule in two places.
+     * ## The default is derived, and where the rule comes from
+     * Left at [DAMAGE_PER_LEVEL_FROM_CATEGORY], the processor applies **its own tier curve** —
+     * `rarity * 1.5 / 20` on `TIER_RARITY`, i.e. `COMMON 0 / UNCOMMON 0.075 / RARE 0.15 / EPIC 0.225 /
+     * LEGENDARY 0.3 / MYTHIC 0.375 / MYSTERY 0.45`, and **`EnchantType.SWORD` is the only type that
+     * gets any** (every other type is `0.0`, exactly as in the reference project).
+     *
+     * ⚠️ That curve is a `build=cleanup21` rebalance, **not** 1.12.2's `0.2 + rarity/20` (which the
+     * port originally reproduced value-for-value). The authoritative copy is `tierDamagePerLevel` in
+     * `ModEnchantmentProcessor`; this paragraph only describes it, so change both together.
+     *
+     * ## When to write it
+     * Only to **override** the tier. 1.12.2 let an enchantment override `itemExtraDamage`, and six did:
+     * `combo` (0.15), `fire_master` (0.25), `healing_blade` (1.0), `celestial_blessing` (2.0),
+     * `heavenly_punishment` (5.0), plus `infinite_power`, whose override returned `Int.MAX_VALUE` as a
+     * one-shot-kill hack and therefore carries `damagePerLevel = 0.0` — writing a *damage* there would
+     * invent a component the enchantment never had. A declaration that wants no damage can say so
+     * explicitly with `0.0`.
      */
-    val damagePerLevel: Double = 0.0,
+    val damagePerLevel: Double = DAMAGE_PER_LEVEL_FROM_CATEGORY,
 
     /**
      * `minecraft:attributes` entries, one per attribute. Empty (the default) emits no attributes block.
@@ -116,9 +153,19 @@ annotation class ModEnchantment(
      * `effects` use a component this processor cannot emit yet can still get its key and index entry from
      * the annotation. Nothing else needs to change for that: the hand-written JSON simply stays where it is.
      *
-     * As of the 1.21.1 port this is **not needed by any of the 53 legacy enchantments**: their `effects`
-     * are either `{}`, `minecraft:damage`, or `minecraft:attributes` — the first two are covered by
-     * [damagePerLevel] and the third by [attributes]. It exists for the next exotic one.
+     * ⚠️ **While this is `false`, every datapack field in the annotation — `weight`, `anvilCost`,
+     * `minCostBase`, `damagePerLevel`, `supportedItems`, `slots` — is INERT.** The hand-written JSON is
+     * what ships, so editing them changes nothing in game and the two silently drift apart. That is not
+     * hypothetical: `build=cleanup21` found `heavenly_punishment` declaring `damagePerLevel = 2.5` and
+     * `anvilCost = 90` while its JSON shipped `5` and `14`. Treat those fields as documentation while the
+     * flag is off, and flip it on as soon as the JSON is expressible.
+     *
+     * As of `build=cleanup21` exactly **one** declaration needs this flag: `unbreakable`, whose `effects`
+     * use `minecraft:item_damage` (`set 0`), which this processor does not emit. Every other legacy
+     * enchantment is `{}`, `minecraft:damage` (covered by [damagePerLevel]) or `minecraft:attributes`
+     * ([attributes]) — the last four hand-written files (`reforge`, `infinite_power`,
+     * `celestial_blessing`, `heavenly_punishment`) were flipped to generated JSONs then, which is what
+     * made the drift above impossible to keep.
      */
     val jsonEmit: Boolean = true,
 )

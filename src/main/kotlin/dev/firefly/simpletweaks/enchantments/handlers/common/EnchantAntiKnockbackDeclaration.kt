@@ -3,7 +3,9 @@ package dev.firefly.simpletweaks.enchantments.handlers.common
 import dev.firefly.simpletweaks.core.Listenable
 import dev.firefly.simpletweaks.enchantments.annotations.AttributeSpec
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantItemWeights
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSupportedItemTags
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 
@@ -24,11 +26,11 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
     category = EnchantCategory.COMMON,
     type = EnchantType.ARMOR,
     maxLevel = 2,
-    weight = 10,
+    weight = EnchantItemWeights.COMMON,
     anvilCost = 2,
     minCostBase = 10,
     minCostPerLevel = 10,
-    supportedItems = "#minecraft:enchantable/armor",
+    supportedItems = EnchantSupportedItemTags.ARMOR,
     slots = [EnchantSlot.ARMOR],
     attributes = [
         AttributeSpec("minecraft:generic.knockback_resistance", 0.125, operation = "add_value"),

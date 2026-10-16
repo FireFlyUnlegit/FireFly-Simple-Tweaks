@@ -1,7 +1,6 @@
 package dev.firefly.simpletweaks.enchantments.handlers.mythic.infinitepower
 
-import dev.firefly.simpletweaks.compat.STLog
-import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap
+import dev.firefly.simpletweaks.compat.FSTLog
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.inventory.Inventory
 import net.minecraft.item.ItemStack
@@ -102,7 +101,7 @@ object InfiniteBagStore {
         nbt.put(ITEMS_KEY, list)
         nbt.putInt(SIZE_KEY, items.size)
         if (skipped > 0) {
-            STLog.log("InfinitePower") { "bag save: $skipped stack(s) could not be encoded and were skipped" }
+            FSTLog.log("InfinitePower") { "bag save: $skipped stack(s) could not be encoded and were skipped" }
         }
     }
 
@@ -181,7 +180,7 @@ class InfiniteBagInventory(val player: PlayerEntity) : Inventory {
             stack.split(amount)
         }
         markDirty()
-        STLog.log("InfinitePower") {
+        FSTLog.log("InfinitePower") {
             "bag take: slot=$slot, requested=$amount, taken=${taken.count}, " +
                 "remaining=${items[slot].count}, outcome=taken"
         }
@@ -208,7 +207,7 @@ class InfiniteBagInventory(val player: PlayerEntity) : Inventory {
         // Logged only on a real change: this is the write path that would expose duplication, and the
         // initial screen sync touches every non-empty slot once.
         if (before != items[slot].count) {
-            STLog.log("InfinitePower") {
+            FSTLog.log("InfinitePower") {
                 "bag setSlot: slot=$slot, before=$before, incoming=${stack.count}, after=${items[slot].count}"
             }
         }

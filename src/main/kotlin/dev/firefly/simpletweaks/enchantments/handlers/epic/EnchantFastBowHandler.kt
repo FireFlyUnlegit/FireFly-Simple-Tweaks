@@ -1,12 +1,14 @@
 package dev.firefly.simpletweaks.enchantments.handlers.epic
 
 import dev.firefly.simpletweaks.compat.ChargeBoost
-import dev.firefly.simpletweaks.compat.STLog
+import dev.firefly.simpletweaks.compat.FSTLog
 import dev.firefly.simpletweaks.compat.event.ArrowLooseEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.core.Listenable
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantItemWeights
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSupportedItemTags
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
@@ -19,11 +21,11 @@ import net.minecraft.item.ItemStack
     type = EnchantType.BOW,
 //    color = EnchantCategory.EPIC.color,
     maxLevel = 5,
-    weight = 5,
+    weight = EnchantItemWeights.EPIC,
     anvilCost = 6,
     minCostBase = 20,
     minCostPerLevel = 10,
-    supportedItems = "#minecraft:enchantable/bow",
+    supportedItems = EnchantSupportedItemTags.BOW,
     slots = [EnchantSlot.MAINHAND, EnchantSlot.OFFHAND],
 )
 object EnchantFastBowHandler : Listenable {
@@ -66,6 +68,6 @@ object EnchantFastBowHandler : Listenable {
         val boost = chargeBoost(e.bow)
         if (boost == 1.0f) return
         ChargeBoost.value = boost
-        STLog.log("FastBow") { "boost=$boost, charge=${e.charge} (vanilla full draw = 20)" }
+        FSTLog.log("FastBow") { "boost=$boost, charge=${e.charge} (vanilla full draw = 20)" }
     }
 }

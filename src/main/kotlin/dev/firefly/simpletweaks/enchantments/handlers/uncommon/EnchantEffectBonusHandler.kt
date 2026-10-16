@@ -1,6 +1,6 @@
 package dev.firefly.simpletweaks.enchantments.handlers.uncommon
 
-import dev.firefly.simpletweaks.compat.STLog
+import dev.firefly.simpletweaks.compat.FSTLog
 import dev.firefly.simpletweaks.compat.event.LivingHurtEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.invalid
@@ -10,7 +10,9 @@ import net.minecraft.entity.LivingEntity
 import kotlin.random.Random.Default.nextFloat
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantItemWeights
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSupportedItemTags
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 
@@ -32,13 +34,12 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
     category = EnchantCategory.UNCOMMON,
     type = EnchantType.SWORD,
     maxLevel = 3,
-    weight = 8,
+    weight = EnchantItemWeights.UNCOMMON,
     anvilCost = 4,
     minCostBase = 22,
     minCostPerLevel = 6,
-    supportedItems = "#minecraft:enchantable/sword",
+    supportedItems = EnchantSupportedItemTags.SWORD,
     slots = [EnchantSlot.MAINHAND],
-    damagePerLevel = 0.25,
     order = 8,
 )
 object EnchantEffectBonusHandler : Listenable {
@@ -51,7 +52,7 @@ object EnchantEffectBonusHandler : Listenable {
         val roll = nextFloat()
         if (lvl > 0 && roll < 0.35 + 0.06 * lvl) {
             e.amount *= 0.02f * lvl * target.statusEffects.size + 1f
-            STLog.log("EffectBonus") {
+            FSTLog.log("EffectBonus") {
                 "attacker=${attacker.name.string}, target=${target.name.string}, lvl=$lvl, " +
                     "roll=$roll, threshold=${0.35 + 0.06 * lvl}, effects=${target.statusEffects.size}, damage=${e.amount}"
             }

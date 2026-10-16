@@ -1,8 +1,7 @@
 package dev.firefly.simpletweaks.enchantments.handlers.mythic
 
-import dev.firefly.simpletweaks.compat.STLog
+import dev.firefly.simpletweaks.compat.FSTLog
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
-import net.minecraft.entity.Entity
 import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.boss.dragon.EnderDragonEntity
 import net.minecraft.entity.boss.dragon.phase.PhaseType
@@ -130,7 +129,7 @@ object EnchantInfinitePowerHandler {
             SoundCategory.PLAYERS,
             1.0f, 0.8f,
         )
-        STLog.log("InfinitePower") {
+        FSTLog.log("InfinitePower") {
             "player=${player.name.string}, target=${target.name.string}, outcome=one-shot"
         }
     }

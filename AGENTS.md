@@ -36,7 +36,7 @@ cd '<工程根>'
 |---|---|
 | 产物 | `build/libs/simple_tweaks-2.1.0.jar`（版本取自 `gradle.properties`） |
 | 构建标识 | 源码里一行 `build=cleanupN`（`SimpleTweaksClient`）；**改客户端可见行为就要推进它** |
-| 当前标识 | `build=cleanup20` |
+| 当前标识 | `build=cleanup23` |
 
 **硬规则**
 
@@ -44,6 +44,12 @@ cd '<工程根>'
   `.class`，而 `jar` 任务照打不误 —— 症状是"源码里删了，jar 里还在"。
 - **判断编译失败只看 `^e:` 行。** 如果没有 `e:` 行却 `BUILD FAILED`，几乎总是环境变量问题
   （`JAVA_HOME` 指向 JDK 8）—— 去看 `build/reports/problems/problems-report.html`，**不要翻源码**。
+- **要装的是 `build/libs/simple_tweaks-2.1.0.jar`（remap 后），绝不是 `build/devlibs/*-dev.jar`。**
+  `-dev.jar` 未 remap：全 Yarn 名、`mixins.json` 里**没有** `refmap` 键。装进 `mods/` 的症状是
+  「**每一个** `@Mixin target … was not found … from mod simple_tweaks` + 崩在
+  `NoClassDefFoundError: net/minecraft/server/world/ServerWorld`」，**而入口类自己的日志照打**
+  （`loading` / `Config loaded from`），极易误判成代码写坏了。取证看 `DEV_GUIDE` §2.5。
+- **复制 jar 进 `mods/` 前必须完全关闭客户端**（Windows 会锁文件）。
 - 本机沙箱若为 `workspace-write`，Gradle 会因为要写 `E:\gradle` 并 fork JVM 而**静默退出且零输出**。
   这不是代码问题；需要 `danger-full-access` 或请作者在终端跑。
 
@@ -58,7 +64,8 @@ cd '<工程根>'
 | **加一条命令** | 只改 `core/EnchantCommand.kt` 的 `tree()`（屏幕命令用 `core/ScreenCommands.kt`） | **绝不注册客户端命令** —— 见 §4.1 |
 | **加一个配置项** | 字段 + JSON 读写 + 屏幕开关 + lang；**并写清"谁读它"** | 键存在 ≠ 有人读它（本仓库已发生 3 次） |
 | **改客户端可见行为** | 推进 `build=cleanupN` + 同步 checklist 页首 SHA/字节数 | — |
-| **加/改网络包** | `network/packets/Xxx.kt` + `NetworkManager.registerPackets()` + 客户端接收器 | S2C 必须 `PayloadTypeRegistry.playS2C()` 注册，否则运行期不报错但收不到 |
+| **加/改网络包** | `network/packets/Xxx.kt` + `NetworkManager.registerPackets()` + 客户端接收器 | S2C 必须 `PayloadTypeRegistry.playS2C()` 注册，否则运行期不报错但收不到<br>**空 body 的包必须单例**：`PacketCodec.unit` 的编码器会 `equals` 校验**注册时那一个实例**（本仓库的 payload 都不覆写 `equals`，即身份比较），发送时新建实例 = 服务端编码抛 `IllegalStateException`、玩家被踢（`cleanup22` 的 `PacketResetAttackCooldown` 就这么断连过，`cleanup23` 改成 `INSTANCE` + 私有构造） |
+| **装到客户端** | `Copy-Item build\libs\simple_tweaks-2.1.0.jar "$mods\simple_tweaks-2.1.0.jar"`（旧的先存 `.prev`）；装完对 SHA256 | **`build/devlibs\…-dev.jar`**（未 remap，见 §1 硬规则）；客户端没关就复制 |
 
 ---
 
@@ -118,7 +125,7 @@ dispatcher 试解析（`ClientCommandInternals#executeCommand`），而它只放
 - 改写一个方法前先问"**还有谁在读它**"（`javap` 扫调用点）。
   `markDirty()` 写成空实现 ⇒ 服务端改了内容却从不通知客户端；
   `getItemUseTimeLeft()` 看起来只是 getter，实际同时喂给拉弓动画与射箭威力。
-- 处理器里**不许留没有任何日志的提前返回分支**（否则"没生效"无法定位）。需要探针时用 `STLog`。
+- 处理器里**不许留没有任何日志的提前返回分支**（否则"没生效"无法定位）。需要探针时用 `FSTLog`。
 - **"这次没生效"和"这次没触发"必须能区分** —— 分不清就说明缺观测手段。
 
 ### 4.5 不要用 `id = "…"` 正则扫描 `@ModEnchantment`
@@ -138,7 +145,7 @@ dispatcher 试解析（`ClientCommandInternals#executeCommand`），而它只放
 
 ### 4.6 日志与探针
 
-- 统一走 `compat/STLog`：`STLog.log("Name") { "k=v, …" }`（**用 lambda 重载**，日志关闭时不构造字符串）。
+- 统一走 `compat/FSTLog`：`FSTLog.log("Name") { "k=v, …" }`（**用 lambda 重载**，日志关闭时不构造字符串）。
 - **默认关闭**，启动开关：`-Dsimpletweaks.debug=true` 或环境变量 `SIMPLETWEAKS_DEBUG=true`。
 - 前缀 **`[FST-*]`**；抓取：`Select-String '\[FST-'`。
   ⚠️ `MIGRATION.md` 是 append-only 历史，正文仍是 `[ST-*]`，**不要照它 grep**。
@@ -156,6 +163,59 @@ dispatcher 试解析（`ClientCommandInternals#executeCommand`），而它只放
 
 需要真实客户端 + 人工判读手感/画面。由作者验收。需要冒烟时用 `runServer`，并只报
 「注册数」与「有无报错」两项。
+
+### 4.9 写实体状态字段前，先查 1.21 有没有给它加 clamp 🟡
+
+**"方法名一样、语法一样"的字段写入，可能在 1.21 被一层看不见的钳位吃掉 —— 编译不报错，运行也没有日志。**
+
+实例（`build=cleanup21`）：`player.absorptionAmount = x` 在 1.21.1 会走
+`setAbsorptionAmount(float)`，而它是 `public final`，第一步就是
+`MathHelper.clamp(x, 0.0f, getMaxAbsorption())`；`getMaxAbsorption()` 读的属性
+`generic.max_absorption` **默认 0**，唯一抬高它的是 `absorption` 状态效果。于是
+`golden_shield` 的吸收护盾**从未生效过一帧**，而且因为记账记的是"请求值"而不是"落地值"，
+handler 还自我认证"已满"并停止尝试 —— 零日志，无从发现。
+
+**规则**：
+1. 要写实体的状态字段（护盾/属性/速度…），先用 `javap -p -c` 看 setter 有没有 clamp / 上下限 /
+   追踪层；有 clamp 就**先自己抬上限**（`addTemporaryModifier`，见 §4.2 的持久化规则）。
+2. **写入 + 记账成对出现时，账要记落地差值**（写入后重新读），不要记请求值。
+3. 这类写入必须留下探针，且把"落地值 < 请求值"单独记成一个 outcome，否则失败不可观测。
+
+同类未修（等作者定）：`healing_blade` 的溢出吸收、`death_protection` 的 `lvl × 20` 吸收。
+
+### 4.10 注解参数只能是编译期常量 ⇒ 派生在 KSP；`jsonEmit = false` 会让字段变惰性 🟡
+
+1. **"派生"不可能写在调用点。** `@ModEnchantment.weight` / `damagePerLevel` 的默认值是**哨兵**
+   （`WEIGHT_FROM_CATEGORY` / `DAMAGE_PER_LEVEL_FROM_CATEGORY`），真正的派生在
+   `ModEnchantmentProcessor` 的表里（`TIER_WEIGHTS` = 1.12.2 的 `10 - rarity×2`；
+   `tierDamagePerLevel` = `rarity × 1.5 / 20`，**仅 SWORD** —— 注意伤害那条**不是** 1.12.2 的
+   `0.2 + rarity/20`，是作者 `build=cleanup21` 的有意重平衡，**以代码为准**）。注解参数必须是编译期
+   常量 —— 想加派生规则就加在处理器里。派生式要写成**一次除法/乘法**（`(4 + rarity) / 20.0` 这类）：
+   `0.2 + rarity/20.0` 在 IEEE-754 下得到 `0.30000000000000004`，会原样写进 datapack JSON。
+2. **`jsonEmit = false` 时，注解里的 `weight` / `anvilCost` / `minCostBase` / `damagePerLevel` /
+   `supportedItems` / `slots` 全是惰性的** —— 生效的是那份手写 JSON。血债：
+   `heavenly_punishment` 注解写 `damagePerLevel = 2.5`、`anvilCost = 90`，而实际发布的是 JSON 的
+   `5` 与 `14`；作者改了注解，游戏里毫无反应。**这个旗标只能留给处理器真的表达不了的组件**
+   （目前仅 `unbreakable` 的 `minecraft:item_damage`）。
+3. **`EnchantItemWeights`（注解侧常量）与处理器表是两份，必须同一次提交一起改。** 唯一的自动护栏是
+   处理器每次构建输出的一行 `warn`（逐条列出"显式值 != tier 派生值"）。⚠️ 别用 `logger.info` 报这种事：
+   普通 `gradlew build` **看不见** KSP 的 info 输出（要 `-i`），看不见的报告等于没有报告。
+
+### 4.11 每侧各自维护的状态：写入成功只完成了一半 🟡
+
+`PlayerEntity#lastAttackedTicks`（攻击充能）这类字段是**每侧各自一份**的普通 int：不是 tracked 字段、
+没有任何同步包。服务端调 `resetLastAttackedTicks()` 只改**服务端**那份，而 `InGameHud` 画攻击指示条读的是
+**客户端**那份（`ClientPlayerEntity#getAttackCooldownProgress`，字节码核实）。血债（`build=cleanup21`）：
+kill_aura 的 `simulateCooldown` 只落了服务端一半 —— 指示条一直满格，玩家却打出 `0.2 + charge² × 0.8`
+的伤害；`build=cleanup22` 才补上 S2C 的 `PacketResetAttackCooldown`（详见 `DEVLOG.md`）。
+
+**规则**：迁移一句"重置 / 写入某个状态"之前先答三问 ——
+
+1. **另一侧是谁在读它**（HUD、动画、客户端预测都算）？
+2. **另一侧是谁在写它**（是不是只有"客户端自己的输入路径"才会写）？
+3. **有没有同步包**？没有就自己发一个（S2C 必须 `playS2C()` 注册），并留一条探针把**落地值**记出来。
+
+同类嫌疑：`itemCooldownManager`、handler 里的各种 `WeakHashMap` 计时器、`ClientManaPoolCache` 这类客户端缓存。
 
 ---
 

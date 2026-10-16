@@ -1,6 +1,6 @@
 package dev.firefly.simpletweaks.enchantments.handlers.uncommon
 
-import dev.firefly.simpletweaks.compat.STLog
+import dev.firefly.simpletweaks.compat.FSTLog
 import dev.firefly.simpletweaks.compat.WorldSide
 import dev.firefly.simpletweaks.compat.event.LivingDamageEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
@@ -9,7 +9,9 @@ import dev.firefly.simpletweaks.core.Listenable
 import dev.firefly.simpletweaks.util.getArmorEnchantLevel
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantItemWeights
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSupportedItemTags
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 
@@ -29,11 +31,11 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
     category = EnchantCategory.UNCOMMON,
     type = EnchantType.ARMOR,
     maxLevel = 3,
-    weight = 8,
+    weight = EnchantItemWeights.UNCOMMON,
     anvilCost = 4,
     minCostBase = 10,
     minCostPerLevel = 10,
-    supportedItems = "#minecraft:enchantable/armor",
+    supportedItems = EnchantSupportedItemTags.ARMOR,
     slots = [EnchantSlot.ARMOR],
     order = 12,
 )
@@ -58,7 +60,7 @@ object EnchantResilienceHandler : Listenable {
         val reduction = (0.07f * level * missingRatio / 0.9f).coerceAtMost(0.84f)
 
         event.amount *= (1f - reduction)
-        STLog.log("Resilience") {
+        FSTLog.log("Resilience") {
             "victim=${victim.name.string}, lvl=$level, health=${victim.health}/$maxHealth, " +
                 "missingRatio=$missingRatio, reduction=$reduction, damage=${event.amount}"
         }

@@ -1,6 +1,6 @@
 package dev.firefly.simpletweaks.enchantments.handlers.rare
 
-import dev.firefly.simpletweaks.compat.STLog
+import dev.firefly.simpletweaks.compat.FSTLog
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.event.TickEvent
 import dev.firefly.simpletweaks.compat.invalid
@@ -10,7 +10,9 @@ import dev.firefly.simpletweaks.util.displayedItem
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import kotlin.random.Random.Default.nextFloat
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantItemWeights
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSupportedItemTags
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 
@@ -36,11 +38,11 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
     category = EnchantCategory.RARE,
     type = EnchantType.BREAKABLE,
     maxLevel = 8,
-    weight = 6,
+    weight = EnchantItemWeights.RARE,
     anvilCost = 6,
     minCostBase = 20,
     minCostPerLevel = 5,
-    supportedItems = "#minecraft:enchantable/durability",
+    supportedItems = EnchantSupportedItemTags.DURABILITY,
     slots = [EnchantSlot.ANY],
     order = 22,
 )
@@ -56,7 +58,7 @@ object EnchantItemFixerHandler : Listenable {
                 if (roll <= 0.02 * level && it.damage > 0) {
                     val damageBefore = it.damage
                     it.damage -= (1 + level / 2).coerceAtMost(it.damage)
-                    STLog.log("ItemFixer") {
+                    FSTLog.log("ItemFixer") {
                         "player=${p.name.string}, item=${it.item}, lvl=$level, roll=$roll, " +
                             "chance=${0.02 * level}, damage=$damageBefore->${it.damage}"
                     }

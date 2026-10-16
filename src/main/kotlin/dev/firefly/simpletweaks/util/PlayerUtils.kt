@@ -1,6 +1,8 @@
 package dev.firefly.simpletweaks.util
 
 import dev.firefly.simpletweaks.compat.EventSeams
+import dev.firefly.simpletweaks.network.NetworkManager
+import dev.firefly.simpletweaks.network.packets.PacketResetAttackCooldown
 import net.minecraft.entity.EquipmentSlot
 import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.attribute.EntityAttributes
@@ -148,35 +150,50 @@ val PlayerEntity.attackCharge: Float
  *  - `LivingEntity#damage` itself does the armour/absorption/feedback/death work.
  * So the body collapses to step 1 plus `damage(source, damage)`.
  *
- * ⚠️ **Three things cannot be mapped, and are therefore NOT reproduced** (documented, not invented):
- *  1. **`triggerEvent = false`** cannot suppress the events: the 1.21 seams fire inside `damage()`
- *     unconditionally. No ported caller passes `false`.
- *  2. **`ignoreArmorAndPotion = true`** cannot skip the armour step (`LivingEntity#damage` always
- *     applies it; 1.12.2's separate `applyPotionDamageCalculations` no longer exists in 1.21 at all).
- *     No ported caller passes `true`.
- *  3. **The return value.** 1.12.2 returned the *applied* damage (post-absorption, overkill included)
- *     or `-1f` for "hit refused". `LivingEntity#damage` returns a boolean, so the two `-1f` sentinels
- *     are preserved exactly but a landed hit returns the pre-armour `rawDamage`, not the post-armour
- *     figure.
+ * ⚠️ **Parameter semantics in 1.21 — every parameter below does something** (`build=cleanup21`; two
+ * inert ones were deleted rather than kept as decoration):
  *
- * ✅ **The crit block is no longer inert** (it was, until the `CriticalHitEvent` seam landed). It now
- * calls [EventSeams.forgeCriticalHit], which is a line-for-line
- * reproduction of `ForgeHooks.getCriticalHit`, so `allowCrit` and a handler's `damageModifier` change
- * both take effect. `vanillaCrit` comes from [canCrit], a port of the 1.12.2 helper.
+ * | parameter | 1.21 behaviour |
+ * |---|---|
+ * | `attacker` | the player the hit is attributed to: default source, crit roll, creative exemption |
+ * | `rawDamage` | pre-armour damage, then the crit multiplier and (optionally) the attack charge |
+ * | `forceHit` | `true` clears `timeUntilRegen` first, so i-frames cannot swallow the hit |
+ * | `source` | the source to deal it with — **and where "ignores armour" lives** now, see below |
+ * | `triggerEvent` | `false` suppresses `LivingAttackEvent`/`LivingHurtEvent`/`LivingDamageEvent` for this hit via [EventSeams.pushSuppressDamageEvents] |
+ * | `allowCrit` | gates only the *vanilla* crit roll; the event still fires, so a handler may force one |
+ * | `damageCreativePlayer` | `false` (default) refuses to damage a creative-mode player, as 1.12.2 did |
+ * | `simulateCooldown` | `true` behaves like a manual swing: the damage is scaled by the attack charge, and the charge is consumed — on **both** sides, see [PacketResetAttackCooldown] |
  *
- * `lastHitKeepDamagePlayerSource` is likewise unreachable here (1.21 picks the death source inside
- * `damage()`); it is kept for source-compatibility with `EnchantAoeAttackHandler`.
+ * **Deleted, and why** (they were inert — "parameter exists" is not "something reads it"):
+ *  1. **`lastHitKeepDamagePlayerSource`** only ever fed 1.12.2's hand-written `applyDamage`, where it
+ *     chose the *death* source (`if (keepPlayerSource) causePlayerDamage(attacker) else source`). In
+ *     1.21 the source a hit is dealt with **is** the source recorded for the death, so the switch has
+ *     nothing left to decide: pass the source you want the kill credited to.
+ *  2. **`ignoreArmorAndPotion`** cannot be honoured as a boolean without *overriding* the caller's
+ *     `source`, because in 1.21 skipping armour/resistance is a property of the **damage type's tags**,
+ *     not of the call. The capability is unchanged and lives in the data layer: use a source whose type
+ *     is in `#minecraft:bypasses_armor` / `bypasses_resistance` / `bypasses_enchantments` (see
+ *     `util/damagesource/ModDamageTypes.kt` — [dev.firefly.simpletweaks.util.damagesource.damageBypassingArmor]
+ *     is exactly this for Echo Shield's reflection). Keeping both would be two ways to say one thing.
+ *
+ * ✅ **The crit block is honoured.** It calls [EventSeams.forgeCriticalHit], a reproduction of
+ * `ForgeHooks.getCriticalHit`, so `allowCrit` and a handler's `damageModifier` both take effect.
+ * `vanillaCrit` comes from [canCrit], a port of the 1.12.2 helper.
+ *
+ * ⚠️ **The return value is still approximate** (and nothing reads it today): 1.12.2 returned the
+ * *applied* damage or `-1f` for "hit refused". `LivingEntity#damage` returns a boolean, so the `-1f`
+ * sentinels are preserved exactly but a landed hit returns the pre-armour figure rather than the
+ * post-absorption one.
  */
 fun LivingEntity.runPlayerAttack(
     attacker: PlayerEntity,
     rawDamage: Number,
     forceHit: Boolean = true,
     source: DamageSource = attacker.damageSources.playerAttack(attacker),
-    lastHitKeepDamagePlayerSource: Boolean = true,
     triggerEvent: Boolean = true,
-    ignoreArmorAndPotion: Boolean = false,
     allowCrit: Boolean = true,
     damageCreativePlayer: Boolean = false,
+    simulateCooldown: Boolean = false,
 ): Float {
     if (!this.isAlive) return 0f
     if (forceHit) this.timeUntilRegen = 0
@@ -187,14 +204,60 @@ fun LivingEntity.runPlayerAttack(
 
     var damage = rawDamage.toFloat()
 
-    // 1.12.2 `ForgeHooks.getCriticalHit` block, now honourable thanks to the CriticalHitEvent seam.
-    // Note `allowCrit` gates only the *vanilla* part, exactly as in 1.12.2: the event is still posted
-    // with vanillaCritical=false, so a handler may still force a crit.
+    // `simulateCooldown`: deal this hit the way a manual swing would. The whole formula is in
+    // `PlayerEntity#attack`'s bytecode — `getAttackCooldownProgress(0.5F)`, then
+    // `damage *= 0.2F + f * f * 0.8F`, then `resetLastAttackedTicks()`. [attackCharge] below is that
+    // same `getAttackCooldownProgress(0.5f)` call, so the charge read here is vanilla's own value.
+    if (simulateCooldown) {
+        val charge = attacker.attackCharge
+        damage *= 0.2f + charge * charge * 0.8f
+    }
+
+    // 1.12.2 `ForgeHooks.getCriticalHit` block. `allowCrit` gates only the *vanilla* part, exactly as in
+    // 1.12.2: the event is still posted with vanillaCritical=false, so a handler may still force a crit.
     val vanillaCrit = allowCrit && attacker.canCrit()
     val critModifier = EventSeams.forgeCriticalHit(attacker, this, vanillaCrit)
     if (critModifier > 0f) damage *= critModifier
 
-    return if (this.damage(source, damage)) damage else 0f
+    // Vanilla consumes the charge *before* rolling the crit; here it is one statement later, on purpose:
+    // `forgeCriticalHit` reads the charge live for `CriticalHitEvent`, and `EventSeams` documents that a
+    // post-reset read returns ≈0.5 and breaks every `charge >= 0.848` gate. Resetting after the roll
+    // keeps the event's value real while still spending the charge before the hit lands.
+    if (simulateCooldown) {
+        attacker.resetLastAttackedTicks()
+
+        // ...and the spend has to be *announced*, because the charge is per-side state.
+        //
+        // `lastAttackedTicks` is a plain int that each side ticks and resets on its own player object;
+        // it is not tracked/synced. Bytecode: vanilla clears the **client's** copy only from the
+        // client's own attack path (`MinecraftClient#doAttack`,
+        // `ClientPlayerInteractionManager#attackEntity` / `#cancelBlockBreaking`), and `InGameHud` draws
+        // the attack indicator from `ClientPlayerEntity#getAttackCooldownProgress`.
+        //
+        // An enchantment swing is not that path: `EnchantKillAuraHandler` bails out on the client
+        // (`WorldSide.isClient`) and hits from the server, so without this the server spends the swing
+        // while the indicator keeps showing a full one -- and the player's next manual hit lands at
+        // `0.2 + charge² × 0.8` of its damage against an indicator that said "ready".
+        // See [dev.firefly.simpletweaks.network.packets.PacketResetAttackCooldown].
+        if (attacker is ServerPlayerEntity) {
+            // `INSTANCE`, never a fresh `PacketResetAttackCooldown()`: `PacketCodec.unit`'s encoder
+            // asserts identity and kicks the sender otherwise (see that class's KDoc).
+            NetworkManager.sendToClient(PacketResetAttackCooldown.INSTANCE, attacker)
+        }
+    }
+
+    if (triggerEvent) {
+        return if (this.damage(source, damage)) damage else 0f
+    }
+
+    // 1.12.2's `triggerEvent = false`: deal the damage without the mod's own handlers seeing it. The
+    // scope is released in a `finally`, so an exception inside `damage()` cannot leave the bus blind.
+    EventSeams.pushSuppressDamageEvents()
+    try {
+        return if (this.damage(source, damage)) damage else 0f
+    } finally {
+        EventSeams.popSuppressDamageEvents()
+    }
 }
 
 /**

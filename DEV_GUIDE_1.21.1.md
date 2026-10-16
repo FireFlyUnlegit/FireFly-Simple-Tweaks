@@ -26,11 +26,11 @@
 |-----------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | 两个**互相独立**的 Gradle 工程 | 本目录 = MC 1.21.1 / Fabric / Yarn；上一级 `../` = MC 1.12.2 / Forge，**原样保留供对照**，不要改                                                                                  |
 | 产物                    | `build/libs/simple_tweaks-2.1.0.jar`（版本取自 `gradle.properties` 的 `mod_version`，**改版本号会换文件名**）                                                                   |
-| 部署                    | 复制到 `F:\.minecraft\versions\1.21.1-Fabric 0.19.3\mods\`（旧的先存成 `.prev`）                                                                                         |
-| 当前构建标识                | `build=cleanup20`（每次改动客户端可见行为都要**推进**这个标识，见 §2.4）                                                                                                              |
+| 部署                    | 复制 **`build/libs/simple_tweaks-2.1.0.jar`** 到 `F:\.minecraft\versions\1.21.1-Fabric 0.19.3\mods\`（旧的先存成 `.prev`）。**不要**复制 `build/devlibs\…-dev.jar`（未 remap，必崩，见 §2.5）                                                                                        |
+| 当前构建标识                | `build=cleanup22`（每次改动客户端可见行为都要**推进**这个标识，见 §2.4）                                                                                                              |
 | 附魔定义方式                | **全部由 KSP 生成**：一个附魔 = 一个 `@ModEnchantment`（见 §3）。键、图鉴表、三个 tag 全部由 KSP 独家产出 —— **无 PS1、无 manifest**                                                             |
 | 验收                    | **由作者本人在客户端进行**。代理**不要**跑 `runClient`（需要真实客户端 + 人工判读手感/画面）                                                                                                     |
-| 规模                    | kotlin 142 文件 / java 28 文件 / 附魔声明 62 个（KSP 生成 JSON 57 + `jsonEmit = false` 手写 5）/ mixin 注册 25 个（21 common + 4 client）/ 处理器 62 个 / 监听器方法 119 个 / 每语言 lang 187 键 |
+| 规模                    | kotlin 144 文件 / java 28 文件 / 附魔声明 67 个（KSP 生成 JSON 62 + `jsonEmit = false` 手写 5）/ mixin 注册 25 个（21 common + 4 client）/ 处理器 67 个 / 监听器方法 129 个 / 每语言 lang 197 键 |
 
 ---
 
@@ -155,13 +155,47 @@ Kotlin 增量编译**不会删除**已移除源文件对应的 `.class`，而 `j
 
 ### 2.5 安装
 
+**要装的永远是 `build/libs/`，绝不是 `build/devlibs/`。**
+
+| 路径 | 是什么 | 能装吗 |
+|---|---|---|
+| `build/libs/simple_tweaks-2.1.0.jar` | `remapJar` 的产物：类引用与 `simple_tweaks.mixins.json` 的目标名都是 **intermediary**（`class_3218`…），mixin 配置里带 `"refmap"` 键 | ✅ **只有这个** |
+| `build/devlibs/simple_tweaks-2.1.0-dev.jar` | `jar` 任务的原始产物，**未 remap**：全是 Yarn 名（`net/minecraft/server/world/ServerWorld`…），0 处 intermediary | ❌ 放进 mods 必崩 |
+| `build/libs/simple_tweaks-2.1.0-sources.jar` | 源码包 | ❌ |
+
 ```powershell
 $mods = 'F:\.minecraft\versions\1.21.1-Fabric 0.19.3\mods'
 Copy-Item "$mods\simple_tweaks-2.1.0.jar" "$mods\simple_tweaks-2.1.0.jar.prev" -Force
 Copy-Item 'build\libs\simple_tweaks-2.1.0.jar' "$mods\simple_tweaks-2.1.0.jar" -Force
 ```
 
-装完顺手对比一次 SHA256（构建产物 vs 已安装），能挡住"复制了但没覆盖"这种低级事故。
+装完对比一次 SHA256（构建产物 vs 已安装），能挡住"复制了但没覆盖"这种低级事故：
+
+```powershell
+Get-FileHash 'build\libs\simple_tweaks-2.1.0.jar', "$mods\simple_tweaks-2.1.0.jar" |
+  Select-Object Hash, Path
+# 顺带确认 mods 里没有第二个 simple_tweaks（`.disabled` / `.prev` 不会被加载，别被文件名骗了）
+Get-ChildItem $mods -Filter 'simple_tweaks*.jar'
+```
+
+> 🩸 **装错 jar 的实测症状**（2026-10-17 踩过：把 `devlibs\…-dev.jar` 复制成了
+> `mods\simple_tweaks-2.1.0-dev.jar`）。它**不是**"完全起不来"，而是**看起来像模组写坏了**：
+>
+> 1. 启动期刷一屏 `Error loading class: net/minecraft/block/AbstractBlock` +
+>    `@Mixin target net.minecraft.block.AbstractBlock was not found simple_tweaks.mixins.json:… from mod simple_tweaks`
+>    —— **每一个** mixin 目标都找不到（生产环境只有 intermediary 名，Yarn 名一律不存在）；
+> 2. 然后崩在 `NoClassDefFoundError: net/minecraft/server/world/ServerWorld`
+>    （`ServerEventBridge.register` 里第一次触碰 MC 类）；
+> 3. 但入口类自己的纯 Kotlin 代码、配置文件读取**都是好的** —— 日志里能看到
+>    `FireFly's Simple Tweaks v2.1.0 loading` 与 `Config loaded from …`，所以**很容易误判成"代码问题"**。
+>
+> 取证一步到位（把 mods 里的 jar 和两个构建产物对哈希，`devlibs` 无疑同源）：
+> ```powershell
+> Get-FileHash "$mods\simple_tweaks-2.1.0-dev.jar", 'build\devlibs\simple_tweaks-2.1.0-dev.jar', 'build\libs\simple_tweaks-2.1.0.jar'
+> ```
+> 更快的判别法：`build/libs/*.jar` 的 `simple_tweaks.mixins.json` 里有 `"refmap"` 键，`devlibs/*-dev.jar` 里没有。
+>
+> ⚠️ **复制前必须完全关闭客户端**（Windows 会锁住正在加载的 jar），否则 `Copy-Item` 报"文件正在被使用"。
 
 > ⚠️ **`run/` 与正式客户端是两套配置与存档**。在 `runClient` 里改的设置不会出现在正式客户端，反之亦然。
 
@@ -180,24 +214,36 @@ Copy-Item 'build\libs\simple_tweaks-2.1.0.jar' "$mods\simple_tweaks-2.1.0.jar" -
 ```kotlin
 @ModEnchantment(
    id = "fast_bow",              // 注册路径 / JSON 文件名 / lang 键后缀，必须 [a-z0-9_]
-   category = "rare",            // 1.12.2 EnchantmentCategories，小写；图鉴按它分组（也是名字颜色来源）
-   type = "bow",                 // 1.12.2 ModEnchantmentType，小写；图鉴显示为"适用"
-   color = "blue",               // 可选；留空 = 用 category 的颜色
+   category = EnchantCategory.RARE,   // 1.12.2 EnchantmentCategories；图鉴按它分组（也是名字颜色来源）
+   type = EnchantType.BOW,            // 1.12.2 ModEnchantmentType；图鉴显示为"适用"
+   color = EnchantColor.INHERIT,      // 可选；INHERIT = 用 category 的颜色
    maxLevel = 3,                 // >= 1
-   weight = 5,                   // 附魔台权重，>= 1
+   // weight 可省略：默认按 category 派生（1.12.2 的 10 - rarity×2 → 10/8/6/4/2/1）。
+   // 只在自己想要偏离本 tier 时写，例如 weight = EnchantItemWeights.EPIC 或直接 weight = 5。
    anvilCost = 6,
    minCostBase = 20,
    minCostPerLevel = 10,         // 可选，默认 0
-   supportedItems = "#minecraft:enchantable/bow",
+   supportedItems = EnchantSupportedItemTags.BOW,
    primaryItems = "",            // 可选；留空 = 同 supportedItems
-   slots = ["mainhand", "offhand"],
+   slots = [EnchantSlot.MAINHAND, EnchantSlot.OFFHAND],
    maxCostBase = 65535,          // 可选
    maxCostPerLevel = 0,          // 可选
+   // damagePerLevel 也可省略：SWORD 类型默认派生「分类曲线」（目前 = rarity × 1.5 / 20：
+   // COMMON 0 / UNCOMMON 0.075 / RARE 0.15 / EPIC 0.225 / LEGENDARY 0.3 / MYTHIC 0.375 / MYSTERY 0.45），
+   // 其它类型默认 0（不发 minecraft:damage 组件）。这条曲线是作者的有意重平衡，权威副本在
+   // ModEnchantmentProcessor.tierDamagePerLevel —— 要偏离就显式写，例如 0.25 / 0.0。
 )
 object EnchantFastBowHandler : Listenable {}
 ```
 
-`category` 写错（不在 8 个值里）、`id` 不合规、`maxLevel < 1`、`slots` 为空、两个 `@ModEnchantment` 用了同一个 `id` —— 这些都会**在构建期报错**，不会静默通过。处理器会打印一行 `ModEnchantment: N annotated handler(s) -> M enchantment(s)`。
+> 🚩 **`weight` 与 `damagePerLevel` 的默认值是"按分类派生"，派生发生在 KSP 里**（注解参数必须是
+> 编译期常量，调用点算不出来）。两条表在 `ModEnchantmentProcessor`（`TIER_WEIGHTS` / `TIER_RARITY`），
+> 注解侧的具名常量在 `EnchantItemWeights`；**两处必须一起改**。每次构建都会 `warn` 一行，列出所有
+> 与 tier 不一致的显式值 —— 那是唯一的自动护栏，别把它当成噪音忽略（见 `AGENTS.md` §4.10）。
+
+`category` 写错（不在 8 个值里）、`id` 不合规、`maxLevel < 1`、`weight < 1`、`slots` 为空、两个
+`@ModEnchantment` 用了同一个 `id` —— 这些都会**在构建期报错**，不会静默通过。处理器会打印一行
+`ModEnchantment: N annotated handler(s) -> M enchantment(s)`（`logger.info`，普通 `build` 不显示）。
 
 ### 3.2 生成物
 
@@ -352,7 +398,7 @@ Mixin 只改写 `@Mixin` 那个类的方法体。1.21 里不少基类方法被**
 
 **先设计日志，再改代码。** 反面教材：Multishot 无敌帧"没生效"排查了多轮，最后发现它一直是对的，只是**没有观测手段**能区分"没触发"和"触发了但没效果"。
 
-配套：`compat/STLog.kt` 提供 `STLog.log("Name") { "k=v, ..." }`，**默认关闭**（见 §7.3）。
+配套：`compat/FSTLog.kt` 提供 `STLog.log("Name") { "k=v, ..." }`，**默认关闭**（见 §7.3）。
 
 ---
 
@@ -375,8 +421,16 @@ Mixin 只改写 `@Mixin` 那个类的方法体。1.21 里不少基类方法被**
 | 13 | `AnvilScreen`/`AnvilScreenHandler` 的 40 改错 | 同一字面量在方法里出现多次，**必须核实个数再决定 ordinal**（§4.3）                                                                                                                                                                                                                                                                                                                                                                                    |
 | 14 | `getMaxUseTime` 当成"拉弓时间"                   | 弓的它是 72000（最长持有时长），**不是**蓄满所需的 20 tick                                                                                                                                                                                                                                                                                                                                                                                       |
 | 15 | tag 里写 `"remove"` 却毫无效果，**且不报错**           | **1.21.1 原版 tag 格式根本没有 `remove` 字段** —— `TagFile` 只有 `entries`(=`values`) 和 `replace`。`remove` 是 **Fabric Tag API** 的扩展，键名必须是 **`"fabric:remove"`**；写成裸 `remove` 会被**静默忽略**。原版 `values` 还是**必填**字段，所以"只移除、不添加"的文件也要写 `"values": []`。连带的坑：`replace: true` 表示"用本文件的 values **取代**整个 tag"，而 vanilla `non_treasure` 里有 35 个原版附魔、`in_enchanting_table` 整个就是 `#minecraft:non_treasure` 的引用 —— 对它们用 `replace: true` 会把**原版附魔逐出附魔台** |
-| 16 | 新写的 `@ModEnchantment` 没进附魔台 / 没被村民过滤       | KSP 是这两个 tag 的**唯一生产者**，而它需要 `tools/legacy-enchantments.json`（由 `tools/gen-enchantments.ps1` 跑一次生成、**要提交**）才能覆盖 54 个 legacy 附魔。该路径经 `build.gradle` 的 `ksp { arg('simpleTweaks.legacyManifest', …) }` 传入；缺失时 processor 会**报错**而不是生成一个短 tag                                                                                                                                                                                    |
-| 17 | 生成物里出现 `<ERROR TYPE: …>`                   | 注解实参**不是编译期常量**（例如 `color = EnchantCategory.EPIC.color` 是属性读取）。KSP 不报错，只回一个占位符；processor 现在有**枚举名护栏**会在声明处直接报错（§3.6），不要绕过它                                                                                                                                                                                                                                                                                                   |
+| 16 | 新写的 `@ModEnchantment` 没进附魔台 / 没被村民过滤       | KSP 是这三个 tag 的**唯一生产者**（`non_treasure` / `in_enchanting_table` / `tradeable`），全部由 67 个声明直接产出。`build=cleanup20` 起它**不再需要** `tools/legacy-enchantments.json` 那份 legacy 清单（`tools/gen-enchantments.ps1` 与 `build.gradle` 里的 `simpleTweaks.legacyManifest` 参数已一并删除）—— **不要手写这三个 tag**，与生成物撞路径 |
+| 17 | 生成物里出现 `<ERROR TYPE: …>` | 注解实参**不是编译期常量**（例如 `color = EnchantCategory.EPIC.color` 是属性读取）。KSP 不报错，只回一个占位符；processor 现在有**枚举名护栏**会在声明处直接报错（§3.6），不要绕过它 |
+| 18 | 写了 `player.absorptionAmount = x` 却毫无效果，**且不报错** | **1.21.1 的 `setAbsorptionAmount` 第一步就是 `clamp(0, generic.max_absorption)`，而该属性默认 0** —— 唯一抬高它的是 `absorption` 状态效果（`ADD_VALUE` 4/级）。所以"直写吸收值"= 静默丢弃。要自己给护盾：先加**临时** `generic.max_absorption` 修饰符（§4.2），并且**记账记"落地差值"**（写入后重读）。`golden_shield` 因此从未生效过一帧（`build=cleanup21`，详见 `AGENTS.md` §4.9 与 `DEVLOG.md` §1）；`healing_blade` / `death_protection` 是同类未修 |
+| 19 | 改了注解里的 `damagePerLevel` / `anvilCost` / `weight`，游戏里**毫无反应**，编译也不报错 | 该声明是 **`jsonEmit = false`** —— 手写 JSON 才是定义，注解里那几个 datapack 字段全是惰性的。血债：`heavenly_punishment` 注解写 `2.5` / `90`，实际发布的是 JSON 的 `5` / `14`（`build=cleanup21`）。能用生成式就别留手写件；目前只有 `unbreakable` 不得不留（`minecraft:item_damage` 处理器不产出） |
+| 20 | 附魔台权重/伤害被**静默改掉**（一次重构之后所有人一起变强/变弱） | `EnchantItemWeights` 是注解侧常量，`ModEnchantmentProcessor` 里还有一份同义表，两处漂移没有编译期约束。`cleanup20` 就把常量从 `10/8/6/4/2/1` 改成 `20/15/10/6/3/1` 且无记录，差点让 48 个附魔的权重一起上调（`build=cleanup21` 才发现）。护栏只有处理器每次构建 `warn` 的那一行"显式值 != tier 派生值" —— 另外**别用 `logger.info` 报这类事**，普通 `build` 看不见 KSP 的 info |
+| 21 | 想改原版 tooltip 的某一行，**明明存在却匹配不上** | 原版的行**不一定把可翻译文本放在 `line.content` 上**：`ItemStack#appendAttributeModifierTooltip` 把属性行构造成 `ScreenTexts.space().append(Text.translatable("attribute.modifier.equals." + opId, …))` —— 本行 `content` 是**空格字面量**，可翻译文本在 **sibling** 上。只查 `line.content` 的匹配器必然找不到（`build=cleanup21` 的附魔伤害 tooltip 第一版就这样在真客户端上静默退化成兜底）。**规则：遍历文本树（`content` + 一级 `siblings`），并按**翻译键**匹配而不是渲染后的字符串** |
+| 22 | 给"复用伤害管线"的工具函数加一个"跳过护甲"参数 | 1.21 里跳过护甲/抗性是**伤害类型标签**（`#minecraft:bypasses_armor` / `bypasses_resistance` / `bypasses_enchantments`）的属性，**调用点开关不了它**；做成布尔参数只能去**覆盖调用方的 `source`**，等于同一件事两种说法。`build=cleanup21` 据此删掉了 `runPlayerAttack(ignoreArmorAndPotion)`（能力仍在：见 `ModDamageTypes` / `damageBypassingArmor`），并删掉了在 1.21 已无语义的 `lastHitKeepDamagePlayerSource`。**"参数存在 ≠ 有人读它"同样适用于函数参数** |
+| 23 | 一屏 `@Mixin target … was not found … from mod simple_tweaks`（25 个全中），最后崩在 `NoClassDefFoundError: net/minecraft/server/world/ServerWorld` | **装错 jar**：把未 remap 的 `build/devlibs/*-dev.jar` 复制成了 `mods/simple_tweaks-2.1.0-dev.jar`。判据是"**入口类自己的日志照打**（`loading` / `Config loaded from`），但所有 MC 名都找不到" ⇒ 先对已装 jar 的 SHA / 文件名（checklist §0.0），**别翻源码**。正误产物对照与取证命令见 §2.5。实锤：mods 里那个 jar 的 SHA256 与 `build/devlibs/…-dev.jar` 完全一致（`build=cleanup22` 记录，见 `DEVLOG.md`） |
+| 24 | 服务端把某个**每侧各自一份**的状态改了，游戏里却"没生效" | 见 `AGENTS.md` §4.11：`lastAttackedTicks`（攻击充能）、`itemCooldownManager`、各类计时器都**不是同步字段**，服务端改完客户端读的还是它自己那份。血债：kill_aura 的 `simulateCooldown` 只落了服务端一半 —— 攻击指示条一直满格（`build=cleanup22` 补了 S2C 的 `PacketResetAttackCooldown`）。**改这类状态前先问：另一侧谁读、谁写、有没有同步包** |
+| 25 | 进图后**立刻被踢**（连接已丢失）：`EncoderException: Failed to encode packet 'clientbound/minecraft:custom_payload' (模组:包名)`，内层 `IllegalStateException: Can't encode 'X@1dde5184', expected 'X@306b7db2'` | **空 body 的 payload 没做成单例**。`PacketCodec.unit(value)` 的编码器不是"什么都不写"，它会断言拿到的就是注册时那一个实例；发送时 `PacketResetAttackCooldown()` 新建实例 ⇒ 服务端编码期抛异常 ⇒ 踢人。改法：`val INSTANCE`（+ 私有构造让"新建实例"编译不过），发送用 `INSTANCE`。血债：`build=cleanup22` 的 `PacketResetAttackCooldown`（构建全绿、只在第三关暴露），`cleanup23` 修。**这也是"空包 = 无状态"的推论陷阱：无状态 ≠ 无身份** |
 
 ---
 

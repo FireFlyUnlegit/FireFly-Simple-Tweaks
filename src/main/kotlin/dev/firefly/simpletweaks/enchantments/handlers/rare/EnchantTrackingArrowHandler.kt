@@ -16,7 +16,9 @@ import net.minecraft.util.math.Vec3d
 import kotlin.math.acos
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantItemWeights
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSupportedItemTags
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 
@@ -56,11 +58,11 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
     category = EnchantCategory.RARE,
     type = EnchantType.BOW,
     maxLevel = 5,
-    weight = 6,
+    weight = EnchantItemWeights.RARE,
     anvilCost = 6,
     minCostBase = 32,
     minCostPerLevel = 12,
-    supportedItems = "#minecraft:enchantable/bow",
+    supportedItems = EnchantSupportedItemTags.BOW,
     slots = [EnchantSlot.MAINHAND, EnchantSlot.OFFHAND],
     order = 23,
 )

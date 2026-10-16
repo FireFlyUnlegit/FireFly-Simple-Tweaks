@@ -65,9 +65,10 @@ object EnchantmentManager {
      * `EnchantAoeAttackHandler` (its `runPlayerAttack` helper needs `ForgeHooks.getCriticalHit` /
      * `CriticalHitEvent`, so it is blocked on the crit seam — a cross-file dependency the phase-2.5
      * per-handler classification could not see). Batch 3 did add a 1:1-shaped `runPlayerAttack` to
-     * `util/PlayerUtils.kt` for `EnchantEchoShotHandler`, but it is a **documented partial port** (the
-     * crit branch is dropped, `triggerEvent` / `ignoreArmorAndPotion` are inert), so re-enabling
-     * `EnchantAoeAttackHandler` would inherit those caveats rather than remove them.
+     * `util/PlayerUtils.kt` for `EnchantEchoShotHandler`; `build=cleanup21` then made every one of its
+     * parameters real (the crit branch works, `triggerEvent = false` suppresses the two damage seams,
+     * and the two params that could never work in 1.21 were deleted — see that function's KDoc), so
+     * re-enabling `EnchantAoeAttackHandler` would now inherit a complete helper.
      *
      * Batch 4 (mythic) adds the six handlers below. The remaining three mythic files are
      * deliberately absent: `EnchantPrismaticBlessingHandler` and `EnchantUnbreakableHandler` are

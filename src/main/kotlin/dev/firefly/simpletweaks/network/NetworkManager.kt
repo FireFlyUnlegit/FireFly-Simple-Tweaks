@@ -6,6 +6,7 @@ import dev.firefly.simpletweaks.network.packets.PacketDamageIndicator
 import dev.firefly.simpletweaks.network.packets.PacketLaser
 import dev.firefly.simpletweaks.network.packets.PacketManaPoolSync
 import dev.firefly.simpletweaks.network.packets.PacketOpenModScreen
+import dev.firefly.simpletweaks.network.packets.PacketResetAttackCooldown
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking
 import net.minecraft.network.packet.CustomPayload
@@ -41,6 +42,7 @@ import net.minecraft.server.world.ServerWorld
  *   PacketManaPoolSync       batch 4 (ManaPool tooltip)
  *   PacketOpenEnchantInfo    batch 5 -- CUT, see docs/phase6-client-notes.md §11.3
  *   PacketLaser              InfinitePower -- DEFERRED, see docs/infinite-power-deferred.md
+ *   PacketResetAttackCooldown  kill_aura's `simulateCooldown` (the S2C half of spending the swing)
  * </pre>
  *
  * <h2>Why there are no `sendToAll` / `sendToAllAround` helpers</h2>
@@ -64,6 +66,13 @@ object NetworkManager {
         // SERVER tree (a client-registered root name shadows the server's children -- see
         // ScreenCommands), so the server asks the client to open them.
         PayloadTypeRegistry.playS2C().register(PacketOpenModScreen.ID, PacketOpenModScreen.CODEC)
+        // kill_aura (and any future `simulateCooldown` caller): the server spent the swing, so the
+        // owning client is told to spend its own attack charge -- the HUD indicator reads the client's
+        // `lastAttackedTicks`, which vanilla only ever resets from the client's own attack path.
+        PayloadTypeRegistry.playS2C().register(
+            PacketResetAttackCooldown.ID,
+            PacketResetAttackCooldown.CODEC,
+        )
         // InfinitePower laser — the project's FIRST C2S payload. See docs/infinite-power-deferred.md §9.
         PayloadTypeRegistry.playC2S().register(PacketLaser.ID, PacketLaser.CODEC)
     }

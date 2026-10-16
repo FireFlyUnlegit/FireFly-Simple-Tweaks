@@ -6,6 +6,8 @@ import dev.firefly.simpletweaks.compat.invalid
 import dev.firefly.simpletweaks.compat.syncEffectToClient
 import dev.firefly.simpletweaks.core.Listenable
 import dev.firefly.simpletweaks.enchantments.annotations.*
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantItemWeights
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSupportedItemTags
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 import dev.firefly.simpletweaks.mixin.accessors.StatusEffectInstanceAccessor
 import dev.firefly.simpletweaks.util.getArmorEnchantLevel

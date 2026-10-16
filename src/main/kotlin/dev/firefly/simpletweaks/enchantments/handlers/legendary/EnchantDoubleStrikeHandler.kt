@@ -1,6 +1,6 @@
 package dev.firefly.simpletweaks.enchantments.handlers.legendary
 
-import dev.firefly.simpletweaks.compat.STLog
+import dev.firefly.simpletweaks.compat.FSTLog
 import dev.firefly.simpletweaks.compat.WorldSide
 import dev.firefly.simpletweaks.compat.event.AttackEntityEvent
 import dev.firefly.simpletweaks.compat.event.EventPriority
@@ -15,7 +15,9 @@ import java.util.*
 import kotlin.random.Random.Default.nextFloat
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantItemWeights
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSupportedItemTags
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 
@@ -55,13 +57,12 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
     category = EnchantCategory.LEGENDARY,
     type = EnchantType.SWORD,
     maxLevel = 6,
-    weight = 2,
+    weight = EnchantItemWeights.LEGENDARY,
     anvilCost = 10,
     minCostBase = 33,
     minCostPerLevel = 4,
-    supportedItems = "#minecraft:enchantable/sword",
+    supportedItems = EnchantSupportedItemTags.SWORD,
     slots = [EnchantSlot.MAINHAND],
-    damagePerLevel = 0.4,
     order = 36,
 )
 object EnchantDoubleStrikeHandler : Listenable {
@@ -82,7 +83,7 @@ object EnchantDoubleStrikeHandler : Listenable {
         val roll = nextFloat()
         if (roll < 0.25f + 0.05f * lvl) {
             armed[player] = lvl
-            STLog.log("DoubleStrike") {
+            FSTLog.log("DoubleStrike") {
                 "player=${player.name.string}, lvl=$lvl, attackCharge=${player.attackCharge}, " +
                     "roll=$roll, chance=${0.25f + 0.05f * lvl}, outcome=armed"
             }
@@ -102,7 +103,7 @@ object EnchantDoubleStrikeHandler : Listenable {
         inExtraStrike.set(true)
         try {
             target.timeUntilRegen = 0
-            STLog.log("DoubleStrike") {
+            FSTLog.log("DoubleStrike") {
                 "attacker=${attacker.name.string}, target=${target.name.string}, lvl=$lvl, " +
                     "strikeDamage=${e.amount * (0.4f + 0.10f * lvl)}, multiplier=${0.4f + 0.10f * lvl}, " +
                     "outcome=extra-hit"

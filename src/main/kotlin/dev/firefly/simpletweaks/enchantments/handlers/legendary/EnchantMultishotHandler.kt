@@ -1,6 +1,6 @@
 package dev.firefly.simpletweaks.enchantments.handlers.legendary
 
-import dev.firefly.simpletweaks.compat.STLog
+import dev.firefly.simpletweaks.compat.FSTLog
 import dev.firefly.simpletweaks.compat.event.ArrowLooseEvent
 import dev.firefly.simpletweaks.compat.event.EventPriority
 import dev.firefly.simpletweaks.compat.event.LivingHurtEvent
@@ -9,6 +9,7 @@ import dev.firefly.simpletweaks.core.Listenable
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantItemWeights
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSupportedItemTags
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
@@ -65,7 +66,7 @@ import kotlin.math.sin
  * and serves as the negative control), and from the second arrow on `regenBefore=20 → regenAfter=0`
  * with a *different* damage amount per arrow (13/10/10/11) — every arrow of the volley settles
  * separately. The probes have since been removed; the per-volley `outcome=volley-spawned` line stays,
- * matching how the other handlers use `STLog`.
+ * matching how the other handlers use `FSTLog`.
  *
  * <p>Note this cannot be delegated to a damage-type tag: `#minecraft:bypasses_cooldown` is referenced
  * by `LivingEntity#damage` but **does not exist in 1.21.1's vanilla data** (the tag resolves empty),
@@ -80,7 +81,7 @@ import kotlin.math.sin
     anvilCost = 6,
     minCostBase = 25,
     minCostPerLevel = 10,
-    supportedItems = "#minecraft:enchantable/bow",
+    supportedItems = EnchantSupportedItemTags.BOW,
     slots = [EnchantSlot.MAINHAND, EnchantSlot.OFFHAND],
     order = 28,
 )
@@ -193,7 +194,7 @@ object EnchantMultishotHandler : Listenable {
             1.0f / (world.random.nextFloat() * 0.4f + 1.2f) + charge * 0.5f,
         )
 
-        STLog.log("Multishot") {
+        FSTLog.log("Multishot") {
             "player=${p.name.string}, lvl=$lvl, charge=${e.charge}, minCharge=$minCharge, " +
                 "fastBow=$fastBowLvl, boost=$boost, drawn=$drawnTicks, speed=$speed, " +
                 "ammo=${ammo.count}, arrows=$arrows, " +

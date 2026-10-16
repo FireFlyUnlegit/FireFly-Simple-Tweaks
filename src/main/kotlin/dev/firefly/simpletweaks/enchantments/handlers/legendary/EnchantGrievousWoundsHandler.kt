@@ -1,6 +1,6 @@
 package dev.firefly.simpletweaks.enchantments.handlers.legendary
 
-import dev.firefly.simpletweaks.compat.STLog
+import dev.firefly.simpletweaks.compat.FSTLog
 import dev.firefly.simpletweaks.compat.WorldSide
 import dev.firefly.simpletweaks.compat.event.EventPriority
 import dev.firefly.simpletweaks.compat.event.LivingHealEvent
@@ -11,6 +11,7 @@ import dev.firefly.simpletweaks.core.Listenable
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantItemWeights
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSupportedItemTags
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
@@ -57,7 +58,7 @@ import java.util.UUID
     anvilCost = 12,
     minCostBase = 37,
     minCostPerLevel = 12,
-    supportedItems = "#minecraft:enchantable/sword",
+    supportedItems = EnchantSupportedItemTags.SWORD,
     slots = [EnchantSlot.MAINHAND],
     damagePerLevel = 0.45,
     order = 42,
@@ -97,7 +98,7 @@ object EnchantGrievousWoundsHandler : Listenable {
             if (ratio > state.ratio) state.ratio = ratio
             state.expireAtMs = now + duration
         }
-        STLog.log("GrievousWounds") {
+        FSTLog.log("GrievousWounds") {
             "attacker=${attacker.name.string}, target=${target.name.string}, lvl=$lvl, ratio=$ratio, " +
                 "durationMs=$duration, refreshed=$refresh, outcome=wound-applied"
         }

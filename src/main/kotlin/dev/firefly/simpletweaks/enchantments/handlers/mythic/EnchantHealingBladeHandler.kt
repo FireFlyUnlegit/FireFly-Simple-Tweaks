@@ -1,6 +1,6 @@
 package dev.firefly.simpletweaks.enchantments.handlers.mythic
 
-import dev.firefly.simpletweaks.compat.STLog
+import dev.firefly.simpletweaks.compat.FSTLog
 import dev.firefly.simpletweaks.compat.WorldSide
 import dev.firefly.simpletweaks.compat.attacker
 import dev.firefly.simpletweaks.compat.event.EventPriority
@@ -16,7 +16,9 @@ import net.minecraft.entity.player.PlayerEntity
 import java.util.*
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantItemWeights
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSupportedItemTags.SWORD
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 
@@ -50,11 +52,11 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
     category = EnchantCategory.MYTHIC,
     type = EnchantType.SWORD,
     maxLevel = 8,
-    weight = 1,
+    weight = EnchantItemWeights.MYTHIC,
     anvilCost = 12,
     minCostBase = 33,
     minCostPerLevel = 8,
-    supportedItems = "#minecraft:enchantable/sword",
+    supportedItems = SWORD,
     slots = [EnchantSlot.MAINHAND],
     damagePerLevel = 1.0,
     order = 43,
@@ -96,7 +98,7 @@ object EnchantHealingBladeHandler : Listenable {
         }
 
         e.amount += healing
-        STLog.log("HealingBlade") {
+        FSTLog.log("HealingBlade") {
             "attacker=${attacker.name.string}, target=${e.target.name.string}, lvl=$level, damage=$dmg, " +
                 "healing=$healing, health=${attacker.health}/${attacker.maxHealth}, " +
                 "absorption=${attacker.absorptionAmount}, healedAmount=${healing.coerceAtMost(diff)}, " +

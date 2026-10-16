@@ -138,6 +138,9 @@ class SimpleTweaksConfigScreen(private val parent: Screen?) :
                 boolRow("enabledSpecialParticles", { GeneralConfig.enabledSpecialParticles }) {
                     GeneralConfig.enabledSpecialParticles = it
                 }
+                boolRow("noHurtCam", { GeneralConfig.noHurtCam }) {
+                    GeneralConfig.noHurtCam = it
+                }
             }
 
             1 -> {

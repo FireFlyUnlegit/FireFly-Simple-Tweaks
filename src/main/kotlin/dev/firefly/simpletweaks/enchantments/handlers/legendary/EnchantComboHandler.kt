@@ -1,7 +1,7 @@
 package dev.firefly.simpletweaks.enchantments.handlers.legendary
 
 import dev.firefly.simpletweaks.SimpleTweaks
-import dev.firefly.simpletweaks.compat.STLog
+import dev.firefly.simpletweaks.compat.FSTLog
 import dev.firefly.simpletweaks.compat.WorldSide
 import dev.firefly.simpletweaks.compat.attacker
 import dev.firefly.simpletweaks.compat.event.EventPriority
@@ -21,7 +21,9 @@ import net.minecraft.util.Identifier
 import java.util.*
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantItemWeights
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSupportedItemTags
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 
@@ -67,11 +69,11 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
     category = EnchantCategory.LEGENDARY,
     type = EnchantType.SWORD,
     maxLevel = 10,
-    weight = 2,
+    weight = EnchantItemWeights.LEGENDARY,
     anvilCost = 10,
     minCostBase = 20,
     minCostPerLevel = 5,
-    supportedItems = "#minecraft:enchantable/sword",
+    supportedItems = EnchantSupportedItemTags.SWORD,
     slots = [EnchantSlot.MAINHAND],
     damagePerLevel = 0.15,
     order = 32,
@@ -95,7 +97,7 @@ object EnchantComboHandler : Listenable {
         val multiplier = (1f - level * 0.1f).coerceAtLeast(0f)
         target.timeUntilRegen =
             (target.timeUntilRegen * multiplier).toInt().coerceAtLeast(0)
-        STLog.log("Combo") {
+        FSTLog.log("Combo") {
             "attacker=${attacker.name.string}, target=${target.name.string}, lvl=$level, " +
                 "multiplier=$multiplier, timeUntilRegen=${target.timeUntilRegen}"
         }
@@ -135,7 +137,7 @@ object EnchantComboHandler : Listenable {
         }
 
         p.syncAttributes()
-        STLog.log("Combo") {
+        FSTLog.log("Combo") {
             "player=${p.name.string}, lvl=$level, hadModifier=$hasModifier, " +
                 "modifier=${ATTACK_SPEED_PER_LEVEL * level}, outcome=${if (level > 0) "applied" else "removed"}"
         }

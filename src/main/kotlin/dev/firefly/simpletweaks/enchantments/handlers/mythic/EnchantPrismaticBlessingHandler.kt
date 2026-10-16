@@ -3,7 +3,9 @@ package dev.firefly.simpletweaks.enchantments.handlers.mythic
 import dev.firefly.simpletweaks.core.Listenable
 import dev.firefly.simpletweaks.enchantments.annotations.AttributeSpec
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantItemWeights
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSupportedItemTags
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 
@@ -28,11 +30,11 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
     category = EnchantCategory.MYTHIC,
     type = EnchantType.BREAKABLE,
     maxLevel = 5,
-    weight = 1,
+    weight = EnchantItemWeights.MYTHIC,
     anvilCost = 12,
     minCostBase = 45,
     minCostPerLevel = 15,
-    supportedItems = "#minecraft:enchantable/durability",
+    supportedItems = EnchantSupportedItemTags.DURABILITY,
     slots = [EnchantSlot.ANY],
     attributes = [
         AttributeSpec("minecraft:generic.max_health", 0.04),

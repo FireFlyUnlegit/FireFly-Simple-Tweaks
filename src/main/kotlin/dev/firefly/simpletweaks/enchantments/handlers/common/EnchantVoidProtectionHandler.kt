@@ -1,6 +1,6 @@
 package dev.firefly.simpletweaks.enchantments.handlers.common
 
-import dev.firefly.simpletweaks.compat.STLog
+import dev.firefly.simpletweaks.compat.FSTLog
 import dev.firefly.simpletweaks.compat.WorldSide
 import dev.firefly.simpletweaks.compat.event.LivingFallEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
@@ -17,7 +17,9 @@ import net.minecraft.text.Text
 import java.util.*
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantItemWeights
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSupportedItemTags
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 
@@ -57,11 +59,11 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
     category = EnchantCategory.COMMON,
     type = EnchantType.BOOTS,
     maxLevel = 3,
-    weight = 10,
+    weight = EnchantItemWeights.COMMON,
     anvilCost = 2,
     minCostBase = 30,
     minCostPerLevel = 10,
-    supportedItems = "#minecraft:enchantable/foot_armor",
+    supportedItems = EnchantSupportedItemTags.FOOT_ARMOR,
     slots = [EnchantSlot.FEET],
     order = 5,
 )
@@ -90,7 +92,7 @@ object EnchantVoidProtectionHandler : Listenable {
                 p.sendMessage(Text.literal("Triggered Void Protection!"), false)
                 stack.set(DataComponentTypes.ENCHANTMENTS, enchantsBuilder.build())
                 waitForCancel[uuid] = true
-                STLog.log("VoidProtection") {
+                FSTLog.log("VoidProtection") {
                     "player=${p.name.string}, lvl=$level, y=${p.y}, fallDistance=${p.fallDistance}, " +
                         "newLvl=${level - 1}, outcome=teleported-to-y256"
                 }
@@ -98,7 +100,7 @@ object EnchantVoidProtectionHandler : Listenable {
         }
         if (p.isOnGround && waitForCancel[uuid] == true) {
             waitForCancel[uuid] = false
-            STLog.log("VoidProtection") {
+            FSTLog.log("VoidProtection") {
                 "player=${p.name.string}, fallDistance=${p.fallDistance}, outcome=landed-fall-cancelled"
             }
         }
@@ -120,7 +122,7 @@ object EnchantVoidProtectionHandler : Listenable {
             event.isCanceled = true
             entity.fallDistance = 0f
             waitForCancel[entity.uuid] = false
-            STLog.log("VoidProtection") {
+            FSTLog.log("VoidProtection") {
                 "player=${entity.name.string}, lvl=$level, fallDistance=$fallDistance, outcome=fall-cancelled"
             }
         }

@@ -3,7 +3,9 @@ package dev.firefly.simpletweaks.enchantments.handlers.mythic.infinitepower
 import dev.firefly.simpletweaks.core.Listenable
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantColor
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantItemWeights
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSupportedItemTags
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 
@@ -21,11 +23,15 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
  * It therefore declares no `order`: there is nothing here to place, and `Int.MAX_VALUE` keeps it out of the
  * ordering table entirely. The aura handlers keep their own numbers.
  *
- * ## `jsonEmit = false`
- * The 1.12.2 generator wrote no `primary_items` field for treasure enchantments (`infinite_power` and
- * `reforge` are the two), and this processor always writes it — so the hand-written
- * `src/main/resources/data/simple_tweaks/enchantment/infinite_power.json` stays authoritative for the
- * datapack definition. See `@ModEnchantment.jsonEmit`; the fields below document what that file contains.
+ * ## The datapack definition is generated (since `build=cleanup21`)
+ * This declaration used to be `jsonEmit = false`, because 1.12.2's generator wrote no `primary_items`
+ * field for treasure enchantments (`infinite_power` and `reforge` are the two) while this processor
+ * always writes it. That reasoning did not survive the bytecode/data check: **the vanilla codec defaults
+ * `primary_items` to `supported_items`**, which is exactly what the hand-written file was relying on by
+ * omitting the key — the two files that omit it load fine. So the generated JSON is equivalent, the
+ * hand-written one is deleted, and the fields below are now the single definition instead of
+ * documentation that could drift (it had: `damagePerLevel` and `anvilCost` disagreed on
+ * `heavenly_punishment`).
  *
  * ## The rainbow
  * 1.12.2's `EnchantInfinitePower` overrode `decorateName` to animate the name. `color =
@@ -43,11 +49,15 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
     type = EnchantType.SWORD,
     color = EnchantColor.RAINBOW,
     maxLevel = 1,
-    weight = 1,
+    weight = EnchantItemWeights.MYTHIC,
     anvilCost = 12,
     minCostBase = 65535,
-    supportedItems = "#minecraft:enchantable/sword",
+    supportedItems = EnchantSupportedItemTags.SWORD,
     slots = [EnchantSlot.MAINHAND],
-    jsonEmit = false,
+    // Explicit opt-out, and load bearing: this is a SWORD, so the tier default would emit
+    // `minecraft:damage` +0.45/level. 1.12.2's override returned `Int.MAX_VALUE` as a one-shot-kill hack
+    // (see `EnchantInfinitePowerHandler`), not as weapon damage — the enchantment never carried a damage
+    // component, and the hand-written JSON this replaced had `effects: {}`.
+    damagePerLevel = 0.0,
 )
 object EnchantInfinitePowerDeclaration : Listenable

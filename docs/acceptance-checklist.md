@@ -1,11 +1,22 @@
 # 客户端验收清单（`simple_tweaks-2.1.0.jar`）
 
 > 目标 jar：`fabric-1.21.1/build/libs/simple_tweaks-2.1.0.jar`
-> SHA256 `965E51EE850BB00BF3EB001BE79BF436B392501B146B562B2BCFED574827F4AA`（600650 bytes）
-> 启动标识：**`build=cleanup20`**
+> SHA256 `E0D72D5A0B82A80F8EEFA88B9C33B4BB44781745C04A0E01DD97D5A2B0472F5C`（638328 bytes）
+> 启动标识：**`build=cleanup23`**
 > 安装位置：`F:\.minecraft\versions\1.21.1-Fabric 0.19.3\mods\simple_tweaks-2.1.0.jar`
 > 配置/日志：`<gameDir>\config\simple_tweaks.json`、`<gameDir>\logs\latest.log`
-> 回退点：`simple_tweaks-2.1.0.jar.prev`（安装后会变成 `build=cleanup18`，567975 bytes）
+> 回退点：`simple_tweaks-2.1.0.jar.prev`（10-11 的 `build=cleanup21` 构建，640635 bytes ——
+> 该 jar 在 2026-10-16 18:22 的客户端日志里**正常加载过**，是现存唯一有动态证据的可用回退点）
+>
+> ⚠️ **本页 SHA / 字节数是 `gradlew build`（2026-10-17，`build=cleanup23`）的产物。**
+> Loom 会把 jar 内条目时间戳归一化成 1980-01-01，**同样输入 ⇒ 同样哈希**，所以这个 SHA 可复现。
+> 本批次更早记录过的 `FA1FB85B…` / 638116（cleanup22，**会断连**，见 §AA）、`C6099475…` / 634803
+> （cleanup21）、`965E51EE…` / 600650、`0F3111A6…` / 629379、`1D376095…` / 628851、`74E773AD…` / 628861、
+> `3223787F…` / 633876、`8AA37699…` / 635785、`D8661401…` / 639275 都已作废（依次是：cleanup22 断连版、
+> cleanup21、对不上任何现存 jar、§W 重构前、行尾规范化前、tooltip 第一版、改成"并进总伤行"之前、
+> sibling 修复前、noHurtCam 前）—— 核对时以本页为准。
+> 那份 cleanup22 的 jar 已改名为 `simple_tweaks-2.1.0-cleanup22-BROKEN.jar.disabled` 留在 mods 里
+> （**不要**把它当回退点）。
 >
 > **前置**：单人世界 + 开作弊。
 > ⚠️ **`[FST-*]` 调试日志默认关闭**（`build=cleanup3` 起，见 §M 与 `MIGRATION.md` §12）。本清单里凡
@@ -18,11 +29,12 @@
 
 ---
 
-## 0. 启动自检（先看这三条）
+## 0. 启动自检（先看这四条）
 
 | # | 检查 | 期望 |
 |---|---|---|
-| 0.1 | 日志有 `client ready: damage indicator + /simple_tweaks stconfig + /simple_tweaks enchantinfo ... (build=cleanup2)` | 证明加载的是新 jar；**注意结尾的 build 标识**，不是 `cleanup2` 就是旧 jar |
+| 0.0 | **先确认装的是哪个 jar**：`Get-FileHash "$mods\simple_tweaks-2.1.0.jar"` 与本页页首 SHA 一致，且文件名里**没有 `-dev`** | 挡住"装成 `build/devlibs\…-dev.jar`"这次事故（症状：**每个** `@Mixin target … from mod simple_tweaks` 都 not found + 崩在 `NoClassDefFoundError: net/minecraft/…`，见 `DEV_GUIDE` §2.5） |
+| 0.1 | 日志有 `client ready: … (build=cleanup23)` | 证明加载的是新 jar；**注意结尾的 build 标识**，不是 `cleanup23` 就是旧 jar |
 | 0.2 | 日志 `Config loaded from ... (anvilLimit=..., damageIndicator=..., cancelVanillaDmgIndicator=...)` | 配置读取正常 |
 | 0.3 | 全日志 `ERROR` / `Exception` = 0（`PDH Counter` 那两条是 Windows 噪音，忽略） | 无异常 |
 
@@ -751,6 +763,212 @@
 > ⚠️ **留待作者确认两处**（未改代码）：① 变量名叫 `armorLoss` / `armorToughnessLoss`，但语义是**减伤**（名字与实际相反）；
 > ② 量级偏弱 —— 护甲 20 / 韧性 12 / 满级 8 时减免约 **1.0** 点，护甲 30 / 韧性 20 也只有约 **1.26** 点。
 > 若 `0.005` / `0.008` 是为模组护甲的高数值环境准备的，建议在 KDoc 里写明。
+
+---
+
+## T. `golden_shield` 吸收护盾（`build=cleanup21` 审查 + 修复）—— **本轮重点**
+
+> **背景（一句话）**：这个附魔此前**一次都没生效过**。1.21.1 的 `setAbsorptionAmount` 会把值钳进
+> `[0, generic.max_absorption]`，而该属性**默认 0**（只有 `absorption` 状态效果会抬高它），所以原实现的
+> `player.absorptionAmount += toAdd` 每次都被钳成 0；偏偏记账记的是"请求值"，于是 handler 还自认已满。
+> 修法：充能前给自己的临时 `max_absorption` 修饰符，并把记账改成**落地差值**。证据表见 `DEVLOG.md`
+> `build=cleanup21` §1。
+>
+> ⚠️ **T2 起需要调试日志**：先按 §M5 打开（`-Dsimpletweaks.debug=true`），否则 `[FST-GoldenShield]` 一行都不会有 ——
+> 这是预期，不是失效。
+>
+> **准备**：`/simple_tweaks enchant @s simple_tweaks:golden_shield 3 head`（再给胸/腿/靴各 III ⇒ 总等级 12），
+> 找一处安全的地方站定，手里不要拿任何会消耗吸收的东西。
+
+| # | 操作 | 期望 |
+|---|---|---|
+| T1 | 穿齐四件 `golden_shield III`，站定 **3 秒**，看血条 | 血条上方出现**金黄吸收心**并逐渐变多（每秒约 +3 点 = 1.5 颗心），上限 **48 点 = 24 颗心**（`maxMine = 总等级 × 4`，作者 `cleanup21` 改成这个值） |
+| T2 | 同上，开日志看每秒一行 | `[FST-GoldenShield] … requested=3.0, applied=3.0, mine=…/48.0, absorption=…, maxAbsorption=48.0, outcome=granted`。**`applied` 必须等于 `requested`**；出现 `outcome=clamped` 就是钳位回归，请把该行发我 |
+| T3 | 站到日志出现 `outcome=at-cap` 之后，再站 10 秒 | 吸收值**不再增长**（停在 48.0）；`mine` 停在 `48.0/48.0` |
+| T4 | 先吃**金苹果**（吸收 4 点），再站到护盾充满 | 两者**叠加**：总吸收 = 金苹果 + 本附魔（约 48 + 4）。金苹果的 4 点不应被本附魔覆盖掉 |
+| T5 | 让一只怪打掉你约 4 点吸收，然后走开继续站着 | 吸收被消耗后**继续回充**到 48.0（不是一次性）；日志 `mine` 会随消耗下降再回升 |
+| T6 | **四件护甲全部脱下**（或把等级降到 0） | 日志一行 `outcome=cleared`，且**本附魔给的那部分吸收立刻消失**（T4 情景下金苹果剩的那部分保留）。反例：吸收值原样留着 = 白送护盾，请报我 |
+| T7 | 带着护盾**退出重进**（重登） | 观察项：吸收值按原版 NBT 保存，但本附魔的 `max_absorption` 是**临时**修饰符、重登即消失 ⇒ 预期会被钳回 0（或钳到金苹果能支撑的上限）。**这条是设计如此**，若表现不同请把 `[FST-GoldenShield]` 行与 `latest.log` 发我 |
+| T8 | 反例鉴别（**排除"客户端还在跑旧 jar"**） | 若 T1 完全没有吸收心：先看启动行的结尾是不是**本页页首那个 build 标识**（写这条时是 `(build=cleanup22)`）；再看日志有没有 `[FST-GoldenShield]` —— **完全没有该行** = handler 没跑（附魔没装上/没在服务端）；**有行但 `applied=0`** = 钳位问题回来了。两者要能被区分开 |
+
+> 若某一栏不符，请发：`[FST-GoldenShield]` 的连续 10 行 + 该时刻的 `/attribute @s minecraft:generic.max_absorption get` 输出 + 截图。
+> 下一步该查：`ensureHeadroom` 是否被调用（修饰符是否存在）、`clear()` 是否在脱甲那一 tick 触发。
+
+---
+
+## U. 元素三件套 `frostbite` / `venom` / `chain_lightning`（`build=cleanup21` 新增，均 RARE / SWORD）
+
+> 需要调试日志（`[FST-Frostbite]` / `[FST-Venom]` / `[FST-ChainLightning]`），先按 §M5 打开。
+> **准备**：`/simple_tweaks enchant @s simple_tweaks:frostbite 3 mainhand`（另两件同理，可分别测），
+> 找 2–3 只僵尸（或 `/summon`）分开摆放，用 `/damage` 定量对比时注意 `/damage` 走的是原版伤害管线。
+>
+> 三条**刻意**的设计偏离（见 `DEVLOG.md` §2，不要当 bug 报）：毒液挂在**每实体 tick**（不是 `PlayerTickEvent`）；
+> 毒液 tick 在无敌帧吞掉伤害时会**强制补一次**；毒液传染只传**一半**层数。
+
+### U1–U4 冰霜（Frostbite）
+
+| # | 操作 | 期望 |
+|---|---|---|
+| U1 | 连续命中同一只僵尸 **1→5 次**，每次看日志 | 每次一行 `stacks=n/5, slownessAmplifier=n-1, outcome=frost-stack`；第 5 次变成 `outcome=frozen`（雪山粒子 + 玻璃破碎音），且**该僵尸 2 秒内完全不位移** |
+| U2 | 冻结期间补一刀 | 这一刀伤害 = 平时 `× (1 + 0.2×3) = ×1.6`，日志 `outcome=shatter-bonus`（`damage=before->after`）。反例：与不附魔的剑伤害相同 = 碎冰没生效 |
+| U3 | 冻结结束后继续命中 | 层数从 0 重新累积（`outcome=stacks-lapsed` 若中间停了 3 秒以上会先出现）；冻结不再延续 |
+| U4 | 反例：**不附魔**的剑连续命中同一只僵尸 5 次 | 无粒子、无冻结、日志里**没有任何** `[FST-Frostbite]` 行 |
+
+### U5–U7 毒液（Venom）
+
+| # | 操作 | 期望 |
+|---|---|---|
+| U5 | 附 `venom 3` 打同一只僵尸 1 次后**停手**，观察 5 秒 | 每秒一行 `outcome=venom-tick`，`applied=true`，绿粒子；血量每秒下降约 `0.2×3×层数`（1 层 ≈ 0.6/秒）。反例：连续两行 `applied=false` = 无敌帧又把伤害吞了（回归） |
+| U6 | 让目标**喝抗性提升 II** / 穿**保护 IV** 全套，重复 U5 | 每秒掉血数值与 U5 **完全相同**（`simple_tweaks:venom` 同时在 `bypasses_armor` / `bypasses_resistance` / `bypasses_enchantments`）。反例：数值变小 = tag 没生效，请发 `/datapack list` 与日志 |
+| U7 | 叠到 ≥6 层后把目标打死，旁边 8 格内站另一只怪 | 日志 `outcome=contagion`，`newStacks=ceil(层数/2)`，新宿主身上接着跳毒；若 8 格内没有其它敌人 → `outcome=contagion-no-target`。反例：**全额**层数传过去（应为一半）、或传给了你自己的宠物（应被排除） |
+
+### U8–U11 连锁闪电（Chain Lightning）
+
+| # | 操作 | 期望 |
+|---|---|---|
+| U8 | 附 `chain_lightning 3` 打目标 A 一次，再打 A 第二次 | 第一下日志 `outcome=charged`；第二下 `outcome=arc`，`arcDamage=2×本次伤害的一半…`（= `hit × 0.6`）、`range=6.0`、`maxTargets=2`、`landed≥1`，且能看见电弧粒子；A 身上的充能标记消失（再打一下应重新 `outcome=charged`） |
+| U9 | 在 A 周围 **6 格内**放 3 只怪，重复 U8 | 只命中**最近的 2 只**（`targets=1+lvl/2=2`）；把怪摆到 7 格外 → `candidates=0`（超出 `3+lvl=6` 格） |
+| U10 | 让一只**已驯服的狼**站在 A 旁边 3 格内，重复 U8 | 狼**不掉血**、日志 `victims` 里没有它（队友/宠物过滤）；同理不会电到你自己 |
+| U11 | 反例（防级联）：对着 A 连打 4 次，每次都记 `outcome=arc` 的 `landed` 数 | 每次触发只结算一轮，被电弧打到的**不会**被充能 ⇒ 后续命中不会凭空多触发；把日志发我即可（这一条主要确认没有递归/级联） |
+
+> 若某一栏不符，请发该组的连续日志（`[FST-Venom]` / `[FST-ChainLightning]` / `[FST-Frostbite]`）+ 目标血量变化。
+> 下一步该查：`damageElemental` 的返回值（`applied=false` 说明无敌帧门）、`isElementDamage()` 早退是否漏了某条路径。
+
+---
+
+## V. ~~伤害大乐透 `damage_lottery`~~ —— **已移除（作者裁定超模），本组退役**
+
+> 本组曾是 `damage_lottery` 的验收项。作者以"有点超模"为由删除了这个附魔，**不恢复**，因此 V1–V5
+> 全部作废。编号**保留空位**（按本文件的规矩：编号只增不重排，缺号保留），以免破坏别处引用。
+>
+> 连带处理（详见 `DEVLOG.md` §2.9）：4 个 lang 键已删、启动摘要已改、KSP 生成物不再包含它
+> ⇒ 附魔总数 66、handler 70、每语言 lang 196 键。若将来要做类似机制，建议先给它加**每层上限/
+> 冷却**，而不是每段伤害都独立抽一次赌局。
+
+---
+
+## W. 注解派生 / 权重表（`build=cleanup21` 收尾：`weight` 与 `damagePerLevel` 改为按分类派生）
+
+> 这一组主要是**构建期**核对（W1/W2/W5 不需要进游戏），只有 W3/W4 是客户端回归。
+> 背景与证据见 `DEVLOG.md` `build=cleanup21` §2.5。要点：1.12.2 里 `weight`（`10 - rarity×2`）与
+> SWORD 的额外伤害（`0.2 + rarity/20`）**都是从分类推出来的**；本批把二者改成注解默认派生，
+> 并把 `EnchantItemWeights` 恢复成 `10/8/6/4/2/1`（cleanup20 曾静默改成 `20/15/10/6/3/1`）。
+
+| # | 操作 | 期望 |
+|---|---|---|
+| W1 | `gradlew clean build --console=plain`，看输出里有没有 `w: [ksp]` 那一行 | 有且只有一行：`ModEnchantment: 9 explicit value(s) differ from the tier default (deliberate overrides) -> …`，列出的正是 `combo 0.15` / `fire_master 0.25` / `healing_blade 1.0` / `celestial_blessing 2.0` / `heavenly_punishment 2.5` / `grievous_wounds 0.45` / `infinite_power 0.0` / `frostbite 0.0` / `chain_lightning 0.0`。**不在列表里**的是 `venom`（RARE 派生 0.15）。**反例**：出现别的 id，说明有声明与它的 tier 不一致（要么是故意覆写，要么是漂移）。⚠️ 这行只在 **KSP 真的重跑**时打印：`UP-TO-DATE` 的构建不会有任何输出，所以这一步要配 `clean`（或先动一个声明） |
+| W2 | `build/generated/ksp/main/resources/data/simple_tweaks/enchantment/` 里数一数 | **65 个**生成 JSON + 1 个手写 `unbreakable` = **66 个附魔**（`damage_lottery` 已被作者删除，见 §V）；`fire_master.json` 的 `minecraft:damage` base = **0.25**（显式覆写）、`crit.json` = **0.3**（LEGENDARY 派生）、`venom.json` = **0.15**（RARE 派生）、`heavenly_punishment.json` = **2.5**（显式覆写，现在是真生效的）、`frostbite.json` / `chain_lightning.json` 的 `effects` 为 **`{}`**（仍显式 `0.0`）。**当前派生曲线**（作者 `cleanup21` 重平衡，非 1.12.2）：`COMMON 0 / UNCOMMON 0.075 / RARE 0.15 / EPIC 0.225 / LEGENDARY 0.3 / MYTHIC 0.375 / MYSTERY 0.45`，且只有 SWORD 有 |
+| W3 | 进游戏：`/simple_tweaks enchant @s simple_tweaks:heavenly_punishment 1 mainhand`，打一只怪并看铁砧/日志 | 伤害加成**仍是每级 +5**（1.12.2 的覆写值，也是此前手写 JSON 实际发布的值），铁砧成本仍是 **14**。**反例**：变成 +2.5 或成本 90 = 对齐做错了 |
+| W4 | 进游戏：附魔台刷附魔，统计模组附魔的出现频率 | 52 个附魔与 `cleanup20` 一致；7 个（`extra_armor` / `adopted_armor` / `blessing_extension` / `curse_resistance` / `grievous_wounds` / `multishot` / `clear_sight`）回到 1.12.2 权重（比清理前**更稀有**）；**唯一"变稀有"的新变化是 `fast_bow`（5→4）** |
+| W5 | 想改 `fast_bow` 的权重 / 想让四个新附魔也有平砍伤害 | 前者在 `EnchantFastBowHandler` 的注解里写 `weight = 5`；后者删掉那 4 个文件里的 `damagePerLevel = 0.0`。两次改动都会同步反映到 W1 的报告行里（这是用来确认改动真的落到生成物上的手段） |
+
+> 若 W1/W2 不符：先确认 `ksp-processor` 是否被重新编译（改它之后必须让 KSP 重跑，必要时 `clean build`）。
+> 注意 KSP 的 `logger.info` 在普通 `build` 里**不显示**，本组依赖的是那条 `warn`。
+
+---
+
+## X. 附魔伤害并进原版「攻击伤害」总伤行（`build=cleanup21` 新增）
+
+> **背景**：附魔的 `damagePerLevel` 走的是 `minecraft:damage` **附魔效果**，原版在**命中时**才应用它，
+> 所以它从来不出现在 tooltip 的属性块里（1.12.2 也一样）。本批加了一个客户端 handler，**把原版那条
+> 平铺总伤行就地改写**为"含附魔"的数字：
+>
+> ```text
+> 在主手时：
+> 44.02 攻击伤害      ← 原版那行（原本 7），被改写为 7 + 37.02
+> 1.6 攻击速度
+> ```
+>
+> 判定用 `attribute.modifier.equals.0`（**平铺**总值的键）+ 参数里含攻击力属性键，所以只会动"7 攻击伤害"，
+> 不会动附魔块里的 `+20% 攻击伤害`。数字是**读回原版已渲染的值**再加附魔份额，不是自己重算原版算术。
+>
+> ⚠️ **语义**：改写后的数字 = "**对一个生物造成多少**"，而不是"物品属性合计"（附魔伤害在命中时才加）。
+> 打方块、或打被 `requirements` 排除的目标时这个数字偏乐观 —— 这是作者要的效果。
+
+| # | 操作 | 期望 |
+|---|---|---|
+| X1 | 给钻石剑附 `crit 3`（LEGENDARY 派生 0.3）或 `fire_master 3`（显式 0.25），悬停看 tooltip | "在主手时：" 块里的 **`7 攻击伤害` 本身变成 `7.9 攻击伤害`**（7 + 0.9）/ `7.75 攻击伤害`（7 + 0.75）；**不应**再多出一行 `+0.9 攻击伤害`。附魔块里的 `+20% 攻击伤害` 等行保持不动 |
+| X2 | 反例：`golden_shield`（护甲、无伤害）／未附魔的剑／原版 `sharpness` | 总伤行**保持原样**（7），也不会多出行。`sharpness` 属于"带 `requirements` 的条目"，实现刻意跳过（tooltip 没有 `LootContext` 可判定它的生物类型条件） |
+| X3 | 同时附两个带伤害的附魔（例如 `crit 3` + `true_damage 3`） | 总伤行里是**两者之和**（一个数字，不是两行）：`7 + 0.9 + 0.675 = 8.575 → 8.58`（`true_damage` 是 EPIC 派生 0.225） |
+| X4 | 开调试日志（§M5）后悬停 | 出现 `[FST-EnchantDamageTooltip] … outcome=folded-into-vanilla-total`（`total=7, enchantmentBonus=0.9, shown=7.9, line=…, sibling=0`）。**若走的是兜底**，日志会给出 `outcome=fold-failed-fallback-line` **外加前 24 行的结构 dump**（形如 `3:literal+[attribute.modifier.equals.0]`）—— 把那一行原样发我即可定位，不需要再猜（这正是第一版缺的探针） |
+| X5 | 看**创造模式搜索栏**里的同一把剑（那里不显示属性块） | 走兜底：出现单独一行 `+0.9 攻击伤害`（深绿）。若连它也没有，说明该上下文根本没有可插入的位置 —— 记录即可，不算失败 |
+| X6 | 切英文/中文各看一次（或看另一语言客户端） | 文案随语言变（用的是原版键）；**不应出现裸键名** `attribute.modifier.equals.0` / `attribute.name.generic.attack_damage`。反例：出现裸键 = 键名写错或属性键没从注册表取 |
+| X7 | 回归：附魔块里那 18 行 `+20% …`（`prismatic_blessing`） | 与改动前**完全一致**（本功能只动攻击力那条**总伤**行；那 18 行是没有包装的纯可翻译文本，`fold` 不会碰它们） |
+
+> 第一版曾把附魔伤害作为**单独一行**加在附魔块里（作者截图里的 `+37.02 攻击伤害`）—— 那是**未生效的兜底**，
+> 不是设计。根因已定位：原版把总伤行构造成 `space().append(translatable)`，可翻译文本在 **sibling** 上，
+> 只检查 `line.content` 的匹配器必然找不到它（详见 `DEVLOG.md` §2.6）。
+
+---
+
+## Y. `noHurtCam`（`build=cleanup21` 新增配置项）
+
+> **背景**：`stconfig` 第 1 页新增开关 `noHurtCam`（默认**关**）。开启后受伤不再导致画面抖动：
+> 接缝是 `GameRenderer#tiltViewWhenHurt`（唯一按 `hurtTime` 旋转视角的地方，字节码核实），HEAD 处取消。
+> 这是**新选项**（1.12.2 没有），所以默认关闭。
+
+| # | 操作 | 期望 |
+|---|---|---|
+| Y1 | `/simple_tweaks stconfig` → 第 1 页 | 出现 `受伤不抖动画面: 关` 一行（英文 `No hurt cam shake: Off`）；点击可切换，且**切换即时写进** `config/simple_tweaks.json`（`"noHurtCam": true`） |
+| Y2 | 打开该开关，被任意生物打一下 | **画面不再左右/上下抖动**；反例：关掉后同样一击应当抖动（这是基准线，先关着打一下、再打开打一下对比） |
+| Y3 | 开关打开时受伤 | **红色受伤 overlay 仍在**、受伤音效仍在、手部摆动/攻击动画仍在、击退与无敌帧**不受影响**（本功能只取消视角变换） |
+| Y4 | 打开开关后**重启游戏**再看 stconfig | 仍然是"开"（JSON 读写闭环）；反例：重启后变回"关" = `write`/`read` 漏了一处 |
+| Y5 | 打方块 / 在创造模式搜索栏看物品 | 与开关无关（不涉及受伤），不应有异常，日志里也不应有新的 `ERROR` |
+
+---
+
+## Z. `runPlayerAttack` 参数清理 + `simulateCooldown`（`build=cleanup21`）
+
+> **背景**：两个在 1.21 无意义的参数已删除（`lastHitKeepDamagePlayerSource`：死亡源就是传入的 `source`；
+> `ignoreArmorAndPotion`：跳过护甲属于伤害类型标签）—— 删除**不改变行为**（6 个调用点的位置参数已逐个核对）。
+> 复现的 `triggerEvent = false` **仍无调用点**（Z5）。`simulateCooldown` 已接在 **kill_aura** 上，所以
+> Z1–Z4 是真可测的。
+>
+> ⚠️ 需要 `[FST-KillAura]` 日志（先按 §M5 打开调试开关）。**准备**：`kill_aura 6` 的剑 + 一只普通僵尸。
+
+| # | 操作 | 期望 |
+|---|---|---|
+| Z1 | 附 `kill_aura 6`，站到僵尸旁边**不动手**，看日志 | 两次 `[FST-KillAura] … charge=1.0, dealt=…` 之间的间隔 ≈ **你手里武器的一次挥砍周期**（攻击速度 1.6 → ≈12–13 tick）。这就是"判定冷却完毕才攻击" |
+| Z2 | 反例（低档不受影响）：改成 `kill_aura 1`，同样站着看 | 间隔应约为挥砍周期的 **6 倍**（`maxCooldown` 的 `(7 - lvl)` 系数），且日志里 `charge` 仍是 1.0 —— 说明 tick 冷却在低档位仍然是节流者，新加的充能门从不拒绝 |
+| Z3 | 同上（VI 级）：在光环打出一下的**同一刻**手动挥砍 | 手动那一刀**从 0 蓄力**（充能被光环花掉了）—— 表现为这一刀伤害需要等冷却才回满。这就是"像玩家手动打一样消耗 atkCharge"。反例：手动那一刀仍然满伤 = 充能没被花掉 |
+| Z4 | 反例（无副作用）：把剑换到副手／范围内没有目标／卸掉附魔 | 光环不动作，且**不应**出现 `dealt` 行；`cooldown` 也不应被无谓刷新（`cooldown` 只在真打中之后重置） |
+| Z5 | ~~`triggerEvent = false`~~ | **未验收（目前无调用点）**。将来接上后应满足：该次伤害**不**触发本模组其它附魔逻辑、也不产生对应 `[FST-*]` 日志（`hunters_mark` 不应被消耗、`charged_strike` 不应把它计入充能）。机制已实现（`EventSeams` 的抑制作用域），只是还没有人用 |
+
+---
+
+## AA. kill_aura 花掉的充能达到客户端（`build=cleanup22`）
+
+> **背景**：`build=cleanup21` 把 `simulateCooldown` 接上了 kill_aura —— 光环命中时在**服务端**
+> 调 `resetLastAttackedTicks()` 花掉这次挥砍。但 `lastAttackedTicks` 是**每侧各自一份**的普通 int
+> （不是同步字段），而准星旁的攻击指示条读的是**客户端**那一份（`InGameHud` →
+> `ClientPlayerEntity#getAttackCooldownProgress`）。原版只在**客户端自己的**攻击路径里清它
+> （`MinecraftClient#doAttack`、`ClientPlayerInteractionManager#attackEntity`/`#cancelBlockBreaking`，均字节码核实）；
+> 光环只在服务端挥砍（`EnchantKillAuraHandler` 在客户端直接 return），于是**指示条一直满格，
+> 而服务端已经把这刀花掉了** —— 玩家看着"满了"却打出 `0.2 + charge² × 0.8` 的伤害。
+>
+> **改法**：新增 S2C 空包 `PacketResetAttackCooldown`（`simple_tweaks:reset_attack_cooldown`），
+> 在 `runPlayerAttack` 里**紧挨着**服务端那次 `resetLastAttackedTicks()` 发送（只发给攻击者本人）；
+> 客户端收到后清自己的充能并打一行探针。**只发一次、只发本人**。
+>
+> 🩸 **`build=cleanup22` 的第一版会直接断连**（`build=cleanup23` 修）：空包用 `PacketCodec.unit`
+> 时**必须是同一个实例**（`unit` 的编码器会 `equals` 校验注册时那个实例），而第一版每次发送都
+> `PacketResetAttackCooldown()` 新建 ⇒ 服务端编码期抛
+> `IllegalStateException: Can't encode '…@1dde5184', expected '…@306b7db2'` ⇒
+> `EncoderException: Failed to encode packet 'clientbound/minecraft:custom_payload'` ⇒ 玩家被踢。
+> 现在是 `INSTANCE` + **私有构造**（新建实例编译不过）。判据：**进图后不断连**（AA0）。
+>
+> ⚠️ 需要 `[FST-KillAura]` 日志（先按 §M5 打开调试开关）。**准备**：`kill_aura 6` 的剑 + 一只普通僵尸。
+> 🚩 **本组尚未验收**（代理不跑客户端）。下面每条都给了反例，"修复前会怎样"就是反例。
+
+| # | 操作 | 期望 |
+|---|---|---|
+| AA0 | 装好 jar 后进单人世界，先**什么都不做**站 10 秒 | **不断连**、无 `EncoderException` / `Can't encode`（cleanup22 的第一版在这一步就会被踢）。之后附上 `kill_aura 6` 连续打 ≥15 次（每次发送一次该包），同样不断连。反例：断连 + 内层 `IllegalStateException: Can't encode '…', expected '…'` = 又发了一个新实例而不是单例 |
+| AA1 | 附 `kill_aura 6`，站到僵尸旁边**不动手**，盯准星旁的攻击指示条 | 光环每打中一次，指示条**清零并重新蓄力**，节奏 ≈ 一次挥砍周期（攻击速度 1.6 → ≈12–13 tick）。反例（修复前）：指示条**始终满格**，看不出光环花过充能 |
+| AA2 | 同一场景看日志 | 每次命中应成对出现两行：服务端 `[FST-KillAura] … charge=1.0, dealt=…` 与**客户端** `[FST-KillAura] outcome=client-charge-spent, chargeBefore≈1.0, chargeAfter=0.04…`（1.6 攻速；不是 0 —— 公式里那 `+0.5F` 基准时间还在），时间戳几乎相同。反例①：只有服务端那行 = 包没到（S2C 未注册会**静默丢弃**，不报错）；反例②：`chargeAfter` 等于 `chargeBefore` = 复位没落到本地玩家身上 |
+| AA3 | 光环刚打完后**立刻手动挥砍** | **指示条显示的蓄力量与这一刀的伤害一致**（即 Z3 的"从 0 蓄力"在画面上也成立）。反例：指示条满格却打出低伤 = 客户端没被清零（本组要修的就是这个） |
+| AA4 | 反例（不越界）：局域网里让第二名玩家站在旁边看自己的指示条 | 只有**攻击者本人**的指示条被清；别人的指示条不受影响（包只发给 `attacker` 自己，不发 `sendToAllAround`） |
+| AA5 | 反例（其它挥砍路径不变）：普攻、`double_strike`、`multishot` 连打 | 各自的指示条仍按原版节奏从 0 起蓄，不出现"卡住"或"两次清零"；卸掉 kill_aura 后 AA1/AA2 的行为消失 |
+| AA6 | 反例（无副作用）：没附 `kill_aura`／范围内无目标／目标在光环出手前就已经死了 | **不应**出现任何 `outcome=client-charge-spent` 行（包只在 `simulateCooldown` 真花掉充能时发）。⚠️ **不要**拿"目标处于无敌帧"当这一格的反例：kill_aura 传的是 `forceHit = true`，`PlayerUtils` 会先把 `timeUntilRegen` 清零，所以 I 帧根本拒绝不了它（能拦住复位的只有"目标已死"与"目标是创造模式玩家"） |
 
 ---
 

@@ -697,7 +697,7 @@ dependencies { modRuntimeOnly 'maven.modrinth:carpet:1.4.147' }
 
 ### 统一调试日志
 
-`compat/STLog.kt`：`STLog.log("EnchantName", "key=value, ...")`，
+`compat/FSTLog.kt`：`STLog.log("EnchantName", "key=value, ...")`，
 输出形如 `[ST-AcidAttack] attacker=Zombie, lvl=3, rate=0.55, procced=true`。
 
 - **默认关闭**（正常游玩一行 `[ST-*]` 都不写）。做验收时用启动开关打开：

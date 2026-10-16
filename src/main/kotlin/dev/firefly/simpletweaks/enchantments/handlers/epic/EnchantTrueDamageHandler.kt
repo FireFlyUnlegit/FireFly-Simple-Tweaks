@@ -1,6 +1,6 @@
 package dev.firefly.simpletweaks.enchantments.handlers.epic
 
-import dev.firefly.simpletweaks.compat.STLog
+import dev.firefly.simpletweaks.compat.FSTLog
 import dev.firefly.simpletweaks.compat.attacker
 import dev.firefly.simpletweaks.compat.event.EventPriority
 import dev.firefly.simpletweaks.compat.event.LivingDamageEvent
@@ -13,7 +13,9 @@ import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import java.util.*
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantItemWeights
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSupportedItemTags
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 
@@ -43,13 +45,12 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
     category = EnchantCategory.EPIC,
     type = EnchantType.SWORD,
     maxLevel = 7,
-    weight = 4,
+    weight = EnchantItemWeights.EPIC,
     anvilCost = 8,
     minCostBase = 30,
     minCostPerLevel = 5,
-    supportedItems = "#minecraft:enchantable/sword",
+    supportedItems = EnchantSupportedItemTags.SWORD,
     slots = [EnchantSlot.MAINHAND],
-    damagePerLevel = 0.35,
     order = 29,
 )
 object EnchantTrueDamageHandler : Listenable {
@@ -64,7 +65,7 @@ object EnchantTrueDamageHandler : Listenable {
             val damageBefore = e.amount
             e.amount -= addition
             damagePool[aid] = (damagePool[aid]?: 0f) + addition
-            STLog.log("TrueDamage") {
+            FSTLog.log("TrueDamage") {
                 "attacker=${attacker.name.string}, target=${e.entityLiving.name.string}, lvl=$lvl, " +
                     "reduced=$addition, damage=$damageBefore->${e.amount}, pooled=${damagePool[aid]}"
             }
@@ -83,7 +84,7 @@ object EnchantTrueDamageHandler : Listenable {
             val damageBefore = e.amount
             e.amount += damagePool[aid]?: 0f
             damagePool.remove(aid)
-            STLog.log("TrueDamage") {
+            FSTLog.log("TrueDamage") {
                 "attacker=${attacker.name.string}, target=${e.entityLiving.name.string}, lvl=$lvl, " +
                     "pooled=$pooled, damage=$damageBefore->${e.amount}, outcome=payout"
             }

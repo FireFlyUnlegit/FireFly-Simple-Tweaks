@@ -1,6 +1,6 @@
 package dev.firefly.simpletweaks.enchantments.handlers.legendary
 
-import dev.firefly.simpletweaks.compat.STLog
+import dev.firefly.simpletweaks.compat.FSTLog
 import dev.firefly.simpletweaks.compat.event.PlayerEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.event.TickEvent
@@ -10,7 +10,9 @@ import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import net.minecraft.server.network.ServerPlayerEntity
 import java.util.*
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantItemWeights
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSupportedItemTags
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 
@@ -46,11 +48,11 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
     category = EnchantCategory.LEGENDARY,
     type = EnchantType.CHESTPLATE,
     maxLevel = 3,
-    weight = 2,
+    weight = EnchantItemWeights.LEGENDARY,
     anvilCost = 10,
     minCostBase = 40,
     minCostPerLevel = 10,
-    supportedItems = "#minecraft:enchantable/chest_armor",
+    supportedItems = EnchantSupportedItemTags.CHEST_ARMOR,
     slots = [EnchantSlot.CHEST],
     order = 38,
 )
@@ -79,7 +81,7 @@ object EnchantFlightHandler : Listenable {
             }
             val tick = flyingTick[uuid] ?: 0
             if (!wasControlling) {
-                STLog.log("Flight") {
+                FSTLog.log("Flight") {
                     "player=${p.name.string}, lvl=$level, food=${p.hungerManager.foodLevel}, outcome=flight-granted"
                 }
             }
@@ -87,14 +89,14 @@ object EnchantFlightHandler : Listenable {
                 if (tick % (20 * level) == 0) {
                     val damageBefore = stack.damage
                     stack.damage += 2
-                    STLog.log("Flight") {
+                    FSTLog.log("Flight") {
                         "player=${p.name.string}, lvl=$level, tick=$tick, food=${p.hungerManager.foodLevel}, " +
                             "elytraDamage=$damageBefore->${stack.damage}, outcome=wing-cost"
                     }
                 }
                 if (tick % (50 * level) == 0) {
                     p.hungerManager.foodLevel--
-                    STLog.log("Flight") {
+                    FSTLog.log("Flight") {
                         "player=${p.name.string}, lvl=$level, tick=$tick, " +
                             "food=${p.hungerManager.foodLevel + 1}->${p.hungerManager.foodLevel}, outcome=hunger-cost"
                     }
@@ -108,7 +110,7 @@ object EnchantFlightHandler : Listenable {
             if (p is ServerPlayerEntity) {
                 p.sendAbilitiesUpdate()
             }
-            STLog.log("Flight") {
+            FSTLog.log("Flight") {
                 "player=${p.name.string}, lvl=$level, food=${p.hungerManager.foodLevel}, outcome=flight-revoked"
             }
         }

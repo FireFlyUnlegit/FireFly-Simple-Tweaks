@@ -1,6 +1,6 @@
 package dev.firefly.simpletweaks.enchantments.handlers.common
 
-import dev.firefly.simpletweaks.compat.STLog
+import dev.firefly.simpletweaks.compat.FSTLog
 import dev.firefly.simpletweaks.compat.WorldSide
 import dev.firefly.simpletweaks.compat.event.EventPriority
 import dev.firefly.simpletweaks.compat.event.LivingDamageEvent
@@ -16,7 +16,9 @@ import net.minecraft.nbt.NbtCompound
 import java.util.WeakHashMap
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantItemWeights
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSupportedItemTags
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 
@@ -52,13 +54,12 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
     category = EnchantCategory.COMMON,
     type = EnchantType.SWORD,
     maxLevel = 5,
-    weight = 10,
+    weight = EnchantItemWeights.COMMON,
     anvilCost = 2,
     minCostBase = 8,
     minCostPerLevel = 8,
-    supportedItems = "#minecraft:enchantable/sword",
+    supportedItems = EnchantSupportedItemTags.SWORD,
     slots = [EnchantSlot.MAINHAND],
-    damagePerLevel = 0.2,
     order = 3,
 )
 object EnchantCombatMasterHandler : Listenable {
@@ -89,7 +90,7 @@ object EnchantCombatMasterHandler : Listenable {
             if (data.getInt(NBT_COMBO_STACKS) > 0) {
                 val stacksLost = data.getInt(NBT_COMBO_STACKS)
                 resetCombo(data)
-                STLog.log("CombatMaster") {
+                FSTLog.log("CombatMaster") {
                     "comboBroken on=${target.name.string}, stacksLost=$stacksLost, now=0"
                 }
             }
@@ -117,7 +118,7 @@ object EnchantCombatMasterHandler : Listenable {
                 val bonus = (stacks * 0.02f * level)
                     .coerceAtMost(0.2f * level)
                 event.amount *= (1f + bonus)
-                STLog.log("CombatMaster") {
+                FSTLog.log("CombatMaster") {
                     "attacker=${attacker.name.string}, target=${target.name.string}, lvl=$level, stacks=$stacks, " +
                         "cap=${0.2f * level}, bonus=$bonus, damage=${event.amount}"
                 }

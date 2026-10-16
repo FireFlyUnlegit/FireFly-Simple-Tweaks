@@ -1,7 +1,7 @@
 package dev.firefly.simpletweaks.core
 
 import com.mojang.brigadier.builder.LiteralArgumentBuilder
-import dev.firefly.simpletweaks.compat.STLog
+import dev.firefly.simpletweaks.compat.FSTLog
 import dev.firefly.simpletweaks.network.NetworkManager
 import dev.firefly.simpletweaks.network.packets.PacketOpenModScreen
 import net.minecraft.server.command.CommandManager
@@ -48,7 +48,7 @@ object ScreenCommands {
             val player = ctx.source.player
             if (player != null) {
                 NetworkManager.sendToClient(PacketOpenModScreen(screen), player)
-                STLog.log("Screen") {
+                FSTLog.log("Screen") {
                     "player=${player.name.string}, command=$name, screen=$screen, outcome=packet-sent"
                 }
             }

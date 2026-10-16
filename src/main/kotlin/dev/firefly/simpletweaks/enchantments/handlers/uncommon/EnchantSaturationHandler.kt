@@ -1,6 +1,6 @@
 package dev.firefly.simpletweaks.enchantments.handlers.uncommon
 
-import dev.firefly.simpletweaks.compat.STLog
+import dev.firefly.simpletweaks.compat.FSTLog
 import dev.firefly.simpletweaks.compat.WorldSide
 import dev.firefly.simpletweaks.compat.event.PlayerEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
@@ -12,7 +12,9 @@ import java.util.*
 import kotlin.random.Random.Default.nextFloat
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantItemWeights
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSupportedItemTags
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 
@@ -42,11 +44,11 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
     category = EnchantCategory.UNCOMMON,
     type = EnchantType.CHESTPLATE,
     maxLevel = 8,
-    weight = 8,
+    weight = EnchantItemWeights.UNCOMMON,
     anvilCost = 4,
     minCostBase = 26,
     minCostPerLevel = 3,
-    supportedItems = "#minecraft:enchantable/chest_armor",
+    supportedItems = EnchantSupportedItemTags.CHEST_ARMOR,
     slots = [EnchantSlot.CHEST],
     order = 13,
 )
@@ -83,7 +85,7 @@ object EnchantSaturationHandler : Listenable {
         if (food.getFoodLevel() < 20) {
             val foodBefore = food.getFoodLevel()
             food.setFoodLevel((food.getFoodLevel() + recoveryCount).coerceAtMost(20))
-            STLog.log("Saturation") {
+            FSTLog.log("Saturation") {
                 "player=${p.name.string}, lvl=$lvl, interval=$interval, roll=$roll, rate=$rate, " +
                     "food=$foodBefore->${food.getFoodLevel()}, recoveryCount=$recoveryCount"
             }
@@ -92,7 +94,7 @@ object EnchantSaturationHandler : Listenable {
             food.setSaturationLevel(
                 (food.getSaturationLevel() + recoveryCount).coerceAtMost(food.getFoodLevel().toFloat())
             )
-            STLog.log("Saturation") {
+            FSTLog.log("Saturation") {
                 "player=${p.name.string}, lvl=$lvl, interval=$interval, roll=$roll, rate=$rate, " +
                     "saturation=$saturationBefore->${food.getSaturationLevel()}, recoveryCount=$recoveryCount"
             }

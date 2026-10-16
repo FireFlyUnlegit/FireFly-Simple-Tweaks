@@ -3,7 +3,9 @@ package dev.firefly.simpletweaks.enchantments.handlers.uncommon
 import dev.firefly.simpletweaks.core.Listenable
 import dev.firefly.simpletweaks.enchantments.annotations.AttributeSpec
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantItemWeights
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSupportedItemTags
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 
@@ -24,11 +26,11 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
     category = EnchantCategory.UNCOMMON,
     type = EnchantType.LEGGINGS,
     maxLevel = 6,
-    weight = 8,
+    weight = EnchantItemWeights.UNCOMMON,
     anvilCost = 4,
     minCostBase = 16,
     minCostPerLevel = 4,
-    supportedItems = "#minecraft:enchantable/leg_armor",
+    supportedItems = EnchantSupportedItemTags.LEG_ARMOR,
     slots = [EnchantSlot.LEGS],
     attributes = [
         AttributeSpec("minecraft:player.sneaking_speed", 0.15, operation = "add_value"),

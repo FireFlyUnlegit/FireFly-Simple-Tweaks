@@ -6,7 +6,7 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder
 import com.mojang.brigadier.context.CommandContext
 import com.mojang.brigadier.exceptions.Dynamic2CommandExceptionType
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType
-import dev.firefly.simpletweaks.compat.STLog
+import dev.firefly.simpletweaks.compat.FSTLog
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback
 import net.minecraft.command.CommandRegistryAccess
 import net.minecraft.command.argument.EntityArgumentType
@@ -202,7 +202,7 @@ object EnchantCommand {
             },
             true,
         )
-        STLog.log("EnchantCommand") {
+        FSTLog.log("EnchantCommand") {
             "targets=${targets.size}, enchantment=$id, level=$level, slot=$slot, " +
                 "changed=$changed, inspected=$inspected, outcome=${if (level <= 0) "removed" else "set"}"
         }

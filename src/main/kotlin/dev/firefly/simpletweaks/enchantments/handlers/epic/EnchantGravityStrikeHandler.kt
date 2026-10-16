@@ -1,6 +1,6 @@
 package dev.firefly.simpletweaks.enchantments.handlers.epic
 
-import dev.firefly.simpletweaks.compat.STLog
+import dev.firefly.simpletweaks.compat.FSTLog
 import dev.firefly.simpletweaks.compat.attacker
 import dev.firefly.simpletweaks.compat.event.LivingHurtEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
@@ -13,7 +13,9 @@ import net.minecraft.particle.ParticleTypes
 import net.minecraft.server.world.ServerWorld
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantItemWeights
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSupportedItemTags
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 
@@ -40,13 +42,12 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
     category = EnchantCategory.EPIC,
     type = EnchantType.SWORD,
     maxLevel = 6,
-    weight = 4,
+    weight = EnchantItemWeights.EPIC,
     anvilCost = 8,
     minCostBase = 15,
     minCostPerLevel = 15,
-    supportedItems = "#minecraft:enchantable/sword",
+    supportedItems = EnchantSupportedItemTags.SWORD,
     slots = [EnchantSlot.MAINHAND],
-    damagePerLevel = 0.35,
     order = 27,
 )
 object EnchantGravityStrikeHandler : Listenable {
@@ -60,7 +61,7 @@ object EnchantGravityStrikeHandler : Listenable {
         if (fall < 1.5f) return
         val bonus = (fall * 0.025f * lvl).coerceAtMost(lvl * 0.5f)
         e.amount *= 1f + bonus
-        STLog.log("GravityStrike") {
+        FSTLog.log("GravityStrike") {
             "attacker=${attacker.name.string}, target=${e.target.name.string}, lvl=$lvl, fall=$fall, " +
                 "bonus=$bonus, damage=${e.amount}"
         }
