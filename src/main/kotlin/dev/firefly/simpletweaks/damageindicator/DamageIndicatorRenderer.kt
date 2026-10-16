@@ -1,6 +1,6 @@
 package dev.firefly.simpletweaks.damageindicator
 
-import dev.firefly.simpletweaks.compat.STLog
+import dev.firefly.simpletweaks.compat.FSTLog
 import dev.firefly.simpletweaks.core.config.DamageIndicatorConfig
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents
@@ -176,7 +176,7 @@ object DamageIndicatorRenderer {
 
             if (!loggedFirstDraw) {
                 loggedFirstDraw = true
-                STLog.log(
+                FSTLog.log(
                     "DamageIndicator",
                     "seam=alive, drawn=1, entity=${entity.type.name.string}, " +
                         "text=${number.getText()}, second=${number.getSecondLineText()}, " +

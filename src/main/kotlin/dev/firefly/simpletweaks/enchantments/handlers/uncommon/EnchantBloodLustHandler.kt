@@ -1,6 +1,6 @@
 package dev.firefly.simpletweaks.enchantments.handlers.uncommon
 
-import dev.firefly.simpletweaks.compat.STLog
+import dev.firefly.simpletweaks.compat.FSTLog
 import dev.firefly.simpletweaks.compat.event.LivingHurtEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.invalid
@@ -9,7 +9,9 @@ import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import net.minecraft.entity.LivingEntity
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantItemWeights
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSupportedItemTags
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 
@@ -39,13 +41,12 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
     category = EnchantCategory.UNCOMMON,
     type = EnchantType.SWORD,
     maxLevel = 5,
-    weight = 8,
+    weight = EnchantItemWeights.UNCOMMON,
     anvilCost = 4,
     minCostBase = 28,
     minCostPerLevel = 3,
-    supportedItems = "#minecraft:enchantable/sword",
+    supportedItems = EnchantSupportedItemTags.SWORD,
     slots = [EnchantSlot.MAINHAND],
-    damagePerLevel = 0.25,
     order = 7,
 )
 object EnchantBloodLustHandler : Listenable {
@@ -61,7 +62,7 @@ object EnchantBloodLustHandler : Listenable {
             val bonus = ratio * (0.005 + ((level-1) * 0.005))
             if (bonus > 0.0) {
                 e.amount = (e.amount + e.amount*bonus).toFloat()
-                STLog.log("BloodLust") {
+                FSTLog.log("BloodLust") {
                     "attacker=${attacker.name.string}, ratio=$ratio, lvl=$level, bonus=$bonus, damage=${e.amount}"
                 }
             }

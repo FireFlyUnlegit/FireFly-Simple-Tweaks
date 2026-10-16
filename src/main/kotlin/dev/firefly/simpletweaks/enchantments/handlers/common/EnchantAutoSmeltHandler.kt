@@ -1,6 +1,6 @@
 package dev.firefly.simpletweaks.enchantments.handlers.common
 
-import dev.firefly.simpletweaks.compat.STLog
+import dev.firefly.simpletweaks.compat.FSTLog
 import dev.firefly.simpletweaks.compat.WorldSide
 import dev.firefly.simpletweaks.compat.event.BlockEvent
 import dev.firefly.simpletweaks.compat.event.EventPriority
@@ -18,7 +18,9 @@ import net.minecraft.registry.RegistryKeys
 import net.minecraft.server.world.ServerWorld
 import net.minecraft.util.Identifier
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantItemWeights
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSupportedItemTags
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 
@@ -53,10 +55,10 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
     category = EnchantCategory.COMMON,
     type = EnchantType.TOOL,
     maxLevel = 1,
-    weight = 10,
+    weight = EnchantItemWeights.COMMON,
     anvilCost = 2,
     minCostBase = 20,
-    supportedItems = "#minecraft:enchantable/mining",
+    supportedItems = EnchantSupportedItemTags.MINING,
     slots = [EnchantSlot.MAINHAND],
     order = 2,
 )
@@ -104,7 +106,7 @@ object EnchantAutoSmeltHandler : Listenable {
         drops.addAll(newDrops)
 
         if (smeltedCount > 0) {
-            STLog.log("AutoSmelt") {
+            FSTLog.log("AutoSmelt") {
                 "player=${player.name.string}, lvl=${getItemSpecificEnchantLevel(tool, GeneratedEnchantments.AUTO_SMELT)}, " +
                     "smelted=$smeltedCount/${drops.size}, exp=$totalExp, toolDamage=${tool.damage}"
             }

@@ -1,6 +1,6 @@
 package dev.firefly.simpletweaks.enchantments.handlers.mythic
 
-import dev.firefly.simpletweaks.compat.STLog
+import dev.firefly.simpletweaks.compat.FSTLog
 import dev.firefly.simpletweaks.compat.WorldSide
 import dev.firefly.simpletweaks.compat.attacker
 import dev.firefly.simpletweaks.compat.cancel
@@ -29,7 +29,9 @@ import net.minecraft.sound.SoundEvents
 import java.util.UUID
 import java.util.WeakHashMap
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantItemWeights
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSupportedItemTags
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 
@@ -95,11 +97,11 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
     category = EnchantCategory.MYTHIC,
     type = EnchantType.ARMOR,
     maxLevel = 5,
-    weight = 1,
+    weight = EnchantItemWeights.MYTHIC,
     anvilCost = 12,
     minCostBase = 37,
     minCostPerLevel = 12,
-    supportedItems = "#minecraft:enchantable/armor",
+    supportedItems = EnchantSupportedItemTags.ARMOR,
     slots = [EnchantSlot.ARMOR],
     order = 41,
 )
@@ -155,7 +157,7 @@ object EnchantEchoShieldHandler : Listenable {
             attacker.damageBypassingArmor(player, buffer.coerceAtMost(attacker.maxHealth))
 
             playFeedback(player, big = true)
-            STLog.log("EchoShield") {
+            FSTLog.log("EchoShield") {
                 "player=${player.name.string}, attacker=${attacker.name.string}, lvl=$lvl, buffer=$buffer, " +
                     "incomingDamage=${e.amount}, reflected=${buffer.coerceAtMost(attacker.maxHealth)}, " +
                     "outcome=absorbed-and-reflected"
@@ -195,7 +197,7 @@ object EnchantEchoShieldHandler : Listenable {
             // `markNoHeal` is skipped too: it is the shield's counter-attack, and a reflection is not
             // an attack worth countering.
             e.amount -= reduced
-            STLog.log("EchoShield") {
+            FSTLog.log("EchoShield") {
                 "player=${player.name.string}, attacker=${attacker.name.string}, lvl=$lvl, " +
                     "incomingDamage=${e.amount + reduced}, ratio=$ratio, reduced=$reduced, " +
                     "outcome=soaked-reflection"
@@ -217,7 +219,7 @@ object EnchantEchoShieldHandler : Listenable {
         }
 
         playFeedback(player, big = false)
-        STLog.log("EchoShield") {
+        FSTLog.log("EchoShield") {
             "player=${player.name.string}, attacker=${attacker.name.string}, lvl=$lvl, incomingDamage=${e.amount + reduced}, " +
                 "ratio=$ratio, reduced=$reduced, buffer=${echoBuffer[id]}, outcome=buffered"
         }
@@ -230,7 +232,7 @@ object EnchantEchoShieldHandler : Listenable {
         val until = noHealUntil[entity] ?: 0L
         if (until > 0L && entity.world.time < until) {
             e.isCanceled = true
-            STLog.log("EchoShield") {
+            FSTLog.log("EchoShield") {
                 "entity=${entity.name.string}, until=$until, now=${entity.world.time}, " +
                     "amount=${e.amount}, outcome=heal-blocked"
             }

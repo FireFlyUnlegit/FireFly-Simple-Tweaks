@@ -78,6 +78,26 @@ object GeneralConfig {
     @JvmStatic
     var enabledSpecialParticles: Boolean = true
 
+    /**
+     * `No Hurt Cam` — while enabled, taking damage no longer tilts the camera.
+     *
+     * <h2>Not a port: a new option</h2>
+     * The 1.12.2 tree has **no** such module or config field (checked against its `GeneralConfig` and
+     * every `hurtTime` use, which is only the Velocity module) — so unlike the fields above, this one
+     * has no original to mirror and its default is **false** (opt-in) rather than copied from an
+     * annotation.
+     *
+     * <h2>Seam</h2>
+     * `GameRenderer#tiltViewWhenHurt(MatrixStack, float)` (`mixin/NoHurtCamMixin`), bytecode-verified
+     * as the **only** place that rotates the view from `LivingEntity#hurtTime`: it turns the stack
+     * around `RotationAxis.POSITIVE_Z` by `40 * hurtTime / 8000` and additionally handles the death
+     * tilt (`deathTime`). Cancelling it at `HEAD` therefore removes exactly the shake, leaving the red
+     * damage overlay, the hurt sound, the hand swing and the attack animation (all separate paths)
+     * untouched.
+     */
+    @JvmStatic
+    var noHurtCam: Boolean = false
+
     // --------------------------------------------------------- removed: inert switches
     //
     // Two feature switches used to live here with no implementation behind them. Both were deleted

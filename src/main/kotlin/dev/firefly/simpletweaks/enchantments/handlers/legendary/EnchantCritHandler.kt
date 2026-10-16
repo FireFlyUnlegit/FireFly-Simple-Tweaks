@@ -1,6 +1,6 @@
 package dev.firefly.simpletweaks.enchantments.handlers.legendary
 
-import dev.firefly.simpletweaks.compat.STLog
+import dev.firefly.simpletweaks.compat.FSTLog
 import dev.firefly.simpletweaks.compat.event.CriticalHitEvent
 import dev.firefly.simpletweaks.compat.event.EventPriority
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
@@ -8,11 +8,14 @@ import dev.firefly.simpletweaks.compat.invalid
 import dev.firefly.simpletweaks.compat.setCrit
 import dev.firefly.simpletweaks.core.Listenable
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantItemWeights
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSupportedItemTags
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
+import org.spongepowered.tools.obfuscation.SupportedOptions
 import kotlin.random.Random.Default.nextFloat
 
 /**
@@ -42,16 +45,15 @@ import kotlin.random.Random.Default.nextFloat
     category = EnchantCategory.LEGENDARY,
     type = EnchantType.SWORD,
     maxLevel = 10,
-    weight = 2,
+    weight = EnchantItemWeights.LEGENDARY,
     anvilCost = 10,
     minCostBase = 20,
     minCostPerLevel = 5,
-    supportedItems = "#minecraft:enchantable/sword",
+    supportedItems = EnchantSupportedItemTags.SWORD,
     slots = [EnchantSlot.MAINHAND],
     // `+0.4` per level == 1.12.2's `itemExtraDamage` for a LEGENDARY sword enchantment
     // (0.2 + rarity/20 = 0.2 + 0.2). Reproduces the `minecraft:damage` block of the old crit.json
     // byte for byte; this is the parameter `crit` could not be migrated without.
-    damagePerLevel = 0.4,
 )
 object EnchantCritHandler : Listenable {
 
@@ -63,7 +65,7 @@ object EnchantCritHandler : Listenable {
         val roll = nextFloat()
         if (lvl > 0 && roll <= .1 * lvl && !e.isVanillaCritical) {
             e.setCrit(true)
-            STLog.log("Crit") {
+            FSTLog.log("Crit") {
                 "player=${e.entityLiving.name.string}, target=${e.target.name.string}, lvl=$lvl, " +
                     "roll=$roll, threshold=${.1 * lvl}, vanillaCritical=${e.isVanillaCritical}, " +
                     "damageModifier=${e.damageModifier}, outcome=forced-crit"

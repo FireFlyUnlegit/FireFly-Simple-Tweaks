@@ -1,6 +1,6 @@
 package dev.firefly.simpletweaks.enchantments.handlers.uncommon
 
-import dev.firefly.simpletweaks.compat.STLog
+import dev.firefly.simpletweaks.compat.FSTLog
 import dev.firefly.simpletweaks.compat.event.PlayerEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.event.TickEvent
@@ -11,7 +11,9 @@ import dev.firefly.simpletweaks.util.leggings
 import java.util.UUID
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantItemWeights
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSupportedItemTags
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 
@@ -36,11 +38,11 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
     category = EnchantCategory.UNCOMMON,
     type = EnchantType.LEGGINGS,
     maxLevel = 8,
-    weight = 8,
+    weight = EnchantItemWeights.UNCOMMON,
     anvilCost = 4,
     minCostBase = 28,
     minCostPerLevel = 4,
-    supportedItems = "#minecraft:enchantable/leg_armor",
+    supportedItems = EnchantSupportedItemTags.LEG_ARMOR,
     slots = [EnchantSlot.LEGS],
     order = 11,
 )
@@ -67,7 +69,7 @@ object EnchantRegenerationHandler : Listenable {
             val healthBefore = p.health
             p.heal(heal)
             regenCounter[uuid] = 0
-            STLog.log("Regeneration") {
+            FSTLog.log("Regeneration") {
                 "player=${p.name.string}, lvl=$lvl, interval=$interval, heal=$heal, " +
                     "health=$healthBefore->${p.health}"
             }

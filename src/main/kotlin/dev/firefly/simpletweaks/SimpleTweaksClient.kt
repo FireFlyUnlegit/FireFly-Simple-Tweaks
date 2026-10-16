@@ -1,6 +1,6 @@
 package dev.firefly.simpletweaks
 
-import dev.firefly.simpletweaks.compat.STLog
+import dev.firefly.simpletweaks.compat.FSTLog
 import dev.firefly.simpletweaks.compat.bridge.ClientEventBridge
 import dev.firefly.simpletweaks.client.AutoSprintHandler
 import dev.firefly.simpletweaks.client.ClientManaPoolCache
@@ -10,6 +10,7 @@ import dev.firefly.simpletweaks.client.SimpleTweaksConfigScreen
 import dev.firefly.simpletweaks.network.packets.PacketOpenModScreen
 import dev.firefly.simpletweaks.client.InfinitePowerLaserClient
 import dev.firefly.simpletweaks.client.particle.CelestialRingParticles
+import dev.firefly.simpletweaks.client.tooltips.EnchantDamageToolTipHandler
 import dev.firefly.simpletweaks.client.tooltips.ManaPoolToolTipHandler
 import dev.firefly.simpletweaks.core.config.DamageIndicatorConfig
 import dev.firefly.simpletweaks.core.registerEvents
@@ -18,6 +19,8 @@ import dev.firefly.simpletweaks.damageindicator.DamageIndicatorRenderer
 import dev.firefly.simpletweaks.network.packets.PacketCelestialRing
 import dev.firefly.simpletweaks.network.packets.PacketDamageIndicator
 import dev.firefly.simpletweaks.network.packets.PacketManaPoolSync
+import dev.firefly.simpletweaks.network.packets.PacketResetAttackCooldown
+import dev.firefly.simpletweaks.util.attackCharge
 import net.fabricmc.api.ClientModInitializer
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking
@@ -56,7 +59,12 @@ class SimpleTweaksClient : ClientModInitializer {
         // provider, the mana-pool tooltip line, and the two receivers (§22/§23).
         CelestialRingParticles.register()
         ManaPoolToolTipHandler.register()
+        // `minecraft:damage` enchantment effects are applied at hit time and never listed by vanilla,
+        // so the mod's own damage bonus needs its own tooltip line (see that file's KDoc for why the
+        // attribute-based alternative was left as an option rather than taken).
+        EnchantDamageToolTipHandler.register()
         registerCelestialReceivers()
+        registerAttackCooldownReceiver()
         InfinitePowerLaserClient.register()
 
         // Build-identifying line. Every build that changes client behaviour must be distinguishable
@@ -93,7 +101,14 @@ class SimpleTweaksClient : ClientModInitializer {
                 "+ multishot volley no longer capped by ammo, costs 1 arrow " +
                 "+ heavenly_punishment attack-speed suppression is no longer persisted " +
                 "+ all commands server-side (a client-registered root shadowed the server's children) " +
-                "(build=cleanup20)",
+                "+ golden_shield grants that actually land (max_absorption) " +
+                "+ frostbite / venom / chain_lightning + venom & chain damage types " +
+                "+ weight/damagePerLevel derived from the tier + enchantment damage tooltip line " +
+                "+ kill_aura waits for the attack charge and spends it (simulateCooldown) " +
+                "+ noHurtCam config " +
+                "+ kill_aura's spent charge reaches the client (S2C reset of lastAttackedTicks) " +
+                "+ reset_attack_cooldown is a singleton payload (PacketCodec.unit checks the value) " +
+                "(build=cleanup23)",
             SimpleTweaks.NAME,
         )
     }
@@ -123,7 +138,7 @@ class SimpleTweaksClient : ClientModInitializer {
                     }
                     else -> false
                 }
-                if (opened) STLog.log("Screen") { "screen=${payload.screen}, outcome=opening" }
+                if (opened) FSTLog.log("Screen") { "screen=${payload.screen}, outcome=opening" }
             }
         }
     }
@@ -154,6 +169,33 @@ class SimpleTweaksClient : ClientModInitializer {
 
         ClientPlayConnectionEvents.DISCONNECT.register { _, _ ->
             ClientManaPoolCache.clear()
+        }
+    }
+
+    /**
+     * Client half of [PacketResetAttackCooldown] — spend *this* client's attack charge.
+     *
+     * <p>`runPlayerAttack(..., simulateCooldown = true)` spends the charge on the server, but the HUD
+     * attack indicator and vanilla's local hit prediction read the **client's** own `lastAttackedTicks`
+     * (`InGameHud` -> `ClientPlayerEntity#getAttackCooldownProgress`), which vanilla only resets from the
+     * client's own attack path. Without this the indicator keeps showing a full swing while the server
+     * has already spent it — see that packet's KDoc for the bytecode.
+     *
+     * <p>The probe logs both ends of the transition, so "the packet arrived" and "the charge actually
+     * moved" are distinguishable (`chargeAfter` ≈ 0.04 for a 1.6 attack speed, not 0.0: a zero charge
+     * is unreachable through this formula, vanilla's `+0.5F` base time is part of it).
+     */
+    private fun registerAttackCooldownReceiver() {
+        ClientPlayNetworking.registerGlobalReceiver(PacketResetAttackCooldown.ID) { _, context ->
+            context.client().execute {
+                val player = context.client().player ?: return@execute
+                val chargeBefore = player.attackCharge
+                player.resetLastAttackedTicks()
+                FSTLog.log("KillAura") {
+                    "outcome=client-charge-spent, chargeBefore=$chargeBefore, " +
+                        "chargeAfter=${player.attackCharge}"
+                }
+            }
         }
     }
 
@@ -190,7 +232,7 @@ class SimpleTweaksClient : ClientModInitializer {
 
                 if (!damagePacketLogged) {
                     damagePacketLogged = true
-                    STLog.log(
+                    FSTLog.log(
                         "DamageIndicator",
                         "packet=received, entity=${entity.type.name.string}, " +
                             "actual=${payload.actualDamage}, original=${payload.originalDamage}, " +

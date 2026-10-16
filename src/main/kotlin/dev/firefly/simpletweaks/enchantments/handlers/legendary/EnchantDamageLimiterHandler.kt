@@ -1,6 +1,6 @@
 package dev.firefly.simpletweaks.enchantments.handlers.legendary
 
-import dev.firefly.simpletweaks.compat.STLog
+import dev.firefly.simpletweaks.compat.FSTLog
 import dev.firefly.simpletweaks.compat.event.EventPriority
 import dev.firefly.simpletweaks.compat.event.LivingDamageEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
@@ -11,9 +11,12 @@ import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import net.minecraft.entity.EquipmentSlot
 import kotlin.math.max
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantItemWeights
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSupportedItemTags
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
+import dev.firefly.simpletweaks.util.getArmorEnchantLevel
 
 /**
  * 1.21 port of `enchantments/handlers/legendary/EnchantDamageLimiterHandler.kt`.
@@ -37,11 +40,11 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
     category = EnchantCategory.LEGENDARY,
     type = EnchantType.ARMOR,
     maxLevel = 3,
-    weight = 2,
+    weight = EnchantItemWeights.LEGENDARY,
     anvilCost = 10,
     minCostBase = 30,
     minCostPerLevel = 8,
-    supportedItems = "#minecraft:enchantable/armor",
+    supportedItems = EnchantSupportedItemTags.ARMOR,
     slots = [EnchantSlot.ARMOR],
     order = 34,
 )
@@ -52,21 +55,17 @@ object EnchantDamageLimiterHandler : Listenable {
         if (e.invalid) return
         val p = e.entityLiving
 
-        var lvl = 0
-        for (slot in EquipmentSlot.entries) {
-            if (slot.type != EquipmentSlot.Type.HUMANOID_ARMOR) continue
-            lvl = max(lvl, getItemSpecificEnchantLevel(p.getEquippedStack(slot), GeneratedEnchantments.DAMAGE_LIMITER))
-        }
+        val lvl = p.getArmorEnchantLevel(GeneratedEnchantments.DAMAGE_LIMITER)
         if (lvl <= 0) return
 
         val maxHealth = p.maxHealth
-        val limit = (0.8f - 0.2f * lvl) * maxHealth
-        val maxLimit = lvl * maxHealth
+        val limit = (1f - 0.075f * lvl) * maxHealth
+        val maxLimit = maxHealth + maxHealth * lvl * 0.125f
 
         if (e.amount in limit..maxLimit) {
             val damageBefore = e.amount
             e.amount = limit
-            STLog.log("DamageLimiter") {
+            FSTLog.log("DamageLimiter") {
                 "player=${p.name.string}, lvl=$lvl, maxHealth=$maxHealth, limit=$limit, maxLimit=$maxLimit, " +
                     "damage=$damageBefore->${e.amount}, outcome=clamped"
             }

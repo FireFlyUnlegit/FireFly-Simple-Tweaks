@@ -1,7 +1,7 @@
 package dev.firefly.simpletweaks.enchantments.handlers.epic
 
 import dev.firefly.simpletweaks.SimpleTweaks
-import dev.firefly.simpletweaks.compat.STLog
+import dev.firefly.simpletweaks.compat.FSTLog
 import dev.firefly.simpletweaks.compat.WorldSide
 import dev.firefly.simpletweaks.compat.event.PlayerEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
@@ -10,6 +10,7 @@ import dev.firefly.simpletweaks.core.Listenable
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantItemWeights
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSupportedItemTags
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
@@ -57,7 +58,7 @@ import java.util.WeakHashMap
     anvilCost = 6,
     minCostBase = 25,
     minCostPerLevel = 10,
-    supportedItems = "#minecraft:enchantable/armor",
+    supportedItems = EnchantSupportedItemTags.ARMOR,
     slots = [EnchantSlot.ARMOR],
     order = 18,
 )
@@ -109,7 +110,7 @@ object EnchantExtraArmorHandler : Listenable {
             appliedLevel.remove(p)
         }
         p.syncAttributes()
-        STLog.log("ExtraArmor") {
+        FSTLog.log("ExtraArmor") {
             "player=${p.name.string}, totalLvl=$total, hadModifier=$hasModifier, " +
                 "armor=$armor+$percentageArmor, toughness=$armorToughness+$percentageToughness, " +
                 "outcome=${if (total > 0) "applied" else "removed"}"

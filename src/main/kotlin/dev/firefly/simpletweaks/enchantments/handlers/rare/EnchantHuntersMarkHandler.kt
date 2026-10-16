@@ -1,6 +1,6 @@
 package dev.firefly.simpletweaks.enchantments.handlers.rare
 
-import dev.firefly.simpletweaks.compat.STLog
+import dev.firefly.simpletweaks.compat.FSTLog
 import dev.firefly.simpletweaks.compat.WorldSide
 import dev.firefly.simpletweaks.compat.event.EventPriority
 import dev.firefly.simpletweaks.compat.event.LivingHurtEvent
@@ -17,7 +17,9 @@ import net.minecraft.server.world.ServerWorld
 import java.lang.ref.WeakReference
 import java.util.UUID
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantItemWeights
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSupportedItemTags
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 
@@ -51,11 +53,11 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
     category = EnchantCategory.RARE,
     type = EnchantType.BOW,
     maxLevel = 3,
-    weight = 6,
+    weight = EnchantItemWeights.RARE,
     anvilCost = 6,
     minCostBase = 30,
     minCostPerLevel = 10,
-    supportedItems = "#minecraft:enchantable/bow",
+    supportedItems = EnchantSupportedItemTags.BOW,
     slots = [EnchantSlot.MAINHAND, EnchantSlot.OFFHAND],
     order = 20,
 )
@@ -81,7 +83,7 @@ object EnchantHuntersMarkHandler : Listenable {
             if (lvl <= 0) return
             applyMark(target, lvl)
             spawnMarkFx(target)
-            STLog.log("HuntersMark") {
+            FSTLog.log("HuntersMark") {
                 "shooter=${attacker.name.string}, target=${target.name.string}, lvl=$lvl, " +
                     "expireAtMs=${System.currentTimeMillis() + 10_000L}, outcome=marked"
             }
@@ -100,7 +102,7 @@ object EnchantHuntersMarkHandler : Listenable {
             marks.remove(target.uuid)
 
             spawnConsumeFx(target)
-            STLog.log("HuntersMark") {
+            FSTLog.log("HuntersMark") {
                 "attacker=${attacker.name.string}, target=${target.name.string}, markLvl=${state.lvl}, " +
                     "damage=${e.amount}, outcome=mark-consumed"
             }

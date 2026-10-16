@@ -48,7 +48,9 @@ import kotlin.math.roundToInt
 import kotlin.math.sqrt
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantItemWeights
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSupportedItemTags
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 
@@ -96,15 +98,14 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
     category = EnchantCategory.MYSTERY,
     type = EnchantType.SWORD,
     maxLevel = 5,
-    weight = 1,
-    anvilCost = 14,
+    weight = EnchantItemWeights.MYSTERY,
+    anvilCost = 90,
     minCostBase = 30,
     minCostPerLevel = 30,
-    supportedItems = "#minecraft:enchantable/sword",
+    supportedItems = EnchantSupportedItemTags.SWORD,
     slots = [EnchantSlot.MAINHAND],
     damagePerLevel = 2.0,
     order = 50,
-    jsonEmit = false,
 )
 object EnchantCelestialBlessingHandler : Listenable {
 

@@ -51,8 +51,10 @@ object ModDamageTypes {
  *
  * Mirrors the pre-checks the 1.12.2 `runPlayerAttack` performed for the reflection call sites
  * (`forceHit = true`, so the i-frame counter is cleared, plus the alive and creative checks).
- * Deliberately separate from `util/PlayerUtils.runPlayerAttack` so that no other caller's behaviour
- * changes — that helper's `ignoreArmorAndPotion` flag stays documented as inert.
+ * Deliberately separate from `util/PlayerUtils.runPlayerAttack`: in 1.21 "skip armour" is a property of
+ * the **damage type's tags**, not a flag on the call, so `runPlayerAttack` has no such parameter at all
+ * (`build=cleanup21` deleted it rather than let it lie) — this function is the shape that capability
+ * actually takes, with the reflection type that Echo Shield also identifies its own damage by.
  */
 fun LivingEntity.damageBypassingArmor(attacker: PlayerEntity, rawDamage: Float): Float {
     if (!this.isAlive) return 0f

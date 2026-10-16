@@ -33,7 +33,7 @@ import kotlin.math.sqrt
     slots = [EnchantSlot.ARMOR]
 )
 object EnchantArmorEnhanceHandler : Listenable {
-    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    @SubscribeEvent(priority = EventPriority.LOW)
     fun onLivingDamage(e: LivingDamageEvent) {
         if (e.invalid)return
 

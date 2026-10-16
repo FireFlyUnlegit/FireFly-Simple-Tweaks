@@ -1,6 +1,6 @@
 package dev.firefly.simpletweaks.enchantments.handlers.mythic
 
-import dev.firefly.simpletweaks.compat.STLog
+import dev.firefly.simpletweaks.compat.FSTLog
 import dev.firefly.simpletweaks.compat.WorldSide
 import dev.firefly.simpletweaks.compat.event.EventPriority
 import dev.firefly.simpletweaks.compat.event.LivingHurtEvent
@@ -28,7 +28,9 @@ import kotlin.math.sqrt
 import kotlin.random.Random
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantItemWeights
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSupportedItemTags
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 
@@ -91,11 +93,11 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
     category = EnchantCategory.MYTHIC,
     type = EnchantType.BOW,
     maxLevel = 5,
-    weight = 1,
+    weight = EnchantItemWeights.MYTHIC,
     anvilCost = 12,
     minCostBase = 45,
     minCostPerLevel = 15,
-    supportedItems = "#minecraft:enchantable/bow",
+    supportedItems = EnchantSupportedItemTags.BOW,
     slots = [EnchantSlot.MAINHAND, EnchantSlot.OFFHAND],
     order = 45,
 )
@@ -153,7 +155,7 @@ object EnchantStarfallHandler : Listenable {
                 )
             )
         }
-        STLog.log("Starfall") {
+        FSTLog.log("Starfall") {
             "shooter=${shooter.name.string}, target=${target.name.string}, lvl=$lvl, stars=$count, radius=$radius, " +
                 "hitDamage=${e.amount}, starDamage=$baseDamage, trackingSpeed=$trackingSpeed, outcome=stars-spawned"
         }
@@ -247,7 +249,7 @@ object EnchantStarfallHandler : Listenable {
             if (impact) {
                 explode(world, star)
                 iter.remove()
-                STLog.log("Starfall") {
+                FSTLog.log("Starfall") {
                     "owner=${star.ownerUUID}, target=${star.targetUUID}, starX=${star.x}, starY=${star.y}, " +
                         "starZ=${star.z}, life=${star.life}, damage=${star.damage}, radius=${star.radius}, " +
                         "outcome=star-impact"

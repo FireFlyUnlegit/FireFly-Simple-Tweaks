@@ -1,6 +1,6 @@
 package dev.firefly.simpletweaks.enchantments.handlers.uncommon
 
-import dev.firefly.simpletweaks.compat.STLog
+import dev.firefly.simpletweaks.compat.FSTLog
 import dev.firefly.simpletweaks.compat.attacker
 import dev.firefly.simpletweaks.compat.event.LivingHurtEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
@@ -12,7 +12,9 @@ import net.minecraft.util.math.Vec3d
 import kotlin.random.Random
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantItemWeights
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSupportedItemTags
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 
@@ -42,13 +44,12 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
     category = EnchantCategory.UNCOMMON,
     type = EnchantType.SWORD,
     maxLevel = 3,
-    weight = 8,
+    weight = EnchantItemWeights.UNCOMMON,
     anvilCost = 4,
     minCostBase = 10,
     minCostPerLevel = 10,
-    supportedItems = "#minecraft:enchantable/sword",
+    supportedItems = EnchantSupportedItemTags.SWORD,
     slots = [EnchantSlot.MAINHAND],
-    damagePerLevel = 0.25,
     order = 14,
 )
 object EnchantSuperKnockbackHandler : Listenable {
@@ -74,7 +75,7 @@ object EnchantSuperKnockbackHandler : Listenable {
                 horizontalVec.z * knockbackStrength
             )
             target.velocityModified = true
-            STLog.log("SuperKnockback") {
+            FSTLog.log("SuperKnockback") {
                 "attacker=${attacker.name.string}, target=${target.name.string}, lvl=$lvl, " +
                     "strength=$knockbackStrength, dir=(${horizontalVec.x}, ${horizontalVec.z}), velocity=${target.velocity}"
             }
