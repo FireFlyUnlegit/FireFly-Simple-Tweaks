@@ -17,7 +17,7 @@
 | [`master`](https://github.com/FireFlyUnlegit/FireFly-Simple-Tweaks/tree/master)               | 1.12.2 | Forge  | ✅ 稳定   |
 | [`fabric-1.21.1`](https://github.com/FireFlyUnlegit/FireFly-Simple-Tweaks/tree/fabric-1.21.1) | 1.21.1 | Fabric | 🚧 开发中 |
 
-- **1.21.1 / Fabric 版**是完整的跨版本迁移，详见 [MIGRATION.md](https://github.com/FireFlyUnlegit/FireFly-Simple-Tweaks/blob/fabric-1.21.1/fabric-1.21.1/MIGRATION.md)
+- **1.21.1 / Fabric 版**是完整的跨版本迁移，详见 [MIGRATION.md](https://github.com/FireFlyUnlegit/FireFly-Simple-Tweaks/blob/fabric-1.21.1/fabric-1.21.1/MIGRATION.md) (Migrated by DeepSeekHarness)
 - 两个版本**平行维护**，不做合并
 
 ---
@@ -190,7 +190,3 @@
 <a href="https://github.com/FireFlyUnlegit/FireFly-Simple-Tweaks/graphs/contributors">
 <img alt="Contributors" src="https://contrib.rocks/image?repo=FireFlyUnlegit/FireFly-Simple-Tweaks" />
 </a>
-
----
-
-*本模组用于练手。*
