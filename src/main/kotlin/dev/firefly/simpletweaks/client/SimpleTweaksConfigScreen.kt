@@ -2,6 +2,7 @@ package dev.firefly.simpletweaks.client
 
 import dev.firefly.simpletweaks.core.config.DamageIndicatorConfig
 import dev.firefly.simpletweaks.core.config.GeneralConfig
+import dev.firefly.simpletweaks.core.config.MobEnhancementConfig
 import dev.firefly.simpletweaks.core.config.SimpleTweaksConfig
 import net.minecraft.client.gui.DrawContext
 import net.minecraft.client.gui.screen.Screen
@@ -22,10 +23,11 @@ import net.minecraft.text.Text
  * over the network — unlike 1.12.2, which had to register a `IGuiHandler` on both sides.
  *
  * <h2>Layout</h2>
- * Options are split across three pages rather than put in a scrolling list, because the whole live
- * option set is 19 entries and a fixed three-page layout fits any GUI scale without a custom list
- * widget. Rows are 20 px so a 9-row page plus header and footer stays under a 240 px logical height,
- * which is the smallest the game realistically uses.
+ * Options are split across pages rather than put in a scrolling list, because the whole live option
+ * set is small (20 entries as of `build=cleanup26`) and a fixed page layout fits any GUI scale without
+ * a custom list widget. Rows are 20 px so a 9-row page plus header and footer stays under a 240 px
+ * logical height, which is the smallest the game realistically uses — **that is why the damage
+ * indicator got a second page when `minHealthChange` was added instead of a 10th row**.
  *
  * <h2>Labels</h2>
  * Every label is a translation key looked up in `gui.simple_tweaks.config.*`. Those keys are **not** in
@@ -45,7 +47,7 @@ class SimpleTweaksConfigScreen(private val parent: Screen?) :
         const val ROW_H = 20
         const val ROW_W = 220
         const val TOP = 40
-        const val PAGES = 3
+        const val PAGES = 5
         const val KEY_PREFIX = "gui.simple_tweaks.config."
 
         fun key(name: String): Text = Text.translatable(KEY_PREFIX + name)
@@ -147,6 +149,20 @@ class SimpleTweaksConfigScreen(private val parent: Screen?) :
                 boolRow("damageIndicator.enabled", { DamageIndicatorConfig.enabled }) {
                     DamageIndicatorConfig.enabled = it
                 }
+                // Split display sits next to the other indicator behaviour switches rather than on a
+                // page of its own; page 1 goes from 6 to 7 rows, still inside the 9-row limit.
+                boolRow("damageIndicator.splitElemental", { DamageIndicatorConfig.splitElemental }) {
+                    DamageIndicatorConfig.splitElemental = it
+                }
+                numRow(
+                    "damageIndicator.minHealthChange", { DamageIndicatorConfig.minHealthChange },
+                    { DamageIndicatorConfig.minHealthChange = it },
+                    step = 1.0, min = 0.0, max = 1000.0,
+                    fmt = {
+                        if (it == it.toInt().toDouble()) Text.literal(it.toInt().toString())
+                        else Text.literal("%.1f".format(it))
+                    },
+                )
                 boolRow("damageIndicator.symbol", { DamageIndicatorConfig.symbol }) {
                     DamageIndicatorConfig.symbol = it
                 }
@@ -162,6 +178,11 @@ class SimpleTweaksConfigScreen(private val parent: Screen?) :
                     step = 10.0, min = 10.0, max = 500.0,
                     fmt = { Text.literal(it.toInt().toString()) },
                 )
+            }
+
+            2 -> {
+                // Second damage-indicator page: the layout options, split off so no page exceeds
+                // 9 rows (a 10th row would overlap the footer buttons at the smallest GUI scales).
                 numRow(
                     "damageIndicator.riseDuration", { DamageIndicatorConfig.riseDuration.toDouble() },
                     { DamageIndicatorConfig.riseDuration = it.toInt() },
@@ -188,8 +209,25 @@ class SimpleTweaksConfigScreen(private val parent: Screen?) :
                 )
             }
 
+            3 -> {
+                // Mob enhancement. Its own page so the four existing pages keep their row counts (the
+                // 9-row limit is what keeps the screen inside a 240 px logical height).
+                boolRow("mobEnhancement.enabled", { MobEnhancementConfig.enabled }) {
+                    MobEnhancementConfig.enabled = it
+                }
+                boolRow("mobEnhancement.enchantmentsEnabled", { MobEnhancementConfig.enchantmentsEnabled }) {
+                    MobEnhancementConfig.enchantmentsEnabled = it
+                }
+                boolRow("mobEnhancement.levelsEnabled", { MobEnhancementConfig.levelsEnabled }) {
+                    MobEnhancementConfig.levelsEnabled = it
+                }
+                boolRow("mobEnhancement.elementsEnabled", { MobEnhancementConfig.elementsEnabled }) {
+                    MobEnhancementConfig.elementsEnabled = it
+                }
+            }
+
             else -> {
-                // Page 3: the AutoSprint module. On its own page so every page stays at 9 rows or
+                // Page 5: the AutoSprint module. On its own page so every page stays at 9 rows or
                 // fewer, which is what keeps the screen inside a 240 px logical height.
                 boolRow("autoSprintEnabled", { GeneralConfig.autoSprintEnabled }) {
                     GeneralConfig.autoSprintEnabled = it
@@ -215,7 +253,10 @@ class SimpleTweaksConfigScreen(private val parent: Screen?) :
 
     private fun sectionName(): String = when (page) {
         0 -> "section.general"
-        1 -> "section.damage"
+        // Pages 1 and 2 are both the damage indicator (`build=cleanup26` split it in two); the page
+        // indicator in the header carries "N/5", so sharing the section title is unambiguous.
+        1, 2 -> "section.damage"
+        3 -> "section.mob"
         else -> "section.movement"
     }
 

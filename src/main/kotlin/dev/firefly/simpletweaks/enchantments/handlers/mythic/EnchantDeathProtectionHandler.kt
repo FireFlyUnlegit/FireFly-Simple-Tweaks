@@ -1,7 +1,6 @@
 package dev.firefly.simpletweaks.enchantments.handlers.mythic
 
 import dev.firefly.simpletweaks.compat.FSTLog
-import dev.firefly.simpletweaks.compat.event.EventPriority
 import dev.firefly.simpletweaks.compat.event.LivingDamageEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.invalid
@@ -29,7 +28,7 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
  * | 1.12.2                                                      | 1.21.1                                                               |
  * |-------------------------------------------------------------|----------------------------------------------------------------------|
  * | `net.minecraftforge...LivingDamageEvent`                    | `compat.event.LivingDamageEvent`                                     |
- * | `net.minecraftforge...EventPriority`                        | `compat.event.EventPriority` (the annotation keeps `priority`)        |
+ * | `net.minecraftforge...EventPriority`                        | `compat.event.EventPriority` (the annotation now carries an int `priority`)        |
  * | `e.invalid`                                                 | same extension name, now `compat.invalid`                            |
  * | `e.entityLiving as? EntityPlayer`                           | `e.entityLiving as? PlayerEntity`                                    |
  * | `player.chestplate`                                         | same extension (`util/PlayerUtils.kt`, `EquipmentSlot.CHEST`)         |
@@ -61,7 +60,7 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 )
 object EnchantDeathProtectionHandler : Listenable {
 
-    @SubscribeEvent(priority = EventPriority.LOWEST)
+    @SubscribeEvent(priority = 100)
     fun onLivingDamage(e: LivingDamageEvent) {
         if (e.invalid) return
         val player = e.entityLiving as? PlayerEntity ?: return

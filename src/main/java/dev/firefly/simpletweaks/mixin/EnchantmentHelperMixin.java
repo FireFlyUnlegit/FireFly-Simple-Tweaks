@@ -1,5 +1,6 @@
 package dev.firefly.simpletweaks.mixin;
 
+import dev.firefly.simpletweaks.SimpleTweaks;
 import dev.firefly.simpletweaks.core.EnchantTableGate;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.enchantment.EnchantmentHelper;
@@ -9,6 +10,8 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.util.math.random.Random;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Constant;
@@ -19,6 +22,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Stream;
@@ -81,9 +85,24 @@ import java.util.stream.Stream;
  * <p>This config pair was **persisted but inert** in the port until now: `maxEnchantmentPower` was
  * written to and read from `config/simple_tweaks.json`, and the config screen exposed the toggle, but
  * nothing consumed the value.
+ *
+ * <h2>(d) At most one `simple_tweaks:*` enchantment per roll (`build=cleanup26`)</h2>
+ * The mod's 67 enchantments sit in the same pool as vanilla's, so one high-power roll can produce
+ * several of them at once. The author asked for that to be impossible: the **first** mod enchantment
+ * in the generated order is kept and the rest are re-rolled into **non-mod** candidates from the same
+ * candidate set (filters identical to the top-up in (b): unused, `isPrimaryItem` unless the item is a
+ * book, and `canBeCombined` against everything still in the list). If the pool has no non-mod
+ * candidate left, the extra is dropped instead of kept — keeping it would break the promise.
+ *
+ * <p>Attribution is by **registry namespace** ({@code SimpleTweaks.MOD_ID}), not by a list of ids:
+ * a hand-maintained list is exactly the kind of table that silently drifts when an enchantment is
+ * added (see `AGENTS.md` §4.10 for the two times that already happened here).
  */
 @Mixin(EnchantmentHelper.class)
 public abstract class EnchantmentHelperMixin {
+
+    /** Same logger name as {@link EnchantmentScreenHandlerMixin}, so both table seams read as one log. */
+    private static final Logger LOGGER = LoggerFactory.getLogger("simple_tweaks/enchant_table");
 
     private static final String CALCULATE =
             "calculateRequiredExperienceLevel(Lnet/minecraft/util/math/random/Random;II"
@@ -200,8 +219,18 @@ public abstract class EnchantmentHelperMixin {
         CANDIDATES.set(cir.getReturnValue());
     }
 
+    /**
+     * (b)+(d) The single RETURN hook on {@code generateEnchantments}: first the 1.12.2 minimum-count
+     * top-up, then the "at most one of this mod's enchantments" cap.
+     *
+     * <p>They share one injector because both edit the same returned list and the cap must see the
+     * <b>final</b> list — the top-up draws from the same candidate pool and can itself introduce a
+     * second mod enchantment.
+     *
+     * <p>The candidate set is cleared up front so an early return cannot leak it into the next call.
+     */
     @Inject(method = GENERATE, at = @At("RETURN"), cancellable = true)
-    private static void simpletweaks$ensureMinEnchants(Random random, ItemStack stack, int level,
+    private static void simpletweaks$postProcess(Random random, ItemStack stack, int level,
             Stream<RegistryEntry<Enchantment>> candidates,
             CallbackInfoReturnable<List<EnchantmentLevelEntry>> cir) {
         // Cleared first so an early return below cannot leak the candidate set into the next
@@ -215,23 +244,40 @@ public abstract class EnchantmentHelperMixin {
             return;
         }
 
-        // 1.12.2: `int minEnchants = level / 15;`
-        int min = level / 15;
-        if (min <= 0) {
-            return;
-        }
-
         List<EnchantmentLevelEntry> before = cir.getReturnValue();
         if (before == null) {
             before = List.of();
-        }
-        if (before.size() >= min) {
-            return;
         }
 
         // Copied rather than mutated in place: the returned list happens to be an ArrayList in
         // 1.21.1, but that is an implementation detail of the method being injected into.
         List<EnchantmentLevelEntry> list = new ArrayList<>(before);
+        boolean changed = false;
+
+        changed |= simpletweaks$ensureMinEnchants(random, stack, level, list, possible);
+        changed |= simpletweaks$capModEnchants(random, stack, list, possible);
+
+        if (changed) {
+            cir.setReturnValue(list);
+        }
+    }
+
+    /**
+     * (b) 1.12.2 `simpletweaks$ensureMinEnchants`: top the list up to {@code level / 15} entries.
+     *
+     * @return whether the list grew
+     */
+    private static boolean simpletweaks$ensureMinEnchants(Random random, ItemStack stack, int level,
+            List<EnchantmentLevelEntry> list, List<EnchantmentLevelEntry> possible) {
+        // 1.12.2: `int minEnchants = level / 15;`
+        int min = level / 15;
+        if (min <= 0) {
+            return false;
+        }
+        if (list.size() >= min) {
+            return false;
+        }
+
         boolean isBook = stack.isOf(Items.BOOK) || stack.isOf(Items.ENCHANTED_BOOK);
 
         Set<RegistryEntry<Enchantment>> used = new HashSet<>();
@@ -240,6 +286,7 @@ public abstract class EnchantmentHelperMixin {
         }
 
         int attempts = 0;
+        boolean changed = false;
         while (list.size() < min && attempts < MAX_ATTEMPTS) {
             attempts++;
 
@@ -276,9 +323,120 @@ public abstract class EnchantmentHelperMixin {
             int pickedLevel = 1 + random.nextInt(picked.enchantment.value().getMaxLevel());
             list.add(new EnchantmentLevelEntry(picked.enchantment, pickedLevel));
             used.add(picked.enchantment);
+            changed = true;
         }
 
-        cir.setReturnValue(list);
+        return changed;
+    }
+
+    /**
+     * (d) **At most one `simple_tweaks:*` enchantment per roll** (`build=cleanup26`).
+     *
+     * <p>Rationale: the mod adds 67 enchantments into the same pool as vanilla's ~40, so a high-power
+     * roll can come back with two or three of them at once — with 20%-ish of the pool being mod
+     * enchantments that is not rare, and stacking two of them on one item is a balance and
+     * readability problem the author wanted removed.
+     *
+     * <p>Behaviour: the **first** mod entry in the generated order is kept, every further one is
+     * replaced by a **non-mod** candidate drawn from the same candidate set (same filters as vanilla
+     * and as the top-up: not already present, {@code isPrimaryItem} unless the item is a book, and
+     * {@code canBeCombined} against every entry still in the list). If no vanilla candidate exists —
+     * possible only at the extreme ends of the power curve — the extra is **dropped** rather than
+     * kept, because keeping it would break the promise. Replacement levels are rolled the same way
+     * vanilla rolls them (`1 + random.nextInt(maxLevel)`).
+     *
+     * @return whether the list changed
+     */
+    private static boolean simpletweaks$capModEnchants(Random random, ItemStack stack,
+            List<EnchantmentLevelEntry> list, List<EnchantmentLevelEntry> possible) {
+        if (list.size() < 2) {
+            return false;
+        }
+
+        List<EnchantmentLevelEntry> extras = new ArrayList<>();
+        boolean sawFirst = false;
+        for (Iterator<EnchantmentLevelEntry> it = list.iterator(); it.hasNext(); ) {
+            EnchantmentLevelEntry entry = it.next();
+            if (!simpletweaks$isModEnchantment(entry)) {
+                continue;
+            }
+            if (!sawFirst) {
+                sawFirst = true;
+                continue;
+            }
+            it.remove();
+            extras.add(entry);
+        }
+        if (extras.isEmpty()) {
+            return false;
+        }
+
+        int replaced = 0;
+        for (int i = 0; i < extras.size(); i++) {
+            EnchantmentLevelEntry replacement = simpletweaks$pickNonModCandidate(random, stack, list, possible);
+            if (replacement == null) {
+                break;
+            }
+            list.add(replacement);
+            replaced++;
+        }
+
+        int dropped = extras.size() - replaced;
+        LOGGER.info("[enchant-table] capped simple_tweaks enchantments in one roll: kept 1, replaced {}, dropped {}",
+                replaced, dropped);
+        return true;
+    }
+
+    /** Draws a **non-mod** replacement from the candidate set. See {@link #simpletweaks$capModEnchants}. */
+    private static EnchantmentLevelEntry simpletweaks$pickNonModCandidate(Random random, ItemStack stack,
+            List<EnchantmentLevelEntry> list, List<EnchantmentLevelEntry> possible) {
+        boolean isBook = stack.isOf(Items.BOOK) || stack.isOf(Items.ENCHANTED_BOOK);
+
+        List<EnchantmentLevelEntry> pool = new ArrayList<>();
+        for (EnchantmentLevelEntry entry : possible) {
+            if (simpletweaks$isModEnchantment(entry)) {
+                continue;
+            }
+
+            boolean blocked = false;
+            for (EnchantmentLevelEntry other : list) {
+                if (other.enchantment == entry.enchantment
+                        || !Enchantment.canBeCombined(entry.enchantment, other.enchantment)) {
+                    blocked = true;
+                    break;
+                }
+            }
+            if (blocked) {
+                continue;
+            }
+
+            Enchantment enchantment = entry.enchantment.value();
+            if (!isBook && !enchantment.isPrimaryItem(stack)) {
+                continue;
+            }
+            pool.add(entry);
+        }
+
+        if (pool.isEmpty()) {
+            return null;
+        }
+        EnchantmentLevelEntry picked = simpletweaks$weightedPick(random, pool);
+        if (picked == null) {
+            return null;
+        }
+        int level = 1 + random.nextInt(picked.enchantment.value().getMaxLevel());
+        return new EnchantmentLevelEntry(picked.enchantment, level);
+    }
+
+    /**
+     * Is this entry one of this mod's enchantments? Decided by the **registry namespace**, not by a
+     * hand-maintained list: the mod's enchantments are exactly the ones registered under
+     * {@link SimpleTweaks#MOD_ID}, and a list would drift the moment an enchantment is added.
+     */
+    private static boolean simpletweaks$isModEnchantment(EnchantmentLevelEntry entry) {
+        return entry.enchantment.getKey()
+                .map(key -> SimpleTweaks.MOD_ID.equals(key.getValue().getNamespace()))
+                .orElse(false);
     }
 
     /** 1.12.2 `simpletweaks$weightedEnchantPick`, using the 1.21 weight source. */

@@ -88,6 +88,7 @@ public abstract class EntityDamageMixin {
             return;
         }
 
+
         LivingHurtEvent event = EventSeams.hurt(self, source, amount);
         if (event.isCanceled()) {
             cir.setReturnValue(false);
@@ -105,6 +106,7 @@ public abstract class EntityDamageMixin {
         if (self.getWorld().isClient) {
             return amount;
         }
+
         return EventSeams.hurt(self, source, amount).getAmount();
     }
 

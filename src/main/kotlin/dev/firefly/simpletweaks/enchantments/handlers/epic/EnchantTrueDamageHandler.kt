@@ -2,7 +2,6 @@ package dev.firefly.simpletweaks.enchantments.handlers.epic
 
 import dev.firefly.simpletweaks.compat.FSTLog
 import dev.firefly.simpletweaks.compat.attacker
-import dev.firefly.simpletweaks.compat.event.EventPriority
 import dev.firefly.simpletweaks.compat.event.LivingDamageEvent
 import dev.firefly.simpletweaks.compat.event.LivingHurtEvent
 import dev.firefly.simpletweaks.compat.event.PlayerEvent
@@ -28,7 +27,7 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
  * | `net.minecraftforge...LivingHurtEvent`     | `compat.event.LivingHurtEvent`                                  |
  * | `net.minecraftforge...LivingDamageEvent`   | `compat.event.LivingDamageEvent`                                |
  * | `net.minecraftforge...gameevent.PlayerEvent` | `compat.event.PlayerEvent`                                    |
- * | `net.minecraftforge...EventPriority`       | `compat.event.EventPriority` (annotation keeps `priority = HIGHEST`) |
+ * | `net.minecraftforge...EventPriority`       | `compat.event.EventPriority` (annotation now carries `priority = -100` (HIGHEST)) |
  * | `attacker.uniqueID`                        | `attacker.uuid` (`EntityLike.getUuid`, method_5667)             |
  * | `attacker.heldItemMainhand`                | `attacker.mainHandStack` (method_6047)                          |
  * | `EnchantTrueDamage` (Enchantment)          | `GeneratedEnchantments.TRUE_DAMAGE` (RegistryKey)                  |
@@ -71,7 +70,7 @@ object EnchantTrueDamageHandler : Listenable {
             }
         }
     }
-    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    @SubscribeEvent(priority = -100)
     fun onLivingDamage(e: LivingDamageEvent) {
         val canceledAid = e.attacker?.uuid
         if (e.isCanceled && canceledAid != null && damagePool[canceledAid] != null) damagePool[canceledAid] = 0f

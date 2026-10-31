@@ -2,7 +2,6 @@ package dev.firefly.simpletweaks.enchantments.handlers.mystery
 
 import dev.firefly.simpletweaks.SimpleTweaks
 import dev.firefly.simpletweaks.compat.event.AttackEntityEvent
-import dev.firefly.simpletweaks.compat.event.EventPriority
 import dev.firefly.simpletweaks.compat.event.LivingDamageEvent
 import dev.firefly.simpletweaks.compat.event.PlayerEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
@@ -187,7 +186,7 @@ object EnchantCelestialBlessingHandler : Listenable {
         }
     }
 
-    @SubscribeEvent(priority = EventPriority.LOWEST)
+    @SubscribeEvent(priority = 100)
     fun onEntityDamage(e: LivingDamageEvent) {
         if (e.invalid) return
         val p = e.attacker ?: return
@@ -283,7 +282,7 @@ object EnchantCelestialBlessingHandler : Listenable {
         }
     }
 
-    @SubscribeEvent(priority = EventPriority.LOWEST)
+    @SubscribeEvent(priority = 100)
     fun onPlayerTick(e: TickEvent.PlayerTickEvent) {
         if (e.invalid) return
         val player = e.player

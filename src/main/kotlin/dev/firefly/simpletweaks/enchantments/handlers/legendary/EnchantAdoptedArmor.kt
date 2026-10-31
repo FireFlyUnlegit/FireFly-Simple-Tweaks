@@ -1,6 +1,5 @@
 package dev.firefly.simpletweaks.enchantments.handlers.legendary
 
-import dev.firefly.simpletweaks.compat.event.EventPriority
 import dev.firefly.simpletweaks.compat.event.LivingHurtEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.invalid
@@ -40,7 +39,7 @@ object EnchantAdoptedArmor : Listenable {
 
     private val states = WeakHashMap<UUID, State>()
 
-    @SubscribeEvent(priority = EventPriority.LOWEST)
+    @SubscribeEvent(priority = 100)
     fun onLivingHurt(e: LivingHurtEvent) {
         if (e.invalid) return
         val player = e.target as? PlayerEntity ?: return

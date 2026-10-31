@@ -11,6 +11,7 @@ import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 import dev.firefly.simpletweaks.interfaces.SimpleTweaksArrow
+import dev.firefly.simpletweaks.util.firingWeapon
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import dev.firefly.simpletweaks.util.runPlayerAttack
 import net.minecraft.entity.LivingEntity
@@ -81,7 +82,9 @@ object EnchantPiercingArrowHandler : Listenable {
         if (e.world.isClient) return
         val arrow = e.entity as? PersistentProjectileEntity ?: return
         val shooter = arrow.owner as? PlayerEntity ?: return
-        val lvl = getItemSpecificEnchantLevel(shooter.mainHandStack, GeneratedEnchantments.PIERCING_ARROW)
+        // cleanup27: the bow that actually fired this arrow (vanilla `weapon`), not the main hand —
+        // an off-hand bow used to make this a silent no-op. See util/ProjectileUtil.kt.
+        val lvl = getItemSpecificEnchantLevel(arrow.firingWeapon(shooter), GeneratedEnchantments.PIERCING_ARROW)
         if (lvl <= 0) return
 
         val state = arrow as SimpleTweaksArrow

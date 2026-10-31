@@ -1,7 +1,6 @@
 package dev.firefly.simpletweaks.enchantments.handlers.uncommon
 
 import dev.firefly.simpletweaks.compat.FSTLog
-import dev.firefly.simpletweaks.compat.event.EventPriority
 import dev.firefly.simpletweaks.compat.event.PlayerEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.core.Listenable
@@ -61,7 +60,7 @@ object EnchantMomentumHandler : Listenable {
 
     private val digging = WeakHashMap<PlayerEntity, DigState>()
 
-    @SubscribeEvent(priority = EventPriority.LOW)
+    @SubscribeEvent(priority = 50)
     fun onBreakSpeed(e: PlayerEvent.BreakSpeed) {
         val p = e.player
         val lvl = getItemSpecificEnchantLevel(p.mainHandStack, GeneratedEnchantments.MOMENTUM)

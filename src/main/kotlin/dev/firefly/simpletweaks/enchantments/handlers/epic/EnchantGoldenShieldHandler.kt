@@ -13,10 +13,10 @@ import dev.firefly.simpletweaks.enchantments.annotations.EnchantSupportedItemTag
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
+import dev.firefly.simpletweaks.util.absorptionHeadroomId
 import dev.firefly.simpletweaks.util.getArmorEnchantLevel
-import net.minecraft.entity.attribute.EntityAttributeInstance
-import net.minecraft.entity.attribute.EntityAttributeModifier
-import net.minecraft.entity.attribute.EntityAttributes
+import dev.firefly.simpletweaks.util.grantAbsorption
+import dev.firefly.simpletweaks.util.removeAbsorptionHeadroom
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.util.Identifier
 import java.util.UUID
@@ -72,6 +72,13 @@ import java.util.UUID
  * (this file's maps), and a persistent modifier whose remover can be lost is the bug that once left
  * victims of `heavenly_punishment` permanently unable to attack. Temporary means a lost deadline
  * self-heals on reload.
+ *
+ * Both halves now live in [dev.firefly.simpletweaks.util.grantAbsorption] /
+ * [dev.firefly.simpletweaks.util.removeAbsorptionHeadroom], which is the shared primitive the
+ * `DEVLOG` prescribed when it fixed this file and flagged `healing_blade` / `death_protection` as the
+ * same bug. This file's behaviour is unchanged by that extraction: same modifier id, same value
+ * (our own cap — note this is the *weaker* headroom choice, see AbsorptionUtil's caveat), same
+ * temporary flag, same early-return when the modifier already covers the cap.
  */
 @ModEnchantment(
     id = "golden_shield",
@@ -94,10 +101,11 @@ object EnchantGoldenShieldHandler : Listenable {
      * `generic.max_absorption` modifier id.
      *
      * One fixed id per player: the modifier is removed and re-added whenever the cap changes, so the
-     * instance never accumulates duplicates.
+     * instance never accumulates duplicates. It is **per source** (`AbsorptionUtil`'s KDoc explains
+     * why), and the id string is unchanged from the version that introduced this fix
+     * (`simple_tweaks:golden_shield_max_absorption`).
      */
-    private val MAX_ABSORPTION_ID: Identifier =
-        Identifier.of("simple_tweaks", "golden_shield_max_absorption")
+    private val MAX_ABSORPTION_ID: Identifier = absorptionHeadroomId("golden_shield")
 
     private val contribution = mutableMapOf<UUID, Float>()
     private val tickCounter = mutableMapOf<UUID, Int>()
@@ -142,12 +150,13 @@ object EnchantGoldenShieldHandler : Listenable {
             return
         }
 
-        ensureHeadroom(player, maxMine)
-
         val requested = perCharge.coerceAtMost(maxMine - mine)
-        val before = player.absorptionAmount
-        player.absorptionAmount = before + requested
-        val applied = player.absorptionAmount - before
+        // Landing the grant needs the `max_absorption` ceiling raised first, and the bookkeeping needs
+        // the *landed* delta rather than the requested one — both live in AbsorptionUtil now, so this
+        // file no longer carries its own copy of §4.9. The headroom is our own cap (unchanged from the
+        // fix that introduced it): a foreign share is not covered by this modifier, which is a known
+        // limitation of this enchantment, see `healing_blade` for the stricter form.
+        val applied = grantAbsorption(player, MAX_ABSORPTION_ID, requested, maxMine)
 
         contribution[id] = mine + applied
         FSTLog.log("GoldenShield") {
@@ -156,25 +165,6 @@ object EnchantGoldenShieldHandler : Listenable {
                 "maxAbsorption=${player.maxAbsorption}, " +
                 "outcome=${if (applied < requested) "clamped" else "granted"}"
         }
-    }
-
-    /**
-     * Raises `generic.max_absorption` to at least [cap] so [PlayerEntity.absorptionAmount]'s write is
-     * not clamped away. See the class KDoc — without this the whole handler is a no-op.
-     *
-     * The modifier is re-created whenever the value would change (level change), and it is
-     * **temporary** so it can never outlive a save file.
-     */
-    private fun ensureHeadroom(player: PlayerEntity, cap: Float) {
-        val attr: EntityAttributeInstance =
-            player.getAttributeInstance(EntityAttributes.GENERIC_MAX_ABSORPTION) ?: return
-        val existing = attr.getModifier(MAX_ABSORPTION_ID)
-        if (existing != null && existing.value >= cap.toDouble()) return
-
-        attr.removeModifier(MAX_ABSORPTION_ID)
-        attr.addTemporaryModifier(
-            EntityAttributeModifier(MAX_ABSORPTION_ID, cap.toDouble(), EntityAttributeModifier.Operation.ADD_VALUE)
-        )
     }
 
     /**
@@ -189,9 +179,7 @@ object EnchantGoldenShieldHandler : Listenable {
         val id = player.uuid
         val hadState = contribution.remove(id) != null
         tickCounter.remove(id)
-        val attr = player.getAttributeInstance(EntityAttributes.GENERIC_MAX_ABSORPTION)
-        val hadModifier = attr?.getModifier(MAX_ABSORPTION_ID) != null
-        attr?.removeModifier(MAX_ABSORPTION_ID)
+        val hadModifier = removeAbsorptionHeadroom(player, MAX_ABSORPTION_ID)
         if (hadState || hadModifier) {
             FSTLog.log("GoldenShield") {
                 "player=${player.name.string}, absorption=${player.absorptionAmount}, " +

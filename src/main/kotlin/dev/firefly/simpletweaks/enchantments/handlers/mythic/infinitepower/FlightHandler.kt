@@ -56,6 +56,22 @@ object FlightHandler : Listenable {
 
     private val isControllingFlight = mutableMapOf<UUID, Boolean>()
 
+    /**
+     * The attack-speed bonus this aura applies while the item is held, as an absolute
+     * (`ADD_VALUE`) amount — `+1000`, which is the point of the enchantment.
+     *
+     * Exposed so the client-side tooltip fold
+     * ([dev.firefly.simpletweaks.client.tooltips.EnchantAttributeToolTipHandler]) can put it in the
+     * item's attack-speed total without duplicating [SPEED_BONUS]. A client hovering the sword will
+     * therefore read roughly `1001.6 攻击速度` — that is the honest number, not a display bug: this
+     * modifier really is on the player's attribute whenever the item is held (and the item must carry
+     * the enchantment for [EnchantInfinitePowerHandler.heldLevel] to be non-zero, so the tooltip fold
+     * only ever fires on an `infinite_power` item).
+     *
+     * @return `0.0` for a non-positive [level].
+     */
+    fun attackSpeedBonus(level: Int): Double = if (level > 0) SPEED_BONUS else 0.0
+
     @SubscribeEvent
     fun onPlayerTick(e: TickEvent.PlayerTickEvent) {
         if (e.phase != TickEvent.Phase.END) return
@@ -113,7 +129,7 @@ object FlightHandler : Listenable {
             speed.addTemporaryModifier(
                 EntityAttributeModifier(
                     SPEED_MODIFIER_ID,
-                    SPEED_BONUS,
+                    attackSpeedBonus(1),
                     EntityAttributeModifier.Operation.ADD_VALUE,
                 )
             )

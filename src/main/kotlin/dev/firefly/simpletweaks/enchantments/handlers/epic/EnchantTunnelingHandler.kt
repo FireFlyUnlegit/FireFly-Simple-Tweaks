@@ -3,7 +3,6 @@ package dev.firefly.simpletweaks.enchantments.handlers.epic
 import dev.firefly.simpletweaks.compat.FSTLog
 import dev.firefly.simpletweaks.compat.WorldSide
 import dev.firefly.simpletweaks.compat.event.BlockEvent
-import dev.firefly.simpletweaks.compat.event.EventPriority
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.core.Listenable
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
@@ -66,10 +65,10 @@ object EnchantTunnelingHandler : Listenable {
     private const val MAX_LEVEL = 3
     private val inTunneling = ThreadLocal.withInitial { false }
 
-    @SubscribeEvent(priority = EventPriority.LOWEST)
+    @SubscribeEvent(priority = 100)
     fun onBreak(e: BlockEvent.BreakEvent) {
         if (inTunneling.get()) return
-        val player = e.player ?: return
+        val player = e.player
         if (WorldSide.isClient(player.world)) return
         if (player.isSneaking) return
 

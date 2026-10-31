@@ -3,7 +3,6 @@ package dev.firefly.simpletweaks.enchantments.handlers.legendary
 import dev.firefly.simpletweaks.compat.FSTLog
 import dev.firefly.simpletweaks.compat.WorldSide
 import dev.firefly.simpletweaks.compat.event.AttackEntityEvent
-import dev.firefly.simpletweaks.compat.event.EventPriority
 import dev.firefly.simpletweaks.compat.event.LivingHurtEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.invalid
@@ -29,7 +28,7 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
  * |-----------------------------------------------------------|---------------------------------------------------------------------------|
  * | `net.minecraftforge...AttackEntityEvent`                  | `compat.event.AttackEntityEvent` (Forge's `e.entityPlayer` -> `e.player`)  |
  * | `net.minecraftforge...LivingHurtEvent`                    | `compat.event.LivingHurtEvent`                                             |
- * | `net.minecraftforge...EventPriority`                      | `compat.event.EventPriority` (the annotation keeps `priority`)             |
+ * | `net.minecraftforge...EventPriority`                      | `compat.event.EventPriority` (the annotation now carries an int `priority`)             |
  * | `e.source.trueSource as? EntityPlayer`                    | `e.source.attacker as? PlayerEntity` (`DamageSource.getAttacker()`, `method_5529`; no import needed — this is the vanilla accessor, not the event extension) |
  * | `attacker.world.isRemote`                                 | `WorldSide.isClient(attacker.world)` (field_9236 is a FIELD)               |
  * | `player.heldItemMainhand`                                 | `player.mainHandStack` (`method_6047`)                                    |
@@ -90,7 +89,7 @@ object EnchantDoubleStrikeHandler : Listenable {
         }
     }
 
-    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    @SubscribeEvent(priority = -100)
     fun onHurt(e: LivingHurtEvent) {
         if (inExtraStrike.get()) return
         val attacker = e.source.attacker as? PlayerEntity ?: return

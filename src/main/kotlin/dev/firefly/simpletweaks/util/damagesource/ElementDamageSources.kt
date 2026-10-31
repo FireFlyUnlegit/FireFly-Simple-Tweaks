@@ -1,10 +1,10 @@
 package dev.firefly.simpletweaks.util.damagesource
 
 import dev.firefly.simpletweaks.SimpleTweaks
+import dev.firefly.simpletweaks.mixin.accessors.LivingEntityAccessor
 import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.damage.DamageSource
 import net.minecraft.entity.damage.DamageType
-import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.registry.RegistryKey
 import net.minecraft.registry.RegistryKeys
 import net.minecraft.util.Identifier
@@ -102,6 +102,8 @@ fun DamageSource.isElementDamage(): Boolean =
     this.typeRegistryEntry.matchesKey(ElementDamageTypes.VENOM) ||
         this.typeRegistryEntry.matchesKey(ElementDamageTypes.CHAIN_LIGHTNING)
 
+
+
 /**
  * Deals [amount] as elemental damage of type [key], credited to [attacker] when one is given.
  *
@@ -122,7 +124,7 @@ fun DamageSource.isElementDamage(): Boolean =
  * early on that, which bounds the recursion to one level.
  */
 fun LivingEntity.damageElemental(
-    attacker: PlayerEntity?,
+    attacker: LivingEntity?,
     key: RegistryKey<DamageType>,
     amount: Float,
 ): Boolean {
@@ -136,6 +138,88 @@ fun LivingEntity.damageElemental(
     if (this.damage(source, amount)) return true
 
     if (!this.isAlive) return false
+
+    // ⚠️ Clearing `timeUntilRegen` is **not** enough, and the first revision of this file was wrong
+    // about that. `LivingEntity#damage`'s i-frame gate has two halves (bytecode offsets 228..260):
+    //
+    //   timeUntilRegen > 10 && !source.isIn(#minecraft:bypasses_cooldown)
+    //       && amount <= lastDamageTaken   ->   return false      (nothing applied)
+    //
+    // `timeUntilRegen` is the only half a caller can observe; `lastDamageTaken` is `protected`. So a
+    // small elemental tick (venom: 0.2/stack) arriving after a normal sword hit (say 8.0) was
+    // *swallowed every single time* — the player swung, the arrow/crit/poison registered on the client
+    // and in every event, and the number never moved. `timeUntilRegen = 0` alone made the first half
+    // pass and the second half still refuse it.
+    //
+    // The fix is the second half: a damage type in `#minecraft:bypasses_cooldown` skips **both** tests.
+    // Every `simple_tweaks:element_*` and `simple_tweaks:venom` / `chain_lightning` type is in that
+    // tag (see `data/minecraft/tags/damage_type/`), which is why the retry below now lands. The
+    // `timeUntilRegen` clear is kept as a second line of defence for damage types a datapack moved out
+    // of the tag.
+    // ⚠️ A rider must not disturb the i-frame accounting of the swing that produced it.
+    //
+    // `LivingEntity#damage`'s post-gate path (bytecode 250..274) does:
+    //
+    //     if (amount > lastDamageTaken) applyDamage(source, amount - lastDamageTaken)
+    //     else                          return false
+    //     lastDamageTaken = amount
+    //     timeUntilRegen  = 20
+    //
+    // and it runs this for **every** landed hit, including the ones that skip the gate because their type
+    // is in `#minecraft:bypasses_cooldown`. So after an elemental rider of 4.93 the target is left with
+    // `lastDamageTaken = 4.93` and a fresh 20-tick i-frame — and the **player's next real swing** then
+    // deals only `its amount - 4.93`, or nothing at all.
+    //
+    // Measured in a real session: `kept=5.84` + `planned_elemental=4.93` should total `10.77`, but the log
+    // showed `total_this_hit=5.23` and `actual_elemental=4.32` — both reduced by the same **0.61** left
+    // over from an earlier small hit — plus `prev_total=0.00` on some hits (fully swallowed). That is the
+    // reported "切武器连打，物理部分丢伤害".
+    //
+    // The fix is to save and restore both fields around the rider: the swing that will come next must be
+    // judged against the *swing's* numbers, not against this rider's.
+    val accessor = this as? LivingEntityAccessor
+    val savedRegen = this.timeUntilRegen
+    val savedLast = accessor?.modLastDamageTaken ?: 0f
+    // The hurt **animation** is separate state from the i-frame arithmetic. `applyDamage` sets
+    // `hurtTime = maxHurtTime = 10`, which is what makes the entity flash red and restart its hurt
+    // wobble. Restoring only `lastDamageTaken` left the target re-flashing once per rider — visually
+    // indistinguishable from being hit repeatedly, i.e. the "combo" look survived the event fix. Both
+    // fields are public, so no accessor is needed.
+    val savedHurtTime = this.hurtTime
+    val savedMaxHurtTime = this.maxHurtTime
+
     this.timeUntilRegen = 0
-    return this.damage(source, amount)
+    var landed = this.damage(source, amount)
+
+    if (!landed && this.isAlive) {
+        // Second attempt for a type a datapack moved out of `#minecraft:bypasses_cooldown`; see above.
+        this.timeUntilRegen = 0
+        landed = this.damage(source, amount)
+    }
+
+    if (accessor != null && this.isAlive) {
+        this.timeUntilRegen = savedRegen
+        accessor.modLastDamageTaken = savedLast
+        this.hurtTime = savedHurtTime
+        this.maxHurtTime = savedMaxHurtTime
+        dev.firefly.simpletweaks.compat.FSTLog.log("Element") {
+            "outcome=rider-iframe-restored, type=${key.value}, amount=${"%.2f".format(amount)}, " +
+                "savedRegen=$savedRegen, savedLastDamageTaken=${"%.2f".format(savedLast)}, " +
+                "savedHurtTime=$savedHurtTime, landed=$landed"
+        }
+    }
+
+    // Debug-gated like every other `[FST-*]` probe. It was unconditional for one build while the
+    // "elemental damage does nothing" report was being chased, but `damageElemental` is also the DoT
+    // path for `venom` / `chain_lightning`, so an unconditional line here can repeat every tick per
+    // affected entity — exactly the flood `AGENTS.md` §4.6 warns about.
+    if (!landed) {
+        dev.firefly.simpletweaks.compat.FSTLog.log("Element") {
+            "outcome=element-damage-refused, type=${key.value}, target=${this.type.name.string}, " +
+                "amount=${"%.2f".format(amount)} " +
+                "(both attempts returned false: i-frame gate, invulnerability or fire resistance). " +
+                "Check that the type is in #minecraft:bypasses_cooldown."
+        }
+    }
+    return landed
 }

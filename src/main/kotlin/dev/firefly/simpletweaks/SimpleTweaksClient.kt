@@ -7,9 +7,12 @@ import dev.firefly.simpletweaks.client.ClientManaPoolCache
 import dev.firefly.simpletweaks.client.ClientScreenOpener
 import dev.firefly.simpletweaks.client.EnchantInfoScreen
 import dev.firefly.simpletweaks.client.SimpleTweaksConfigScreen
+import dev.firefly.simpletweaks.network.packets.PacketMobLevel
+import dev.firefly.simpletweaks.util.mobs.MobLevelSync
 import dev.firefly.simpletweaks.network.packets.PacketOpenModScreen
 import dev.firefly.simpletweaks.client.InfinitePowerLaserClient
 import dev.firefly.simpletweaks.client.particle.CelestialRingParticles
+import dev.firefly.simpletweaks.client.tooltips.EnchantAttributeToolTipHandler
 import dev.firefly.simpletweaks.client.tooltips.EnchantDamageToolTipHandler
 import dev.firefly.simpletweaks.client.tooltips.ManaPoolToolTipHandler
 import dev.firefly.simpletweaks.core.config.DamageIndicatorConfig
@@ -27,6 +30,17 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking
 
 /** One-shot guard so the receive-side probe does not flood the log in normal play. */
 private var damagePacketLogged = false
+
+/**
+ * Count of `PacketMobLevel` receives already logged.
+ *
+ * `START_TRACKING` fires once per player per mob, so this is only bounded because the probe stops after
+ * [MOB_LEVEL_PACKETS_LOGGED]. It exists to answer one question from the log — "did the level ever reach
+ * the client?" — which is the difference between a sync bug and a rendering bug (`build=cleanup47`).
+ */
+private var mobLevelPacketsLogged = 0
+
+private const val MOB_LEVEL_PACKETS_LOGGED = 3
 
 /**
  * Client-only entrypoint. Fabric splits initialisation into common ([SimpleTweaks]) and client
@@ -63,6 +77,11 @@ class SimpleTweaksClient : ClientModInitializer {
         // so the mod's own damage bonus needs its own tooltip line (see that file's KDoc for why the
         // attribute-based alternative was left as an option rather than taken).
         EnchantDamageToolTipHandler.register()
+        // Enchantment-granted *attributes* (declarative `minecraft:attributes`, plus the bonuses
+        // handlers apply themselves) equally never reach vanilla's flat totals: `ItemStack`'s tooltip
+        // reads only the item's own `ATTRIBUTE_MODIFIERS` component. Without this, `combo 10` still
+        // reads `1.6 攻击速度`.
+        EnchantAttributeToolTipHandler.register()
         registerCelestialReceivers()
         registerAttackCooldownReceiver()
         InfinitePowerLaserClient.register()
@@ -70,45 +89,19 @@ class SimpleTweaksClient : ClientModInitializer {
         // Build-identifying line. Every build that changes client behaviour must be distinguishable
         // from the previous one in the log, otherwise "the feature did not work" and "the client is
         // still running the old jar" look identical. (Phase-6 §16 records what that cost.)
+        //
+        // `v2.2.0` starts a **new build cycle**: the identifier was reset to `cleanup1` and the
+        // feature list was collapsed from the ~2 KB accumulation of 46 batches into a per-version
+        // summary. The list is not a changelog -- it only has to answer "which jar is this", and a
+        // 2 KB line is no easier to read than a 300-byte one. Reset it again at the next minor version.
         SimpleTweaks.LOGGER.info(
-            "{} client ready: damage indicator + /stconfig + /enchantinfo + bow enchantments " +
-                "+ celestial ring + enchant-table replace + celestial anti-resistance " +
-                "+ starfall world-floor fix + book enchantability + min-enchant top-up " +
-                "+ table power cap + book-is-a-book in getPossibleEntries " +
-                "+ infinite_power core/aura + dragon part unwrap + laser (bag dropped) " +
-                "+ yStartFactor multiplies entity height + debug logs off by default " +
-                "+ anvil cost cap actually applied " +
-                "+ KSP-generated enchantment definitions, first = fast_bow " +
-                "+ fast_bow colour + client draw-speed hook " +
-                "+ piercing_arrow/crit migrated to KSP + crit-damage priority split " +
-                "+ @ModEnchantment enums (category/type/color/slot) " +
-                "+ enchant index enumerates the live registry " +
-                "+ name colour derived from tier (EnchantmentNameColors deleted) " +
-                "+ villagers no longer trade mod enchantments " +
-                "+ KSP owns non_treasure/in_enchanting_table/tradeable " +
-                "+ @ModEnchantment attributes (prismatic_blessing migrated) " +
-                "+ @ModEnchantment.order + order-preserving handler merge + lang no longer generated " +
-                "+ @ModEnchantment.jsonEmit (build=cleanup15) " +
-                "+ batch 1: 25 empty-effects enchantments migrated " +
-                "+ batch 2: 25 damage enchantments migrated " +
-                "+ batches 3+4: attributes + jsonEmit carriers; ModEnchantmentKeys deleted (build=cleanup18) " +
-                "+ multishot volley applies fast_bow's draw boost + fast_bow relaxes the charge gate " +
-                "+ /simple_tweaks enchant (lang'd) + blessing_extension/curse_resistance effect sync " +
-                "+ clear_sight 30m night vision " +
-                "+ echo_shield soaks reflection without bouncing it " +
-                "+ all commands merged under /simple_tweaks + /fst alias " +
-                "+ [FST-*] log prefix + inert config switches deleted + event dispatch indexed " +
-                "+ multishot volley no longer capped by ammo, costs 1 arrow " +
-                "+ heavenly_punishment attack-speed suppression is no longer persisted " +
-                "+ all commands server-side (a client-registered root shadowed the server's children) " +
-                "+ golden_shield grants that actually land (max_absorption) " +
-                "+ frostbite / venom / chain_lightning + venom & chain damage types " +
-                "+ weight/damagePerLevel derived from the tier + enchantment damage tooltip line " +
-                "+ kill_aura waits for the attack charge and spends it (simulateCooldown) " +
-                "+ noHurtCam config " +
-                "+ kill_aura's spent charge reaches the client (S2C reset of lastAttackedTicks) " +
-                "+ reset_attack_cooldown is a singleton payload (PacketCodec.unit checks the value) " +
-                "(build=cleanup23)",
+            "{} client ready: 85 enchantments + 8 elemental conversions / affinities / reactions " +
+                "+ elemental mastery + mob levels, mod enchantments and mob elements with [Lv.N] tags " +
+                "+ per-element damage numbers (optional physical/elemental split) + kill_aura / " +
+                "infinite_power / starfall / celestial ring + every command under /simple_tweaks " +
+                "(alias /fst) + damage numbers report the health actually removed " +
+                "+ debug logs off by default " +
+                "(v2.2.0, build=cleanup1)",
             SimpleTweaks.NAME,
         )
     }
@@ -126,6 +119,18 @@ class SimpleTweaksClient : ClientModInitializer {
      * this client over a screen it does not have.
      */
     private fun registerScreenReceiver() {
+        // Mob level sync: store it for the name-tag / display-name mixins. No world state to touch, so no
+        // `execute` hop is needed -- a map write from the network thread is fine (`MobLevelSync` uses a
+        // ConcurrentHashMap for exactly this reason).
+        ClientPlayNetworking.registerGlobalReceiver(PacketMobLevel.ID) { payload, _ ->
+            MobLevelSync.put(payload.entityId, payload.level)
+            if (mobLevelPacketsLogged < MOB_LEVEL_PACKETS_LOGGED) {
+                mobLevelPacketsLogged++
+                FSTLog.log("MobLevel") {
+                    "outcome=level-synced, entityId=${payload.entityId}, level=${payload.level}"
+                }
+            }
+        }
         ClientPlayNetworking.registerGlobalReceiver(PacketOpenModScreen.ID) { payload, context ->
             context.client().execute {
                 val parent = context.client().currentScreen
@@ -169,6 +174,8 @@ class SimpleTweaksClient : ClientModInitializer {
 
         ClientPlayConnectionEvents.DISCONNECT.register { _, _ ->
             ClientManaPoolCache.clear()
+            // Entity ids are reused across sessions; a stale level would tag the wrong mob.
+            MobLevelSync.clear()
         }
     }
 
@@ -221,13 +228,13 @@ class SimpleTweaksClient : ClientModInitializer {
                 DamageIndicatorManager.addDamage(
                     entity,
                     payload.actualDamage,
-                    payload.originalDamage,
                     payload.isHeal,
-                    payload.isOverkill,
                     payload.isSelf,
                     payload.maxHealth,
                     payload.realMaxHealth,
                     payload.afterRealHealth,
+                    payload.elementOrdinal,
+                    payload.role,
                 )
 
                 if (!damagePacketLogged) {
@@ -235,11 +242,11 @@ class SimpleTweaksClient : ClientModInitializer {
                     FSTLog.log(
                         "DamageIndicator",
                         "packet=received, entity=${entity.type.name.string}, " +
-                            "actual=${payload.actualDamage}, original=${payload.originalDamage}, " +
-                            "isHeal=${payload.isHeal}, isOverkill=${payload.isOverkill}, " +
+                            "actual=${payload.actualDamage}, isHeal=${payload.isHeal}, " +
                             "isSelf=${payload.isSelf}, maxHealth=${payload.maxHealth}, " +
                             "realMaxHealth=${payload.realMaxHealth}, " +
-                            "afterRealHealth=${payload.afterRealHealth}, outcome=received",
+                            "afterRealHealth=${payload.afterRealHealth}, " +
+                            "element=${payload.elementOrdinal}, role=${payload.role}, outcome=received",
                     )
                 }
             }

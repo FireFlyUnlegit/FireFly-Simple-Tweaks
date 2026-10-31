@@ -98,6 +98,21 @@ annotation class ModEnchantment(
     val maxCostPerLevel: Int = 0,
 
     /**
+     * `exclusive_set` in the datapack JSON — the id of an enchantment **set** this enchantment may not
+     * be combined with. Empty (the default) emits no `exclusive_set` key at all.
+     *
+     * Written either with the leading `#` (`"#simple_tweaks:exclusive_set/elements"`, the canonical
+     * form) or without it; a namespaced id gets its `#` added when rendered, because vanilla's own sets
+     * are tags (`sharpness` uses `#minecraft:exclusive_set/damage`).
+     *
+     * ⚠️ **This processor is the only producer of the sets it names.** For
+     * `exclusive_set/elements` the tag's membership is derived from the declarations that reference it
+     * (see `ModEnchantmentProcessor.writeExclusiveSets`), so hand-writing a matching tag file would
+     * collide at the same jar path — the trap `AGENTS.md` §2 warns about for the other generated tags.
+     */
+    val exclusiveSet: String = "",
+
+    /**
      * Emits the standard `minecraft:damage` component — `linear { base = v, per_level_above_first = v }`,
      * i.e. exactly `+v` damage per level. Default (`DAMAGE_PER_LEVEL_FROM_CATEGORY`) or `0.0` emits no
      * damage component.
@@ -131,7 +146,7 @@ annotation class ModEnchantment(
 
     /**
      * Registration order. `GeneratedEnchantments.HANDLERS` is sorted by this, and since
-     * `ForgeEventBus` sorts by `EventPriority` with a **stable** sort, this is what decides dispatch
+     * `ForgeEventBus` sorts by the int `priority` with a **stable** sort, this is what decides dispatch
      * order among listeners that share a priority — i.e. it is *semantically load bearing*, not
      * cosmetic.
      *

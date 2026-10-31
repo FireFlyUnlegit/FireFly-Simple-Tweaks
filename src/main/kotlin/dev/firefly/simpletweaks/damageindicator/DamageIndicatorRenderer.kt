@@ -166,11 +166,15 @@ object DamageIndicatorRenderer {
                 alpha, -6f, matrix, showShadow,
                 TextRenderer.TextLayerType.SEE_THROUGH,
             )
-            drawLine(
-                textRenderer, consumers, number.getSecondLineText(), number.getSecondLineColor(),
-                alpha, 6f, matrix, showShadow,
-                TextRenderer.TextLayerType.SEE_THROUGH,
-            )
+            // Skipped for compact numbers (the elemental half of a split hit): it shows only the damage
+            // value, and a second line would collide with the physical number stacked above it.
+            if (number.hasSecondLine()) {
+                drawLine(
+                    textRenderer, consumers, number.getSecondLineText(), number.getSecondLineColor(),
+                    alpha, 6f, matrix, showShadow,
+                    TextRenderer.TextLayerType.SEE_THROUGH,
+                )
+            }
 
             matrices.pop()
 

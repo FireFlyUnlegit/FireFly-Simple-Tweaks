@@ -1,6 +1,8 @@
 package dev.firefly.simpletweaks.damageindicator
 
 import dev.firefly.simpletweaks.core.config.DamageIndicatorConfig
+import dev.firefly.simpletweaks.network.packets.PacketDamageIndicator
+import dev.firefly.simpletweaks.util.elements.ElementType
 import net.minecraft.entity.Entity
 
 /**
@@ -13,14 +15,19 @@ import net.minecraft.entity.Entity
  * | `entity.height` | `entity.height` (`Entity#getHeight`) |
  *
  * Nothing else changed: every formula below (rise easing, fade window, scale decay, colour constants,
- * sign handling, overkill rendering, the `%` clamping and the second line) is the original arithmetic.
+ * sign handling, the `%` clamping and the second line) is the original arithmetic.
  * In particular the deliberate quirks are preserved rather than "fixed":
  * <ul>
  *   <li>[getAlpha] starts fading at 60% of `duration` and can in principle divide by zero if
  *       `duration == fadeStart`, i.e. `duration == 0` — the config's lower bound is 10, so it cannot.</li>
- *   <li>`isOverkill` renders `original(actual)`, which reads oddly but is what 1.12.2 did.</li>
  *   <li>`formatFloat` drops the decimals for whole numbers, so `5.0` renders as `5`, not `5.00`.</li>
  * </ul>
+ *
+ * <p>**One 1.12.2 behaviour was dropped on purpose** (`build=cleanup47`): the `isOverkill`
+ * `original(actual)` rendering. `original` came from the damage seam and was therefore a *pre-clamp*
+ * figure, so a 150-damage proc on a 48 HP mob displayed `150(48)` and read as "I dealt 150". The number
+ * now always shows the health delta the player actually observes; see `PacketDamageIndicator` for the
+ * full argument.
  *
  * <p>[fixedX]/[fixedZ], [entityFeetY] and [entityHeight] are computed **once, at construction**, from
  * the entity's position at the moment the packet arrived — that is why a number stays where it was
@@ -30,18 +37,118 @@ import net.minecraft.entity.Entity
 data class DamageNumber(
     val entity: Entity,
     var actualDamage: Float,
-    var originalDamage: Float,
     val isHeal: Boolean = false,
-    val isOverkill: Boolean = false,
     val isSelf: Boolean = false,
     val maxHealth: Float = 0f,
     val realMaxHealth: Float = 0f,
     val afterRealHealth: Float = 0f,
+    /**
+     * Element that caused this number (`ElementType.NONE_ORDINAL` = unknown / physical).
+     *
+     * Stored as the ordinal the packet carries and resolved in [element] on demand; keeping the enum out
+     * of the constructor signature means the client does not have to touch the element registry to
+     * build a number.
+     */
+    val elementOrdinal: Int = ElementType.NONE_ORDINAL,
+    /**
+     * Which slot of a hit this number is — `PacketDamageIndicator.ROLE_SINGLE` / `ROLE_PHYSICAL` /
+     * `ROLE_ELEMENTAL`.
+     *
+     * It decides **both** the colour context (via [elementOrdinal]) and the **placement** in the XZ
+     * region around the entity: a split hit sends two packets, and they must not land on the same spot.
+     */
+    val role: Int = PacketDamageIndicator.ROLE_SINGLE,
 ) {
     var age: Int = 0
 
-    val fixedX: Double = entity.x + (Math.random() - 0.5) * 0.6
-    val fixedZ: Double = entity.z + (Math.random() - 0.5) * 0.6
+    private companion object {
+        /**
+         * Radius range for each half of a split hit, in blocks.
+         *
+         * **Random per number, not fixed**, because a fixed radius made every hit on every mob land in
+         * exactly the same pair of spots — after a few hits it reads as two static anchors rather than as
+         * damage numbers flying out of the target.
+         *
+         * The range is what keeps the pair apart: the halves sit in **opposite half-planes** (their
+         * angles differ by π), so their separation is `r1 + r2` along the line between them — at least
+         * `2 × MIN = 0.36` blocks even when both draw the smallest radius. A single shared random radius
+         * would not have that property (it would still work, but the pair would always be symmetric).
+         *
+         * `cleanup47`: halved (`0.40..0.85` → `0.18..0.42`) on the author's report that the pair flew
+         * too far out from the mob it belonged to. The relationship above is what still makes the halves
+         * readable at that distance: they never overlap, they just stay close to the hitbox.
+         */
+        const val SPLIT_RADIUS_MIN = 0.18
+        const val SPLIT_RADIUS_MAX = 0.42
+
+        /**
+         * Max angular jitter (± this, in radians) added to each half's direction.
+         *
+         * `0.35 rad ≈ 20°`. Without it the pair is always exactly diametrically opposed, which looks
+         * mechanical; with it, each hit still keeps the halves in opposite half-planes — the worst-case
+         * angle between them is `π − 0.7 ≈ 2.44 rad` (140°), so they can never swap sides and collide.
+         */
+        const val SPLIT_ANGLE_JITTER = 0.35
+
+        /**
+         * Irrational multiplier that turns an entity id into a well-spread base angle.
+         *
+         * `id * φ mod 1` is the classic low-discrepancy sequence: consecutive ids land far apart on the
+         * circle, so neighbouring mobs do not all get their pair pointing the same way (which `id * 0.1`
+         * would do). Deterministic on purpose — the two halves arrive in two separate packets and must
+         * independently agree on which **line** the pair lies on; the randomness is layered on top
+         * (radius and jitter), where the two sides do not need to agree.
+         */
+        const val GOLDEN_RATIO = 0.6180339887498949
+    }
+
+    /**
+     * Angle of this number's offset around the entity centre, in radians.
+     *
+     * ⚠️ Must be declared **before** [fixedX] / [fixedZ]: they read it while initialising, and in Kotlin
+     * a property declared later is still at its default (`0.0`) at that moment. Ordering it after them
+     * silently put every split number on the +X axis instead of on a per-entity random one.
+     *
+     * Derived deterministically from the entity id so the two packets of a split hit — decoded
+     * independently on the client — agree on where the radius points. The halves then take opposite ends
+     * of it, which is what guarantees the pair is separated without ever transmitting a position.
+     */
+    private val spreadAngle: Double = ((entity.id * GOLDEN_RATIO) % 1.0) * 2.0 * Math.PI +
+        if (role == PacketDamageIndicator.ROLE_ELEMENTAL) Math.PI else 0.0
+
+    /**
+     * Random per-number direction jitter and radius for a split half.
+     *
+     * Rolled once at construction (these are `val`), so the position is fixed for the lifetime of the
+     * number — the same "do not follow the entity" rule as [fixedX]. The two halves roll **independently**,
+     * which is fine: they only have to agree on the base line, and [SPLIT_ANGLE_JITTER] keeps even the
+     * worst case on opposite sides.
+     */
+    private val spreadJitter: Double = (Math.random() - 0.5) * 2.0 * SPLIT_ANGLE_JITTER
+    private val spreadRadius: Double =
+        SPLIT_RADIUS_MIN + Math.random() * (SPLIT_RADIUS_MAX - SPLIT_RADIUS_MIN)
+
+    /**
+     * Fixed XZ placement: the entity's **centre** plus an offset inside a small disc, sampled **once** at
+     * construction.
+     *
+     * These are `val` on purpose — the number must **not** follow the entity (that is the point of the
+     * feature). Only Y moves afterwards, and only along the rise.
+     *
+     * `ROLE_SINGLE` keeps the pre-split behaviour exactly (`±0.3` uniform on each axis), so this feature
+     * is invisible while the split option is off. `ROLE_PHYSICAL` / `ROLE_ELEMENTAL` sit at [SPLIT_RADIUS]
+     * on opposite ends of [spreadAngle].
+     */
+    val fixedX: Double = entity.x + if (role == PacketDamageIndicator.ROLE_SINGLE) {
+        Math.random() * 0.6 - 0.3
+    } else {
+        Math.cos(spreadAngle + spreadJitter) * spreadRadius
+    }
+    val fixedZ: Double = entity.z + if (role == PacketDamageIndicator.ROLE_SINGLE) {
+        Math.random() * 0.6 - 0.3
+    } else {
+        Math.sin(spreadAngle + spreadJitter) * spreadRadius
+    }
     /**
      * The entity's feet Y and its height, sampled once at construction.
      *
@@ -92,8 +199,27 @@ data class DamageNumber(
         return base * selfScale * (1.0f - 0.15f * (age / DamageIndicatorConfig.duration.toFloat()))
     }
 
+    /**
+     * The element behind this number, or `null` when unknown / physical.
+     *
+     * Resolved lazily: the constructor only stores the ordinal so that constructing a number never
+     * touches the element enum (and so a stale ordinal degrades to `null` rather than throwing).
+     */
+    private val element: ElementType? get() = ElementType.ofOrdinal(elementOrdinal)
+
+    /**
+     * Colour of the main line.
+     *
+     * Heal always wins (`0x00FF00`) — a heal's "element" is meaningless, and the existing green is the
+     * only signal that distinguishes healing from damage at a glance.
+     *
+     * For damage, the element's colour is used when there is one. `PHYSICAL` is the indicator's original
+     * red, so an ordinary sword hit is byte-identical to the pre-`cleanup30` behaviour; the eight
+     * elemental colours only appear once a hit actually is elemental.
+     */
     fun getColor(): Int {
-        return if (isHeal) 0x00FF00 else 0xFF3333
+        if (isHeal) return 0x00FF00
+        return element?.color ?: 0xFF3333
     }
 
     private fun formatFloat(value: Float): String {
@@ -112,37 +238,32 @@ data class DamageNumber(
         }
     }
 
+    /**
+     * The big number: **always** the health actually removed (or restored).
+     *
+     * `cleanup47` deleted the 1.12.2 "overkill" variant, which rendered `original(actual)` where
+     * `original` was a pre-clamp figure from the damage seam. That figure could exceed the target's
+     * remaining health by a factor of three (150.1 recorded against a 48 HP mob), so the display told
+     * the player they had dealt 150 while 48 came off the bar. There is now exactly one source for the
+     * value — the end-of-tick health difference — and it is by construction something the player just
+     * watched happen.
+     */
     fun getText(): String {
         val percentageMode = DamageIndicatorConfig.percentageMode
         val sign = getSign()
 
-        return if (isHeal) {
-            if (percentageMode) {
-                val percent = (actualDamage / realMaxHealth * 100).coerceAtMost(100f)
-                "$sign${formatFloat(percent)}%"
-            } else {
-                "$sign${formatFloat(actualDamage)}"
-            }
-        } else if (isOverkill) {
-            if (percentageMode) {
-                val actualPercent = (actualDamage / realMaxHealth * 100).coerceAtMost(100f)
-                val originalPercent = (originalDamage / realMaxHealth * 100).coerceAtMost(100f)
-                "$sign${formatFloat(originalPercent)}%(${formatFloat(actualPercent)}%)"
-            } else {
-                "$sign${formatFloat(originalDamage)}(${formatFloat(actualDamage)})"
-            }
+        return if (percentageMode) {
+            val percent = (actualDamage / realMaxHealth * 100).coerceAtMost(100f)
+            "$sign${formatFloat(percent)}%"
         } else {
-            if (percentageMode) {
-                val percent = (actualDamage / realMaxHealth * 100).coerceAtMost(100f)
-                "$sign${formatFloat(percent)}%"
-            } else {
-                "$sign${formatFloat(actualDamage)}"
-            }
+            "$sign${formatFloat(actualDamage)}"
         }
     }
 
-    fun getSecondLineText(): String {
-        val percentageMode = DamageIndicatorConfig.percentageMode
+    /** `false` for the elemental half of a split hit, which shows only the damage value. */
+    fun hasSecondLine(): Boolean = role != PacketDamageIndicator.ROLE_ELEMENTAL
+
+    fun getSecondLineText(): String {        val percentageMode = DamageIndicatorConfig.percentageMode
         val healthAfter = afterRealHealth.coerceAtLeast(0f)
         val maxHp = realMaxHealth.coerceAtLeast(1f)
 
@@ -154,7 +275,25 @@ data class DamageNumber(
         }
     }
 
+    /**
+     * Colour of the second line (health after / max).
+     *
+     * A **lightened** variant of the main line's colour rather than its own palette, so the two lines
+     * read as one number with a subordinate detail. `+25 %` toward white per channel keeps the hue while
+     * guaranteeing the second line is never harder to read than the first.
+     */
     fun getSecondLineColor(): Int {
-        return if (isHeal) 0x66FF66 else 0xFF6666
+        if (isHeal) return 0x66FF66
+        val base = element?.color ?: 0xFF6666
+        return lighten(base, 0.25f)
+    }
+
+    /** Moves each RGB channel of [color] [amount] of the way toward white. */
+    private fun lighten(color: Int, amount: Float): Int {
+        fun channel(shift: Int): Int {
+            val c = (color shr shift) and 0xFF
+            return (c + (255 - c) * amount).toInt().coerceIn(0, 255)
+        }
+        return (channel(16) shl 16) or (channel(8) shl 8) or channel(0)
     }
 }

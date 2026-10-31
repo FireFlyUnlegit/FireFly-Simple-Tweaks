@@ -1,0 +1,8 @@
+{
+  "replace": false,
+  "values": [
+    "minecraft:wither",
+    "minecraft:sonic_boom",
+    "simple_tweaks:element_dark"
+  ]
+}

@@ -4,6 +4,7 @@ import dev.firefly.simpletweaks.SimpleTweaks
 import dev.firefly.simpletweaks.compat.ForgeEventBus
 import dev.firefly.simpletweaks.enchantments.EnchantmentMeta
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
+import dev.firefly.simpletweaks.enchantments.handlers.element.ElementEnchantments
 import dev.firefly.simpletweaks.enchantments.handlers.mythic.infinitepower.FlightHandler
 import dev.firefly.simpletweaks.enchantments.handlers.mythic.infinitepower.ForgeHandler
 import dev.firefly.simpletweaks.enchantments.handlers.mythic.infinitepower.SoulBindHandler
@@ -29,7 +30,7 @@ object EnchantmentManager {
      * Handlers to register, as `order to handler`.
      *
      * The numbers are **the original 1.12.2 registration order** and they are load bearing, not
-     * decorative: `ForgeEventBus` sorts by `EventPriority` with a stable sort, so within one priority the
+     * decorative: `ForgeEventBus` sorts by the int `priority` with a stable sort, so within one priority the
      * dispatch order *is* registration order, and a handler that changes place can silently stop seeing
      * state a sibling sets. They are written out explicitly rather than implied by list position so that
      * deleting a migrated entry cannot shift every entry after it.
@@ -112,8 +113,8 @@ object EnchantmentManager {
         // --- legendary ---
         // ⚠️ History: the numbers below are the 1.12.2 order (Crit 96 / CritDamage 97 / DoubleCrit 100),
         // because same-priority listeners dispatch in registration order and the crit chain depended on
-        // CritDamage running after Crit. That coupling is now expressed by `EventPriority` instead --
-        // Crit is the only `HIGHEST` listener on `CriticalHitEvent`, CritDamage runs at `HIGH` -- which is
+        // CritDamage running after Crit. That coupling is now expressed by the int `priority` instead --
+        // Crit is the only `priority = -100` (`HIGHEST`) listener on `CriticalHitEvent`, CritDamage runs at `HIGH` -- which is
         // what let `EnchantCritHandler` become a `@ModEnchantment` declaration carrying its number.
         // Keep the distinct priorities; do not "tidy" them back to the same value.
         // --- mythic ---
@@ -151,11 +152,21 @@ object EnchantmentManager {
         // ORDERS.zip(HANDLERS), not the other way round: the result must be `Pair<Int, Listenable>` to
         // match `handlerList` above, or the two lists have no common element type.
         val declared = GeneratedEnchantments.HANDLER_ORDERS.zip(GeneratedEnchantments.HANDLERS)
-        val all = (handlerList + declared).sortedBy { it.first }.map { it.second }
+        // Declarations that carry no listeners must not go on the bus: `ForgeEventBus.register` logs
+        // `No @SubscribeEvent methods found on …` for each one, and the sixteen element enchantments
+        // are all pure declarations (their logic lives in `util.elements.ElementCombat`). Registering
+        // them would print sixteen permanent warnings on every startup and bury the ones that matter.
+        // Their keys, data and `KEYS` entries still exist — KSP emitted those already; only the *bus*
+        // registration is skipped.
+        val silent = ElementEnchantments.ALL.toSet()
+        val busBound = declared.filter { it.second !in silent }
+        val skipped = declared.size - busBound.size
+        val all = (handlerList + busBound).sortedBy { it.first }.map { it.second }
         all.forEach { it.registerEvents() }
         SimpleTweaks.LOGGER.info(
-            "Registered {} enchantment handler(s) ({} hand-listed + {} @ModEnchantment)",
-            all.size, handlerList.size, GeneratedEnchantments.HANDLERS.size,
+            "Registered {} enchantment handler(s) ({} hand-listed + {} @ModEnchantment, " +
+                "{} static declaration(s) kept off the bus)",
+            all.size, handlerList.size, busBound.size, skipped,
         )
     }
 

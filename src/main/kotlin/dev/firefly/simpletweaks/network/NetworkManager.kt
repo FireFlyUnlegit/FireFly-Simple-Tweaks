@@ -5,6 +5,7 @@ import dev.firefly.simpletweaks.network.packets.PacketCelestialRing
 import dev.firefly.simpletweaks.network.packets.PacketDamageIndicator
 import dev.firefly.simpletweaks.network.packets.PacketLaser
 import dev.firefly.simpletweaks.network.packets.PacketManaPoolSync
+import dev.firefly.simpletweaks.network.packets.PacketMobLevel
 import dev.firefly.simpletweaks.network.packets.PacketOpenModScreen
 import dev.firefly.simpletweaks.network.packets.PacketResetAttackCooldown
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry
@@ -73,6 +74,9 @@ object NetworkManager {
             PacketResetAttackCooldown.ID,
             PacketResetAttackCooldown.CODEC,
         )
+        // Mob levels: the level lives in server-side NBT, so the client cannot derive it. Sent once per
+        // player when tracking starts -- see `PacketMobLevel` and `MobLevelSync`.
+        PayloadTypeRegistry.playS2C().register(PacketMobLevel.ID, PacketMobLevel.CODEC)
         // InfinitePower laser — the project's FIRST C2S payload. See docs/infinite-power-deferred.md §9.
         PayloadTypeRegistry.playC2S().register(PacketLaser.ID, PacketLaser.CODEC)
     }

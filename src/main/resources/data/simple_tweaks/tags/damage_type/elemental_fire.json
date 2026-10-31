@@ -1,0 +1,13 @@
+{
+  "replace": false,
+  "values": [
+    "minecraft:in_fire",
+    "minecraft:on_fire",
+    "minecraft:lava",
+    "minecraft:hot_floor",
+    "minecraft:campfire",
+    "minecraft:unattributed_fireball",
+    "minecraft:fireball",
+    "simple_tweaks:element_fire"
+  ]
+}

@@ -2,7 +2,6 @@ package dev.firefly.simpletweaks.enchantments.handlers.legendary
 
 import dev.firefly.simpletweaks.compat.FSTLog
 import dev.firefly.simpletweaks.compat.event.ArrowLooseEvent
-import dev.firefly.simpletweaks.compat.event.EventPriority
 import dev.firefly.simpletweaks.compat.event.LivingHurtEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.core.Listenable
@@ -202,7 +201,7 @@ object EnchantMultishotHandler : Listenable {
         }
     }
 
-    @SubscribeEvent(priority = EventPriority.LOW)
+    @SubscribeEvent(priority = 50)
     fun onHurt(e: LivingHurtEvent) {
         val arrow = e.source.source as? PersistentProjectileEntity ?: return
         if (!(arrow as SimpleTweaksArrow).`simpletweaks$isMultishotArrow`()) return

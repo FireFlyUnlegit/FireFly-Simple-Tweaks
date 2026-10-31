@@ -1,6 +1,6 @@
 package dev.firefly.simpletweaks.damageindicator
 
-import dev.firefly.simpletweaks.compat.event.EventPriority
+import dev.firefly.simpletweaks.compat.FSTLog
 import dev.firefly.simpletweaks.compat.event.LivingDamageEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.core.Listenable
@@ -8,6 +8,8 @@ import dev.firefly.simpletweaks.core.config.DamageIndicatorConfig
 import dev.firefly.simpletweaks.core.registerEvents
 import dev.firefly.simpletweaks.network.NetworkManager
 import dev.firefly.simpletweaks.network.packets.PacketDamageIndicator
+import dev.firefly.simpletweaks.util.elements.ElementCombat
+import dev.firefly.simpletweaks.util.elements.ElementType
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents
 import net.minecraft.entity.LivingEntity
 import net.minecraft.server.MinecraftServer
@@ -21,17 +23,27 @@ import kotlin.math.abs
  * <h2>Design (1.12.2's, preserved)</h2>
  * This is **not** an event-driven "report the damage" system. It is a **health-differ**:
  * <ol>
- *   <li>on [LivingDamageEvent] it remembers the damage value and a timestamp per entity UUID;</li>
  *   <li>at the end of every server tick it walks each world's players, gathers the [LivingEntity]s
  *       within `DamageIndicatorConfig.maxDistance` and compares each entity's
  *       `health + absorptionAmount` against the value it saw last tick;</li>
  *   <li>a difference bigger than `0.001` becomes a number — positive is a heal, negative is damage —
- *       and is broadcast to every player within 64 blocks.</li>
+ *       and is broadcast to every player within 64 blocks. A delta **below
+ *       `DamageIndicatorConfig.minHealthChange`** (non-zero only when the user raised it) is skipped
+ *       entirely: no packet (`build=cleanup26`).</li>
  * </ol>
- * The step-1 value is only used as the **"original"** number (the pre-clamp figure) when it arrived
- * within 200 ms, which is how "overkill" can be rendered as `original(actual)`.
+ * The measured delta **is** the whole number. Nothing recorded on a damage event reaches the client any
+ * more (`build=cleanup47`): the health difference is taken after every handler, absorption and clamp has
+ * run, so the value on screen is exactly what the health bar did. See `PacketDamageIndicator` for why the
+ * 1.12.2 "original damage" figure was deleted instead of fixed — it was a pre-clamp number and could be
+ * three times the health the target actually had left.
  *
- * <h2>Why the step-1 seam is [LivingDamageEvent] and not [dev.firefly.simpletweaks.compat.event.LivingHurtEvent]</h2>
+ * <h2>Why [LivingDamageEvent] is still subscribed</h2>
+ * Only for the optional physical/elemental split (`DamageIndicatorConfig.splitElemental`): the health
+ * differ cannot tell a converted hit's two halves apart, because it only ever sees the total. The event
+ * is used as a *composition* record (which element contributed how much this tick), never as the
+ * displayed value.
+ *
+ * <h2>Why that seam is [LivingDamageEvent] and not [dev.firefly.simpletweaks.compat.event.LivingHurtEvent]</h2>
  * 1.12.2 hooked Forge's `LivingHurtEvent`. In Forge 1.12.2 that fires **after**
  * `applyArmorCalculations` and `applyPotionDamageCalculations` and **before** absorption is
  * subtracted. The port's two candidate seams do not sit in the same place:
@@ -39,9 +51,9 @@ import kotlin.math.abs
  *   compat.event.LivingHurtEvent   -> Entity#damage HEAD          = BEFORE armor   (not equivalent)
  *   compat.event.LivingDamageEvent -> LivingEntity#applyDamage    = after armor+resistance, before absorption
  * </pre>
- * So [LivingDamageEvent] is the positionally correct analogue, and the number this handler stores
- * matches what 1.12.2 stored. Using `LivingHurtEvent` here would have silently inflated every
- * "original" figure by the target's armor factor — the same class of mistake recorded in
+ * So [LivingDamageEvent] is the positionally correct analogue, and it is the seam that makes the split
+ * components comparable with each other (both are post-armour). Using `LivingHurtEvent` here would have
+ * silently inflated every component by the target's armor factor — the same class of mistake recorded in
  * `docs/phase4-mixin-notes.md`.
  *
  * <h2>Deliberate differences from 1.12.2</h2>
@@ -58,8 +70,12 @@ import kotlin.math.abs
 object DamageIndicatorHandler : Listenable {
 
     private val lastRealHealth = mutableMapOf<UUID, Float>()
-    private val lastOriginalDamage = mutableMapOf<UUID, Float>()
-    private val lastDamageTime = mutableMapOf<UUID, Long>()
+
+    /**
+     * Entities currently below `minHealthChange`, so the suppression probe logs on **entry** only.
+     * Purely a logging concern — the filtering itself is stateless.
+     */
+    private val suppressedEntities = HashSet<UUID>()
 
     override fun init() {
         ServerTickEvents.END_SERVER_TICK.register { server -> onServerTickEnd(server) }
@@ -68,10 +84,10 @@ object DamageIndicatorHandler : Listenable {
     /**
      * 1.12.2 `onLivingHurt`, retargeted at [LivingDamageEvent] — see the class KDoc.
      *
-     * `LOWEST` priority is kept because 1.12.2 used it: other handlers get to modify the damage
-     * first, so the recorded "original" is the value after every other enchantment's adjustment.
+     * `priority = 100` (`LOWEST`) is kept because 1.12.2 used it: other handlers get to modify the damage
+     * first, so the composition recorded here is the value after every other enchantment's adjustment.
      */
-    @SubscribeEvent(priority = EventPriority.LOWEST)
+    @SubscribeEvent(priority = 100)
     fun onLivingDamage(event: LivingDamageEvent) {
         if (!DamageIndicatorConfig.enabled) return
         val target = event.entityLiving
@@ -80,16 +96,45 @@ object DamageIndicatorHandler : Listenable {
         if (target.world.isClient) return
 
         val uuid = target.uuid
-        lastOriginalDamage[uuid] = event.amount
-        lastDamageTime[uuid] = System.currentTimeMillis()
+
+        // Composition for the split display. `LivingDamageEvent` fires once per `applyDamage`, i.e. once
+        // per *damage instance*, so a converted hit shows up here as one physical instance and one
+        // elemental instance and the two are summed independently. That is the whole reason the split is
+        // possible at all: the health differ below only ever sees the total.
+        if (DamageIndicatorConfig.splitElemental) {
+            val bucket = composition.getOrPut(uuid) { Composition() }
+            val element = ElementType.of(event.source)
+            if (element == ElementType.PHYSICAL) {
+                bucket.physical += event.amount
+            } else {
+                bucket.elemental += event.amount
+                bucket.elementOrdinal = element.ordinal
+            }
+        }
     }
+
+    /** One entity's per-tick damage broken down by element. */
+    private class Composition {
+        var physical: Float = 0f
+        var elemental: Float = 0f
+        var elementOrdinal: Int = ElementType.NONE_ORDINAL
+    }
+
+    /**
+     * Per-entity, per-tick composition buckets.
+     *
+     * Entries are removed when consumed and the whole map is cleared each tick when the option is off,
+     * so it cannot grow: its size is bounded by "entities damaged this tick".
+     */
+    private val composition = HashMap<UUID, Composition>()
 
     /** 1.12.2 `onServerTick` (`Phase.END` only). */
     private fun onServerTickEnd(server: MinecraftServer) {
         if (!DamageIndicatorConfig.enabled) return
 
         val maxDist = DamageIndicatorConfig.maxDistance.toDouble()
-        val now = System.currentTimeMillis()
+        // Read once per tick; 0 means "no filtering" (the pre-cleanup26 behaviour).
+        val minChange = DamageIndicatorConfig.minHealthChange.toFloat()
 
         val aliveUUIDs = HashSet<UUID>()
         val processedThisTick = HashSet<UUID>()
@@ -121,37 +166,106 @@ object DamageIndicatorHandler : Listenable {
                             val isHeal = diff > 0
                             val amount = abs(diff)
 
-                            val originalDamage = lastOriginalDamage[uuid]
-                            val damageTime = lastDamageTime[uuid]
-                            val recentDamage = damageTime != null && now - damageTime < 200
-
-                            val finalOriginalDamage =
-                                if (recentDamage && originalDamage != null) originalDamage else amount
-
-                            val actualDamage =
-                                if (isHeal) amount else amount.coerceAtMost(lastRealHealthValue)
-                            val isOverkill = !isHeal && finalOriginalDamage > lastRealHealthValue
-
-                            val afterRealHealth = if (isHeal) {
-                                (lastRealHealthValue + actualDamage).coerceAtMost(currentRealMaxHealth)
+                            if (minChange > 0f && amount < minChange) {
+                                // Below the configured floor (`DamageIndicatorConfig.minHealthChange`):
+                                // no number at all.
+                                // Probe on the *transition* only: a suppressed delta repeats every tick
+                                // while poison/regen ticks away, and the log must not flood (AGENTS §4.6).
+                                if (suppressedEntities.add(uuid)) {
+                                    FSTLog.log("DamageIndicator") {
+                                        "outcome=below-threshold, diff=${"%.3f".format(diff)}, " +
+                                            "amount=${"%.3f".format(amount)}, min=$minChange"
+                                    }
+                                }
                             } else {
-                                (lastRealHealthValue - actualDamage).coerceAtLeast(0f)
-                            }
+                                suppressedEntities.remove(uuid)
 
-                            sendToNearbyPlayers(
-                                entity,
-                                actualDamage,
-                                finalOriginalDamage,
-                                isHeal,
-                                isOverkill,
-                                entity.maxHealth,
-                                currentRealMaxHealth,
-                                afterRealHealth,
-                            )
+                                // `cleanup47`: the number is the health that actually moved, and nothing
+                                // else. There used to be an "original" figure recorded on the damage seam
+                                // and rendered as `original(actual)` when it exceeded the remaining health;
+                                // it was a *pre-clamp* value, so a 150-damage proc on a 48 HP mob read as
+                                // "150" while the bar fell by 48. See `PacketDamageIndicator` for the full
+                                // argument. `actualDamage` is capped at the pre-hit health because that is
+                                // the most a health bar can lose.
+                                val actualDamage =
+                                    if (isHeal) amount else amount.coerceAtMost(lastRealHealthValue)
 
-                            if (recentDamage) {
-                                lastOriginalDamage.remove(uuid)
-                                lastDamageTime.remove(uuid)
+                                val afterRealHealth = if (isHeal) {
+                                    (lastRealHealthValue + actualDamage).coerceAtMost(currentRealMaxHealth)
+                                } else {
+                                    (lastRealHealthValue - actualDamage).coerceAtLeast(0f)
+                                }
+
+                                // Element of whatever last hit this entity, so the number can be coloured
+                                // per element. This handler is a health differ and cannot know; the
+                                // element engine records it on the damage seam. A heal has no element.
+                                val elementOrdinal =
+                                    if (isHeal) ElementType.NONE_ORDINAL
+                                    else ElementCombat.lastElementOrdinal(entity)
+
+                                // Split display: emit the physical and elemental halves as their own
+                                // numbers. Only for damage (a heal has no components) and only when the
+                                // accumulated composition actually covers this delta — otherwise fall
+                                // through to the single merged number, which is what the health differ
+                                // is good at.
+                                val split = if (isHeal) null else composition.remove(uuid)
+                                if (split != null && (split.physical > 0.001f || split.elemental > 0.001f)) {
+                                    // The components come from the damage seam, i.e. they are *pre-clamp*
+                                    // and can sum to more than the target had left; the health differ is
+                                    // the only part of this handler that knows what the player actually
+                                    // watched happen. So when the two disagree the observed delta wins and
+                                    // both halves are scaled by the same factor -- the ratio between them
+                                    // (the whole point of the split) survives, the total stops lying
+                                    // (`cleanup47`, same reasoning as the deleted `originalDamage`).
+                                    val componentTotal = split.physical + split.elemental
+                                    val componentScale = if (componentTotal > actualDamage + 0.001f) {
+                                        actualDamage / componentTotal
+                                    } else {
+                                        1f
+                                    }
+                                    val physical = split.physical * componentScale
+                                    val elemental = split.elemental * componentScale
+
+                                    // `minHealthChange` is applied per component here, so a tiny
+                                    // elemental tick can be hidden while the physical part still shows.
+                                    if (physical > 0.001f && physical >= minChange) {
+                                        sendToNearbyPlayers(
+                                            entity,
+                                            physical,
+                                            false,
+                                            entity.maxHealth,
+                                            currentRealMaxHealth,
+                                            afterRealHealth,
+                                            ElementType.PHYSICAL.ordinal,
+                                            PacketDamageIndicator.ROLE_PHYSICAL,
+                                        )
+                                    }
+                                    if (elemental > 0.001f && elemental >= minChange) {
+                                        sendToNearbyPlayers(
+                                            entity,
+                                            elemental,
+                                            false,
+                                            entity.maxHealth,
+                                            currentRealMaxHealth,
+                                            afterRealHealth,
+                                            split.elementOrdinal,
+                                            // Elemental half: opposite side of the same XZ radius,
+                                            // and no second line (see DamageNumber).
+                                            PacketDamageIndicator.ROLE_ELEMENTAL,
+                                        )
+                                    }
+                                } else {
+                                    sendToNearbyPlayers(
+                                        entity,
+                                        actualDamage,
+                                        isHeal,
+                                        entity.maxHealth,
+                                        currentRealMaxHealth,
+                                        afterRealHealth,
+                                        elementOrdinal,
+                                        PacketDamageIndicator.ROLE_SINGLE,
+                                    )
+                                }
                             }
                         }
                     }
@@ -164,20 +278,26 @@ object DamageIndicatorHandler : Listenable {
         // Drop entries for entities that are no longer alive/nearby, otherwise the maps grow without
         // bound over a long session.
         lastRealHealth.keys.removeAll { it !in aliveUUIDs }
-        lastOriginalDamage.keys.removeAll { it !in aliveUUIDs }
-        lastDamageTime.keys.removeAll { it !in aliveUUIDs }
+
+        // Composition is per-tick state. When the split option is off nothing consumes it, so clearing
+        // here is what keeps it from growing; when it is on, anything left belongs to an entity that
+        // took damage but produced no visible delta (already at 0 HP, or outside render range) and is
+        // equally stale by next tick.
+        composition.keys.removeAll { it !in aliveUUIDs }
+        if (!DamageIndicatorConfig.splitElemental) composition.clear()
+        suppressedEntities.removeAll { it !in aliveUUIDs }
     }
 
     /** 1.12.2 `sendToNearbyPlayers` — everyone within 64 blocks, including the target itself. */
     private fun sendToNearbyPlayers(
         target: LivingEntity,
         actualDamage: Float,
-        originalDamage: Float,
         isHeal: Boolean,
-        isOverkill: Boolean,
         maxHealth: Float,
         realMaxHealth: Float,
         afterRealHealth: Float,
+        elementOrdinal: Int,
+        role: Int,
     ) {
         val players = target.world.getNonSpectatingEntities(
             ServerPlayerEntity::class.java,
@@ -187,13 +307,13 @@ object DamageIndicatorHandler : Listenable {
             val packet = PacketDamageIndicator(
                 target.id,
                 actualDamage,
-                originalDamage,
                 isHeal,
-                isOverkill,
                 player === target,
                 maxHealth,
                 realMaxHealth,
                 afterRealHealth,
+                elementOrdinal,
+                role,
             )
             NetworkManager.sendToClient(packet, player)
         }

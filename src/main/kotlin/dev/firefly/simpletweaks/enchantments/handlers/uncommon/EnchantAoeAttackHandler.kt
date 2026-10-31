@@ -1,7 +1,6 @@
 package dev.firefly.simpletweaks.enchantments.handlers.uncommon
 
 import dev.firefly.simpletweaks.compat.FSTLog
-import dev.firefly.simpletweaks.compat.event.EventPriority
 import dev.firefly.simpletweaks.compat.event.LivingHurtEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.invalid
@@ -25,7 +24,7 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
  * | 1.12.2                                       | 1.21.1                                                          |
  * |----------------------------------------------|-----------------------------------------------------------------|
  * | `net.minecraftforge...LivingHurtEvent`       | `compat.event.LivingHurtEvent`                                   |
- * | `net.minecraftforge...EventPriority`         | `compat.event.EventPriority` (annotation keeps `priority`)       |
+ * | `net.minecraftforge...EventPriority`         | `compat.event.EventPriority` (annotation now carries an int `priority`)       |
  * | `EntityLivingBase` / `EntityPlayer`          | `LivingEntity` / `PlayerEntity`                                  |
  * | `e.source.trueSource`                        | `e.source.attacker` (method_5529)                                |
  * | `attacker.heldItemMainhand`                  | `attacker.mainHandStack` (method_6047)                           |
@@ -65,7 +64,7 @@ object EnchantAoeAttackHandler : Listenable {
 
     private val inAoe = ThreadLocal.withInitial { false }
 
-    @SubscribeEvent(priority = EventPriority.LOWEST)
+    @SubscribeEvent(priority = 100)
     fun onLivingHurt(e: LivingHurtEvent) {
         if (inAoe.get()) return
         if (e.invalid) return
