@@ -1,10 +1,21 @@
 # Builds the mod on every push and pull request, and runs the same gate a local build runs.
 #
-# `./gradlew build` already depends on `:runTest` (see gradle/post-build-tests.gradle), so this file
+# `./gradlew build` depends on `:runTest` (see gradle/post-build-tests.gradle), so this file
 # deliberately does NOT list the individual checks: one command is the single source of truth for
 # "what a valid build is", and it stays honest because a local build fails exactly the same way.
 #
 # Nothing here needs a Minecraft account or a launcher: the mod is compiled and the jar is inspected.
+#
+# ⚠️ History worth keeping, because both bugs below were invisible on Windows and cost a red run each:
+#
+#   1. `gradlew` (the shell script) had `commands -v xargs` instead of `command -v xargs`, so it
+#      died with "xargs is not available" before starting Java. Windows never runs that script
+#      (`gradlew.bat` is used instead), so it went unnoticed. The wrapper is now regenerated from a
+#      pristine Gradle 8.11.1 distribution (`gradle wrapper --gradle-version 8.11.1 ...`), and the
+#      `./gradlew --version` step below exists to fail loudly if it ever regresses.
+#   2. The committed `distributionUrl` is a China-only mirror (mirrors.cloud.tencent.com), which a
+#      GitHub runner cannot reach. Only the host is rewritten to services.gradle.org; the version
+#      stays in gradle-wrapper.properties so CI cannot drift from what a developer runs.
 
 name: build
 
@@ -35,7 +46,8 @@ jobs:
           distribution: temurin
           java-version: '21'
 
-      # Caches the Gradle user home (including Loom's Minecraft/mappings cache) between runs.
+      # Caches the Gradle user home: the wrapper's downloaded distribution AND Loom's Minecraft /
+      # mappings cache both live there, which is what makes the second run fast.
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
@@ -43,19 +55,14 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x ./gradlew
 
-      # The committed wrapper URL is a **China-only mirror** (mirrors.cloud.tencent.com), which the
-      # author needs locally and which a GitHub runner cannot reach reliably: run #1 died in ~21s
-      # because the wrapper's 10s networkTimeout expired before a single Gradle task started
-      # ("No Gradle build results detected"). This swaps ONLY the host, so gradle-wrapper.properties
-      # stays the single source of truth for the Gradle version, and it is a no-op if the URL is ever
-      # changed to the official distribution.
+      # Only the host is swapped, so gradle-wrapper.properties stays the single source of the version
+      # and this step becomes a no-op the day the committed URL points at the official distribution.
       - name: Point the wrapper at the official Gradle distribution
         run: |
           sed -i -E 's#^distributionUrl=https\\://mirrors\.cloud\.tencent\.com/gradle/#distributionUrl=https\\://services.gradle.org/distributions/#' gradle/wrapper/gradle-wrapper.properties
           grep '^distributionUrl' gradle/wrapper/gradle-wrapper.properties
 
-      # Fails immediately and loudly if the wrapper itself is broken, instead of surfacing as a
-      # confusing build error several steps later.
+      # Fails here - not several steps later - if the shell wrapper itself is broken.
       - name: Wrapper smoke test
         run: ./gradlew --version
 
@@ -71,3 +78,18 @@ jobs:
             !build/libs/*-sources.jar
           if-no-files-found: error
           retention-days: 30
+
+      # On failure, print in one screen everything that usually answers "why", so the log is
+      # diagnosable without another round trip.
+      - name: Diagnostics on failure
+        if: failure()
+        run: |
+          echo '--- environment ---'
+          uname -a || true
+          java -version 2>&1 || true
+          echo '--- wrapper ---'
+          ls -l gradlew gradle/wrapper/ || true
+          cat gradle/wrapper/gradle-wrapper.properties || true
+          head -5 gradlew || true
+          echo '--- build outputs ---'
+          ls -l build/libs 2>/dev/null || true
