@@ -14,3 +14,4 @@ run/
 logs/
 *.kate-swp
 .kotlin/
+run-gametest/

@@ -63,6 +63,28 @@ kotlin {
     jvmToolchain(21)
 }
 
+// Game tests: a real server + world, spawned entities, the real damage pipeline.
+//
+// Deliberately a SEPARATE run configuration, and NOT wired into `build` or `check`:
+//   * it needs a world and a server tick loop (seconds to minutes, not milliseconds);
+//   * it needs the Minecraft EULA accepted for the run directory (`run-gametest/eula.txt`);
+//   * it is the author's acceptance, not a per-commit gate.
+// Run it with `gradlew runGametest` (or the scheduled `gametest` GitHub workflow).
+// The static packaging gate that DOES run on every build is `runTest`
+// (`gradle/post-build-tests.gradle`).
+loom {
+    runs {
+        gametest {
+            server()
+            name = 'Game Test'
+            runDir = 'run-gametest'
+            vmArg '-Dfabric-api.gametest=true'
+            // JUnit-style XML so CI can publish results instead of grepping a console log.
+            vmArg "-Dfabric-api.gametest.report-file=${project.layout.buildDirectory.get().asFile}/gametest-junit.xml"
+        }
+    }
+}
+
 java {
     withSourcesJar()
     sourceCompatibility = JavaVersion.VERSION_21
