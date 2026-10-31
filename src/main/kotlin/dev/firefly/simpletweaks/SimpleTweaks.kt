@@ -5,6 +5,7 @@ import dev.firefly.simpletweaks.core.EnchantCommand
 import dev.firefly.simpletweaks.core.EnchantmentManager
 import dev.firefly.simpletweaks.core.config.SimpleTweaksConfig
 import dev.firefly.simpletweaks.core.MobLevelTracker
+import dev.firefly.simpletweaks.core.MobSpawnEnhancer
 import dev.firefly.simpletweaks.core.registerEvents
 import dev.firefly.simpletweaks.damageindicator.DamageIndicatorHandler
 import dev.firefly.simpletweaks.network.NetworkManager
@@ -66,6 +67,8 @@ class SimpleTweaks : ModInitializer {
         // singleplayer world both sides live in this one JVM.
         // Server: announce each mob's level to a player when that player starts tracking it.
         MobLevelTracker.registerEvents()
+        // Server: hand every mob a level at spawn, not only the ones that wear equipment (see its KDoc).
+        MobSpawnEnhancer.register()
         NetworkManager.registerPackets()
         NetworkManager.registerServerReceivers()
         DamageIndicatorHandler.registerEvents()
