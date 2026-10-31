@@ -102,9 +102,9 @@ class SimpleTweaksClient : ClientModInitializer {
                 "(alias /fst) + damage numbers report the health actually removed " +
                 "+ every mob gets a level, not only the armed ones " +
                 "+ mob enchantments are budgeted by level (1 + level/10 total levels) " +
-                "+ debug logs off by default " +
+                "+ debug logs off by default + mod metadata: icon, homepage, ModMenu links " +
                 "+ mob levels start low and scale with the player's whole loadout " +
-                "(v2.2.2, build=cleanup3)",
+                "(v2.2.3, build=cleanup4)",
             SimpleTweaks.NAME,
         )
     }

@@ -240,5 +240,7 @@
   "enchantment.simple_tweaks.vitality.desc": "Increases your max health",
   "enchantment.simple_tweaks.void_protection.desc": "When falling into the void, teleports you to y=256 and consumes one level of the enchantment.",
   "enchantment.simple_tweaks.water_conversion.desc": "Converts 10%% + 5%% per level (max 50%%) of your hit into water damage: that part is cancelled from the original hit, re-dealt as water damage, and an extra half of it is added as bonus water damage. Conflicts with every other conversion.",
-  "enchantment.simple_tweaks.water_protection.desc": "Reduces incoming water damage by 4%% per level per worn armour piece, up to 80%% total."
+  "enchantment.simple_tweaks.water_protection.desc": "Reduces incoming water damage by 4%% per level per worn armour piece, up to 80%% total.",
+  "modmenu.summaryTranslation.simple_tweaks": "85 enchantments, 8 elements, mob levels and floating damage numbers",
+  "modmenu.descriptionTranslation.simple_tweaks": "85 custom enchantments, including 8 elemental conversions, 8 elemental affinities, elemental mastery and 18 element reactions.\n\nMobs get a level (and the health, attack and armour that come with it) scaled by how old the world is and how strong the player's whole loadout is. Their gear can carry this mod's enchantments, which are stripped before it drops.\n\nDamage numbers are coloured per element, can be split into physical/elemental halves, and always report the health that actually came off the bar.\n\nEvery command lives under /simple_tweaks (alias /fst)."
 }
