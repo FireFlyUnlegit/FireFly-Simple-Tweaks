@@ -78,8 +78,10 @@ data class DamageNumber(
          * too far out from the mob it belonged to. The relationship above is what still makes the halves
          * readable at that distance: they never overlap, they just stay close to the hitbox.
          */
-        const val SPLIT_RADIUS_MIN = 0.18
-        const val SPLIT_RADIUS_MAX = 0.42
+        // Widened in `build=cleanup17`: with one number per element the old 0.18–0.42 disc put three
+    // numbers within a couple of text widths of each other, so they overlapped ("伤害字符靠的太近").
+    const val SPLIT_RADIUS_MIN = 0.38
+        const val SPLIT_RADIUS_MAX = 0.78
 
         /**
          * Max angular jitter (± this, in radians) added to each half's direction.
@@ -119,7 +121,7 @@ data class DamageNumber(
             // per element (physical / water / lightning / reaction shares), so a fixed `π` offset would
             // pile every elemental number onto the same spot. 0.7 rad ≈ 40° apart, which also keeps them
             // from crossing back onto the physical number's side.
-            Math.PI + elementOrdinal * 0.7
+            Math.PI + elementOrdinal * 1.0
         } else {
             0.0
         }
@@ -192,7 +194,26 @@ data class DamageNumber(
         val riseProgress = (age.toDouble() / riseDuration).coerceAtMost(1.0)
         val eased = 1.0 - (1.0 - riseProgress) * (1.0 - riseProgress)
         val anchorY = entityFeetY + entityHeight * DamageIndicatorConfig.yStartFactor
-        return anchorY + eased * MAX_RISE
+        return anchorY + eased * MAX_RISE + stagger
+    }
+
+    /**
+     * Vertical rung for split numbers, fixed for the number's lifetime.
+     *
+     * With one number per element (physical / water / lightning / reaction shares) the XZ disc alone
+     * cannot keep three or four numbers apart: the glyphs are several pixels tall and each number is
+     * scaled by its value, so they covered each other ("伤害字符靠的太近，互相遮挡"). Each element gets
+     * its own rung (`0.20` blocks), the physical number sits one rung below the first elemental, and a
+     * small random wobble stops repeated hits from stacking on exactly the same rungs.
+     *
+     * `ROLE_SINGLE` stays at 0 so the pre-split behaviour is untouched.
+     */
+    private val stagger: Double = if (role == PacketDamageIndicator.ROLE_SINGLE) {
+        0.0
+    } else {
+        val rung =
+            if (role == PacketDamageIndicator.ROLE_PHYSICAL) -1 else elementOrdinal.coerceAtLeast(0)
+        rung * 0.20 + (Math.random() - 0.5) * 0.06
     }
 
     fun getAlpha(): Float {

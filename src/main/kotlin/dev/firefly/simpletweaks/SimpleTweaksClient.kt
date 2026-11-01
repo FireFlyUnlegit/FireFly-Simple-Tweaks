@@ -116,8 +116,8 @@ class SimpleTweaksClient : ClientModInitializer {
                 "+ conversion share is 1.5 %/level (cap 7.5 %), element damage bypasses armour again " +
                 "+ element damage is no longer exempt from the i-frame gate (only combo cancels it) " +
                 "+ reaction names in the action bar (throttled, shared with nearby players) " +
-                "+ split damage display now emits one number per element, fanned out " +
-                "(v2.2.3, build=cleanup16)",
+                "+ split damage display now emits one number per element, fanned out and staggered " +
+                "(v2.2.3, build=cleanup17)",
             SimpleTweaks.NAME,
             enchantmentCount,
         )

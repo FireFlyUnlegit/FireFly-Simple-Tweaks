@@ -278,8 +278,12 @@ object ElementMarks {
 
         for (player in world.players) {
             if (player.squaredDistanceTo(target) > 16.0 * 16.0) continue
-            val last = lastNotice[player.uuid] ?: Long.MIN_VALUE
-            if (now - last < NOTICE_COOLDOWN_TICKS) continue
+            // ⚠️ The `last != null` test is load-bearing. The first version defaulted the missing entry
+            // to `Long.MIN_VALUE`, and `now - Long.MIN_VALUE` **overflows** into a negative number, so
+            // `now - last < cooldown` was true for every player forever and **every** notice was
+            // swallowed — the reported "触发反应没有文字提示".
+            val last = lastNotice[player.uuid]
+            if (last != null && now - last < NOTICE_COOLDOWN_TICKS) continue
             lastNotice[player.uuid] = now
             player.sendMessage(line, true)
         }
