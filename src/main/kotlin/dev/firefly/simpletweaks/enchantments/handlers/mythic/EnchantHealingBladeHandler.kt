@@ -111,10 +111,25 @@ object EnchantHealingBladeHandler : Listenable {
         if (level <= 0) return
 
         val dmg = e.amount
-        val healing = dmg * (0.1f * level) + (e.target.health * 0.0125f * level).coerceAtMost(attacker.health) + (healingPool[id] ?: 0f)
-        if (healing <= 0f) return
+        // ⚠️ A non-finite incoming amount must not reach the arithmetic below. `e.amount += healing`
+        // writes the result back into the **damage itself**, so one `Infinity` / `NaN` here poisons the
+        // target's health permanently: `health = NaN` can never be killed (`health <= 0` is false
+        // forever). `build=cleanup11` shipped that ("打不死怪物 / lag on 0hp").
+        if (!dmg.isFinite() || dmg <= 0f) return
 
-        healingPool[id] = (healingPool[id] ?: 0f) + healing * 0.05f
+        val poolBefore = healingPool[id] ?: 0f
+        val raw = dmg * (0.1f * level) +
+            (e.target.health * 0.0125f * level).coerceAtMost(attacker.health) +
+            poolBefore
+
+        // The pool is **self-feeding** (`+5 % of this hit's healing`, preserved from 1.12.2), so a
+        // single outlier hit compounds: dozens of riders inside one tick took it to `1e36` and then to
+        // `Infinity`. The ceiling is expressed in the wielder's own health, so ordinary play never
+        // reaches it.
+        val healing = raw.coerceAtMost(attacker.maxHealth * (2f + level))
+        if (!healing.isFinite() || healing <= 0f) return
+
+        healingPool[id] = (poolBefore + healing * 0.05f).coerceAtMost(attacker.maxHealth)
 
         // Outcome of the absorption half, reported by the probe at the end of this method. Without it
         // "granted nothing" (a clamp) and "there was no overflow to grant" look identical in the log,
