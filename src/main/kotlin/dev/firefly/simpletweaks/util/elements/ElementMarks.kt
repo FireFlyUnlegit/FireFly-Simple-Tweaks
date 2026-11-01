@@ -11,8 +11,6 @@ import net.minecraft.entity.effect.StatusEffects
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.particle.ParticleTypes
 import net.minecraft.server.world.ServerWorld
-import net.minecraft.text.Text
-import net.minecraft.util.Formatting
 import java.util.UUID
 import net.minecraft.util.Identifier
 import java.util.WeakHashMap
@@ -267,25 +265,29 @@ object ElementMarks {
         val world = target.world as? ServerWorld ?: return
         val now = world.time
 
-        val name = Text.translatable("reaction.simple_tweaks.${reaction.key}")
-            .formatted(Formatting.BOLD)
-        val nameColoured = name.copy().setStyle(
-            name.style.withColor(net.minecraft.text.TextColor.fromRgb(reaction.trigger.color and 0xFFFFFF)),
-        )
-        val line: Text = Text.empty()
-            .append(nameColoured)
-            .append(Text.literal(if (bonus > 0f) "  ${"%.1f".format(bonus)}" else "").formatted(Formatting.GRAY))
+        // ⚠️ The `last != null` test is load-bearing. The first version defaulted the missing entry to
+        // `Long.MIN_VALUE`, and `now - Long.MIN_VALUE` **overflows** into a negative number, so
+        // `now - last < cooldown` was true for every player forever and **every** notice was swallowed —
+        // the reported "触发反应没有文字提示".
+        //
+        // `build=cleanup18`: the notice is now a **floating label** next to the hit (same rise/fade as the
+        // damage numbers), not an action-bar line at the bottom of the screen (author: "这个感电不应该也
+        // 属于伤害飘字吗"). Throttled per target, because a label is spawned per hit rather than per
+        // player.
+        val last = lastNotice[target.uuid]
+        if (last != null && now - last < NOTICE_COOLDOWN_TICKS) return
+        lastNotice[target.uuid] = now
 
-        for (player in world.players) {
-            if (player.squaredDistanceTo(target) > 16.0 * 16.0) continue
-            // ⚠️ The `last != null` test is load-bearing. The first version defaulted the missing entry
-            // to `Long.MIN_VALUE`, and `now - Long.MIN_VALUE` **overflows** into a negative number, so
-            // `now - last < cooldown` was true for every player forever and **every** notice was
-            // swallowed — the reported "触发反应没有文字提示".
-            val last = lastNotice[player.uuid]
-            if (last != null && now - last < NOTICE_COOLDOWN_TICKS) continue
-            lastNotice[player.uuid] = now
-            player.sendMessage(line, true)
+        dev.firefly.simpletweaks.damageindicator.DamageIndicatorHandler.broadcastLabel(
+            target,
+            "reaction.simple_tweaks.${reaction.key}",
+            reaction.trigger.ordinal,
+        )
+
+        FSTLog.log("Element") {
+            "attacker=${attacker.name.string}, target=${target.type.name.string}, " +
+                "reaction=${reaction.key}, trigger=${reaction.trigger.id}, " +
+                "bonus=${"%.2f".format(bonus)}, outcome=reaction-labelled"
         }
     }
 

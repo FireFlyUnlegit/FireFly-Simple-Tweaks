@@ -315,6 +315,7 @@ object DamageIndicatorHandler : Listenable {
         afterRealHealth: Float,
         elementOrdinal: Int,
         role: Int,
+        label: String = "",
     ) {
         val players = target.world.getNonSpectatingEntities(
             ServerPlayerEntity::class.java,
@@ -331,8 +332,32 @@ object DamageIndicatorHandler : Listenable {
                 afterRealHealth,
                 elementOrdinal,
                 role,
+                label,
             )
             NetworkManager.sendToClient(packet, player)
         }
+    }
+
+    /**
+     * Sends a **floating label** (a reaction name) to everyone within 64 blocks.
+     *
+     * `ElementMarks.noticeReaction` calls this for every reaction. The wire carries the translation
+     * **key**, and the client resolves it in the player's own language. `elementOrdinal` colours it like
+     * the damage it belongs to; a label has no second health line and sits above the numbers.
+     */
+    fun broadcastLabel(target: LivingEntity, labelKey: String, elementOrdinal: Int) {
+        if (!DamageIndicatorConfig.enabled) return
+        if (target.world.isClient) return
+        sendToNearbyPlayers(
+            target,
+            0f,
+            false,
+            target.maxHealth,
+            target.maxHealth,
+            target.health,
+            elementOrdinal,
+            PacketDamageIndicator.ROLE_LABEL,
+            labelKey,
+        )
     }
 }

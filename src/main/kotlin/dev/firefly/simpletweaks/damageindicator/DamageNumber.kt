@@ -58,6 +58,14 @@ data class DamageNumber(
      * region around the entity: a split hit sends two packets, and they must not land on the same spot.
      */
     val role: Int = PacketDamageIndicator.ROLE_SINGLE,
+    /**
+     * Translation key for a [PacketDamageIndicator.ROLE_LABEL] entry (a reaction name), empty otherwise.
+     *
+     * The client resolves it in its own language, so this number renders as `感电` / `Conduct` instead of
+     * a damage figure — same rise, fade and placement as the numbers, which is the point: a reaction
+     * belongs next to the hit, not on the action bar.
+     */
+    val label: String = "",
 ) {
     var age: Int = 0
 
@@ -79,9 +87,17 @@ data class DamageNumber(
          * readable at that distance: they never overlap, they just stay close to the hitbox.
          */
         // Widened in `build=cleanup17`: with one number per element the old 0.18–0.42 disc put three
-    // numbers within a couple of text widths of each other, so they overlapped ("伤害字符靠的太近").
-    const val SPLIT_RADIUS_MIN = 0.38
+        // numbers within a couple of text widths of each other, so they overlapped ("伤害字符靠的太近").
+        const val SPLIT_RADIUS_MIN = 0.38
         const val SPLIT_RADIUS_MAX = 0.78
+
+        /**
+         * Rung index of a `ROLE_LABEL` entry: above every numeric row.
+         *
+         * Labels ("感电" / "融化") are text of one to two blocks; giving them the top rung means they never
+         * cover the damage numbers of the same hit.
+         */
+        const val LABEL_RUNG = 6
 
         /**
          * Max angular jitter (± this, in radians) added to each half's direction.
@@ -210,6 +226,10 @@ data class DamageNumber(
      */
     private val stagger: Double = if (role == PacketDamageIndicator.ROLE_SINGLE) {
         0.0
+    } else if (role == PacketDamageIndicator.ROLE_LABEL) {
+        // Labels sit **above** the numeric rows of the same hit: they name the reaction the numbers below
+        // came from, so the reading order is "感电" then the damage it caused.
+        LABEL_RUNG * 0.20
     } else {
         val rung =
             if (role == PacketDamageIndicator.ROLE_PHYSICAL) -1 else elementOrdinal.coerceAtLeast(0)
@@ -278,6 +298,10 @@ data class DamageNumber(
      * watched happen.
      */
     fun getText(): String {
+        // A label is not a number: it renders the reaction's translated name and never a figure.
+        if (role == PacketDamageIndicator.ROLE_LABEL) {
+            return net.minecraft.text.Text.translatable(label).string
+        }
         val percentageMode = DamageIndicatorConfig.percentageMode
         val sign = getSign()
 
@@ -289,8 +313,9 @@ data class DamageNumber(
         }
     }
 
-    /** `false` for the elemental half of a split hit, which shows only the damage value. */
-    fun hasSecondLine(): Boolean = role != PacketDamageIndicator.ROLE_ELEMENTAL
+    /** `false` for the elemental half of a split hit and for labels, which show only one line. */
+    fun hasSecondLine(): Boolean =
+        role != PacketDamageIndicator.ROLE_ELEMENTAL && role != PacketDamageIndicator.ROLE_LABEL
 
     fun getSecondLineText(): String {        val percentageMode = DamageIndicatorConfig.percentageMode
         val healthAfter = afterRealHealth.coerceAtLeast(0f)
