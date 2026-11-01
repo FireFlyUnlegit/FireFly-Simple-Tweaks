@@ -104,8 +104,9 @@ class SimpleTweaksClient : ClientModInitializer {
                 "+ mob enchantments are budgeted by level (1 + level/10 total levels) " +
                 "+ debug logs off by default + mod metadata: icon, homepage, ModMenu links " +
                 "+ game tests (./gradlew runGametest) for mob levels, stats and damage " +
+                "+ enchant index can group by applicable item (Tab) + elemental riders respect shields " +
                 "+ mob levels start low and scale with the player's whole loadout " +
-                "(v2.2.3, build=cleanup7)",
+                "(v2.2.3, build=cleanup8)",
             SimpleTweaks.NAME,
         )
     }

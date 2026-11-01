@@ -81,7 +81,6 @@ class EnchantInfoScreen(private val parent: Screen?) :
 
     private companion object {
         const val MAIN_WIDTH = 176
-        const val MAIN_HEIGHT = 17 + 3 * 18 + 4
         const val LIST_COLS = 9
         const val LIST_ROWS = 5
         const val LIST_WIDTH = 176
@@ -90,7 +89,52 @@ class EnchantInfoScreen(private val parent: Screen?) :
         const val PANEL_BG = 0xC0101010.toInt()
         const val PANEL_BORDER = 0xFF555555.toInt()
         const val WRAP_WIDTH = 200
+
+        /** Vertical space above the first icon row (title + a little air). */
+        const val MAIN_TITLE_H = 30
+
+        /** Height reserved for the view-toggle line under the icon grid. */
+        const val TOGGLE_H = 18
+
+        /** Icons per row in the "by applicable item" view (the rarity view has its own rows). */
+        const val ITEM_COLS = 5
     }
+
+    /** Which axis the main menu groups by. */
+    private enum class Mode { RARITY, ITEM }
+
+    /**
+     * Current grouping. Rarity is the original 1.12.2 view; [Mode.ITEM] was requested by the author as
+     * a second way in — "which enchantments can go on a sword?" is a question the tier list cannot
+     * answer, and it is the question a player actually asks while holding a sword.
+     */
+    private var mode = Mode.RARITY
+
+    /**
+     * Groups for [Mode.ITEM], each with the item that represents it.
+     *
+     * Membership is **read from the live registry** via `Enchantment#isPrimaryItem`, not from a hand
+     * table: the same reason the id list comes from the registry (see [refreshIds]) — a datapack
+     * enchantment on `#minecraft:swords` shows up without anyone updating this list. The diamond
+     * tool/armour items are probes, so a group means "the primary-item set contains this item's kind".
+     */
+    private val itemGroups: List<Pair<String, Item>> = listOf(
+        "sword" to Items.DIAMOND_SWORD,
+        "axe" to Items.DIAMOND_AXE,
+        "pickaxe" to Items.DIAMOND_PICKAXE,
+        "shovel" to Items.DIAMOND_SHOVEL,
+        "hoe" to Items.DIAMOND_HOE,
+        "bow" to Items.BOW,
+        "crossbow" to Items.CROSSBOW,
+        "trident" to Items.TRIDENT,
+        "fishing_rod" to Items.FISHING_ROD,
+        "helmet" to Items.DIAMOND_HELMET,
+        "chestplate" to Items.DIAMOND_CHESTPLATE,
+        "leggings" to Items.DIAMOND_LEGGINGS,
+        "boots" to Items.DIAMOND_BOOTS,
+        "shield" to Items.SHIELD,
+        "elytra" to Items.ELYTRA,
+    )
 
     /**
      * Category order, laid out as **two explicit rows** rather than 1.12.2's 4-column grid.
@@ -129,21 +173,72 @@ class EnchantInfoScreen(private val parent: Screen?) :
 
     private fun buildSlots(): List<Slot> {
         val out = mutableListOf<Slot>()
-        categoryRows.forEachIndexed { rowIndex, row ->
+        currentRows().forEachIndexed { rowIndex, row ->
             val rowWidth = row.size * 18
             val startX = guiLeft + (MAIN_WIDTH - rowWidth) / 2
-            // 1.12.2's first row also began at guiTop + 36; the row pitch stays 18.
-            val y = guiTop + 36 + rowIndex * 18
-            row.forEachIndexed { col, category -> out.add(Slot(category, startX + col * 18, y)) }
+            val y = guiTop + MAIN_TITLE_H + rowIndex * 18
+            row.forEachIndexed { col, group -> out.add(Slot(group, startX + col * 18, y)) }
         }
         return out
     }
+
+    /** Icon rows for the current [mode]; the rarity view has its own fixed two-row layout. */
+    private fun currentRows(): List<List<String>> =
+        if (mode == Mode.RARITY) categoryRows
+        else visibleGroups().chunked(ITEM_COLS)
+
+    /** Panel height for the main menu, so the toggle line always sits under the last row. */
+    private fun mainPanelHeight(): Int = MAIN_TITLE_H + currentRows().size * 18 + TOGGLE_H
+
+    /** Y of the "switch view" line. */
+    private fun toggleY(): Int = guiTop + MAIN_TITLE_H + currentRows().size * 18 + 2
+
+    /** Label of the button that switches to the *other* view. */
+    private fun toggleLabel(): MutableText =
+        if (mode == Mode.RARITY) Text.translatable("gui.simple_tweaks.enchant_info.mode.item")
+        else Text.translatable("gui.simple_tweaks.enchant_info.mode.rarity")
 
     /**
      * id -> tier, rebuilt from the live registry by [refreshIds]. `idsByCategory` is what the whole
      * screen renders; [registryMaxLevel] backs the tooltip's max-level line.
      */
     private var idsByCategory: Map<String, List<String>> = emptyMap()
+
+    /** id -> applicable-item group, also rebuilt from the registry (see [itemGroups]). */
+    private var idsByItem: Map<String, List<String>> = emptyMap()
+
+    /** The grouping table the current [mode] renders from. */
+    private fun idsForMode(): Map<String, List<String>> =
+        if (mode == Mode.RARITY) idsByCategory else idsByItem
+
+    /** Ids of one group; never null, so the rendering paths stay flat. */
+    private fun idsOf(group: String): List<String> = idsForMode()[group].orEmpty()
+
+    /**
+     * Groups to show, in display order, **with empty ones dropped**.
+     *
+     * The rarity view keeps all eight tiers so the menu does not reshuffle as datapacks come and go; an
+     * item group with no enchantments is simply noise, so those are filtered out.
+     */
+    private fun visibleGroups(): List<String> =
+        if (mode == Mode.RARITY) categoryRows.flatten()
+        else itemGroups.map { it.first }.filter { !idsOf(it).isEmpty() }
+
+    /** Icon shown for one group. */
+    private fun groupIcon(group: String): ItemStack = when (mode) {
+        Mode.RARITY -> ItemStack(categoryIcons[group]?.first ?: Items.GRAY_WOOL)
+        Mode.ITEM -> ItemStack(itemGroups.first { it.first == group }.second)
+    }
+
+    /** Name shown for one group (header, tooltip). */
+    private fun groupLabel(group: String): MutableText = when (mode) {
+        Mode.RARITY -> categoryText(group)
+        Mode.ITEM -> Text.translatable("gui.simple_tweaks.item_group.$group")
+    }
+
+    /** Colour for the group's name; the item view has no 1.12.2 palette to inherit. */
+    private fun groupColor(group: String): Formatting =
+        if (mode == Mode.RARITY) categoryIcons[group]?.second ?: Formatting.WHITE else Formatting.WHITE
 
     /** Max level per id, straight out of the registry (the value the game itself uses). */
     private var registryMaxLevel: Map<String, Int> = emptyMap()
@@ -186,6 +281,22 @@ class EnchantInfoScreen(private val parent: Screen?) :
             ?: emptyMap()
 
         idsByCategory = paths.sorted().groupBy { EnchantmentMeta.category(it) ?: "common" }
+
+        // Item grouping: probe each enchantment with one representative item per group and keep the
+        // groups whose primary-item set accepts it. `isPrimaryItem` (not "is acceptable") on purpose —
+        // it is the set the enchantment is *meant* for, which is what a player means by "适用物品".
+        val byItem = LinkedHashMap<String, MutableList<String>>()
+        if (registry != null) {
+            for (path in paths.sorted()) {
+                val enchantment = registry.get(Identifier.of(SimpleTweaks.MOD_ID, path)) ?: continue
+                for ((group, item) in itemGroups) {
+                    if (enchantment.isPrimaryItem(ItemStack(item))) {
+                        byItem.getOrPut(group) { mutableListOf() }.add(path)
+                    }
+                }
+            }
+        }
+        idsByItem = byItem
     }
 
     private var selected: String? = null
@@ -196,7 +307,7 @@ class EnchantInfoScreen(private val parent: Screen?) :
     override fun init() {
         refreshIds()
         val w = if (selected == null) MAIN_WIDTH else LIST_WIDTH
-        val h = if (selected == null) MAIN_HEIGHT else LIST_HEIGHT
+        val h = if (selected == null) mainPanelHeight() else LIST_HEIGHT
         guiLeft = (this.width - w) / 2
         guiTop = (this.height - h) / 2
         slots = if (selected == null) buildSlots() else emptyList()
@@ -215,7 +326,7 @@ class EnchantInfoScreen(private val parent: Screen?) :
     }
 
     private fun drawMainMenu(context: DrawContext, mouseX: Int, mouseY: Int) {
-        drawPanel(context, guiLeft, guiTop, MAIN_WIDTH, MAIN_HEIGHT)
+        drawPanel(context, guiLeft, guiTop, MAIN_WIDTH, mainPanelHeight())
         context.drawCenteredTextWithShadow(
             this.textRenderer,
             Text.translatable("gui.simple_tweaks.enchant_info.title").formatted(Formatting.GOLD),
@@ -224,8 +335,7 @@ class EnchantInfoScreen(private val parent: Screen?) :
 
         var hovered: Slot? = null
         for (slot in slots) {
-            val icon = categoryIcons[slot.category] ?: continue
-            val stack = ItemStack(icon.first)
+            val stack = groupIcon(slot.category)
             context.drawItem(stack, slot.x, slot.y)
             context.drawItemInSlot(this.textRenderer, stack, slot.x, slot.y)
 
@@ -235,12 +345,12 @@ class EnchantInfoScreen(private val parent: Screen?) :
         }
 
         hovered?.let { slot ->
-            val count = idsByCategory[slot.category]?.size ?: 0
-            val colour = categoryIcons[slot.category]?.second ?: Formatting.WHITE
+            val count = idsOf(slot.category).size
+            val colour = groupColor(slot.category)
             context.drawTooltip(
                 this.textRenderer,
                 listOf(
-                    categoryText(slot.category).formatted(colour),
+                    groupLabel(slot.category).formatted(colour),
                     Text.translatable("gui.simple_tweaks.enchant_info.count", count)
                         .formatted(Formatting.GRAY),
                     Text.empty(),
@@ -250,20 +360,42 @@ class EnchantInfoScreen(private val parent: Screen?) :
                 mouseX, mouseY,
             )
         }
+
+        // "Switch view" line. Clicking it (or pressing Tab) flips rarity <-> applicable items.
+        val toggle = toggleLabel()
+        context.drawCenteredTextWithShadow(
+            this.textRenderer,
+            toggle.copy().formatted(Formatting.YELLOW),
+            guiLeft + MAIN_WIDTH / 2, toggleY(), 0xFFFFFF,
+        )
+    }
+
+    /** Hit box of the switch-view line, shared by rendering and click handling. */
+    private fun toggleHit(mx: Int, my: Int): Boolean {
+        val width = this.textRenderer.getWidth(toggleLabel())
+        val left = guiLeft + (MAIN_WIDTH - width) / 2
+        return mx in left until left + width && my >= toggleY() - 2 && my < toggleY() + 10
+    }
+
+    /** Flips the grouping, drops the open list (its ids belong to the old grouping) and re-lays out. */
+    private fun toggleMode() {
+        mode = if (mode == Mode.RARITY) Mode.ITEM else Mode.RARITY
+        selected = null
+        page = 0
+        clearAndInit()
     }
 
     private fun drawList(context: DrawContext, mouseX: Int, mouseY: Int) {
         drawPanel(context, guiLeft, guiTop, LIST_WIDTH, LIST_HEIGHT)
 
         val cat = selected ?: return
-        val colour = categoryIcons[cat]?.second ?: Formatting.WHITE
         context.drawCenteredTextWithShadow(
             this.textRenderer,
-            categoryText(cat).formatted(colour),
+            groupLabel(cat).formatted(groupColor(cat)),
             guiLeft + LIST_WIDTH / 2, guiTop + 6, 0xFFFFFF,
         )
 
-        val ids = idsByCategory[cat].orEmpty()
+        val ids = idsOf(cat)
         val maxPage = ((ids.size - 1).coerceAtLeast(0)) / PER_PAGE
         page = page.coerceIn(0, maxPage)
         val start = page * PER_PAGE
@@ -411,6 +543,10 @@ class EnchantInfoScreen(private val parent: Screen?) :
         val my = mouseY.toInt()
 
         if (selected == null) {
+            if (toggleHit(mx, my)) {
+                toggleMode()
+                return true
+            }
             for (slot in slots) {
                 if (mx in slot.x until slot.x + 16 && my in slot.y until slot.y + 16) {
                     selected = slot.category
@@ -438,7 +574,7 @@ class EnchantInfoScreen(private val parent: Screen?) :
         if (verticalAmount == 0.0) {
             return super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount)
         }
-        val maxPage = ((idsByCategory[cat].orEmpty().size - 1).coerceAtLeast(0)) / PER_PAGE
+        val maxPage = ((idsOf(cat).size - 1).coerceAtLeast(0)) / PER_PAGE
         if (verticalAmount < 0 && page < maxPage) page++ else if (verticalAmount > 0 && page > 0) page--
         return true
     }
@@ -446,6 +582,10 @@ class EnchantInfoScreen(private val parent: Screen?) :
     override fun keyPressed(keyCode: Int, scanCode: Int, modifiers: Int): Boolean {
         // 1.12.2: the inventory key left the list view the same way Escape does.
         val inventoryKey = this.client?.options?.inventoryKey?.matchesKey(keyCode, scanCode) == true
+        if (keyCode == GLFW.GLFW_KEY_TAB && selected == null) {
+            toggleMode()
+            return true
+        }
         if (keyCode == GLFW.GLFW_KEY_ESCAPE || inventoryKey) {
             if (selected != null) {
                 selected = null
