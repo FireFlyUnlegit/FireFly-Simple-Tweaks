@@ -180,7 +180,6 @@
 **步骤**：
 
 1. 从 [Releases](https://github.com/FireFlyUnlegit/FireFly-Simple-Tweaks/releases) 下载 `simple_tweaks-2.2.4.jar`
-   > 发布流程（GitHub Release + CurseForge）见 [RELEASE.md](./RELEASE.md)
 2. 放进 `.minecraft/mods/`
 3. 启动游戏
 
