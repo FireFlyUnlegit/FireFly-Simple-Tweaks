@@ -106,12 +106,21 @@ object EnchantComboHandler : Listenable {
         val level = getItemSpecificEnchantLevel(attacker.mainHandStack, GeneratedEnchantments.COMBO)
         if (level <= 0) return
 
+        // `combo` is the **only** thing in this mod allowed to shorten or cancel the target's i-frame
+        // window (author, `build=cleanup14`: "元素不应该无视无敌帧，除非有连击 X 直接取消无敌帧").
+        // Every other source — elemental riders, reactions, `heavenly_punishment` — is bound to the
+        // swing that produced it and can no longer land on a discarded one.
+        //
+        // `multiplier = 1 − 0.1 × level`, so level 10 is a **full** cancel: `timeUntilRegen` becomes 0,
+        // the gate's first test fails and the next hit lands immediately. Levels 1–9 only shorten the
+        // window; `outcome=` distinguishes the two in the log.
         val multiplier = (1f - level * 0.1f).coerceAtLeast(0f)
         target.timeUntilRegen =
             (target.timeUntilRegen * multiplier).toInt().coerceAtLeast(0)
         FSTLog.log("Combo") {
             "attacker=${attacker.name.string}, target=${target.name.string}, lvl=$level, " +
-                "multiplier=$multiplier, timeUntilRegen=${target.timeUntilRegen}"
+                "multiplier=$multiplier, timeUntilRegen=${target.timeUntilRegen}, " +
+                "outcome=${if (multiplier <= 0f) "iframe-cancelled" else "iframe-shortened"}"
         }
     }
 

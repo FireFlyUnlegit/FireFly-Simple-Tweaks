@@ -189,11 +189,21 @@ fun LivingEntity.damageElemental(
     val savedMaxHurtTime = this.maxHurtTime
 
     this.timeUntilRegen = 0
+    // Lift **both** halves of the gate for this one instance. The element types are no longer in
+    // `#minecraft:bypasses_cooldown` (author, `build=cleanup14`: "元素不应该无视无敌帧"), so the rider
+    // would otherwise be compared against the swing that produced it (`1.03 <= 8.44` -> discarded) and
+    // every conversion would silently do nothing.
+    //
+    // Zeroing `lastDamageTaken` here is what makes the rider "part of the swing" rather than an extra
+    // hit: it can only exist when the swing itself landed (the conversion path skips gated swings), and
+    // both fields are restored below, so the **next** swing is judged exactly as vanilla would.
+    if (accessor != null) accessor.modLastDamageTaken = 0f
     var landed = this.damage(source, amount)
 
     if (!landed && this.isAlive) {
         // Second attempt for a type a datapack moved out of `#minecraft:bypasses_cooldown`; see above.
         this.timeUntilRegen = 0
+        if (accessor != null) accessor.modLastDamageTaken = 0f
         landed = this.damage(source, amount)
     }
 

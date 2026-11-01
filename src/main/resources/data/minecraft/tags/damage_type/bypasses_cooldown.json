@@ -1,14 +1,6 @@
 {
   "replace": false,
   "values": [
-    "simple_tweaks:element_physical",
-    "simple_tweaks:element_fire",
-    "simple_tweaks:element_frost",
-    "simple_tweaks:element_lightning",
-    "simple_tweaks:element_water",
-    "simple_tweaks:element_nature",
-    "simple_tweaks:element_dark",
-    "simple_tweaks:element_light",
     "simple_tweaks:venom",
     "simple_tweaks:chain_lightning"
   ]
