@@ -161,6 +161,35 @@ object ElementReactions {
         // Frost on a wet target: brittles, and armour shatters a little.
         add(ElementReaction(WATER, FROST, "brittle", armorShredFraction = 0.20f, duration = 100))
 
+        // ---- `build=cleanup19`: the pairs the matrix was still missing ------------------------------
+        // Six opposed-but-not-cancelling pairs. The rule of the table is kept: every pair is declared
+        // **both ways** (mark A + trigger B and mark B + trigger A), because which element the player
+        // happens to land second must not decide whether the reaction exists.
+
+        // Frost + lightning: the charge shatters the ice. Second-biggest multiplier after `melt`.
+        add(ElementReaction(FROST, LIGHTNING, "overload", damageBonus = 0.50f, armorShredFraction = 0.20f, duration = 80))
+        add(ElementReaction(LIGHTNING, FROST, "overload", damageBonus = 0.50f, slowTicks = 40))
+
+        // Fire + light: holy flame. Damage, and the light heals whoever struck.
+        add(ElementReaction(FIRE, LIGHT, "sanctify", damageBonus = 0.40f, healAttacker = 0.10f))
+        add(ElementReaction(LIGHT, FIRE, "sanctify", damageBonus = 0.40f, healAttacker = 0.10f))
+
+        // Water + light: the water is purified and cleanses the attacker. Almost no damage — this pair
+        // is the "sustain" reaction, so its value is the heal, not the number.
+        add(ElementReaction(WATER, LIGHT, "purify", damageBonus = 0.20f, healAttacker = 0.30f))
+        add(ElementReaction(LIGHT, WATER, "purify", damageBonus = 0.20f, healAttacker = 0.30f))
+
+        // Fire + dark: burning soul-fire. Heavy damage plus a short blind.
+        add(ElementReaction(FIRE, DARK, "scorch", damageBonus = 0.45f, blindTicks = 40))
+        add(ElementReaction(DARK, FIRE, "scorch", damageBonus = 0.45f, blindTicks = 40))
+
+        // Nature + dark: the growth withers. Modest damage, long slow.
+        add(ElementReaction(NATURE, DARK, "blight", damageBonus = 0.35f, slowTicks = 60, slownessAmplifier = 1))
+        add(ElementReaction(DARK, NATURE, "blight", damageBonus = 0.35f, slowTicks = 60, slownessAmplifier = 1))
+
+        // Frost + light: light bent through ice. Blinds and slows, little damage.
+        add(ElementReaction(FROST, LIGHT, "eclipse", damageBonus = 0.20f, blindTicks = 60, slowTicks = 40))
+        add(ElementReaction(LIGHT, FROST, "eclipse", damageBonus = 0.20f, blindTicks = 60, slowTicks = 40))
         // ---- physical is special ------------------------------------------------------------------
         // A physical strike on a light-marked target: it smothers the light. Blinds, barely damages.
         add(ElementReaction(LIGHT, PHYSICAL, "smother", blindTicks = 60, damageBonus = 0.15f))

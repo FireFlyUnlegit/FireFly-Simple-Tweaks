@@ -282,6 +282,7 @@ object ElementMarks {
             target,
             "reaction.simple_tweaks.${reaction.key}",
             reaction.trigger.ordinal,
+            bonus,
         )
 
         FSTLog.log("Element") {

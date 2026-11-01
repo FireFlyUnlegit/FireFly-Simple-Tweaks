@@ -298,9 +298,12 @@ data class DamageNumber(
      * watched happen.
      */
     fun getText(): String {
-        // A label is not a number: it renders the reaction's translated name and never a figure.
+        // A label is not a number: it renders the reaction's translated name, followed by the extra
+        // damage that reaction dealt (`感电 (-28.30)`), which is what the author asked for — the name
+        // alone left the reader guessing whether the reaction did anything at all.
         if (role == PacketDamageIndicator.ROLE_LABEL) {
-            return net.minecraft.text.Text.translatable(label).string
+            val name = net.minecraft.text.Text.translatable(label).string
+            return if (actualDamage > 0f) "$name (-${formatFloat(actualDamage)})" else name
         }
         val percentageMode = DamageIndicatorConfig.percentageMode
         val sign = getSign()
