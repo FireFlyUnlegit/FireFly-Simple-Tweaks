@@ -11,6 +11,9 @@ import net.minecraft.entity.effect.StatusEffects
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.particle.ParticleTypes
 import net.minecraft.server.world.ServerWorld
+import net.minecraft.text.Text
+import net.minecraft.util.Formatting
+import java.util.UUID
 import net.minecraft.util.Identifier
 import java.util.WeakHashMap
 
@@ -114,6 +117,14 @@ object ElementMarks {
         if (bonus > 0f && target.isAlive) {
             ElementCombat.enqueueElemental(attacker, target, reaction.trigger, bonus)
         }
+
+        // On-screen confirmation of the reaction. Author: "触发某种元素反应能不能生成一些文字来提示一下?"
+        //
+        // Sent as an **action bar** message (`sendMessage(text, true)`) to the attacker and to every
+        // player within 16 blocks, because a reaction is a group-visible event and the vanilla action
+        // bar is the one HUD slot that costs no extra packet or screen space. Throttled per player so a
+        // rapid combo cannot turn the bar into a flipbook.
+        noticeReaction(attacker, target, reaction, bonus)
 
         if (reaction.armorShredFraction > 0f && reaction.duration > 0) {
             armourShred(target, reaction.armorShredFraction, reaction.duration)
@@ -236,6 +247,46 @@ object ElementMarks {
             0.05,
         )
     }
+
+    /**
+     * Shows `「感电」 +28.3` in the action bar when a reaction fires.
+     *
+     * Receivers are the attacker plus everyone within 16 blocks (a reaction is a shared, visible
+     * event), and the text is throttled **per player** so two players triggering at once cannot starve
+     * each other. Uses the vanilla action bar, so nothing extra is registered or synced: `sendMessage`
+     * with `overlay = true` is an ordinary `GameMessageS2CPacket`.
+     */
+    private val lastNotice = java.util.concurrent.ConcurrentHashMap<UUID, Long>()
+
+    private fun noticeReaction(
+        attacker: PlayerEntity,
+        target: LivingEntity,
+        reaction: ElementReaction,
+        bonus: Float,
+    ) {
+        val world = target.world as? ServerWorld ?: return
+        val now = world.time
+
+        val name = Text.translatable("reaction.simple_tweaks.${reaction.key}")
+            .formatted(Formatting.BOLD)
+        val nameColoured = name.copy().setStyle(
+            name.style.withColor(net.minecraft.text.TextColor.fromRgb(reaction.trigger.color and 0xFFFFFF)),
+        )
+        val line: Text = Text.empty()
+            .append(nameColoured)
+            .append(Text.literal(if (bonus > 0f) "  ${"%.1f".format(bonus)}" else "").formatted(Formatting.GRAY))
+
+        for (player in world.players) {
+            if (player.squaredDistanceTo(target) > 16.0 * 16.0) continue
+            val last = lastNotice[player.uuid] ?: Long.MIN_VALUE
+            if (now - last < NOTICE_COOLDOWN_TICKS) continue
+            lastNotice[player.uuid] = now
+            player.sendMessage(line, true)
+        }
+    }
+
+    /** Minimum gap between two reaction notices for the same player, in ticks. */
+    private const val NOTICE_COOLDOWN_TICKS = 10L
 
     /** For diagnostics and the checklist: does [entity] currently carry a live mark? */
     fun markOf(entity: LivingEntity): ElementType? {

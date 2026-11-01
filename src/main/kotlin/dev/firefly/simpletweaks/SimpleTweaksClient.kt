@@ -115,7 +115,8 @@ class SimpleTweaksClient : ClientModInitializer {
                 "+ mob levels start low and scale with the player's whole loadout " +
                 "+ conversion share is 1.5 %/level (cap 7.5 %), element damage bypasses armour again " +
                 "+ element damage is no longer exempt from the i-frame gate (only combo cancels it) " +
-                "(v2.2.3, build=cleanup14)",
+                "+ reaction names in the action bar (throttled, shared with nearby players) " +
+                "(v2.2.3, build=cleanup15)",
             SimpleTweaks.NAME,
             enchantmentCount,
         )
