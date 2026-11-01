@@ -94,9 +94,16 @@ class SimpleTweaksClient : ClientModInitializer {
         // feature list was collapsed from the ~2 KB accumulation of 46 batches into a per-version
         // summary. The list is not a changelog -- it only has to answer "which jar is this", and a
         // 2 KB line is no easier to read than a 300-byte one. Reset it again at the next minor version.
+        // ⚠️ The enchantment count is **read from the generated table**, never typed as a literal.
+        // It was a hard-coded `85` for three batches and went stale the moment three element
+        // enchantments were added (`build=cleanup12`) — the log then claimed 85 while `/fst
+        // enchantinfo` listed 88, which reads as "the lang/metadata was not updated either". A count
+        // that cannot drift is a count nobody has to remember to bump.
+        val enchantmentCount = dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments.KEYS.size
         SimpleTweaks.LOGGER.info(
-            "{} client ready: 85 enchantments + 8 elemental conversions / affinities / reactions " +
-                "+ elemental mastery + mob levels, mod enchantments and mob elements with [Lv.N] tags " +
+            "{} client ready: {} enchantments + 8 elemental conversions / affinities / reactions " +
+                "+ 3 cross-element (ward / resonance / penetration) + elemental mastery + mob levels, " +
+                "mod enchantments and mob elements with [Lv.N] tags " +
                 "+ per-element damage numbers (optional physical/elemental split) + kill_aura / " +
                 "infinite_power / starfall / celestial ring + every command under /simple_tweaks " +
                 "(alias /fst) + damage numbers report the health actually removed " +
@@ -106,8 +113,10 @@ class SimpleTweaksClient : ClientModInitializer {
                 "+ game tests (./gradlew runGametest) for mob levels, stats and damage " +
                 "+ enchant index can group by applicable item (Tab) + elemental riders respect shields " +
                 "+ mob levels start low and scale with the player's whole loadout " +
-                "(v2.2.3, build=cleanup12)",
+                "+ conversion share is 1.5 %/level (cap 7.5 %), element damage bypasses armour again " +
+                "(v2.2.3, build=cleanup13)",
             SimpleTweaks.NAME,
+            enchantmentCount,
         )
     }
 
