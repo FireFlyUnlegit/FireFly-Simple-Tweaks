@@ -114,7 +114,15 @@ data class DamageNumber(
      * of it, which is what guarantees the pair is separated without ever transmitting a position.
      */
     private val spreadAngle: Double = ((entity.id * GOLDEN_RATIO) % 1.0) * 2.0 * Math.PI +
-        if (role == PacketDamageIndicator.ROLE_ELEMENTAL) Math.PI else 0.0
+        if (role == PacketDamageIndicator.ROLE_ELEMENTAL) {
+            // Elements **fan out** instead of stacking. Since `build=cleanup16` a hit emits one number
+            // per element (physical / water / lightning / reaction shares), so a fixed `π` offset would
+            // pile every elemental number onto the same spot. 0.7 rad ≈ 40° apart, which also keeps them
+            // from crossing back onto the physical number's side.
+            Math.PI + elementOrdinal * 0.7
+        } else {
+            0.0
+        }
 
     /**
      * Random per-number direction jitter and radius for a split half.
