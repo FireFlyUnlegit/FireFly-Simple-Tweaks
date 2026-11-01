@@ -269,7 +269,8 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
 
     /**
      * Per-target: how much health the **previous** converted hit actually removed, end to end
-     * (armour on the kept share + the elemental share). Diagnostic only — it exists so the log can show
+     * (armour on the kept share + armour on the elemental share — elements respect armour since
+ * `build=cleanup10`). Diagnostic only — it exists so the log can show
      * the number the player sees instead of the pre-armour figure, which is what "sword says 9.13,
      * monster loses 5.84" was about.
      *

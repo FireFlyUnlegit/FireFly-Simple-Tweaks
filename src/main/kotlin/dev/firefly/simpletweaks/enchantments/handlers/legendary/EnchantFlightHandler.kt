@@ -1,6 +1,7 @@
 package dev.firefly.simpletweaks.enchantments.handlers.legendary
 
 import dev.firefly.simpletweaks.compat.FSTLog
+import dev.firefly.simpletweaks.compat.WorldSide
 import dev.firefly.simpletweaks.compat.event.PlayerEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.event.TickEvent
@@ -67,6 +68,12 @@ object EnchantFlightHandler : Listenable {
     fun onPlayerTick(e: TickEvent.PlayerTickEvent) {
         if (e.phase != TickEvent.Phase.END) return
         val p = e.player
+        // ⚠️ Server-side only. `PlayerTickEvent` is fired by **both** bridges (`ClientEventBridge` and
+        // `ServerEventBridge`), and this handler writes three things the client must never touch:
+        // `hungerManager.foodLevel--` (the client's hunger bar diverges, then snaps back when the server
+        // syncs), `stack.damage += 2` (client-side durability divergence) and the abilities fields.
+        // That is the reported "flight 服务器和客户端 desync".
+        if (WorldSide.isClient(p.world)) return
         val uuid = p.uuid
         val stack = p.inventory.getArmorStack(2)
         val enchantment = GeneratedEnchantments.FLIGHT

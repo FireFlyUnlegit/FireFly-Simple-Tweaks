@@ -8,6 +8,8 @@ import dev.firefly.simpletweaks.compat.event.TickEvent
 import dev.firefly.simpletweaks.core.Listenable
 import dev.firefly.simpletweaks.util.chestplate
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
+import net.minecraft.network.packet.s2c.play.HealthUpdateS2CPacket
+import net.minecraft.server.network.ServerPlayerEntity
 import java.util.*
 import kotlin.random.Random.Default.nextFloat
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
@@ -98,6 +100,18 @@ object EnchantSaturationHandler : Listenable {
                 "player=${p.name.string}, lvl=$lvl, interval=$interval, roll=$roll, rate=$rate, " +
                     "saturation=$saturationBefore->${food.getSaturationLevel()}, recoveryCount=$recoveryCount"
             }
+        }
+
+        // ⚠️ **A saturation-only write never reaches the client on its own.**
+        // `ServerPlayerEntity#playerTick` (bytecode-verified) resends health/food when
+        // `health != syncedHealth || food != syncedFoodLevel || (saturation == 0) != syncedSaturationIsZero`.
+        // With the hunger bar already full, only the *zero-ness* of saturation is compared, so raising it
+        // 0 -> 1 syncs and 1 -> 2 does not: the client's own `HungerManager` keeps decaying from the stale
+        // value, which is the reported "saturation 这类附魔和客户端 desync".
+        if (p is ServerPlayerEntity) {
+            p.networkHandler.sendPacket(
+                HealthUpdateS2CPacket(p.health, food.getFoodLevel(), food.getSaturationLevel())
+            )
         }
     }
     @SubscribeEvent
