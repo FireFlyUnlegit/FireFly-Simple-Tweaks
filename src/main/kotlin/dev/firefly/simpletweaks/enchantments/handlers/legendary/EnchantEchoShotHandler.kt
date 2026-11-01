@@ -7,6 +7,7 @@ import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.event.TickEvent
 import dev.firefly.simpletweaks.core.Listenable
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
+import dev.firefly.simpletweaks.util.damagesource.isAuxiliaryDamage
 import dev.firefly.simpletweaks.util.firingWeapon
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import dev.firefly.simpletweaks.util.runPlayerAttack
@@ -84,6 +85,11 @@ object EnchantEchoShotHandler : Listenable {
 
     @SubscribeEvent(priority = 50)
     fun onHurt(e: LivingHurtEvent) {
+
+        // `build=cleanup22`: the mod's own follow-up damage (poison tick, chain arc, holy light, shield
+        // reflection) is player-attributed, so without this guard each of them counts as a new hit and
+        // re-fires the whole on-hit stack — one poisoned target multiplied the damage every second.
+        if (e.source.isAuxiliaryDamage()) return
         val arrow = e.source.source as? ArrowEntity ?: return
         val shooter = arrow.owner as? PlayerEntity ?: return
         val target = e.entityLiving ?: return

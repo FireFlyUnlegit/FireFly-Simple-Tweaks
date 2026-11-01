@@ -19,7 +19,7 @@ import dev.firefly.simpletweaks.util.damagesource.ElementDamageTypes
 import dev.firefly.simpletweaks.util.damagesource.damageElemental
 import dev.firefly.simpletweaks.util.elements.ElementMarks
 import dev.firefly.simpletweaks.util.elements.ElementType
-import dev.firefly.simpletweaks.util.damagesource.isElementDamage
+import dev.firefly.simpletweaks.util.damagesource.isAuxiliaryDamage
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.passive.TameableEntity
@@ -90,7 +90,7 @@ object EnchantChainLightningHandler : Listenable {
     @SubscribeEvent
     fun onHurt(e: LivingHurtEvent) {
         if (e.invalid) return
-        if (e.source.isElementDamage()) return
+        if (e.source.isAuxiliaryDamage()) return
 
         val target = e.entityLiving ?: return
         val attacker = e.attacker as? PlayerEntity ?: return

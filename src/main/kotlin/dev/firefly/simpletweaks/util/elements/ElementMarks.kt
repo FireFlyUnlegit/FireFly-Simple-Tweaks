@@ -86,6 +86,18 @@ object ElementMarks {
     }
 
     /**
+     * Sets [element] as the target's mark **without** looking for a reaction.
+     *
+     * For damage that repeats on a timer — today only the poison tick. A reaction per tick made one
+     * poisoned target add 50 % of the tick damage every second (plus a floating label), i.e. the same
+     * "伤害爆高" the on-hit guard fixes from the enchantment side. The mark itself is still refreshed,
+     * so a poisoned target hit by fire still triggers `burn` — from the player's own swing, once.
+     */
+    fun markOnly(target: LivingEntity, element: ElementType) {
+        marks[target] = Mark(element, target.world.time + MARK_TICKS)
+    }
+
+    /**
      * Applies one fired reaction.
      *
      * Every field of [ElementReaction] is optional, and each is applied only when non-zero — that is
