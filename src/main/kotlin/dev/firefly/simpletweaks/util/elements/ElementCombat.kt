@@ -8,6 +8,9 @@ import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.invalid
 import dev.firefly.simpletweaks.mixin.accessors.LivingEntityAccessor
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
+import dev.firefly.simpletweaks.util.damagesource.CelestialDamageSources
+import dev.firefly.simpletweaks.util.damagesource.ElementDamageTypes
+import dev.firefly.simpletweaks.util.damagesource.ModDamageTypes
 import dev.firefly.simpletweaks.util.damagesource.damageElemental
 import dev.firefly.simpletweaks.util.getElementSpecificEnchantLevel
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
@@ -687,6 +690,18 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
         if (e.invalid) return
         val element = ElementType.of(e.source)
 
+        // `build=cleanup21`: venom and reflection sit in `#minecraft:bypasses_enchantments` on purpose
+        // (the author's "无视抗性"). Now that venom counts as `nature` and reflection mirrors an element,
+        // they would otherwise start being reduced here — the very enchantments they are documented to
+        // ignore. Honouring the tag keeps that promise.
+        if (e.source.isIn(DamageTypeTags.BYPASSES_ENCHANTMENTS)) {
+            FSTLog.log("Element") {
+                "protected=${element.id}, amount=${"%.2f".format(e.amount)}, " +
+                    "outcome=reduction-skipped-bypasses-enchantments"
+            }
+            return
+        }
+
         // A player's own `xx_protection`, `elemental_ward`, a mob's own element resistance and the
         // attacker's `elemental_penetration` are independent sources that happen to act on the same
         // number. Mitigations are combined **multiplicatively** (neither can drive the total past
@@ -815,7 +830,17 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
      */
     fun isOwnElementalDamage(e: LivingHurtEvent): Boolean {
         val key = e.source.typeRegistryEntry.key.orElse(null) ?: return false
-        return ElementType.CONVERTIBLE.any { it.damageType == key }
+        if (ElementType.CONVERTIBLE.any { it.damageType == key }) return true
+        // `build=cleanup21`: these four are **our own** damage too, and three of them are now real
+        // elements (venom = nature, chain_lightning = lightning, celestial_particle = light), so they
+        // are in an `elemental_*` tag and `ElementType.of` classifies them. Without this they would take
+        // the "already elemental hit" path and be **converted again** — a chain arc carrying a fire
+        // conversion, a poison tick spawning extra riders — which is not what any of these enchantments
+        // is supposed to do.
+        return key == ElementDamageTypes.VENOM ||
+            key == ElementDamageTypes.CHAIN_LIGHTNING ||
+            key == CelestialDamageSources.CELESTIAL_PARTICLE ||
+            key == ModDamageTypes.REFLECTION
     }
 
     private val ARMOR_SLOTS = arrayOf(

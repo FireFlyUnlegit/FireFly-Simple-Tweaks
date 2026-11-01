@@ -17,7 +17,9 @@ import dev.firefly.simpletweaks.core.Listenable
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 import dev.firefly.simpletweaks.util.getArmorEnchantLevel
 import dev.firefly.simpletweaks.util.damagesource.ModDamageTypes
-import dev.firefly.simpletweaks.util.damagesource.damageBypassingArmor
+import dev.firefly.simpletweaks.util.damagesource.damageElemental
+import dev.firefly.simpletweaks.util.elements.ElementMarks
+import dev.firefly.simpletweaks.util.elements.ElementType
 import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.damage.DamageSource
 import net.minecraft.entity.player.PlayerEntity
@@ -153,7 +155,15 @@ object EnchantEchoShieldHandler : Listenable {
             // recurse forever. Clearing first makes the outgoing reflection the last word.
             echoBuffer.remove(id)
 
-            attacker.damageBypassingArmor(player, buffer.coerceAtMost(attacker.maxHealth))
+            // `build=cleanup21`: the reflection is dealt as **the element that hit the shield**, not as a
+            // generic `reflection` type. A fireball bounced back used to arrive as physical (red number,
+            // no fire protection, no reaction); it now comes back as fire and leaves a fire mark.
+            // Armour is still bypassed — the eight `element_*` types are in `#minecraft:bypasses_armor`
+            // (restored in `build=cleanup12`), which is exactly what 1.12.2's `ignoreArmorAndPotion` meant.
+            val reflectElement = ElementType.of(e.source)
+            val reflected = buffer.coerceAtMost(attacker.maxHealth)
+            attacker.damageElemental(player, reflectElement.damageType, reflected)
+            ElementMarks.recordAndReact(player, attacker, reflectElement, reflected)
 
             playFeedback(player, big = true)
             FSTLog.log("EchoShield") {
@@ -206,7 +216,10 @@ object EnchantEchoShieldHandler : Listenable {
 
         markNoHeal(attacker, lvl)
 
-        attacker.damageBypassingArmor(player, reduced)
+        // Same rule as the full-absorb branch: reflect the incoming **element**, and leave its mark.
+        val reflectElement = ElementType.of(e.source)
+        attacker.damageElemental(player, reflectElement.damageType, reduced)
+        ElementMarks.recordAndReact(player, attacker, reflectElement, reduced)
         e.amount -= reduced
 
         val newBuffer = (echoBuffer[id] ?: 0f) + reduced

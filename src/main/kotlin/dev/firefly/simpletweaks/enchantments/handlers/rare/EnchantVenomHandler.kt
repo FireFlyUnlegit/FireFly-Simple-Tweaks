@@ -18,6 +18,8 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 import dev.firefly.simpletweaks.util.damagesource.ElementDamageTypes
 import dev.firefly.simpletweaks.util.damagesource.damageElemental
+import dev.firefly.simpletweaks.util.elements.ElementMarks
+import dev.firefly.simpletweaks.util.elements.ElementType
 import dev.firefly.simpletweaks.util.damagesource.isElementDamage
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import net.minecraft.entity.LivingEntity
@@ -160,6 +162,14 @@ object EnchantVenomHandler : Listenable {
 
         val owner = state.ownerUUID?.let { entity.world.getPlayerByUuid(it) }
         val applied = entity.damageElemental(owner, ElementDamageTypes.VENOM, damage)
+
+        // Poison is **nature** (the type joined `#simple_tweaks:elemental_nature` in `build=cleanup21`),
+        // so a tick keeps the nature mark alive and can set up `burn` against a fire-marked target.
+        // Recorded here, not inside `damageElemental`, and only for a tick that actually landed: a mark
+        // left by a refused tick would fake a reaction the player never caused.
+        if (applied && owner != null) {
+            ElementMarks.recordAndReact(owner, entity, ElementType.NATURE, damage)
+        }
 
         val world = entity.world as? ServerWorld
         world?.spawnParticles(

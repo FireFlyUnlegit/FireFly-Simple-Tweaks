@@ -17,6 +17,8 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 import dev.firefly.simpletweaks.util.damagesource.ElementDamageTypes
 import dev.firefly.simpletweaks.util.damagesource.damageElemental
+import dev.firefly.simpletweaks.util.elements.ElementMarks
+import dev.firefly.simpletweaks.util.elements.ElementType
 import dev.firefly.simpletweaks.util.damagesource.isElementDamage
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import net.minecraft.entity.LivingEntity
@@ -158,7 +160,17 @@ object EnchantChainLightningHandler : Listenable {
         var landed = 0
         for (victim in victims) {
             val applied = victim.damageElemental(attacker, ElementDamageTypes.CHAIN_LIGHTNING, arcDamage)
-            if (applied) landed++
+            if (applied) {
+                landed++
+                // The arc **is** lightning now (its type joined `#simple_tweaks:elemental_lightning` in
+                // `build=cleanup21`), so it must leave the lightning mark too — otherwise an arc could
+                // never set up `conduct` on a wet target. Recorded here, at the source, and never inside
+                // `damageElemental`: a mark recorded for a queued rider would let a reaction re-trigger
+                // itself forever.
+                if (attacker is PlayerEntity) {
+                    ElementMarks.recordAndReact(attacker, victim, ElementType.LIGHTNING, arcDamage)
+                }
+            }
             drawArc(world, origin, victim)
         }
 

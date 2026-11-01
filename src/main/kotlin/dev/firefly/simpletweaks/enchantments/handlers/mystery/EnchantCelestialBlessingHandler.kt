@@ -20,6 +20,8 @@ import dev.firefly.simpletweaks.util.hasLineOfSight
 import dev.firefly.simpletweaks.util.runPlayerAttack
 import dev.firefly.simpletweaks.util.syncAttributes
 import dev.firefly.simpletweaks.util.damagesource.CelestialDamageSources
+import dev.firefly.simpletweaks.util.elements.ElementMarks
+import dev.firefly.simpletweaks.util.elements.ElementType
 import net.minecraft.entity.Entity
 import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.passive.TameableEntity
@@ -488,6 +490,10 @@ object EnchantCelestialBlessingHandler : Listenable {
                         target.runPlayerAttack(
                             owner, proj.damage, true, CelestialDamageSources.dealDamage(owner),
                         )
+                        // `celestial_particle` joined `#simple_tweaks:elemental_light` in `build=cleanup21`,
+                        // so the holy light is a real element now — it protects, it colours the number, and
+                        // here it leaves the light mark so a following dark hit can `annihilate`.
+                        ElementMarks.recordAndReact(owner, target, ElementType.LIGHT, proj.damage)
                     }
 
                     world.spawnParticles(ParticleTypes.END_ROD, tx, ty, tz, 5, 0.3, 0.3, 0.3, 0.05)

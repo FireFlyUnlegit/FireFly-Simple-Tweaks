@@ -8,6 +8,8 @@ import dev.firefly.simpletweaks.compat.event.TickEvent
 import dev.firefly.simpletweaks.core.Listenable
 import dev.firefly.simpletweaks.util.firingWeapon
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
+import dev.firefly.simpletweaks.util.elements.ElementMarks
+import dev.firefly.simpletweaks.util.elements.ElementType
 import dev.firefly.simpletweaks.util.runPlayerAttack
 import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.passive.TameableEntity
@@ -310,17 +312,22 @@ object EnchantStarfallHandler : Listenable {
             val factor = 1.0f - (dist / star.radius).toFloat() * 0.5f
             val dmg = star.damage * factor
 
+            // `build=cleanup21`: a falling star is **fire**, not a plain player attack. The meteor used to
+            // arrive as `playerAttack` (physical), so a whole enchantment that reads as elemental dealt
+            // pure physical damage: neither fire protection nor any reaction could ever see it.
             if (owner != null) {
                 entity.runPlayerAttack(
                     attacker = owner,
                     rawDamage = dmg,
                     forceHit = true,
-                    source = owner.damageSources.playerAttack(owner),
+                    source = owner.damageSources.create(ElementType.FIRE.damageType, owner),
                     triggerEvent = true,
                     allowCrit = false,
                 )
+                // The impact leaves a fire mark, so a follow-up frost / water hit can `vanish` / `steam`.
+                ElementMarks.recordAndReact(owner, entity, ElementType.FIRE, dmg)
             } else {
-                entity.damage(entity.damageSources.magic(), dmg)
+                entity.damage(entity.damageSources.create(ElementType.FIRE.damageType), dmg)
             }
         }
     }
