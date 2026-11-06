@@ -20,6 +20,15 @@ const val AXE           = "#minecraft:enchantable/axe"
 const val SMASHING      = "#minecraft:enchantable/smashing"
 const val FIRE_ASPECT   = "#minecraft:enchantable/fire_aspect"
 
+/**
+ * Everything the eight element conversions can go on: swords, bows and crossbows.
+ *
+ * A **mod-owned** tag (`data/simple_tweaks/tags/item/conversion_weapons.json`) rather than a vanilla one,
+ * because no vanilla tag contains exactly "melee weapon + both ranged weapons", and the conversion has to
+ * stay one enchantment id shared by all of them (`build=cleanup25`).
+ */
+const val CONVERSION_WEAPONS = "#simple_tweaks:conversion_weapons"
+
 // ranged
 const val BOW           = "#minecraft:enchantable/bow"
 const val CROSSBOW      = "#minecraft:enchantable/crossbow"
