@@ -7,6 +7,7 @@ import dev.firefly.simpletweaks.compat.event.LivingEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.invalid
 import dev.firefly.simpletweaks.core.Listenable
+import dev.firefly.simpletweaks.util.elements.ElementAuras
 import dev.firefly.simpletweaks.util.elements.ElementCombat
 import dev.firefly.simpletweaks.util.elements.ElementMarks
 import dev.firefly.simpletweaks.util.elements.ElementType
@@ -187,10 +188,15 @@ object EnchantHeavenlyPunishmentHandler : Listenable {
                     // Marks + reactions are keyed by the **attacker**, which is the wielder; a non-player
                     // wielder simply gets the damage without the mark (the enchantment is on a sword).
                     if (attacker is PlayerEntity) {
-                        val reaction = ElementMarks.recordAndReact(attacker, target, ElementType.LIGHTNING, bonus)
-                        if (reaction != null) {
+                        // An **ultra** application (4 units): heavenly punishment is the loudest thing in the mod, and
+                // it should survive a weak aura instead of being eaten by it.
+                val reaction = ElementMarks.recordAndReact(
+                    attacker, target, ElementType.LIGHTNING, bonus,
+                    units = ElementAuras.ULTRA, forceAttach = true,
+                )
+                        if (reaction.key != null) {
                             FSTLog.log("HeavenlyPunishment") {
-                                "target=${target.name.string}, reaction=$reaction, bonus=$bonus, " +
+                                "target=${target.name.string}, reaction=${reaction.key}, bonus=$bonus, " +
                                     "outcome=lightning-reaction"
                             }
                         }

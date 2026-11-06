@@ -163,7 +163,7 @@ object EnchantEchoShieldHandler : Listenable {
             val reflectElement = ElementType.of(e.source)
             val reflected = buffer.coerceAtMost(attacker.maxHealth)
             attacker.damageElemental(player, reflectElement.damageType, reflected)
-            ElementMarks.recordAndReact(player, attacker, reflectElement, reflected)
+            ElementMarks.recordAndReact(player, attacker, reflectElement, reflected, forceAttach = true)
 
             playFeedback(player, big = true)
             FSTLog.log("EchoShield") {
@@ -219,7 +219,7 @@ object EnchantEchoShieldHandler : Listenable {
         // Same rule as the full-absorb branch: reflect the incoming **element**, and leave its mark.
         val reflectElement = ElementType.of(e.source)
         attacker.damageElemental(player, reflectElement.damageType, reduced)
-        ElementMarks.recordAndReact(player, attacker, reflectElement, reduced)
+        ElementMarks.recordAndReact(player, attacker, reflectElement, reduced, forceAttach = true)
         e.amount -= reduced
 
         val newBuffer = (echoBuffer[id] ?: 0f) + reduced

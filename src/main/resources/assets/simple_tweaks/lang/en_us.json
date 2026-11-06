@@ -263,7 +263,7 @@
   "enchantment.simple_tweaks.elemental_ward": "Elemental Ward",
   "enchantment.simple_tweaks.elemental_ward.desc": "Reduces all elemental damage taken by 3%% per level (max 9%%), multiplying with single-element protection.",
   "enchantment.simple_tweaks.elemental_resonance": "Elemental Resonance",
-  "enchantment.simple_tweaks.elemental_resonance.desc": "Increases reaction damage by 10%% per level (max +30%%). Does not affect the conversion's own elemental hit.",
+  "enchantment.simple_tweaks.elemental_resonance.desc": "Increases transformative reaction damage by 10%% per level (max +30%%). Amplifying reaction multipliers are not affected — they scale the hit itself.",
   "enchantment.simple_tweaks.elemental_penetration": "Elemental Penetration",
   "enchantment.simple_tweaks.elemental_penetration.desc": "Ignores 8%% per level (max 24%%) of the target's elemental mitigation: protections, mob resistance and Elemental Ward.",
   "reaction.simple_tweaks.melt": "Melt",
@@ -283,5 +283,6 @@
   "reaction.simple_tweaks.purify": "Purify",
   "reaction.simple_tweaks.scorch": "Scorch",
   "reaction.simple_tweaks.blight": "Blight",
-  "reaction.simple_tweaks.eclipse": "Eclipse"
+  "reaction.simple_tweaks.eclipse": "Eclipse",
+  "reaction.simple_tweaks.quicken": "Quicken"
 }

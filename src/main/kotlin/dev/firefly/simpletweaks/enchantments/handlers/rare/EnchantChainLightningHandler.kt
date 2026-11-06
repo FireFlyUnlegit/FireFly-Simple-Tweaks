@@ -168,7 +168,10 @@ object EnchantChainLightningHandler : Listenable {
                 // `damageElemental`: a mark recorded for a queued rider would let a reaction re-trigger
                 // itself forever.
                 if (attacker is PlayerEntity) {
-                    ElementMarks.recordAndReact(attacker, victim, ElementType.LIGHTNING, arcDamage)
+                    ElementMarks.recordAndReact(
+                        attacker, victim, ElementType.LIGHTNING, arcDamage,
+                        forceAttach = true,
+                    )
                 }
             }
             drawArc(world, origin, victim)
