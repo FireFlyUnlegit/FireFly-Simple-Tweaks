@@ -1,6 +1,8 @@
 package dev.firefly.simpletweaks.core
 
 import dev.firefly.simpletweaks.core.config.MobEnhancementConfig
+import dev.firefly.simpletweaks.network.NetworkManager
+import dev.firefly.simpletweaks.network.packets.PacketMobLevel
 import dev.firefly.simpletweaks.util.mobs.LevelledMob
 import dev.firefly.simpletweaks.util.mobs.MobElements
 import dev.firefly.simpletweaks.util.mobs.MobLevels
@@ -50,6 +52,15 @@ import net.minecraft.entity.mob.MobEntity
  */
 object MobSpawnEnhancer {
 
+    /**
+     * How far a player can be and still receive the level packet.
+     *
+     * Matches the damage-indicator broadcast (64) is *not* enough here: a mob is tracked by every player
+     * whose view distance reaches it, which at 12 chunks is ~192 blocks at the corner. 160 keeps the
+     * packet count sane while covering the cases the tag matters for.
+     */
+    private const val ANNOUNCE_RANGE = 160.0
+
     fun register() {
         ServerEntityEvents.ENTITY_LOAD.register { entity, world ->
             if (entity !is MobEntity) return@register
@@ -65,6 +76,21 @@ object MobSpawnEnhancer {
             val effective = MobLevels.effectiveDifficulty(entity, world, difficulty)
             MobLevels.ensureLevel(entity, effective, world.random)
             MobElements.tryAssign(entity, world.random, effective)
+
+            // `build=cleanup24`: the level is *also* announced here, not only from
+            // `MobLevelTracker`'s `START_TRACKING`. The two seams are not ordered relative to each other:
+            // when tracking starts before this callback runs (mobs added mid-tick — slime splits,
+            // summon-ed minions, spawner cycles) the packet would carry level **0** and nothing ever
+            // re-sends it, so that client shows no `[Lv.N]` name tag until the chunk is reloaded.
+            // Sending again is idempotent: `MobLevelSync` keys by entity id and simply overwrites.
+            val level = levelled.mobLevel
+            if (level > 0) {
+                for (player in world.players) {
+                    if (player.squaredDistanceTo(entity) <= ANNOUNCE_RANGE * ANNOUNCE_RANGE) {
+                        NetworkManager.sendToClient(PacketMobLevel(entity.id, level), player)
+                    }
+                }
+            }
         }
     }
 }
