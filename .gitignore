@@ -15,3 +15,6 @@ logs/
 *.kate-swp
 .kotlin/
 run-gametest/
+# 个人工作文档：只在本机维护，不入库（AGENTS/DEVLOG 里对 docs/ 的引用是本地指针
+# —— 在 GitHub 上是 404，这是有意的）
+docs/
