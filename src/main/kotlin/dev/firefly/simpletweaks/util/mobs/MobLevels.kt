@@ -59,13 +59,13 @@ import kotlin.math.max
 object MobLevels {
 
     /** `+10 %` max health per level above 1. */
-    const val HEALTH_PER_LEVEL = 0.10
+    const val HEALTH_PER_LEVEL = 0.2
 
     /** `+8 %` attack damage per level above 1. */
-    const val ATTACK_PER_LEVEL = 0.08
+    const val ATTACK_PER_LEVEL = 0.15
 
     /** `+1` armour per level above 1. */
-    const val ARMOR_PER_LEVEL = 1.0
+    const val ARMOR_PER_LEVEL = 0.4
 
     /**
      * `clampedLocalDifficulty` per level above 1.

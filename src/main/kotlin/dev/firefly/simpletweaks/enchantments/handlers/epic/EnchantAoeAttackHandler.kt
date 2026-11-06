@@ -1,4 +1,4 @@
-package dev.firefly.simpletweaks.enchantments.handlers.uncommon
+package dev.firefly.simpletweaks.enchantments.handlers.epic
 
 import dev.firefly.simpletweaks.compat.FSTLog
 import dev.firefly.simpletweaks.compat.event.LivingHurtEvent
@@ -41,7 +41,7 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
  * Its only non-mechanical dependency was `other.runPlayerAttack(attacker, perTarget, true)`: the
  * 1.12.2 helper's body calls `ForgeHooks.getCriticalHit` / `CriticalHitEvent`, which did not exist in
  * this port when the batch was written. That seam now exists, and
- * [dev.firefly.simpletweaks.util.runPlayerAttack] honours it — so the splash damage crit-rolls
+ * [runPlayerAttack] honours it — so the splash damage crit-rolls
  * exactly as it did in 1.12.2 (the 3rd positional argument is `forceHit = true`; `allowCrit` keeps
  * its default of `true`).
  *
@@ -50,10 +50,10 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
  */
 @ModEnchantment(
     id = "aoe_attack",
-    category = EnchantCategory.UNCOMMON,
+    category = EnchantCategory.EPIC,
     type = EnchantType.SWORD,
     maxLevel = 5,
-    weight = EnchantItemWeights.UNCOMMON,
+    weight = EnchantItemWeights.EPIC,
     anvilCost = 4,
     minCostBase = 30,
     minCostPerLevel = 5,

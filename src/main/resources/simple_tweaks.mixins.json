@@ -8,6 +8,7 @@
     "AnvilScreenHandlerMixin",
     "BlockHarvestDropsMixin",
     "CreeperExplosionMixin",
+    "DamageUtilMixin",
     "BowItemArrowLooseMixin",
     "EnchantmentHelperMixin",
     "EnchantmentScreenHandlerMixin",

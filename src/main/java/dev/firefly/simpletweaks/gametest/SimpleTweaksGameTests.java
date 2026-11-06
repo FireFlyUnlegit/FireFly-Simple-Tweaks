@@ -2,6 +2,7 @@ package dev.firefly.simpletweaks.gametest;
 
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments;
 import dev.firefly.simpletweaks.util.mobs.LevelledMob;
+import dev.firefly.simpletweaks.util.ArmorCurve;
 import dev.firefly.simpletweaks.util.mobs.MobLevels;
 import net.fabricmc.fabric.api.gametest.v1.FabricGameTest;
 import net.minecraft.entity.EntityType;
@@ -95,7 +96,8 @@ public class SimpleTweaksGameTests implements FabricGameTest {
         double expectedArmor = baseArmor + MobLevels.ARMOR_PER_LEVEL * (level - 1);
         // `LivingEntity#getAttributeValue` returns a double in 1.21.1; `getArmor` returns an int.
         double attack = zombie.getAttributeValue(net.minecraft.entity.attribute.EntityAttributes.GENERIC_ATTACK_DAMAGE);
-        float armor = zombie.getArmor();
+        double armor = zombie.getAttributeValue(
+                net.minecraft.entity.attribute.EntityAttributes.GENERIC_ARMOR);
 
         LOGGER.info("[FST-GameTest] levelled at difficulty 3.0: level={} (expect 9..13), maxHealth={} (expect {}), "
                         + "attack={} (expect {}), armor={} (expect {})",
@@ -192,4 +194,59 @@ public class SimpleTweaksGameTests implements FabricGameTest {
         context.assertEquals(expected, actual,
                 "averageLevelFor(" + difficulty + ") should be " + expected + " but was " + actual);
     }
+
+    /**
+     * The reformed armour curve, pinned to the table in {@code ArmorCurve}'s KDoc.
+     *
+     * <p>This asserts the **maths**, not the mixin: {@code DamageUtilMixin} calls these same functions,
+     * and a future "small tweak" to the efficiency or the ceiling would silently re-tune every fight in
+     * the game. The points that matter are the two boundaries — vanilla parity at 20 and saturation —
+     * because those are the two claims the feature makes.
+     */
+    @GameTest(templateName = FabricGameTest.EMPTY_STRUCTURE)
+    public void armorCurveExtendsPastTheVanillaWall(TestContext context) {
+        // --- percentage part: bit-identical to vanilla up to the wall --------------------------
+        assertReduction(context, 100.0f, 0.0f, 0.00f);
+        assertReduction(context, 100.0f, 10.0f, 0.40f);
+        assertReduction(context, 100.0f, 20.0f, 0.80f);
+
+        // --- overflow becomes flat damage removal -------------------------------------------
+        // 26 armour = 6 points over the wall = 3.0 flat off the 20 damage that survived 80 %.
+        assertTaken(context, 100.0f, 26.0f, 20.0f - 3.0f);
+        // 40 armour wants 10 flat, still below the cap on a 100-damage hit.
+        assertTaken(context, 100.0f, 40.0f, 20.0f - 10.0f);
+        // A small hit is where flat shines: 6 damage -> 1.2 survives the percentage, and the flat part
+        // is capped at 75 % of that, so the hit cannot become free.
+        assertTaken(context, 6.0f, 26.0f, 1.2f * (1.0f - ArmorCurve.MAX_FLAT_FRACTION));
+
+        // --- invariants across a wide sweep -------------------------------------------------
+        float previous = Float.MAX_VALUE;
+        for (float armor = 20.0f; armor <= 200.0f; armor += 1.0f) {
+            float taken = ArmorCurve.INSTANCE.damageTaken(50.0f, armor, Math.min(armor, ArmorCurve.VANILLA_CAP));
+            context.assertTrue(taken <= previous + 1e-4f,
+                    "armor " + armor + " must never take more than " + (armor - 1.0f) + " armour");
+            context.assertTrue(taken > 0.0f, "armor " + armor + " must never make a hit free");
+            previous = taken;
+        }
+        context.complete();
+    }
+
+    private static void assertReduction(TestContext context, float damage, float armor, float expected) {
+        float actual = ArmorCurve.INSTANCE.reductionFor(armor, damage);
+        LOGGER.info("[FST-GameTest] damage {} armor {} -> reduction {} (expected {})",
+                damage, armor, actual, expected);
+        context.assertTrue(Math.abs(actual - expected) < 0.001f,
+                "armor " + armor + " vs " + damage + " damage should reduce by " + expected
+                        + " but was " + actual);
+    }
+
+    private static void assertTaken(TestContext context, float damage, float armor, float expected) {
+        float actual = ArmorCurve.INSTANCE.damageTaken(damage, armor, Math.min(armor, ArmorCurve.VANILLA_CAP));
+        LOGGER.info("[FST-GameTest] damage {} armor {} -> taken {} (expected {})",
+                damage, armor, actual, expected);
+        context.assertTrue(Math.abs(actual - expected) < 0.01f,
+                "armor " + armor + " vs " + damage + " damage should take " + expected
+                        + " but took " + actual);
+    }
+
 }
