@@ -126,6 +126,10 @@ class EnchantInfoScreen(private val parent: Screen?) :
         "hoe" to Items.DIAMOND_HOE,
         "bow" to Items.BOW,
         "crossbow" to Items.CROSSBOW,
+        // 1.21 mace: its own group, added in `build=cleanup52` after the author found `ei` listed nothing
+        // for `skyfall` / `sunder` / `quake` — the probe list simply had no mace item, so those three
+        // enchantments could not be assigned to any group even though the registry accepted them.
+        "mace" to Items.MACE,
         "trident" to Items.TRIDENT,
         "fishing_rod" to Items.FISHING_ROD,
         "helmet" to Items.DIAMOND_HELMET,

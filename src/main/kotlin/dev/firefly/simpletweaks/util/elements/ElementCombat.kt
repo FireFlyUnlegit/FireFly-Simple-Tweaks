@@ -110,6 +110,9 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
 
     const val PROTECTION_PER_LEVEL = 0.04f
     const val PROTECTION_CAP = 0.80f
+    /** Per total level of `elemental_supremacy`: its own mitigation share (see [supremacyReduction]). */
+    const val SUPREMACY_PER_LEVEL = 0.05f
+    const val SUPREMACY_CAP = 0.25f
 
     // ---------------------------------------------------------------- mastery tuning
 
@@ -771,7 +774,14 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
         val mobReduction = if (mob != null) MobElements.resistanceFor(mob, element) else 0f
         val penetration = penetrationOf(e.source.attacker as? LivingEntity, e.source)
 
-        val mitigated = 1.0f - (1.0f - enchantReduction) * (1.0f - mobReduction) * (1.0f - wardReduction)
+        // `elemental_supremacy` is its **own** mitigation source, not a change to the affinity cap: the chain is
+        // multiplicative, so an extra factor can never drive the total to 100 % (and the final clamp is 0.95).
+        // This is what gives the enchantment "height" as well as "breadth" — four maxed fire pieces already cap
+        // the affinity at 80 %, and supremacy then removes a further slice of what is left.
+        val supremacyReduction = supremacyReduction(e.entityLiving)
+
+        val mitigated = 1.0f - (1.0f - enchantReduction) * (1.0f - mobReduction) *
+            (1.0f - wardReduction) * (1.0f - supremacyReduction)
         val effective = (mitigated * (1.0f - penetration)).coerceIn(0f, 0.95f)
 
         if (effective <= 0f) return
@@ -783,6 +793,7 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
             "protected=${element.id}, lvl=$level, " +
                 "enchantReduction=${"%.2f".format(enchantReduction)}, " +
                 "ward=${"%.2f".format(wardReduction)}, " +
+                "supremacy=${"%.2f".format(supremacyReduction)}, " +
                 "mobResistance=${"%.2f".format(mobReduction)}, " +
                 "penetration=${"%.2f".format(penetration)}, " +
                 "amount=${"%.2f".format(before)}->${"%.2f".format(e.amount)}, outcome=reduced"
@@ -904,6 +915,22 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
             total += getElementSpecificEnchantLevel(entity.getEquippedStack(slot), element, protective = true)
         }
         return total
+    }
+
+    /**
+     * `elemental_supremacy`'s own mitigation: `5 % × total level`, capped at 25 %.
+     *
+     * Deliberately separate from [protectionLevel]: the 80 % affinity cap is a promise the rest of the elemental
+     * system relies on, so supremacy must not quietly raise it. Instead it contributes one more multiplicative
+     * factor, composing exactly like `enchant × ward × mob` already does. Four maxed fire pieces give 80 %, and
+     * supremacy V then removes a further quarter of the remainder → `1 − 0.2 × 0.75 = 85 %`.
+     */
+    fun supremacyReduction(entity: LivingEntity): Float {
+        if (!wearsSupremacy(entity)) return 0f
+        val total = ARMOR_SLOTS.sumOf {
+            getItemSpecificEnchantLevel(entity.getEquippedStack(it), GeneratedEnchantments.ELEMENTAL_SUPREMACY)
+        }
+        return (SUPREMACY_PER_LEVEL * total).coerceAtMost(SUPREMACY_CAP)
     }
 
     /** Whether [entity] wears `elemental_supremacy` (any armour slot). */

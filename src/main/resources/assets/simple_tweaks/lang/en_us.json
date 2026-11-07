@@ -255,6 +255,7 @@
   "gui.simple_tweaks.item_group.bow": "Bows",
   "gui.simple_tweaks.item_group.crossbow": "Crossbows",
   "gui.simple_tweaks.item_group.trident": "Tridents",
+  "gui.simple_tweaks.item_group.mace": "Mace",
   "gui.simple_tweaks.item_group.fishing_rod": "Fishing rods",
   "gui.simple_tweaks.item_group.helmet": "Helmets",
   "gui.simple_tweaks.item_group.chestplate": "Chestplates",
@@ -345,5 +346,5 @@
   "enchantment.simple_tweaks.quake": "Quake",
   "enchantment.simple_tweaks.quake.desc": "Hitting a target that is using an item interrupts it (bow draw, shield, potion, food) and puts that item on a 1 s cooldown",
   "enchantment.simple_tweaks.elemental_supremacy": "Elemental Supremacy",
-  "enchantment.simple_tweaks.elemental_supremacy.desc": "(1) Your highest elemental affinity defends against all eight elements (maximum, never summed). (2) Every reaction that hits you is remembered; capacity = total level across your armour / 2 (max 10, i.e. 20 levels on four pieces). Your next hit replays all of them onto the target, each at 40%% of that hit"
+  "enchantment.simple_tweaks.elemental_supremacy.desc": "(1) Your highest elemental affinity defends against all eight elements (maximum, never summed). (2) Elemental Supremacy is also its own mitigation source: elemental damage taken is cut by a further 5%% per total level, up to 25%%, multiplied with the affinity (so it never reaches 100%%). (3) Every reaction that hits you is remembered, capacity = total armour level / 2 (max 10); your next hit replays all of them onto the target, each at 40%% of that hit"
 }
