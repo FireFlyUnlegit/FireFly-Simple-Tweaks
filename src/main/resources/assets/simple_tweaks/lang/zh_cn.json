@@ -314,5 +314,13 @@
   "enchantment.simple_tweaks.elemental_sovereign": "元素主宰",
   "enchantment.simple_tweaks.elemental_sovereign.desc": "转化元素自动改成能与目标当前元素量反应的那一个（无元素量时用你原本的转化元素）；你触发的所有反应伤害 +30%%×等级",
   "enchantment.simple_tweaks.midas_touch": "点金之手",
-  "enchantment.simple_tweaks.midas_touch.desc": "方块掉落数量 ×(1+25%%×等级)（与时运相乘），挖掘速度 +20%%×等级，并有概率掉经验。不干预怪物掉落与经验获取（分别属于战利品 / 经验偷取）"
+  "enchantment.simple_tweaks.midas_touch.desc": "方块掉落数量 ×(1+25%%×等级)（与时运相乘），挖掘速度 +20%%×等级，并有概率掉经验。不干预怪物掉落与经验获取（分别属于战利品 / 经验偷取）",
+  "enchantment.simple_tweaks.extraction": "附魔剥离",
+  "enchantment.simple_tweaks.extraction.desc": "贴上即消耗：把该物品上**等级最高**的一条附魔取下，变成同等级的附魔书，物品保留其余附魔。不能剥离自己，也不会复制附魔",
+  "enchantment.simple_tweaks.elemental_attunement": "元素重铸",
+  "enchantment.simple_tweaks.elemental_attunement.desc": "贴上即消耗：把物品上的转化附魔**随机换成另一种元素**（等级不变）。没有任何转化时不消耗",
+  "enchantment.simple_tweaks.reroll": "词条洗练",
+  "enchantment.simple_tweaks.reroll.desc": "贴上即消耗：清除物品上所有**本模组**附魔，重新随机 2 条**适用于该物品**的附魔（等级 1 到上限的一半），并保证不会产生互斥组合。原版附魔不受影响",
+  "enchantment.simple_tweaks.infusion": "经验灌注",
+  "enchantment.simple_tweaks.infusion.desc": "贴上即消耗：消耗 **10 级经验**，把物品上等级最高的未满级附魔 **+1 级**。全部满级或经验不足时不消耗"
 }

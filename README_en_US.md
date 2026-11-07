@@ -12,7 +12,7 @@
 
 A Minecraft mod I build for fun: new enchantments, new mechanics and better combat feedback for vanilla.
 
-Current **1.21.1 / Fabric** release: **v2.2.5** (98 enchantments, 19 elemental reactions, aura gauges, reworked armour curve).
+Current **1.21.1 / Fabric** release: **v2.2.5** (102 enchantments, 19 elemental reactions, aura gauges, reworked armour curve).
 
 ## 🌿 Branches
 
@@ -31,14 +31,14 @@ Current **1.21.1 / Fabric** release: **v2.2.5** (98 enchantments, 19 elemental r
 
 ### 🧙 Custom enchantments
 
-**98** unique enchantments, split by rarity:
+**102** unique enchantments, split by rarity:
 
 | Rarity | Count | Rarity | Count |
 |--------|-------|--------|-------|
 | COMMON | 7 | LEGENDARY | 16 |
 | UNCOMMON | 9 | MYTHIC | 9 |
 | RARE | 27 | MYSTERY | 5 |
-| EPIC | 24 | UNIQUE | 1 |
+| EPIC | 24 | UNIQUE | 5 |
 
 #### 🌈 Elemental system
 
@@ -211,6 +211,10 @@ A 100-damage hit: armour 26 → 17 taken; armour 40 → 10 taken.
 | Enchantment | Effect |
 |-------------|--------|
 | **Infinite Power** | flight, invulnerability, instant mining, infinite food/durability, laser attack, huge drops, soulbound — everything (creative only) |
+| **Extraction** | consumed on use: take the item's **highest-level** enchantment and turn it into a book of the same level; the item keeps the rest. **Cannot extract itself, never duplicates** |
+| **Elemental Attunement** | consumed on use: replace the conversion enchantment with **another random element** (level kept); nothing is consumed without a conversion |
+| **Reroll** | consumed on use: strip every **mod** enchantment and roll 2 fresh **applicable** ones (level 1 to half max), never a conflicting pair |
+| **Infusion** | consumed on use: spend **10 experience levels** to raise the highest non-maxed enchantment by **one level**; nothing consumed when maxed or short on levels |
 | **Void Collapse** | at 5 stacks, collapse: `min(target max health × (5%% + 5%% × level), accumulated × 2)` **true damage** (ignores armour, i-frames, no crits), 50%% of it to other enemies within 6 blocks; each stack also makes the target take +12%% × level from you. **No downside**, just one collapse per target per 1 s |
 | **Elemental Sovereign** | the conversion element **becomes whichever one reacts with the target's current aura** (falls back to your own conversion element when there is none); every reaction you trigger deals **+30%% × level** |
 | **Midas Touch** | block drops `×(1 + 25%% × level)` (**multiplicative with Fortune**), mining speed `+20%% × level`, plus bonus experience on a chance. Deliberately ignores mob drops and experience gain (those belong to Scavenger / Experience Stealer) |
