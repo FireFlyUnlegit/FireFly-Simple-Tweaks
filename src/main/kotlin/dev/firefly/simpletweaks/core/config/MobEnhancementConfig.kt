@@ -66,4 +66,17 @@ object MobEnhancementConfig {
      */
     @JvmStatic
     var elementsEnabled: Boolean = true
+
+    /**
+     * A **persistent** difficulty bonus, added on top of everything else (`/fst difficulty modify`).
+     *
+     * `v2.2.4 build=cleanup27`. Distinct from `MobLevels.difficultyOffset`, which is deliberately
+     * session-only ("a tuning aid should not outlive the session"): this one is written to
+     * `config/simple_tweaks.json` and survives restarts, because the author wanted a way to nudge the
+     * whole world's difficulty permanently.
+     *
+     * Read by `MobLevels.baseDifficulty` (every mob's spawn-time difficulty) and by
+     * `/fst difficulty check`.
+     */
+    var difficultyModifier: Float = 0f
 }

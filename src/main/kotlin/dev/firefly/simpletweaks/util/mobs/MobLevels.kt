@@ -192,10 +192,40 @@ object MobLevels {
      * probabilities — so a well-geared player meets tougher mobs on all three axes at once instead of only
      * one.
      */
+    /**
+     * The **difficulty number a mob would get before any player-power term**.
+     *
+     * `= max(localDifficulty - LOCAL_DIFFICULTY_FLOOR, 0) + difficultyOffset + difficultyModifier`.
+     *
+     * Single home for that sum on purpose: `/fst difficulty check` reports this exact figure, and the
+     * spawn path consumes it through [effectiveDifficulty]. Two copies of the formula would let the
+     * reporting command disagree with the game — the "键存在 ≠ 有人读它" family of bugs.
+     *
+     * `difficultyOffset` is the **session-only** `/fst difficulty <n>` knob; `difficultyModifier` is the
+     * **persistent** `/fst difficulty modify <n>` one (config-backed).
+     */
+    fun baseDifficulty(localDifficulty: Float): Float =
+        (localDifficulty - LOCAL_DIFFICULTY_FLOOR).coerceAtLeast(0f) +
+            difficultyOffset +
+            MobEnhancementConfig.difficultyModifier
+
+    /**
+     * What [player] standing at [pos] would make a mob spawn at — the number `/fst difficulty check`
+     * prints.
+     *
+     * Same two terms as [effectiveDifficulty] (base + player power × weight), just computed from a
+     * position and a player instead of from an entity that already exists.
+     */
+    fun previewDifficulty(world: net.minecraft.server.world.ServerWorld, pos: net.minecraft.util.math.BlockPos, player: PlayerEntity?): Float {
+        val base = baseDifficulty(world.getLocalDifficulty(pos).localDifficulty)
+        if (!MobEnhancementConfig.enabled || player == null) return base
+        return base + playerPower(player) * PLAYER_POWER_WEIGHT
+    }
+
     fun effectiveDifficulty(mob: MobEntity, world: ServerWorldAccess, difficulty: LocalDifficulty): Float {
         if (!MobEnhancementConfig.enabled) return difficulty.localDifficulty
 
-        val base = (difficulty.localDifficulty - LOCAL_DIFFICULTY_FLOOR).coerceAtLeast(0f) + difficultyOffset
+        val base = baseDifficulty(difficulty.localDifficulty)
         // A mob that spawns outside [PLAYER_SCAN_RANGE] still belongs to *someone's* difficulty. Falling
         // back to "the nearest player, however far" keeps the curve continuous instead of dropping a
         // whole region to the bare chunk difficulty (see the KDoc on [PLAYER_SCAN_RANGE]).

@@ -111,6 +111,10 @@ object SimpleTweaksConfig {
         MobEnhancementConfig.enchantmentsEnabled = s.bool("enchantmentsEnabled", true)
         MobEnhancementConfig.levelsEnabled = s.bool("levelsEnabled", true)
         MobEnhancementConfig.elementsEnabled = s.bool("elementsEnabled", true)
+        // cleanup27: persistent difficulty bonus (`/fst difficulty modify`). Bounded so a typo cannot
+        // turn every spawn into a level-5000 mob.
+        MobEnhancementConfig.difficultyModifier = s.dbl("difficultyModifier", 0.0)
+            .coerceIn(-100.0, 1000.0).toFloat()
     }
 
     private fun readDamageIndicator(s: JsonObject) {
@@ -166,6 +170,7 @@ object SimpleTweaksConfig {
             addProperty("enchantmentsEnabled", MobEnhancementConfig.enchantmentsEnabled)
             addProperty("levelsEnabled", MobEnhancementConfig.levelsEnabled)
             addProperty("elementsEnabled", MobEnhancementConfig.elementsEnabled)
+            addProperty("difficultyModifier", MobEnhancementConfig.difficultyModifier)
         }
         val indicator = JsonObject().apply {
             addProperty("enabled", DamageIndicatorConfig.enabled)
