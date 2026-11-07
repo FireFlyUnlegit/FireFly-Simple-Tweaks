@@ -177,13 +177,13 @@ object AttachmentIcd {
     /**
      * @return true when this hit is allowed to attach an aura
      */
-    fun allows(target: LivingEntity, attacker: PlayerEntity?): Boolean {
+    fun allows(target: LivingEntity, attacker: PlayerEntity?, windowTicks: Long = WINDOW_TICKS): Boolean {
         if (attacker == null) return true
         val now = target.world.time
         val perTarget = states.getOrPut(target) { HashMap() }
         val state = perTarget.getOrPut(attacker.uuid) { State() }
 
-        if (now - state.lastAppliedAt >= WINDOW_TICKS) {
+        if (now - state.lastAppliedAt >= windowTicks) {
             state.hitsInWindow = 0
         }
         state.hitsInWindow++

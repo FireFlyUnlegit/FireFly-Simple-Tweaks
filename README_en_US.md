@@ -12,7 +12,7 @@
 
 A Minecraft mod I build for fun: new enchantments, new mechanics and better combat feedback for vanilla.
 
-Current **1.21.1 / Fabric** release: **v2.2.5** (89 enchantments, 19 elemental reactions, aura gauges, reworked armour curve).
+Current **1.21.1 / Fabric** release: **v2.2.5** (95 enchantments, 19 elemental reactions, aura gauges, reworked armour curve).
 
 ## 🌿 Branches
 
@@ -31,14 +31,14 @@ Current **1.21.1 / Fabric** release: **v2.2.5** (89 enchantments, 19 elemental r
 
 ### 🧙 Custom enchantments
 
-**89** unique enchantments, split by rarity:
+**95** unique enchantments, split by rarity:
 
 | Rarity | Count | Rarity | Count |
 |--------|-------|--------|-------|
 | COMMON | 7 | LEGENDARY | 16 |
 | UNCOMMON | 9 | MYTHIC | 9 |
-| RARE | 23 | MYSTERY | 2 |
-| EPIC | 22 | UNIQUE | 1 |
+| RARE | 27 | MYSTERY | 2 |
+| EPIC | 24 | UNIQUE | 1 |
 
 #### 🌈 Elemental system
 
@@ -155,6 +155,8 @@ A 100-damage hit: armour 26 → 17 taken; armour 40 → 10 taken.
 | Elemental Resonance | **reaction** damage +10% per level (cap +30%); reactions only, never elemental direct damage |
 | Elemental Penetration | ignore 8%/level (cap 24%) of the target's elemental reduction |
 | Eight Conversions | physical / fire / frost / lightning / water / nature / shadow / light conversion (1.5%/level, cap 7.5%), mutually exclusive — see the elemental section above |
+| Detonate | on hit, if the target's aura is ≥ 2.0, consume all of it and deal `aura × (2 + 0.5 × level)` damage of that element (**no reaction**) |
+| Elemental Spread | when a reaction fires, attach `0.5 × level` of that element to other enemies within `2 + 0.5 × level` blocks (**aura only, no damage**) |
 
 #### 🛡️ Defence
 
@@ -184,6 +186,9 @@ A 100-damage hit: armour 26 → 17 taken; armour 40 → 10 taken.
 | Adaptive Armour | repeated damage of the same type stacks reduction (max 6 stacks), 0.9% × level per stack |
 | Eight Affinities | physical / fire / frost / lightning / water / nature / shadow / light affinity, −4% per level per armour piece (cap 80%); **none of them exclude each other** |
 | Elemental Ward | **all** elemental damage −3%/level (cap −9%); **multiplied** with affinity, so "specialist" and "generalist" both have value |
+| Elemental Catalyst | attachment ICD shortened by **0.5 s** per level (2.5 → 2.0 / 1.5 / 1.0 s) — the ceiling on reaction rate at high attack speed |
+| Elemental Echo | taking elemental damage attaches `min(0.3 × level, 1.0)` of that element to yourself — getting hit becomes ammo for the next swing |
+| Elemental Sight | while worn, the **action bar** shows the element and aura amount of whatever you look at (makes the whole aura system visible) |
 
 #### 🔧 Tools
 
@@ -199,6 +204,7 @@ A 100-damage hit: armour 26 → 17 taken; armour 40 → 10 taken.
 | Acid Attack | corrodes the target's held weapon on hit |
 | Armour Breaker | corrodes a random piece of the target's armour on hit |
 | Swift Sneak | faster movement while sneaking |
+| Scavenger | killing a **levelled** mob has a level-scaled chance to drop extra vanilla materials; higher mob levels give better materials (iron nuggets below 20 / gold nuggets below 40 / iron ingot below 60 / emerald above) |
 
 #### ⭐ Special
 
