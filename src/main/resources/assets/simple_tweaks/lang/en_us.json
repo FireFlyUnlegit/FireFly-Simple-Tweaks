@@ -132,7 +132,7 @@
   "gui.simple_tweaks.config.off": "Off",
   "gui.simple_tweaks.config.on": "On",
   "gui.simple_tweaks.config.page": "%s (page %s/%s)",
-  "gui.simple_tweaks.config.save_hint": "Type a value and it applies immediately (out-of-range values are clamped)",
+  "gui.simple_tweaks.config.save_hint": "Type a value and it applies at once (out-of-range values are clamped)",
   "gui.simple_tweaks.config.section.damage": "Damage indicator",
   "gui.simple_tweaks.config.section.general": "General",
   "gui.simple_tweaks.config.section.mob": "Mob enhancement",
@@ -324,5 +324,6 @@
   "enchantment.simple_tweaks.infusion": "Infusion",
   "enchantment.simple_tweaks.infusion.desc": "Consumed on use: spend 10 experience levels to raise the item's highest non-maxed enchantment by one level. Nothing is consumed when everything is maxed or you lack the levels",
   "enchantment.simple_tweaks.reaction_cascade": "Reaction Cascade",
-  "enchantment.simple_tweaks.reaction_cascade.desc": "If the target already carries an aura, immediately resolve a reaction with the strongest element that reacts with it (ignoring the attachment ICD), feeding 40%% + 20%% × level of this hit into it. 0.5 s internal cooldown"
+  "enchantment.simple_tweaks.reaction_cascade.desc": "If the target already carries an aura, immediately resolve a reaction with the strongest element that reacts with it (ignoring the attachment ICD), feeding 40%% + 20%% × level of this hit into it. 0.5 s internal cooldown",
+  "gui.simple_tweaks.config.range": "Allowed range: %s ~ %s"
 }

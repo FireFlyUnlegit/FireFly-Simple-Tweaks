@@ -7,9 +7,11 @@ import dev.firefly.simpletweaks.core.config.ConfigBounds
 import dev.firefly.simpletweaks.core.config.SimpleTweaksConfig
 import net.minecraft.client.gui.DrawContext
 import net.minecraft.client.gui.screen.Screen
+import net.minecraft.client.gui.tooltip.Tooltip
 import net.minecraft.client.gui.widget.ButtonWidget
 import net.minecraft.client.gui.widget.TextFieldWidget
 import net.minecraft.text.Text
+import net.minecraft.util.Formatting
 
 /**
  * In-game config screen, opened by the client command `/stconfig`.
@@ -47,8 +49,12 @@ class SimpleTweaksConfigScreen(private val parent: Screen?) :
 
     private companion object {
         const val ROW_H = 20
-        const val ROW_W = 220
-        const val TOP = 40
+        const val ROW_W = 260
+        const val LABEL_W = 150
+        const val FIELD_W = 90
+        /** Height of the page-tab strip under the title. */
+        const val TABS_H = 18
+        const val TOP = 48
         const val PAGES = 5
         const val KEY_PREFIX = "gui.simple_tweaks.config."
 
@@ -57,28 +63,34 @@ class SimpleTweaksConfigScreen(private val parent: Screen?) :
 
     private var page = 0
 
-    /** Numbers have no widget for their label/value, so they are drawn in [render]. */
-    private data class NumRow(val label: Text, val y: Int)
+    /**
+     * A row's label, drawn by [render]; the control is a widget placed on the same grid.
+     *
+     * Toggles and numbers share this so both columns line up. Before `build=cleanup45` a toggle was a
+     * full-width button with its label inside, while a number was a text field — so the two never shared a
+     * column, and a long toggle label pushed the control off the right edge.
+     */
+    private data class LabelRow(val label: Text, val y: Int)
 
-    private val numRows = mutableListOf<NumRow>()
+    private val rows = mutableListOf<LabelRow>()
 
     override fun init() {
-        numRows.clear()
+        rows.clear()
         val x0 = this.width / 2 - ROW_W / 2
         var y = TOP
 
         fun boolRow(name: String, get: () -> Boolean, set: (Boolean) -> Unit) {
-            val state = Text.translatable(KEY_PREFIX + if (get()) "on" else "off")
-            val label = Text.translatable(
-                "${KEY_PREFIX}toggle", Text.translatable(KEY_PREFIX + name), state,
-            )
+            val on = get()
+            val state = Text.translatable(KEY_PREFIX + if (on) "on" else "off")
+                .formatted(if (on) Formatting.GREEN else Formatting.DARK_GRAY)
             addDrawableChild(
-                ButtonWidget.builder(label) {
+                ButtonWidget.builder(state) {
                     set(!get())
                     SimpleTweaksConfig.save()
                     clearAndInit()
-                }.dimensions(x0, y, ROW_W, ROW_H - 2).build()
+                }.dimensions(x0 + ROW_W - FIELD_W, y + 1, FIELD_W, ROW_H - 6).build()
             )
+            rows.add(LabelRow(Text.translatable(KEY_PREFIX + name), y))
             y += ROW_H
         }
 
@@ -111,7 +123,7 @@ class SimpleTweaksConfigScreen(private val parent: Screen?) :
                 else "%.2f".format(value)
             },
         ) {
-            val fieldW = 92
+            val fieldW = FIELD_W
             val field = TextFieldWidget(
                 this.textRenderer,
                 x0 + ROW_W - fieldW,
@@ -129,8 +141,19 @@ class SimpleTweaksConfigScreen(private val parent: Screen?) :
                     SimpleTweaksConfig.save()
                 }
             }
+            // The range used to be discoverable only by hitting the clamp, which reads as a bug. A tooltip
+            // shows both ends, and it is generated from the same values the clamp uses.
+            field.setTooltip(
+                Tooltip.of(
+                    Text.translatable(
+                        KEY_PREFIX + "range",
+                        raw(min),
+                        raw(max),
+                    ),
+                ),
+            )
             addDrawableChild(field)
-            numRows.add(NumRow(key(name), y))
+            rows.add(LabelRow(key(name), y))
             y += ROW_H
         }
 
@@ -264,6 +287,20 @@ class SimpleTweaksConfigScreen(private val parent: Screen?) :
             }
         }
 
+        // Page tabs: one click per page instead of cycling with "next page".
+        val tabW = 26
+        val tabsX = this.width / 2 - (PAGES * tabW + (PAGES - 1) * 2) / 2
+        for (index in 0 until PAGES) {
+            val selected = index == page
+            addDrawableChild(
+                ButtonWidget.builder(Text.literal((index + 1).toString())) {
+                    page = index
+                    clearAndInit()
+                }.dimensions(tabsX + index * (tabW + 2), 30, tabW, TABS_H - 4).build()
+            )
+            if (selected) selectedTab = index
+        }
+
         val bottom = this.height - 28
         addDrawableChild(
             ButtonWidget.builder(key("next_page")) {
@@ -275,6 +312,22 @@ class SimpleTweaksConfigScreen(private val parent: Screen?) :
             ButtonWidget.builder(key("done")) { close() }
                 .dimensions(this.width / 2 - 110, bottom, 106, ROW_H).build()
         )
+    }
+
+    /** Last-built tab index, so [render] can mark it without re-deriving it from widgets. */
+    private var selectedTab = 0
+
+    /** Greedy truncation with an ellipsis, so a long label can never overlap the control on its right. */
+    private fun truncate(text: Text, maxWidth: Int): Text {
+        if (this.textRenderer.getWidth(text) <= maxWidth) return text
+        val ellipsis = "..."
+        val limit = maxWidth - this.textRenderer.getWidth(ellipsis)
+        val builder = StringBuilder()
+        for (ch in text.string) {
+            if (this.textRenderer.getWidth(builder.toString() + ch) > limit) break
+            builder.append(ch)
+        }
+        return Text.literal(builder.toString() + ellipsis)
     }
 
     private fun sectionName(): String = when (page) {
@@ -296,10 +349,35 @@ class SimpleTweaksConfigScreen(private val parent: Screen?) :
             this.width / 2, 28, 0xA0A0A0,
         )
 
-        // Numeric rows: the label is drawn here; the value is the editable field on the right.
-        val labelX = this.width / 2 - ROW_W / 2
-        for (row in numRows) {
-            context.drawTextWithShadow(this.textRenderer, row.label, labelX, row.y + 5, 0xFFFFFF)
+        // Selected page tab gets an underline, so "which page am I on" does not rely on the small "N/5" text.
+        run {
+            val tabW = 26
+            val tabsX = this.width / 2 - (PAGES * tabW + (PAGES - 1) * 2) / 2
+            val x = tabsX + selectedTab * (tabW + 2)
+            context.fill(x, 30 + TABS_H - 4, x + tabW, 30 + TABS_H - 2, 0xFFFFFFFF.toInt())
+        }
+
+        // Rows: a panel behind them, alternating stripes for readability, a highlight on the hovered row,
+        // then the label (truncated so it can never run into the control on the right).
+        val left = this.width / 2 - ROW_W / 2
+        val listTop = TOP - 6
+        val listBottom = rows.lastOrNull()?.let { it.y + ROW_H } ?: listTop
+        context.fill(left - 8, listTop, left + ROW_W + 8, listBottom, 0x66000000.toInt())
+        context.fill(left - 8, listTop, left - 7, listBottom, 0x40FFFFFF)
+        context.fill(left + ROW_W + 7, listTop, left + ROW_W + 8, listBottom, 0x40FFFFFF)
+
+        val hoveredY = rows.firstOrNull { mouseY >= it.y && mouseY < it.y + ROW_H }?.y
+        for (row in rows) {
+            if (row.y == hoveredY) {
+                context.fill(left - 8, row.y, left + ROW_W + 8, row.y + ROW_H - 1, 0x30FFFFFF)
+            }
+            context.drawTextWithShadow(
+                this.textRenderer,
+                truncate(row.label, LABEL_W),
+                left,
+                row.y + 5,
+                0xFFFFFF,
+            )
         }
 
         context.drawCenteredTextWithShadow(
