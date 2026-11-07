@@ -324,13 +324,46 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
 
         val incoming = ElementType.of(e.source)
 
+        // ⚠️ **A hit a raised shield is about to stop must not be converted.**
+        //
+        // `LivingHurtEvent` fires at the HEAD of `LivingEntity#damage`, which is **before** the shield
+        // check further down the same method:
+        //
+        //   if (this.blockedByShield(source)) { this.damageShield(amount); … return false; }
+        //
+        // So this handler used to cancel a share of the incoming damage and queue the elemental rider
+        // *before* the shield was ever consulted. The shield then blocked the (now smaller) physical
+        // hit — and the rider, which lives in `#minecraft:bypasses_cooldown` and is applied on the
+        // world tick, landed anyway. That is the reported "元素伤害可以穿盾": a raised shield stopped
+        // only the physical share, mob elemental attacks went straight through, and the barrier was
+        // therefore "好难防住".
+        //
+        // Returning early leaves `e.amount` untouched, so vanilla blocks the whole hit and the shield
+        // takes its normal damage. `blockedByShield` is a pure predicate here (bytecode: tag check +
+        // `isBlocking` + facing dot-product, no writes), so calling it from the event is safe.
+        if (target.blockedByShield(e.source)) {
+            FSTLog.log("Element") {
+                "attacker=${attacker.type.name.string}, target=${target.type.name.string}, " +
+                    "incoming=${incoming}, amount=${"%.2f".format(e.amount)}, " +
+                    "outcome=conversion-skipped-target-blocking"
+            }
+            return
+        }
+
+        // Remember what just hit this entity, for the floating damage number — **before** the
+        // own-damage early return below.
+        //
+        // The elemental share of a converted hit *is* one of our own damage types, so the earlier
+        // ordering (remember after the return) meant a converted hit was never recorded: every
+        // conversion weapon produced a **physical-red** number, on every client, which is the reported
+        // "附有元素转化的武器上攻击也是红色字体". Recording first only affects the *colour*; the early
+        // return below still stops the element from being converted a second time.
+        //
+        // Physical is skipped so a plain hit keeps the indicator's original colour.
+        if (incoming != ElementType.PHYSICAL) rememberElement(target, incoming)
+
         // Our own re-dealt element damage must never be converted again — that would chain forever.
         if (isOwnElementalDamage(e)) return
-
-        // Remember what just hit this entity, for the floating damage number. The indicator is a
-        // per-tick health differ and therefore has no idea what caused the delta; this is the only
-        // place that knows. Physical is skipped so a plain hit keeps the indicator's original colour.
-        if (incoming != ElementType.PHYSICAL) rememberElement(target, incoming)
 
         // A mob with an element takes over from here: it has no enchantments to read, so none of the
         // player path below applies to it.
