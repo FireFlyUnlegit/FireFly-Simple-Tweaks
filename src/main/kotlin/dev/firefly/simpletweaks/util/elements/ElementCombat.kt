@@ -654,7 +654,22 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
 
         val cancelled = original * MobElements.CONVERSION_FRACTION
         val reDealt = cancelled * (1.0f + MobElements.BONUS_SCALE)
-        e.amount = (original - cancelled).coerceAtLeast(0f)
+        val kept = (original - cancelled).coerceAtLeast(0f)
+
+        // ⚠️ Same guard as the player path: a swing the i-frame gate is about to discard must not
+        // queue a rider. Without it a mob attacking faster than the target's i-frames still landed the
+        // elemental share — "怪物打你无视无敌帧" — because the rider is in `#minecraft:bypasses_cooldown`
+        // and therefore immune to the very gate that stopped the swing.
+        if (wouldBeDiscardedByIFrames(target, e.source, kept)) {
+            FSTLog.log("Element") {
+                "mob=${mob.type.name.string}, target=${target.type.name.string}, " +
+                    "element=${element.id}, original=${"%.2f".format(original)}, kept=${"%.2f".format(kept)}, " +
+                    "timeUntilRegen=${target.timeUntilRegen}, " +
+                    "outcome=mob-conversion-skipped-swing-would-be-gated"
+            }
+            return
+        }
+        e.amount = kept
 
         rememberElement(target, element)
         enqueueElemental(attacker, target, element, reDealt)

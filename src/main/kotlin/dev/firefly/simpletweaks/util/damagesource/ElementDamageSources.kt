@@ -197,15 +197,30 @@ fun LivingEntity.damageElemental(
         landed = this.damage(source, amount)
     }
 
-    if (accessor != null && this.isAlive) {
+    // ⚠️ **Unconditionally**, while the target is alive — not only on the retry path.
+    //
+    // This block used to sit *after* an `if (this.damage(source, amount)) return true`, which made it
+    // **unreachable in practice**: every `simple_tweaks:element_*` type is in
+    // `#minecraft:bypasses_cooldown`, so the first attempt always lands and the function returned
+    // before restoring anything. Consequence (the reported "怎么又无视无敌帧了"): after each rider the
+    // target was left with `lastDamageTaken = <rider amount, e.g. 1.03>` and `timeUntilRegen = 20`,
+    // and vanilla's gate is
+    //
+    //   timeUntilRegen > 10 && !bypasses_cooldown && amount <= lastDamageTaken  ->  discard
+    //
+    // so the **next real swing** compared `8.44 <= 1.03`, failed, and always landed: i-frames were
+    // effectively switched off for every target that had been hit by an elemental rider. The log
+    // proved it — `rider-iframe-restored` appeared **0 times** in a 900 KB session that dealt 159
+    // elemental hits.
+    if (this.isAlive) {
         this.timeUntilRegen = savedRegen
-        accessor.modLastDamageTaken = savedLast
+        if (accessor != null) accessor.modLastDamageTaken = savedLast
         this.hurtTime = savedHurtTime
         this.maxHurtTime = savedMaxHurtTime
         dev.firefly.simpletweaks.compat.FSTLog.log("Element") {
             "outcome=rider-iframe-restored, type=${key.value}, amount=${"%.2f".format(amount)}, " +
                 "savedRegen=$savedRegen, savedLastDamageTaken=${"%.2f".format(savedLast)}, " +
-                "savedHurtTime=$savedHurtTime, landed=$landed"
+                "savedHurtTime=$savedHurtTime, landed=$landed, accessor=${accessor != null}"
         }
     }
 
