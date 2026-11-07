@@ -782,7 +782,11 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
 
         val mitigated = 1.0f - (1.0f - enchantReduction) * (1.0f - mobReduction) *
             (1.0f - wardReduction) * (1.0f - supremacyReduction)
-        val effective = (mitigated * (1.0f - penetration)).coerceIn(0f, 0.95f)
+        // No 0.95 ceiling: every source above is a factor strictly below 1, so the product can never reach 1
+        // and the damage can never be reduced to zero. The clamp is only a numeric guard (a NaN or a bad
+        // penetration value must not turn into negative damage), which is why it is 0..1 and not 0..0.95
+        // (`build=cleanup57`).
+        val effective = (mitigated * (1.0f - penetration)).coerceIn(0f, 1f)
 
         if (effective <= 0f) return
 
