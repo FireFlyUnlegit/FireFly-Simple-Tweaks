@@ -1,0 +1,57 @@
+# Builds the mod on every push and pull request, and runs the same gate a local build runs.
+#
+# `./gradlew build` already depends on `:runTest` (see gradle/post-build-tests.gradle), so this file
+# deliberately does NOT list the individual checks: one command is the single source of truth for
+# "what a valid build is", and it stays honest because a local build fails exactly the same way.
+#
+# Nothing here needs a Minecraft account or a launcher: the mod is compiled and the jar is inspected.
+
+name: build
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+# A newer commit on the same branch cancels the older run: its jar is already obsolete, and a queue of
+# superseded builds is the usual reason CI feels slower than building locally.
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: JDK 21 / Gradle build + runTest
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      # Caches the Gradle user home (including Loom's Minecraft/mappings cache) between runs.
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      # `gradlew` is committed with the executable bit; this is only a guard for checkouts that lost it.
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+
+      - name: Build (includes :runTest)
+        run: ./gradlew build --console=plain --stacktrace
+
+      - name: Upload jars
+        uses: actions/upload-artifact@v4
+        with:
+          name: simple_tweaks-jars
+          path: |
+            build/libs/*.jar
+            !build/libs/*-sources.jar
+          if-no-files-found: error
+          retention-days: 30
