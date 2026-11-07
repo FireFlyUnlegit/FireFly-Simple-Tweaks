@@ -61,6 +61,15 @@ const val MINING_LOOT   = "#minecraft:enchantable/mining_loot"
 
 // universal
 /** Anything with durability — the widest commonly used tag. */
-const val DURABILITY    = "#minecraft:enchantable/durability"
+const val DURABILITY    = "#minecraft:enchantable/durability"
+
+/**
+ * Elytra **only**.
+ *
+ * `#minecraft:enchantable/durability` is "anything with durability", which includes the mace, shields and every
+ * tool — using it for a glider enchantment is what let `gale_elytra` appear on a mace (`build=cleanup53`). No
+ * vanilla tag means "elytra", so this mod-owned one exists for the single enchantment that needs it.
+ */
+const val ELYTRA        = "#simple_tweaks:elytra"
 const val VANISHING     = "#minecraft:enchantable/vanishing"
 }

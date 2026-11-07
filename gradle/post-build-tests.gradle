@@ -243,6 +243,22 @@ tasks.register('runTest') {
                 expect(orphans.isEmpty(), 'lang keys without an enchantment JSON: ' + truncate(orphans))
             }
 
+            // `#minecraft:enchantable/durability` means "anything with durability" — mace, shield, every tool. It
+            // is correct for the UNIQUE one-shot meta items, and wrong for anything that describes a specific
+            // piece of gear: `gale_elytra` shipped on a mace because of exactly this (`build=cleanup53`).
+            check('specific-slot enchantments do not use the any-durable-item tag') {
+                def offenders = []
+                def handlers = fileTree('src/main/kotlin') { include '**/enchantments/handlers/**/*.kt' }
+                handlers.each { File f ->
+                    def text = f.getText('UTF-8')
+                    if (!text.contains('enchantable/durability')) return
+                    if (text.contains('EnchantCategory.UNIQUE')) return
+                    offenders << f.name
+                }
+                expect(offenders.isEmpty(),
+                    'these enchantments are not UNIQUE but accept any durable item: ' + truncate(offenders))
+            }
+
             // Minecraft renders **none** of Markdown. A `**bold**` in a description shows up as literal
             // asterisks in the tooltip — which is exactly what shipped in `build=cleanup42` for nine values,
             // because the descriptions were written in Markdown for this repo's docs and then pasted in.

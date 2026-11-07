@@ -38,7 +38,7 @@ import java.util.WeakHashMap
     maxLevel = 3,
     anvilCost = 8,
     minCostBase = 24,
-    supportedItems = "#minecraft:enchantable/durability",
+    supportedItems = EnchantSupportedItemTags.ELYTRA,
     slots = [EnchantSlot.CHEST],
 )
 object EnchantGaleElytraHandler : Listenable {
