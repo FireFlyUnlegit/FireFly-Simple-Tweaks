@@ -60,6 +60,56 @@ public class SimpleTweaksGameTests implements FabricGameTest {
         LOGGER.info("[FST-GameTest] generated table: keys={}, categories={}", keys, categories);
         context.assertEquals(85, keys, "GeneratedEnchantments.KEYS should list all 85 enchantments");
         context.assertEquals(85, categories, "GeneratedEnchantments.CATEGORY should cover every id");
+        context.complete();
+    }
+
+    /**
+     * The level curve, applied to a mob: levelling at a known difficulty must produce a level inside
+     * the documented band and the health/attack/armour the curve promises.
+     *
+     * <p>The test above only proves "a spawned mob gets <em>some</em> level" — in the game-test world
+     * that is level 1, i.e. no stat modifiers at all, so it would not notice a broken curve. Here the
+     * difficulty is supplied directly, so the level is deterministic up to the documented ±25 % spread
+     * and the stats have to match it exactly.
+     */
+    @GameTest(templateName = FabricGameTest.EMPTY_STRUCTURE)
+    public void levellingAppliesTheDocumentedStatCurve(TestContext context) {
+        ZombieEntity zombie = EntityType.ZOMBIE.create(context.getWorld());
+        context.assertTrue(zombie != null, "could not create a zombie without spawning it");
+        if (zombie == null) {
+            context.complete();
+            return;
+        }
+
+        // Read the *base* values before levelling: the modifiers the level adds are ADD_VALUE /
+        // ADD_MULTIPLIED_BASE on top of these, and a zombie's base armour is 2, not 0.
+        double baseArmor = zombie.getAttributeInstance(
+                net.minecraft.entity.attribute.EntityAttributes.GENERIC_ARMOR).getBaseValue();
+
+        // 3.0 difficulty -> averageLevelFor = 1 + floor(3.0 / 0.30) = 11, spread = max(1, 11*0.25) = 2
+        MobLevels.INSTANCE.ensureLevel(zombie, 3.0f, context.getWorld().getRandom());
+
+        int level = ((LevelledMob) zombie).getMobLevel();
+        double expectedHealth = 20.0 * (1.0 + MobLevels.HEALTH_PER_LEVEL * (level - 1));
+        double expectedAttack = 3.0 * (1.0 + MobLevels.ATTACK_PER_LEVEL * (level - 1));
+        double expectedArmor = baseArmor + MobLevels.ARMOR_PER_LEVEL * (level - 1);
+        // `LivingEntity#getAttributeValue` returns a double in 1.21.1; `getArmor` returns an int.
+        double attack = zombie.getAttributeValue(net.minecraft.entity.attribute.EntityAttributes.GENERIC_ATTACK_DAMAGE);
+        float armor = zombie.getArmor();
+
+        LOGGER.info("[FST-GameTest] levelled at difficulty 3.0: level={} (expect 9..13), maxHealth={} (expect {}), "
+                        + "attack={} (expect {}), armor={} (expect {})",
+                level, zombie.getMaxHealth(), expectedHealth, attack, expectedAttack, armor, expectedArmor);
+
+        context.assertTrue(level >= 9 && level <= 13,
+                "difficulty 3.0 should give level 9..13, got " + level);
+        context.assertTrue(Math.abs(zombie.getMaxHealth() - expectedHealth) < 0.01,
+                "max health " + zombie.getMaxHealth() + " != " + expectedHealth);
+        context.assertTrue(Math.abs(attack - expectedAttack) < 0.01,
+                "attack damage " + attack + " != " + expectedAttack);
+        context.assertTrue(Math.abs(armor - expectedArmor) < 0.01,
+                "armour " + armor + " != " + expectedArmor);
+        context.complete();
     }
 
     /**
@@ -84,6 +134,7 @@ public class SimpleTweaksGameTests implements FabricGameTest {
                 Math.abs(zombie.getMaxHealth() - expectedHealth) < 0.01,
                 "max health " + zombie.getMaxHealth() + " does not follow the level curve for level "
                         + level + " (expected " + expectedHealth + ")");
+        context.complete();
     }
 
     /**
@@ -115,6 +166,7 @@ public class SimpleTweaksGameTests implements FabricGameTest {
         context.assertTrue(afterFirst < before, "health must drop after the first hit");
         context.assertFalse(secondHit, "a smaller hit inside the i-frame window must be discarded");
         context.assertEquals(afterFirst, afterSecond, "a discarded hit must not change health");
+        context.complete();
     }
 
     /**
@@ -131,6 +183,7 @@ public class SimpleTweaksGameTests implements FabricGameTest {
         assertLevel(context, 1.6f, 6);    // iron armour + a few enchantments
         assertLevel(context, 10.9f, 37);  // modded netherite + ~60 enchantment levels
         assertLevel(context, 31.0f, 104); // uncapped: the curve keeps going
+        context.complete();
     }
 
     private static void assertLevel(TestContext context, float difficulty, int expected) {

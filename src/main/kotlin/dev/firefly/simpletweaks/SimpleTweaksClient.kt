@@ -105,7 +105,7 @@ class SimpleTweaksClient : ClientModInitializer {
                 "+ debug logs off by default + mod metadata: icon, homepage, ModMenu links " +
                 "+ game tests (./gradlew runGametest) for mob levels, stats and damage " +
                 "+ mob levels start low and scale with the player's whole loadout " +
-                "(v2.2.3, build=cleanup6)",
+                "(v2.2.3, build=cleanup7)",
             SimpleTweaks.NAME,
         )
     }
