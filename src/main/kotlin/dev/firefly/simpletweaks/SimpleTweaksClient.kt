@@ -103,8 +103,9 @@ class SimpleTweaksClient : ClientModInitializer {
                 "+ every mob gets a level, not only the armed ones " +
                 "+ mob enchantments are budgeted by level (1 + level/10 total levels) " +
                 "+ debug logs off by default + mod metadata: icon, homepage, ModMenu links " +
+                "+ game tests (./gradlew runGametest) for mob levels, stats and damage " +
                 "+ mob levels start low and scale with the player's whole loadout " +
-                "(v2.2.3, build=cleanup4)",
+                "(v2.2.4, build=cleanup5)",
             SimpleTweaks.NAME,
         )
     }

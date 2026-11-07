@@ -1,0 +1,88 @@
+# Game tests: a real dedicated server, a real world, spawned mobs, the real damage pipeline.
+#
+# This is the counterpart to `build.yml`:
+#   build.yml   -> static packaging gate (`runTest`) on every push / PR      ~3 min
+#   gametest.yml-> real game logic (`runGametest`) on a schedule / on demand ~5-8 min
+#
+# It is deliberately NOT triggered by push or pull_request: it needs a world, a server tick loop and
+# the Minecraft EULA, it is slower and flakier than a build, and a red game test should never block a
+# docs commit. Run it manually from the Actions tab ("Run workflow") whenever damage/level/enchant
+# behaviour changed.
+#
+# ⚠️ EULA: the step below writes `eula=true` into the throwaway runner's `run-gametest/eula.txt`.
+# That is the project owner's decision to accept Mojang's EULA **for this ephemeral CI machine**; it
+# does not touch anyone's local `run/eula.txt`.
+
+name: gametest
+
+on:
+  schedule:
+    # Weekly safety net: Mondays 03:00 UTC (= 11:00 Asia/Shanghai).
+    - cron: '0 3 * * 1'
+  workflow_dispatch:
+
+concurrency:
+  group: gametest
+  cancel-in-progress: false
+
+jobs:
+  gametest:
+    name: Fabric GameTest (real game logic)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+
+      # Same reason as build.yml: the committed distributionUrl is a China-only mirror that a
+      # GitHub runner cannot reach. Only the host is swapped.
+      - name: Point the wrapper at the official Gradle distribution
+        run: |
+          sed -i -E 's#^distributionUrl=https\\://mirrors\.cloud\.tencent\.com/gradle/#distributionUrl=https\\://services.gradle.org/distributions/#' gradle/wrapper/gradle-wrapper.properties
+          grep '^distributionUrl' gradle/wrapper/gradle-wrapper.properties
+
+      # The dev server refuses to start before the EULA is accepted. CI-only, throwaway directory.
+      - name: Accept the Minecraft EULA for this runner
+        run: |
+          mkdir -p run-gametest
+          echo "eula=true" > run-gametest/eula.txt
+
+      # `runGametest` is the Loom run configuration defined in build.gradle. It is NOT part of
+      # `build`, so this is the only place it runs.
+      - name: Run game tests
+        run: ./gradlew runGametest --console=plain --stacktrace
+
+      - name: Upload game test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gametest-report
+          path: |
+            build/gametest-junit.xml
+            run-gametest/logs/latest.log
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Diagnostics on failure
+        if: failure()
+        run: |
+          echo '--- environment ---'
+          uname -a || true
+          java -version 2>&1 || true
+          echo '--- test report ---'
+          ls -l build/gametest-junit.xml 2>/dev/null || echo 'no junit xml produced'
+          echo '--- server log tail ---'
+          tail -n 120 run-gametest/logs/latest.log 2>/dev/null || true

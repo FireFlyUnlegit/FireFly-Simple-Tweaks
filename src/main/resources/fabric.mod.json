@@ -21,6 +21,9 @@
     ],
     "client": [
       "dev.firefly.simpletweaks.SimpleTweaksClient"
+    ],
+    "fabric-gametest": [
+      "dev.firefly.simpletweaks.gametest.SimpleTweaksGameTests"
     ]
   },
   "mixins": [
