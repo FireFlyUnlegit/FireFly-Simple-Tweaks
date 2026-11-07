@@ -84,6 +84,13 @@ class PacketDamageIndicator(
      * which of the two opposite points on it is used (see `DamageNumber`).
      */
     val role: Int,
+    /**
+     * Translation key of a [ROLE_LABEL] payload, empty for every numeric role.
+     *
+     * A **key**, not the resolved text: the client translates it in its own language, so a zh_cn client
+     * and an en_us client both read the reaction name correctly while the server stays language-agnostic.
+     */
+    val label: String = "",
 ) : CustomPayload {
 
     override fun getId(): CustomPayload.Id<PacketDamageIndicator> = ID
@@ -98,6 +105,15 @@ class PacketDamageIndicator(
 
         /** Elemental half of a split hit; also the only role without the second health line. */
         const val ROLE_ELEMENTAL = 2
+
+        /**
+         * Not a number at all: a **floating label** (today: the reaction name, e.g. 感电 / 融化).
+         *
+         * A reaction used to be announced on the action bar, which put the text at the bottom of the
+         * screen, far from the hit it describes. It is now a `DamageNumber` whose [label] is a translation
+         * key, so it rises, fades and fades out with the numbers it belongs to (author, `build=cleanup18`).
+         */
+        const val ROLE_LABEL = 3
 
         val ID: CustomPayload.Id<PacketDamageIndicator> =
             CustomPayload.Id(Identifier.of(SimpleTweaks.MOD_ID, "damage_indicator"))
@@ -118,6 +134,7 @@ class PacketDamageIndicator(
                 buf.writeFloat(value.afterRealHealth)
                 buf.writeByte(value.elementOrdinal)
                 buf.writeByte(value.role)
+                buf.writeString(value.label)
             },
             { buf: RegistryByteBuf ->
                 PacketDamageIndicator(
@@ -131,6 +148,7 @@ class PacketDamageIndicator(
                     // `readByte` is signed, which is exactly what NONE_ORDINAL (-1) needs.
                     buf.readByte().toInt(),
                     buf.readByte().toInt(),
+                    buf.readString(),
                 )
             },
         )
