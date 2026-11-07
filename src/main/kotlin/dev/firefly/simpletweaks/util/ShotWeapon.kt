@@ -97,6 +97,58 @@ object ShotWeapon {
     /** The snapshot recorded for [projectile], or `null`. */
     fun snapshotOf(projectile: Entity): ItemStack? = SNAPSHOTS[projectile]?.takeUnless { it.isEmpty }
 
+    // ------------------------------------------------------------------ damage window
+
+    /**
+     * The damage source currently being resolved on this thread.
+     *
+     * This is what turns the snapshot from "a helper every handler must remember to call" into
+     * "the main hand itself is correct during damage resolution":
+     *
+     * ```text
+     * LivingEntity#damage(source)            <- push(source)
+     *   LivingHurtEvent / LivingDamageEvent  <- every handler reads player.mainHandStack
+     *     PlayerEntity#getMainHandStack()      -> returns the firing weapon while the window is open
+     * LivingEntity#damage returns            <- pop()
+     * ```
+     *
+     * A deque, not a single value: our own elemental riders call `damage()` from inside a handler, so the
+     * window nests. Pushing/popping in matched pairs keeps the outer hit's weapon visible afterwards.
+     */
+    private val WINDOW: ThreadLocal<java.util.ArrayDeque<DamageSource?>> =
+        ThreadLocal.withInitial { java.util.ArrayDeque() }
+
+    /** Opens a damage-resolution window for [source]. Called from `LivingEntity#damage` HEAD. */
+    fun beginHit(source: DamageSource?) {
+        val stack = WINDOW.get()
+        // Defensive: an exception thrown through `damage()` would skip the RETURN injection and leak an
+        // entry. A window is never legitimately deeper than a handful of nested riders.
+        if (stack.size > 8) stack.clear()
+        stack.addLast(source)
+    }
+
+    /** Closes the innermost window. Called from `LivingEntity#damage` RETURN. */
+    fun endHit() {
+        val stack = WINDOW.get()
+        if (stack.isNotEmpty()) stack.removeLast()
+    }
+
+    /** The source being resolved right now, or `null` outside any damage resolution. */
+    fun activeSource(): DamageSource? = WINDOW.get().peekLast()
+
+    /**
+     * The stack that [entity]'s main hand should **report** right now, or `null` to leave it alone.
+     *
+     * Returns non-null only when all of these hold: a damage window is open, the current source's attacker
+     * is [entity], and that source has a weapon snapshot. Client side and every non-combat read are
+     * therefore untouched — this cannot change what the player sees in the HUD or in their hand.
+     */
+    fun overriddenMainHand(entity: LivingEntity): ItemStack? {
+        val source = activeSource() ?: return null
+        if (source.attacker !== entity) return null
+        return weaponFor(source)
+    }
+
     /**
      * The weapon a hit should be evaluated with, or `null` when the hit carries no projectile at all.
      *

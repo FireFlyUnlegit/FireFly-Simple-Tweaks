@@ -7,6 +7,7 @@ import dev.firefly.simpletweaks.compat.event.LivingEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.invalid
 import dev.firefly.simpletweaks.core.Listenable
+import dev.firefly.simpletweaks.util.combatStack
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import net.minecraft.entity.Entity
 import net.minecraft.entity.LivingEntity
@@ -97,7 +98,7 @@ object EnchantCombatMasterHandler : Listenable {
 
         if (attacker is LivingEntity && attacker !== target) {
             val level = getItemSpecificEnchantLevel(
-                attacker.mainHandStack,
+                attacker.combatStack(source),
                 GeneratedEnchantments.COMBAT_MASTER
             )
             if (level > 0) {

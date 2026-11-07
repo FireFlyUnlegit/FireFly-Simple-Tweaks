@@ -14,6 +14,7 @@ import dev.firefly.simpletweaks.core.config.GeneralConfig
 import dev.firefly.simpletweaks.network.NetworkManager
 import dev.firefly.simpletweaks.network.packets.PacketCelestialRing
 import dev.firefly.simpletweaks.network.packets.PacketManaPoolSync
+import dev.firefly.simpletweaks.util.combatStack
 import dev.firefly.simpletweaks.util.canEntitySee
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import dev.firefly.simpletweaks.util.hasLineOfSight
@@ -196,7 +197,7 @@ object EnchantCelestialBlessingHandler : Listenable {
         val t = e.entityLiving
         val pid = p.uuid
         val tid = t.uuid
-        val atklvl = getItemSpecificEnchantLevel(p.mainHandStack, GeneratedEnchantments.CELESTIAL_BLESSING)
+        val atklvl = getItemSpecificEnchantLevel(p.combatStack(e.source), GeneratedEnchantments.CELESTIAL_BLESSING)
         val reclvl = getItemSpecificEnchantLevel(t.mainHandStack, GeneratedEnchantments.CELESTIAL_BLESSING)
 
         if (atklvl > 0) {

@@ -7,6 +7,7 @@ import dev.firefly.simpletweaks.compat.event.LivingEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.invalid
 import dev.firefly.simpletweaks.core.Listenable
+import dev.firefly.simpletweaks.util.combatStack
 import dev.firefly.simpletweaks.util.elements.ElementAuras
 import dev.firefly.simpletweaks.util.elements.ElementCombat
 import dev.firefly.simpletweaks.util.elements.ElementMarks
@@ -49,7 +50,7 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
  * | `source.trueSource`                                          | `source.attacker` (Yarn `method_5529`)                                    |
  * | `world.isRemote`                                             | `WorldSide.isClient(world)` (field_9236 is a FIELD, see MIGRATION)        |
  * | `world.totalWorldTime`                                       | `world.time` (`World.getTime()`, `method_8510`)                           |
- * | `attacker.heldItemMainhand`                                  | `attacker.mainHandStack` (`method_6047`)                                  |
+ * | `attacker.heldItemMainhand`                                  | `attacker.combatStack(source)` (`method_6047`)                                  |
  * | `attacker.uniqueID` / `target.uniqueID`                      | `.uuid` (inherited from `EntityLike`, `method_5667`)                      |
  * | `EnchantHeavenlyPunishment` (Enchantment object)             | `GeneratedEnchantments.HEAVENLY_PUNISHMENT` (RegistryKey)                    |
  * | `entity.motionX = motionY = motionZ = 0.0`                   | `entity.setVelocity(0.0, 0.0, 0.0)` (`method_18800`; 1.21 has one `Vec3d` velocity, not three fields) |
@@ -165,7 +166,7 @@ object EnchantHeavenlyPunishmentHandler : Listenable {
 
         if (attacker is LivingEntity && attacker !== target) {
             val level = getItemSpecificEnchantLevel(
-                attacker.mainHandStack,
+                attacker.combatStack(source),
                 GeneratedEnchantments.HEAVENLY_PUNISHMENT
             )
             if (level > 0) {

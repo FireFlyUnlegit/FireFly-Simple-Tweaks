@@ -10,6 +10,7 @@ import dev.firefly.simpletweaks.compat.event.TickEvent
 import dev.firefly.simpletweaks.compat.invalid
 import dev.firefly.simpletweaks.compat.target
 import dev.firefly.simpletweaks.core.Listenable
+import dev.firefly.simpletweaks.util.combatStack
 import dev.firefly.simpletweaks.util.absorptionHeadroomId
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import dev.firefly.simpletweaks.util.grantAbsorption
@@ -107,7 +108,7 @@ object EnchantHealingBladeHandler : Listenable {
         val attacker = e.attacker ?: return
         val id = attacker.uuid
 
-        val level = getItemSpecificEnchantLevel(attacker.mainHandStack, GeneratedEnchantments.HEALING_BLADE)
+        val level = getItemSpecificEnchantLevel(attacker.combatStack(e.source), GeneratedEnchantments.HEALING_BLADE)
         if (level <= 0) return
 
         val dmg = e.amount
