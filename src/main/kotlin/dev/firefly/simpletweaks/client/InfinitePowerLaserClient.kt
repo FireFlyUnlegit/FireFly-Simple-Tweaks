@@ -45,6 +45,11 @@ object InfinitePowerLaserClient {
             val down = client.options.attackKey.isPressed
             val justPressed = down && !wasAttackDown
             wasAttackDown = down
+
+            // A GUI swallows the click; without this guard a container screen still produced an edge and
+            // fired the laser (`build=cleanup63`). Edge tracking happens above so closing the screen cannot
+            // replay a press.
+            if (client.currentScreen != null) return@register
             if (!justPressed) return@register
 
             val player = client.player ?: return@register

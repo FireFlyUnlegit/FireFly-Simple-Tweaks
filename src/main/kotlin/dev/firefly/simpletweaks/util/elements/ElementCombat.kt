@@ -466,7 +466,15 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
             }
 
             val before = e.amount
-            e.amount *= mastery
+            e.amount *= mastery
+            // Same gate as the conversion branch: a swing vanilla is about to discard must not leave a mark
+            // or start a reaction, because the reaction's rider lifts the gate and would land alone.
+            if (wouldBeDiscardedByIFrames(target, e.source, e.amount)) {
+                FSTLog.log("Element") {
+                    "amount=%.2f, outcome=skipped-swing-would-be-gated".format(e.amount)
+                }
+                return
+            }
             // 增幅 reaction: `melt`-style multipliers are applied to the *hit*, which is why they
             // come back from `record` instead of being dealt as extra damage.
             val outcome = ElementMarks.record(attacker, target, incoming, e.amount, source = e.source)
@@ -494,7 +502,17 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
             // but it must still count as that element or the enchantment would disable its own reactions,
             // and mastery still applies to it.
             val before = e.amount
-            e.amount *= mastery
+            e.amount *= mastery
+            // Same gate as the conversion branch: a swing vanilla is about to discard must not leave a mark
+            // or start a reaction, because the reaction's rider lifts the gate and would land alone.
+            if (wouldBeDiscardedByIFrames(target, e.source, e.amount)) {
+                FSTLog.log("Element") {
+                    "amount=%.2f, outcome=skipped-swing-would-be-gated".format(e.amount)
+                }
+                return
+            }
+            // PHYSICAL has no reaction row: recording it would only attach a phantom 190-tick aura.
+            if (element == ElementType.PHYSICAL) return
             val outcome = ElementMarks.record(attacker, target, element, e.amount, source = e.source)
             if (outcome.amplify > 1f) {
                 e.amount *= outcome.amplify

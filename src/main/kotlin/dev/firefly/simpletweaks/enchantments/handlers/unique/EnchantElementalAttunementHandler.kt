@@ -98,7 +98,9 @@ object EnchantElementalAttunementHandler : Listenable {
             builder.remove { it.matchesKey(GeneratedEnchantments.ELEMENTAL_ATTUNEMENT) }
             builder.set(newEntry, level)
             EnchantmentHelper.set(stack, builder.build())
-            inv.setStack(i, stack)
+            // Mutation already landed in place (`EnchantmentHelper#set` writes through to the stack);
+                // `PlayerInventory#setStack(i, ...)` takes a COMBINED index, so a list-local `i` wrote
+                // the armour/offhand stack over hotbar slot i and duplicated it (`build=cleanup63`).
 
             FSTLog.log("Attunement") {
                 "item=${stack.item}, slot=$i, from=${currentElement.id}, to=${pick.id}, level=$level, " +

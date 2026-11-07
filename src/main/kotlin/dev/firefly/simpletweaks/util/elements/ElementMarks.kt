@@ -116,7 +116,10 @@ object ElementMarks {
             val reaction = ElementReactions.of(auraElement, element)
             if (reaction != null) {
                 val dampening = ElementReactions.dampening(auraElement, element)
-                val cost = units * dampening
+                // The table's `triggerUnits` is authoritative; the caller's units are a floor. A weak
+                // trigger (an arrow, a mob attack) must still eat the strong aura a `melt` row declares,
+                // otherwise the table reads as documentation that nothing honours (`build=cleanup63`).
+                val cost = maxOf(units, reaction.triggerUnits) * dampening
                 val consumed = ElementAuras.consume(target, cost)
 
                 outcome = apply(attacker, target, reaction, damage, auraUnits, consumed, dampening, source)

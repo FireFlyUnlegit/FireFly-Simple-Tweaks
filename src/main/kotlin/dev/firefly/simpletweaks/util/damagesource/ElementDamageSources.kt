@@ -177,8 +177,9 @@ fun LivingEntity.damageElemental(
         if (attacker != null) attacker.damageSources.create(key, attacker)
         else this.damageSources.create(key)
 
-    if (withAuxFlag { this.damage(source, amount) }) return true
-
+    // ⚠️ No early return here any more. The plain attempt below can only land when the gate happens to let
+    // it through, and skipping the restore in that case left the target with the rider's `timeUntilRegen=20`
+    // and `lastDamageTaken=<rider amount>`, which gated the **next real swing** (`build=cleanup63`).
     if (!this.isAlive) return false
 
     // ⚠️ Clearing `timeUntilRegen` is **not** enough, and the first revision of this file was wrong

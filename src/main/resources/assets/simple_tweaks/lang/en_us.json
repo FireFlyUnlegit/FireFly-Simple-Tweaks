@@ -1,5 +1,5 @@
 {
-  "commands.simple_tweaks.difficulty": "Mob difficulty offset = %1$s (a mob spawned at exactly this offset would be level %2$s). Session-only; /simple_tweaks difficulty 0 resets it.",
+  "commands.simple_tweaks.difficulty": "[FST] session offset %1$s, persistent modify %2$s -> average level %3$s (/fst difficulty check shows the full number)",
   "commands.simple_tweaks.enchant.bad_slot": "Unknown slot '%s'; expected one of %s",
   "commands.simple_tweaks.enchant.no_item": "No item found in the selected slot(s) -- nothing to enchant",
   "commands.simple_tweaks.enchant.removed": "%s removed from %s item(s) (slot: %s)",
@@ -306,7 +306,6 @@
   "element.simple_tweaks.lightning": "Lightning",
   "element.simple_tweaks.water": "Water",
   "element.simple_tweaks.nature": "Nature",
-  "element.simple_tweaks.shadow": "Shadow",
   "element.simple_tweaks.light": "Light",
   "message.simple_tweaks.elemental_sight.none": "%s: no aura",
   "message.simple_tweaks.elemental_sight.aura": "%s: %s %s",
@@ -346,5 +345,6 @@
   "enchantment.simple_tweaks.quake": "Quake",
   "enchantment.simple_tweaks.quake.desc": "Interrupts a target that is using an item (bow draw, shield, potion, food); if the target is a player, that item also goes on a 1 s cooldown",
   "enchantment.simple_tweaks.elemental_supremacy": "Elemental Supremacy",
-  "enchantment.simple_tweaks.elemental_supremacy.desc": "(1) Your highest elemental affinity defends against all eight elements (maximum, never summed). (2) Elemental Supremacy is its own mitigation zone: 4.5%% per total level (90%% at 20 levels, a full set), applied as a separate reduction multiplied with the affinity (80%% x 90%% -> 98%% total; it can never reach 100%%). (3) Every hit carries an extra 5%% of its damage as an elemental conversion (the hit itself is not reduced), once per 10 total levels (2 at a full set), random element, can start a reaction. (4) Every reaction that hits you is remembered, capacity = total armour level / 2 (max 10); your next hit replays all of them, each at 40%% of that hit"
+  "enchantment.simple_tweaks.elemental_supremacy.desc": "(1) Your highest elemental affinity defends against all eight elements (maximum, never summed). (2) Elemental Supremacy is its own mitigation zone: 4.5%% per total level (90%% at 20 levels, a full set), applied as a separate reduction multiplied with the affinity (80%% x 90%% -> 98%% total; it can never reach 100%%). (3) Every hit carries an extra 5%% of its damage as an elemental conversion (the hit itself is not reduced), once per 10 total levels (2 at a full set), random element, can start a reaction. (4) Every reaction that hits you is remembered, capacity = total armour level / 2 (max 10); your next hit replays all of them, each at 40%% of that hit",
+  "element.simple_tweaks.dark": "Dark"
 }

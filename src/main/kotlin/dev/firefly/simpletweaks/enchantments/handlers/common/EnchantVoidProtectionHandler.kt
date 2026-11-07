@@ -72,6 +72,9 @@ object EnchantVoidProtectionHandler : Listenable {
     @SubscribeEvent
     fun onPlayerTick(e: TickEvent.PlayerTickEvent) {
         if (e.phase != TickEvent.Phase.END) return
+        // Same side guard as the rest of the tick handlers: the enchantment write, the chat line and the
+        // teleport are all server-side facts (`build=cleanup63`).
+        if (dev.firefly.simpletweaks.compat.WorldSide.isClient(e.player.world)) return
         val p = e.player
         val stack = p.getEquippedStack(EquipmentSlot.FEET)
         val level = getItemSpecificEnchantLevel(stack, GeneratedEnchantments.VOID_PROTECTION)

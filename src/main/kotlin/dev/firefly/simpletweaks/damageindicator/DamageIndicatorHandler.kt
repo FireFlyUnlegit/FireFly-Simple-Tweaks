@@ -300,7 +300,11 @@ object DamageIndicatorHandler : Listenable {
         // here is what keeps it from growing; when it is on, anything left belongs to an entity that
         // took damage but produced no visible delta (already at 0 HP, or outside render range) and is
         // equally stale by next tick.
-        composition.keys.removeAll { it !in aliveUUIDs }
+        // Anything still here was not consumed this tick: either its delta was below the threshold, the health
+                // differ cancelled out, or the entity is out of range. Keeping it would let a later hit inherit
+                // stale elements and report the wrong physical/elemental split (`build=cleanup63`), so the whole
+                // map is dropped — a bucket is only meaningful for the tick it was filled in.
+                composition.clear()
         if (!DamageIndicatorConfig.splitElemental) composition.clear()
         suppressedEntities.removeAll { it !in aliveUUIDs }
     }

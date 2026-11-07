@@ -7,6 +7,7 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder
 import com.mojang.brigadier.context.CommandContext
 import com.mojang.brigadier.exceptions.Dynamic2CommandExceptionType
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType
+import dev.firefly.simpletweaks.core.config.ConfigBounds
 import dev.firefly.simpletweaks.core.config.SimpleTweaksConfig
 import dev.firefly.simpletweaks.core.config.MobEnhancementConfig
 import dev.firefly.simpletweaks.compat.FSTLog
@@ -228,7 +229,10 @@ object EnchantCommand {
                                 val delta = FloatArgumentType.getFloat(ctx, "delta")
                                 MobEnhancementConfig.difficultyModifier =
                                     (MobEnhancementConfig.difficultyModifier + delta)
-                                        .coerceIn(-100f, 1000f)
+                                        .coerceIn(
+                                            ConfigBounds.DIFFICULTY_MODIFIER.start.toFloat(),
+                                            ConfigBounds.DIFFICULTY_MODIFIER.endInclusive.toFloat(),
+                                        )
                                 SimpleTweaksConfig.save()
                                 reportComputedDifficulty(ctx.source)
                             }

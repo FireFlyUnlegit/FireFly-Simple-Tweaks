@@ -77,7 +77,11 @@ object EnchantVitalityHandler : Listenable {
 
         if (total > 0 && hasModifier) {
             val existingAmount = p.attributes.getModifierValue(EntityAttributes.GENERIC_MAX_HEALTH, MODIFIER_ID)
-            val expected = total * 4.0 + (total / 10) * 10.0
+            // The stored modifier is `bonus + percentage`; comparing it to `bonus` alone was never equal, so
+            // the modifier was removed and re-added (plus a full attribute sync) every tick (`build=cleanup63`).
+            val bonus = total * 4.0
+            val percentage = bonus * 0.01 * total
+            val expected = bonus + percentage
             if (existingAmount == expected) return
         }
         if (total <= 0 && !hasModifier) return

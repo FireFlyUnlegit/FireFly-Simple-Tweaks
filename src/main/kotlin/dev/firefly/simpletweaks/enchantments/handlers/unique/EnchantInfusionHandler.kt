@@ -88,7 +88,9 @@ object EnchantInfusionHandler : Listenable {
             builder.set(best, next)
             builder.remove { it.matchesKey(GeneratedEnchantments.INFUSION) }
             EnchantmentHelper.set(stack, builder.build())
-            inv.setStack(i, stack)
+            // Mutation already landed in place (`EnchantmentHelper#set` writes through to the stack);
+                // `PlayerInventory#setStack(i, ...)` takes a COMBINED index, so a list-local `i` wrote
+                // the armour/offhand stack over hotbar slot i and duplicated it (`build=cleanup63`).
             player.addExperienceLevels(-COST)
 
             FSTLog.log("Infusion") {

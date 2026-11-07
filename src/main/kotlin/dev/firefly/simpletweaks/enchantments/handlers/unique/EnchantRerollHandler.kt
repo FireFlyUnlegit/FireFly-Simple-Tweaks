@@ -109,7 +109,9 @@ object EnchantRerollHandler : Listenable {
                 builder.set(entry, level.coerceAtMost(max))
             }
             EnchantmentHelper.set(stack, builder.build())
-            inv.setStack(i, stack)
+            // Mutation already landed in place (`EnchantmentHelper#set` writes through to the stack);
+                // `PlayerInventory#setStack(i, ...)` takes a COMBINED index, so a list-local `i` wrote
+                // the armour/offhand stack over hotbar slot i and duplicated it (`build=cleanup63`).
 
             FSTLog.log("Reroll") {
                 "item=${stack.item}, slot=$i, rolled=$chosen, outcome=rerolled"

@@ -5,6 +5,7 @@ import dev.firefly.simpletweaks.compat.event.LivingDamageEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.invalid
 import dev.firefly.simpletweaks.core.Listenable
+import dev.firefly.simpletweaks.util.damagesource.isAuxiliaryDamage
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import net.minecraft.entity.LivingEntity
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
@@ -46,6 +47,9 @@ object EnchantAssassinHandler : Listenable {
     @SubscribeEvent(priority = 100)
     fun onLivingHurt(e: LivingDamageEvent) {
         if (e.invalid) return
+        // The mod's own follow-up damage is player-attributed, so without this a venom tick / chain arc /
+        // starfall rider satisfies the "below threshold" test and executes for free (`build=cleanup63`).
+        if (e.source.isAuxiliaryDamage()) return
         val attacker = (e.source.attacker as? LivingEntity)?: return
         val target = e.entityLiving
         val lvl = getItemSpecificEnchantLevel( attacker.mainHandStack , GeneratedEnchantments.ASSASSIN)

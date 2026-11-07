@@ -106,7 +106,9 @@ object EnchantReForgeHandler : Listenable {
             // 1.21: the anvil penalty is the `minecraft:repair_cost` data component.
             stack.remove(DataComponentTypes.REPAIR_COST)
 
-            inv.setStack(i, stack)
+            // Mutation already landed in place (`EnchantmentHelper#set` writes through to the stack);
+                // `PlayerInventory#setStack(i, ...)` takes a COMBINED index, so a list-local `i` wrote
+                // the armour/offhand stack over hotbar slot i and duplicated it (`build=cleanup63`).
             FSTLog.log("ReForge") {
                 "item=${stack.item}, slot=$i, repairCost=${stack.get(DataComponentTypes.REPAIR_COST)}, " +
                     "outcome=reforge-stripped"

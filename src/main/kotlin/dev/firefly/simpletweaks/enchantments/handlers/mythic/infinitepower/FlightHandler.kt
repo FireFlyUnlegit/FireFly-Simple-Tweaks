@@ -76,6 +76,9 @@ object FlightHandler : Listenable {
     fun onPlayerTick(e: TickEvent.PlayerTickEvent) {
         if (e.phase != TickEvent.Phase.END) return
         val player = e.player
+        // `PlayerTickEvent` is posted by both bridges; this handler rewrites health, hunger, durability and
+        // abilities, all of which are server state — the legendary sibling already guards here (`build=cleanup63`).
+        if (dev.firefly.simpletweaks.compat.WorldSide.isClient(player.world)) return
         val uuid = player.uuid
         val level = EnchantInfinitePowerHandler.heldLevel(player)
         val speed = player.getAttributeInstance(EntityAttributes.GENERIC_ATTACK_SPEED)
