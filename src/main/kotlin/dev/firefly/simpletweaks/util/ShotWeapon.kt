@@ -115,6 +115,12 @@ object ShotWeapon {
      * A deque, not a single value: our own elemental riders call `damage()` from inside a handler, so the
      * window nests. Pushing/popping in matched pairs keeps the outer hit's weapon visible afterwards.
      */
+    /**
+     * `true` while [overriddenMainHand] is resolving a weapon on this thread — see the guard in that
+     * function. Kept next to [WINDOW] because both describe "what is being resolved right now".
+     */
+    private val LOOKUP_RESOLVING: ThreadLocal<Boolean> = ThreadLocal.withInitial { false }
+
     private val WINDOW: ThreadLocal<java.util.ArrayDeque<DamageSource?>> =
         ThreadLocal.withInitial { java.util.ArrayDeque() }
 
@@ -144,9 +150,25 @@ object ShotWeapon {
      * therefore untouched — this cannot change what the player sees in the HUD or in their hand.
      */
     fun overriddenMainHand(entity: LivingEntity): ItemStack? {
+        // ⚠️ **Re-entrancy guard.** Resolving the weapon can call back into `getMainHandStack`:
+        // `weaponFor` falls back to `DamageSource#weaponStack`, which for a player-attributed source is
+        // `PlayerEntity#getMainHandStack` — i.e. this very mixin. Without this flag the two call each other
+        // until the thread dies of a StackOverflowError (confirmed in a real client crash: the stack was
+        // nothing but alternating `weaponFor` / `shotWeaponEquipped` frames).
+        //
+        // When re-entered we answer "no override", which is what the resolver needs: the real hand is the
+        // correct input for its own fallback chain.
+        if (LOOKUP_RESOLVING.get()) return null
+
         val source = activeSource() ?: return null
         if (source.attacker !== entity) return null
-        return weaponFor(source)
+
+        LOOKUP_RESOLVING.set(true)
+        try {
+            return weaponFor(source)
+        } finally {
+            LOOKUP_RESOLVING.set(false)
+        }
     }
 
     /**
@@ -160,6 +182,10 @@ object ShotWeapon {
         if (direct is PersistentProjectileEntity) {
             snapshotOf(direct)?.let { return it }
         }
+        // ⚠️ `DamageSource#weaponStack` forwards to `Entity#getWeaponStack()`, and for a player-attributed
+        // source that ends in `getMainHandStack()` — the very getter this class overrides. This call is
+        // therefore only safe because `overriddenMainHand` sets its re-entrancy guard before reaching here;
+        // do not call `weaponFor` from inside the overridden getters without that guard.
         val fromVanilla = source.weaponStack
         if (fromVanilla != null && !fromVanilla.isEmpty) return fromVanilla
         return null
