@@ -15,7 +15,7 @@
 | 分支                                                                                            | 游戏版本   | 加载器    | 状态          |
 |-----------------------------------------------------------------------------------------------|--------|--------|-------------|
 | [`master`](https://github.com/FireFlyUnlegit/FireFly-Simple-Tweaks/tree/master)               | 1.12.2 | Forge  | ✅ 稳定        |
-| [`fabric-1.21.1`](https://github.com/FireFlyUnlegit/FireFly-Simple-Tweaks/tree/fabric-1.21.1) | 1.21.1 | Fabric | ✅ **v2.2.1** |
+| [`fabric-1.21.1`](https://github.com/FireFlyUnlegit/FireFly-Simple-Tweaks/tree/fabric-1.21.1) | 1.21.1 | Fabric | ✅ **v2.2.2** |
 
 - **1.21.1 / Fabric 版**是完整的跨版本迁移，详见 [`MIGRATION.md`](./MIGRATION.md)
 - 两个版本**平行维护**，不做合并
@@ -150,9 +150,10 @@
 四个开关在 `/simple_tweaks stconfig` 的「怪物」页（配置键 `mobEnhancement.*`）：
 `enabled` / `levelsEnabled` / `enchantmentsEnabled` / `elementsEnabled`。
 
-- **等级系统** —— 基础攻防随等级提升（生命、攻击、护甲各自成长），**等级无上限**，
-  并随玩家护甲值/最大生命值上调；同一地点刷出的一群怪等级会在一个区间内浮动，头顶显示
-  **`[Lv.N]`** 名牌（服务端算好、同步给客户端）。
+- **等级系统** —— 基础攻防随等级提升（生命、攻击、护甲各自成长），**等级无上限**。
+  等级 = 区块"年龄/难度" **+ 玩家整身的强度**（护甲、最大生命、攻击力、全身附魔等级之和），
+  所以**开局只有 Lv1~3**，随换装与附魔持续上涨；同一地点刷出的一群怪等级会在一个区间内浮动，
+  头顶显示 **`[Lv.N]`** 名牌（服务端算好、同步给客户端）。
   **所有怪物都有等级**——不穿装备的蜘蛛、苦力怕、史莱姆同样按等级加血加攻，而不是只有拿剑的僵尸
 - **模组附魔装备** —— 僵尸/骷髅有几率带着**本模组的附魔**武器和混合材质护甲生成。
   附魔强度按**整只怪的总等级预算**给：`1 + 等级/10` 级（Lv1–9 → 1 级，Lv10–19 → 2 级，
@@ -178,7 +179,7 @@
 
 **步骤**：
 
-1. 从 [Releases](https://github.com/FireFlyUnlegit/FireFly-Simple-Tweaks/releases) 下载 `simple_tweaks-2.2.1.jar`
+1. 从 [Releases](https://github.com/FireFlyUnlegit/FireFly-Simple-Tweaks/releases) 下载 `simple_tweaks-2.2.2.jar`
 2. 放进 `.minecraft/mods/`
 3. 启动游戏
 
