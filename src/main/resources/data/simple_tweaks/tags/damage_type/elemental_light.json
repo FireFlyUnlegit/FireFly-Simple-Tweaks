@@ -1,6 +1,7 @@
 {
   "replace": false,
   "values": [
-    "simple_tweaks:element_light"
+    "simple_tweaks:element_light",
+    "simple_tweaks:celestial_particle"
   ]
 }

@@ -2,6 +2,7 @@
   "replace": false,
   "values": [
     "minecraft:lightning_bolt",
-    "simple_tweaks:element_lightning"
+    "simple_tweaks:element_lightning",
+    "simple_tweaks:chain_lightning"
   ]
 }
