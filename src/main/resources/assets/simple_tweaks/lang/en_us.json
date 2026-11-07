@@ -325,5 +325,13 @@
   "enchantment.simple_tweaks.infusion.desc": "Consumed on use: spend 10 experience levels to raise the item's highest non-maxed enchantment by one level. Nothing is consumed when everything is maxed or you lack the levels",
   "enchantment.simple_tweaks.reaction_cascade": "Reaction Cascade",
   "enchantment.simple_tweaks.reaction_cascade.desc": "If the target already carries an aura, immediately resolve a reaction with the strongest element that reacts with it (ignoring the attachment ICD), feeding 40%% + 20%% × level of this hit into it. 0.5 s internal cooldown",
-  "gui.simple_tweaks.config.range": "Allowed range: %s ~ %s"
+  "gui.simple_tweaks.config.range": "Allowed range: %s ~ %s",
+  "enchantment.simple_tweaks.shockwave_landing": "Shockwave Landing",
+  "enchantment.simple_tweaks.shockwave_landing.desc": "Fall damage is halved and the other half leaves as a shockwave in a 3 + level block radius (scales with fall height and level). Only falls past 3 blocks trigger it",
+  "enchantment.simple_tweaks.aegis": "Aegis",
+  "enchantment.simple_tweaks.aegis.desc": "Raises the maximum absorption cap by +2 per level (cap +8), so Life Siphon / Echo Shield / Death Protection shields can actually hold their value (the vanilla cap defaults to 0)",
+  "enchantment.simple_tweaks.trident_wrath": "Trident Wrath",
+  "enchantment.simple_tweaks.trident_wrath.desc": "A thrown trident keeps striking: an extra 40%% x level of the hit lands as lightning elemental damage (it can react); doubles in rain or when the target is in water, and leaves 1.0 lightning aura",
+  "enchantment.simple_tweaks.shield_breaker": "Shield Breaker",
+  "enchantment.simple_tweaks.shield_breaker.desc": "An axe hit on a blocking target drops the block immediately (so the same hit lands unprotected) and costs 2 x level extra shield durability"
 }

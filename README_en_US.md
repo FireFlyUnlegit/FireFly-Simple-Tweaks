@@ -12,7 +12,7 @@
 
 A Minecraft mod I build for fun: new enchantments, new mechanics and better combat feedback for vanilla.
 
-Current **1.21.1 / Fabric** release: **v2.2.5** (103 enchantments, 19 elemental reactions, aura gauges, reworked armour curve).
+Current **1.21.1 / Fabric** release: **v2.2.5** (107 enchantments, 19 elemental reactions, aura gauges, reworked armour curve).
 
 ## 🌿 Branches
 
@@ -31,13 +31,13 @@ Current **1.21.1 / Fabric** release: **v2.2.5** (103 enchantments, 19 elemental 
 
 ### 🧙 Custom enchantments
 
-**103** unique enchantments, split by rarity:
+**107** unique enchantments, split by rarity:
 
 | Rarity | Count | Rarity | Count |
 |--------|-------|--------|-------|
 | COMMON | 7 | LEGENDARY | 16 |
 | UNCOMMON | 9 | MYTHIC | 9 |
-| RARE | 27 | MYSTERY | 6 |
+| RARE | 31 | MYSTERY | 6 |
 | EPIC | 24 | UNIQUE | 5 |
 
 #### 🌈 Elemental system
@@ -219,6 +219,10 @@ A 100-damage hit: armour 26 → 17 taken; armour 40 → 10 taken.
 | **Elemental Sovereign** | the conversion element **becomes whichever one reacts with the target's current aura** (falls back to your own conversion element when there is none); every reaction you trigger deals **+30%% × level** |
 | **Midas Touch** | block drops `×(1 + 25%% × level)` (**multiplicative with Fortune**), mining speed `+20%% × level`, plus bonus experience on a chance. Deliberately ignores mob drops and experience gain (those belong to Scavenger / Experience Stealer) |
 | **Reaction Cascade** | if the target **already carries** an aura, immediately resolve a reaction with the **strongest element that reacts with it** (**ignoring the attachment ICD**), feeding `40%% + 20%% × level` of the hit into it; **0.5 s** internal cooldown |
+| **Shockwave Landing** | fall damage halved; the other half leaves as a shockwave in a `3 + level` block radius (scales with height and level), only past 3 blocks |
+| **Aegis** | maximum absorption `+2/level` (cap +8) — finally lets Life Siphon / Echo Shield / Death Protection shields hold a value (vanilla cap defaults to 0) |
+| **Trident Wrath** | a **thrown** trident adds a lightning strike: `40%% × level` of the hit as lightning elemental damage (can react); **doubles** in rain or water and leaves 1.0 lightning aura |
+| **Shield Breaker** | an axe hit on a **blocking** target drops the block at once (that hit lands unprotected) and costs `2 × level` extra shield durability |
 
 ### 🎮 Client features
 
