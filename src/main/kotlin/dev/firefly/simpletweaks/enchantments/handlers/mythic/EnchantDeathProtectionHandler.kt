@@ -1,6 +1,6 @@
 package dev.firefly.simpletweaks.enchantments.handlers.mythic
 
-import dev.firefly.simpletweaks.compat.STLog
+import dev.firefly.simpletweaks.compat.FSTLog
 import dev.firefly.simpletweaks.compat.event.EventPriority
 import dev.firefly.simpletweaks.compat.event.LivingDamageEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
@@ -16,7 +16,9 @@ import net.minecraft.sound.SoundCategory
 import net.minecraft.sound.SoundEvents
 import net.minecraft.text.Text
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantItemWeights
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSupportedItemTags
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 
@@ -49,11 +51,11 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
     category = EnchantCategory.MYTHIC,
     type = EnchantType.CHESTPLATE,
     maxLevel = 3,
-    weight = 1,
+    weight = EnchantItemWeights.MYTHIC,
     anvilCost = 12,
     minCostBase = 30,
     minCostPerLevel = 20,
-    supportedItems = "#minecraft:enchantable/chest_armor",
+    supportedItems = EnchantSupportedItemTags.CHEST_ARMOR,
     slots = [EnchantSlot.CHEST],
     order = 40,
 )
@@ -104,7 +106,7 @@ object EnchantDeathProtectionHandler : Listenable {
             1.0f
         )
         player.sendMessage(Text.literal("Death Protection triggered!"))
-        STLog.log("DeathProtection") {
+        FSTLog.log("DeathProtection") {
             "player=${player.name.string}, lvl=$lvl, healthBefore=${player.health}, preventedDamage=${e.amount}, " +
                 "absorption=$absorption, chestLvlAfter=${lvl - 1}, outcome=death-prevented"
         }

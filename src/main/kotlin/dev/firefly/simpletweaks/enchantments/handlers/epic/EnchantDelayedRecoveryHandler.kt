@@ -1,6 +1,6 @@
 package dev.firefly.simpletweaks.enchantments.handlers.epic
 
-import dev.firefly.simpletweaks.compat.STLog
+import dev.firefly.simpletweaks.compat.FSTLog
 import dev.firefly.simpletweaks.compat.WorldSide
 import dev.firefly.simpletweaks.compat.event.EventPriority
 import dev.firefly.simpletweaks.compat.event.LivingDamageEvent
@@ -18,7 +18,9 @@ import net.minecraft.particle.ParticleTypes
 import net.minecraft.server.world.ServerWorld
 import java.util.UUID
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantItemWeights
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSupportedItemTags
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 
@@ -52,11 +54,11 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
     category = EnchantCategory.EPIC,
     type = EnchantType.ARMOR,
     maxLevel = 5,
-    weight = 4,
+    weight = EnchantItemWeights.EPIC,
     anvilCost = 8,
     minCostBase = 37,
     minCostPerLevel = 12,
-    supportedItems = "#minecraft:enchantable/armor",
+    supportedItems = EnchantSupportedItemTags.ARMOR,
     slots = [EnchantSlot.ARMOR],
     order = 26,
 )
@@ -95,7 +97,7 @@ object EnchantDelayedRecoveryHandler : Listenable {
 
         val list = pending.getOrPut(player.uuid) { mutableListOf() }
         list.add(PendingHeal(healTotal, totalTicks, perTick))
-        STLog.log("DelayedRecovery") {
+        FSTLog.log("DelayedRecovery") {
             "player=${player.name.string}, lvl=$lvl, damage=${e.amount}, ratio=$ratio, healTotal=$healTotal, " +
                 "delaySeconds=$delay, totalTicks=$totalTicks, perTick=$perTick"
         }
@@ -132,7 +134,7 @@ object EnchantDelayedRecoveryHandler : Listenable {
         if (list.isEmpty()) pending.remove(p.uuid)
         else if (p.age % 5 == 0) {
             val remaining = list.sumOf { it.amount.toDouble() }
-            STLog.log("DelayedRecovery") {
+            FSTLog.log("DelayedRecovery") {
                 "player=${p.name.string}, activeHeals=${list.size}, remaining=$remaining, " +
                     "health=${p.health}/${p.maxHealth}, outcome=payout"
             }

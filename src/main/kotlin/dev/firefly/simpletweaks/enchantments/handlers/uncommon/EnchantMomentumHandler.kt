@@ -1,6 +1,6 @@
 package dev.firefly.simpletweaks.enchantments.handlers.uncommon
 
-import dev.firefly.simpletweaks.compat.STLog
+import dev.firefly.simpletweaks.compat.FSTLog
 import dev.firefly.simpletweaks.compat.event.EventPriority
 import dev.firefly.simpletweaks.compat.event.PlayerEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
@@ -11,7 +11,9 @@ import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.util.math.BlockPos
 import java.util.WeakHashMap
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantItemWeights
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSupportedItemTags
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 
@@ -43,11 +45,11 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
     category = EnchantCategory.UNCOMMON,
     type = EnchantType.TOOL,
     maxLevel = 8,
-    weight = 8,
+    weight = EnchantItemWeights.UNCOMMON,
     anvilCost = 4,
     minCostBase = 5,
     minCostPerLevel = 5,
-    supportedItems = "#minecraft:enchantable/mining",
+    supportedItems = EnchantSupportedItemTags.MINING,
     slots = [EnchantSlot.MAINHAND],
     order = 10,
 )
@@ -81,7 +83,7 @@ object EnchantMomentumHandler : Listenable {
         val bonus = (0.05f * lvl * state.ticks).coerceAtMost(1f * lvl)
         val speedBefore = e.newSpeed
         e.newSpeed *= (1f + bonus)
-        STLog.log("Momentum") {
+        FSTLog.log("Momentum") {
             "player=${p.name.string}, pos=$pos, lvl=$lvl, ticks=${state.ticks}, bonus=$bonus, " +
                 "speed=$speedBefore->${e.newSpeed}"
         }

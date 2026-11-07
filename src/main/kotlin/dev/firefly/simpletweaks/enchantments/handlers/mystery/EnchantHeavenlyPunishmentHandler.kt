@@ -1,6 +1,6 @@
 package dev.firefly.simpletweaks.enchantments.handlers.mystery
 
-import dev.firefly.simpletweaks.compat.STLog
+import dev.firefly.simpletweaks.compat.FSTLog
 import dev.firefly.simpletweaks.compat.WorldSide
 import dev.firefly.simpletweaks.compat.event.EventPriority
 import dev.firefly.simpletweaks.compat.event.LivingDamageEvent
@@ -25,7 +25,9 @@ import net.minecraft.world.World
 import java.util.WeakHashMap
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantItemWeights
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSupportedItemTags
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 
@@ -106,15 +108,14 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
     category = EnchantCategory.MYSTERY,
     type = EnchantType.SWORD,
     maxLevel = 4,
-    weight = 1,
-    anvilCost = 14,
+    weight = EnchantItemWeights.MYSTERY,
+    anvilCost = 90,
     minCostBase = 30,
     minCostPerLevel = 30,
-    supportedItems = "#minecraft:enchantable/sword",
+    supportedItems = EnchantSupportedItemTags.SWORD,
     slots = [EnchantSlot.MAINHAND],
-    damagePerLevel = 5.0,
+    damagePerLevel = 2.5,
     order = 51,
-    jsonEmit = false,
 )
 object EnchantHeavenlyPunishmentHandler : Listenable {
 
@@ -128,9 +129,6 @@ object EnchantHeavenlyPunishmentHandler : Listenable {
     private val entityData = WeakHashMap<Entity, NbtCompound>()
 
     private fun Entity.data(): NbtCompound = entityData.getOrPut(this) { NbtCompound() }
-
-    // 1.12.2 `UUID.nameUUIDFromBytes("simple_tweaks_heavenly_punishment_atk_speed")`; 1.21 attribute
-    // modifiers are keyed by Identifier, so the UUID + its display name collapse into one id.
     private val ATK_SPEED_ID: Identifier =
         Identifier.of("simple_tweaks", "heavenly_punishment_atk_speed")
 
@@ -138,11 +136,11 @@ object EnchantHeavenlyPunishmentHandler : Listenable {
     fun onLivingDamage(event: LivingDamageEvent) {
         if (event.invalid) return
 
-        val target = event.entityLiving ?: return
+        val target = event.entityLiving
         val world: World = target.world ?: return
         if (WorldSide.isClient(world)) return
 
-        val source = event.source ?: return
+        val source = event.source
         val attacker = source.attacker
         val now = world.time
 
@@ -166,7 +164,7 @@ object EnchantHeavenlyPunishmentHandler : Listenable {
                 }
 
                 spawnLightningVisual(world, target)
-                STLog.log("HeavenlyPunishment") {
+                FSTLog.log("HeavenlyPunishment") {
                     "attacker=${attacker.name.string}, target=${target.name.string}, lvl=$level, " +
                         "damage=${event.amount}, weakUntil=${now + level * 10}, weakAmount=${0.225f * level}, " +
                         "freezeUntil=${data.getLong(NBT_FREEZE_UNTIL)}, outcome=punished"
@@ -183,7 +181,7 @@ object EnchantHeavenlyPunishmentHandler : Listenable {
                     val reduce = data.getFloat(NBT_WEAK_AMOUNT)
                     if (reduce > 0f) {
                         event.amount *= (1f - reduce)
-                        STLog.log("HeavenlyPunishment") {
+                        FSTLog.log("HeavenlyPunishment") {
                             "attacker=${attacker.name.string}, target=${target.name.string}, " +
                                 "weakAmount=$reduce, until=${until}, damage=${event.amount}, outcome=weakness-applied"
                         }
@@ -195,7 +193,7 @@ object EnchantHeavenlyPunishmentHandler : Listenable {
 
     @SubscribeEvent
     fun onLivingUpdate(event: LivingEvent.LivingUpdateEvent) {
-        val entity = event.entityLiving ?: return
+        val entity = event.entityLiving
         if (WorldSide.isClient(entity.world)) return
 
         val data: NbtCompound = entity.data()
@@ -209,14 +207,14 @@ object EnchantHeavenlyPunishmentHandler : Listenable {
                 entity.setVelocity(0.0, 0.0, 0.0)
                 applyAttackSpeedSlow(entity)
                 if (!wasFrozen) {
-                    STLog.log("HeavenlyPunishment") {
+                    FSTLog.log("HeavenlyPunishment") {
                         "entity=${entity.name.string}, freezeUntil=$freezeUntil, now=$now, " +
                             "outcome=freeze-started"
                     }
                 }
             } else {
                 data.remove(NBT_FREEZE_UNTIL)
-                STLog.log("HeavenlyPunishment") {
+                FSTLog.log("HeavenlyPunishment") {
                     "entity=${entity.name.string}, freezeUntil=$freezeUntil, now=$now, outcome=freeze-expired"
                 }
             }
@@ -228,7 +226,7 @@ object EnchantHeavenlyPunishmentHandler : Listenable {
             data.remove(NBT_WEAK_UNTIL)
             data.remove(NBT_WEAK_AMOUNT)
             data.remove(NBT_WEAK_OWNER)
-            STLog.log("HeavenlyPunishment") {
+            FSTLog.log("HeavenlyPunishment") {
                 "entity=${entity.name.string}, weakUntil=$weakUntil, now=$now, outcome=weakness-expired"
             }
         }

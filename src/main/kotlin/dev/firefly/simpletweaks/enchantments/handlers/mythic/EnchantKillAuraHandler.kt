@@ -1,12 +1,13 @@
 package dev.firefly.simpletweaks.enchantments.handlers.mythic
 
-import dev.firefly.simpletweaks.compat.STLog
+import dev.firefly.simpletweaks.compat.FSTLog
 import dev.firefly.simpletweaks.compat.WorldSide
 import dev.firefly.simpletweaks.compat.event.AttackEntityEvent
 import dev.firefly.simpletweaks.compat.event.PlayerEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.event.TickEvent
 import dev.firefly.simpletweaks.core.Listenable
+import dev.firefly.simpletweaks.util.attackCharge
 import dev.firefly.simpletweaks.util.canEntitySee
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import dev.firefly.simpletweaks.util.runPlayerAttack
@@ -22,74 +23,23 @@ import java.util.UUID
 import java.util.WeakHashMap
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantItemWeights
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSupportedItemTags
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 
-/**
- * 1.21 port of `enchantments/handlers/mythic/EnchantKillAuraHandler.kt`.
- *
- * Line-by-line mapping from 1.12.2:
- * | 1.12.2                                                        | 1.21.1                                                                 |
- * |---------------------------------------------------------------|------------------------------------------------------------------------|
- * | `net.minecraftforge...gameevent.TickEvent`                    | `compat.event.TickEvent`                                                |
- * | `net.minecraftforge...entity.player.AttackEntityEvent`        | `compat.event.AttackEntityEvent`                                        |
- * | `net.minecraftforge...gameevent.PlayerEvent.PlayerLoggedOutEvent` | `compat.event.PlayerEvent.PlayerLoggedOutEvent`                     |
- * | `AttackEntityEvent.entityPlayer`                              | `AttackEntityEvent.player`                                              |
- * | `EntityLivingBase`                                            | `net.minecraft.entity.LivingEntity`                                      |
- * | `IMob`                                                       | `net.minecraft.entity.mob.Monster` (the 1.21 hostile-mob marker interface) |
- * | `p.world.isRemote`                                            | `WorldSide.isClient(p.world)` (field_9236 is a FIELD)                    |
- * | `p.isDead`                                                    | `p.isRemoved` (`method_31481`)                                          |
- * | `p.heldItemMainhand`                                          | `p.mainHandStack` (`method_6047`)                                       |
- * | `p.uniqueID`                                                  | `p.uuid` (`EntityLike.getUuid`, method_5667)                            |
- * | `p.getEntityAttribute(ATTACK_DAMAGE).attributeValue`          | `p.getAttributeValue(EntityAttributes.GENERIC_ATTACK_DAMAGE)` (`method_45318`) |
- * | `p.heldItemMainhand.damageItem(1, p)`                         | `p.mainHandStack.damage(1, p, EquipmentSlot.MAINHAND)` (`method_7970`)  |
- * | `p.addExhaustion(0.5f)`                                       | unchanged (`method_7322`)                                               |
- * | `p.getDistanceSq(e)`                                          | `p.squaredDistanceTo(e)` (`method_5858`)                                |
- * | `p.entityBoundingBox.grow(range)`                             | `p.boundingBox.expand(range)` (`method_1014`)                           |
- * | `p.world.getEntitiesWithinAABB(EntityLivingBase::class.java, box)` | `p.world.getEntitiesByClass(LivingEntity::class.java, box) { true }` (`method_8390`) |
- * | `e.isOnSameTeam(p)`                                           | `e.isTeammate(p)` (`method_5722`)                                       |
- * | `e.isEntityInvulnerable(source)`                              | `e.isInvulnerableTo(source)` (`method_5679`)                            |
- * | `e.revengeTarget`                                             | `e.attacker` (`LivingEntity.getAttacker`, `method_6065`)                 |
- * | `e.isEntityAlive` / `e.isDead`                                | `e.isAlive` / `e.isRemoved`                                             |
- * | `p.world.canEntitySee(p, e)`                                  | same extension, ported to `util/WorldExtensions.kt` over `World.raycast` |
- * | `DamageSource.causePlayerDamage(p)`                           | `p.damageSources.playerAttack(p)` (`method_48802`)                      |
- * | `EnchantKillAura` (Enchantment object)                        | `GeneratedEnchantments.KILL_AURA` (RegistryKey)                            |
- *
- * ⚠️ One forced mapping — the weapon's enchantment damage bonus.
- * 1.12.2 called `EnchantmentHelper.getModifierForCreature(weapon, target.creatureAttribute)`, which
- * summed Sharpness / Smite / Bane by comparing `EnumCreatureAttribute`. 1.13 deleted that enum and
- * 1.21 expresses the same thing as the `minecraft:damage` enchantment effect, conditioned on
- * `EntityType` tags. The vanilla equivalent is `EnchantmentHelper.getDamage(world, stack, target,
- * source, baseDamage)` — it is literally what `ServerPlayerEntity#getDamageAgainst` calls — and it
- * returns `baseDamage + bonus`, so passing `0f` yields the bonus alone, exactly like the old call.
- * **Verified equivalent, not a superset.** An earlier note here claimed `getModifierForCreature` saw
- * only vanilla Sharpness/Smite/Bane; that was wrong. It summed `Enchantment#calcDamageByCreature`
- * over *every* enchantment on the stack, and this mod's `ModEnchantments` overrides that method
- * (returning `(0.2 + rarity/20) * level` and ignoring the creature type) — so the mod's own damage
- * enchantments were already included in the 1.12.2 total. `getDamage` likewise evaluates every
- * `minecraft:damage` effect, and every enchantment JSON this mod generates carries exactly that same
- * linear formula with no `requirements`. Vanilla Sharpness/Smite/Bane remain conditional through
- * `EntityType` tag predicates in their JSONs, matching the old creature-attribute check. The numbers
- * therefore agree, and no fallback to a vanilla-only sum is needed.
- *
- * ⚠️ Also inherited from `util/PlayerUtils.kt`: `runPlayerAttack`'s `allowCrit` branch is dropped in
- * this port (no `CriticalHitEvent` seam), so the aura hit cannot crit. The 1.12.2 code took the
- * vanilla crit roll here; this handler passes no `allowCrit` argument, i.e. it accepted the default
- * `true`.
- */
 @ModEnchantment(
     id = "kill_aura",
     category = EnchantCategory.MYTHIC,
     type = EnchantType.SWORD,
     maxLevel = 6,
-    weight = 1,
+    weight = EnchantItemWeights.MYTHIC,
     anvilCost = 12,
     minCostBase = 40,
     minCostPerLevel = 15,
-    supportedItems = "#minecraft:enchantable/sword",
+    supportedItems = EnchantSupportedItemTags.SWORD,
     slots = [EnchantSlot.MAINHAND],
-    damagePerLevel = 0.45,
     order = 44,
 )
 object EnchantKillAuraHandler : Listenable {
@@ -103,7 +53,13 @@ object EnchantKillAuraHandler : Listenable {
         var ticksOutOfRange: Int = 0
     }
 
-    private fun maxCooldown(lvl: Int): Int = (40 - 8 * lvl).coerceAtLeast(2)
+    private fun maxCooldown(p: PlayerEntity, lvl: Int): Int {
+        val attackSpeed = p.getAttributeValue(EntityAttributes.GENERIC_ATTACK_SPEED)
+            .coerceAtLeast(0.1)
+        val baseTicks = 20.0 / attackSpeed
+        val multiplier = (7 - lvl).coerceAtLeast(1)
+        return kotlin.math.ceil(baseTicks * multiplier).toInt().coerceAtLeast(1)
+    }
 
     private fun rangeFor(lvl: Int): Double = (1.5 + 0.5 * lvl).coerceAtMost(3.5)
 
@@ -129,14 +85,25 @@ object EnchantKillAuraHandler : Listenable {
             return
         }
 
+        // The swing has to be ready.
+        //
+        // [maxCooldown] already derives from the weapon's attack speed (`20 / attackSpeed × (7 - level)`),
+        // so at **level VI it equals exactly one swing period** — and that is where a tick counter and the
+        // weapon's real cooldown can drift apart (lag, a manual swing in between, the counter being reset
+        // by `onPlayerAttack`). The charge is the authoritative answer to "is the swing ready", so it is
+        // consulted here; `simulateCooldown = true` on the hit below then *consumes* it, which is what makes
+        // the aura and a manual swing share one resource instead of stacking two free hits.
+        //
+        // Below VI this gate never rejects: the tick cooldown is 2–6 swing periods, i.e. far longer than a
+        // full recharge, so the behaviour there is unchanged.
+        val charge = p.attackCharge
+        if (charge < 1.0f) return
+
         val target = findTarget(p, lvl) ?: return
 
         val damage = p.getAttributeValue(EntityAttributes.GENERIC_ATTACK_DAMAGE).toFloat()
         val weapon = p.mainHandStack
 
-        // 1.12.2: `EnchantmentHelper.getModifierForCreature(weapon, target.creatureAttribute)`.
-        // 1.21 needs a ServerWorld + DamageSource to resolve the `minecraft:damage` effects; the
-        // base damage is 0f so the result is the enchantment bonus alone (see the class KDoc).
         val world = p.world as? ServerWorld ?: return
         val source = p.damageSources.playerAttack(p)
         val enchantBonus = EnchantmentHelper.getDamage(world, weapon, target, source, 0f)
@@ -144,7 +111,13 @@ object EnchantKillAuraHandler : Listenable {
 
         auraAttacking = true
         val result = try {
-            target.runPlayerAttack(p, (damage + enchantBonus) * multiplier, forceHit = true)
+            target.runPlayerAttack(
+                p, (damage + enchantBonus) * multiplier,
+                forceHit = true,
+                // Spend the attack charge, exactly as the manual swing this replaces would have: the aura
+                // *is* the player's swing at this level, so it must not be a free extra hit on top of one.
+                simulateCooldown = true,
+            )
         } finally {
             auraAttacking = false
         }
@@ -154,11 +127,11 @@ object EnchantKillAuraHandler : Listenable {
             p.mainHandStack.damage(1, p, EquipmentSlot.MAINHAND)
         }
 
-        cooldown[p.uuid] = maxCooldown(lvl)
-        STLog.log("KillAura") {
+        cooldown[p.uuid] = maxCooldown(p, lvl)
+        FSTLog.log("KillAura") {
             "player=${p.name.string}, target=${target.name.string}, lvl=$lvl, baseDamage=$damage, " +
-                "enchantBonus=$enchantBonus, multiplier=$multiplier, dealt=$result, " +
-                "cooldown=${maxCooldown(lvl)}, range=${rangeFor(lvl)}"
+                    "enchantBonus=$enchantBonus, multiplier=$multiplier, charge=$charge, dealt=$result, " +
+                    "cooldown=${maxCooldown(p, lvl)}, range=${rangeFor(lvl)}"
         }
     }
 
@@ -174,10 +147,10 @@ object EnchantKillAuraHandler : Listenable {
 
         (e.target as? LivingEntity)?.let { addPriorityTarget(p, it) }
 
-        cooldown[p.uuid] = maxCooldown(lvl)
-        STLog.log("KillAura") {
+        cooldown[p.uuid] = maxCooldown(p, lvl)
+        FSTLog.log("KillAura") {
             "player=${p.name.string}, target=${e.target.name.string}, lvl=$lvl, " +
-                "cooldown=${maxCooldown(lvl)}, outcome=priority-target-armed"
+                    "cooldown=${maxCooldown(p, lvl)}, outcome=priority-target-armed"
         }
     }
 
@@ -186,7 +159,6 @@ object EnchantKillAuraHandler : Listenable {
         cooldown.remove(e.player.uuid)
         priorityTargets.remove(e.player.uuid)
     }
-
 
     private fun addPriorityTarget(p: PlayerEntity, target: LivingEntity) {
         val list = priorityTargets.getOrPut(p.uuid) { mutableListOf() }

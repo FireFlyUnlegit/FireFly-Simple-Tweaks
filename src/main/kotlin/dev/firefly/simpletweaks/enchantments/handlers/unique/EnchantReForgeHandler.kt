@@ -1,6 +1,6 @@
 package dev.firefly.simpletweaks.enchantments.handlers.unique
 
-import dev.firefly.simpletweaks.compat.STLog
+import dev.firefly.simpletweaks.compat.FSTLog
 import dev.firefly.simpletweaks.compat.WorldSide
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.event.TickEvent
@@ -14,7 +14,9 @@ import net.minecraft.item.ItemStack
 import net.minecraft.item.Items
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantItemWeights
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSupportedItemTags
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 
@@ -56,19 +58,13 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
     category = EnchantCategory.UNIQUE,
     type = EnchantType.BREAKABLE,
     maxLevel = 1,
-    weight = 1,
+    weight = EnchantItemWeights.UNIQUE,
     anvilCost = 2,
     minCostBase = 1,
     minCostPerLevel = 1,
-    supportedItems = "#minecraft:enchantable/durability",
+    supportedItems = EnchantSupportedItemTags.DURABILITY,
     slots = [EnchantSlot.ANY],
     order = 52,
-    // This declaration does NOT own the datapack JSON. `reforge` is a treasure enchantment, and the 1.12.2
-    // generator wrote no `primary_items` field for those -- something this processor cannot express, since
-    // it always emits the key. So the hand-written
-    // `src/main/resources/data/simple_tweaks/enchantment/reforge.json` stays authoritative, and the fields
-    // above are documentation of what it contains: change one, change the other.
-    jsonEmit = false,
 )
 object EnchantReForgeHandler : Listenable {
 
@@ -111,7 +107,7 @@ object EnchantReForgeHandler : Listenable {
             stack.remove(DataComponentTypes.REPAIR_COST)
 
             inv.setStack(i, stack)
-            STLog.log("ReForge") {
+            FSTLog.log("ReForge") {
                 "item=${stack.item}, slot=$i, repairCost=${stack.get(DataComponentTypes.REPAIR_COST)}, " +
                     "outcome=reforge-stripped"
             }

@@ -1,6 +1,6 @@
 package dev.firefly.simpletweaks.enchantments.handlers.rare
 
-import dev.firefly.simpletweaks.compat.STLog
+import dev.firefly.simpletweaks.compat.FSTLog
 import dev.firefly.simpletweaks.compat.attacker
 import dev.firefly.simpletweaks.compat.event.LivingHurtEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
@@ -14,7 +14,9 @@ import net.minecraft.entity.effect.StatusEffects
 import net.minecraft.entity.player.PlayerEntity
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantItemWeights
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSupportedItemTags
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 
@@ -39,11 +41,11 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
     category = EnchantCategory.RARE,
     type = EnchantType.SWORD,
     maxLevel = 6,
-    weight = 6,
+    weight = EnchantItemWeights.RARE,
     anvilCost = 6,
     minCostBase = 24,
     minCostPerLevel = 4,
-    supportedItems = "#minecraft:enchantable/sword",
+    supportedItems = EnchantSupportedItemTags.SWORD,
     slots = [EnchantSlot.MAINHAND],
     damagePerLevel = 0.25,
     order = 19,
@@ -63,7 +65,7 @@ object EnchantFireMasterHandler : Listenable {
             target.fireTime += lvl * 10
             attacker.addStatusEffect(StatusEffectInstance(StatusEffects.FIRE_RESISTANCE,lvl * 20,0))
             attacker.extinguish()
-            STLog.log("FireMaster") {
+            FSTLog.log("FireMaster") {
                 "attacker=${attacker.name.string}, target=${target.name.string}, lvl=$lvl, " +
                     "targetFireTime=$fireTimeBefore->${target.fireTime}, fireBonus=$fireBonus, damage=${e.amount}, " +
                     "selfFireResistanceTicks=${lvl * 20}"

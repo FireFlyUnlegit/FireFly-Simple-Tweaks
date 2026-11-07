@@ -1,6 +1,6 @@
 package dev.firefly.simpletweaks.enchantments.handlers.legendary
 
-import dev.firefly.simpletweaks.compat.STLog
+import dev.firefly.simpletweaks.compat.FSTLog
 import dev.firefly.simpletweaks.compat.WorldSide
 import dev.firefly.simpletweaks.compat.event.EventPriority
 import dev.firefly.simpletweaks.compat.event.LivingHurtEvent
@@ -19,7 +19,9 @@ import net.minecraft.server.world.ServerWorld
 import net.minecraft.world.World
 import java.util.*
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantItemWeights
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSupportedItemTags
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 
@@ -60,11 +62,11 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
     category = EnchantCategory.LEGENDARY,
     type = EnchantType.BOW,
     maxLevel = 5,
-    weight = 2,
+    weight = EnchantItemWeights.LEGENDARY,
     anvilCost = 10,
     minCostBase = 37,
     minCostPerLevel = 12,
-    supportedItems = "#minecraft:enchantable/bow",
+    supportedItems = EnchantSupportedItemTags.BOW,
     slots = [EnchantSlot.MAINHAND, EnchantSlot.OFFHAND],
     order = 37,
 )
@@ -102,7 +104,7 @@ object EnchantEchoShotHandler : Listenable {
                 ticksLeft = delay,
             )
         )
-        STLog.log("EchoShot") {
+        FSTLog.log("EchoShot") {
             "shooter=${shooter.name.string}, target=${target.name.string}, lvl=$lvl, ratio=$ratio, " +
                 "hitDamage=${e.amount}, echoDamage=${e.amount * ratio}, delayTicks=$delay, outcome=scheduled"
         }
@@ -164,7 +166,7 @@ object EnchantEchoShotHandler : Listenable {
                 target.z,
                 6, 0.3, 0.3, 0.3, 0.05,
             )
-            STLog.log("EchoShot") {
+            FSTLog.log("EchoShot") {
                 "shooter=${owner.name.string}, target=${target.name.string}, echoDamage=${echo.damage}, " +
                     "outcome=echo-fired"
             }

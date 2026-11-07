@@ -67,6 +67,10 @@ public final class EventSeams {
      * {@code Entity#damage} invocation, preserving Forge's ordering (attack before hurt).
      */
     public static LivingHurtEvent hurt(LivingEntity entity, DamageSource source, float amount) {
+        if (isDamageEventSuppressed()) {
+            return unpostedHurt(entity, source, amount);
+        }
+
         LivingHurtEvent cached = HURT.get();
         if (cached != null && cached.getEntityLiving() == entity && cached.getSource() == source) {
             return cached;
@@ -96,6 +100,10 @@ public final class EventSeams {
      * A cancelled event is reported as zero remaining damage.
      */
     public static LivingDamageEvent damage(LivingEntity entity, DamageSource source, float amount) {
+        if (isDamageEventSuppressed()) {
+            return unpostedDamage(entity, source, amount);
+        }
+
         LivingDamageEvent cached = DAMAGE.get();
         if (cached != null && cached.getEntityLiving() == entity && cached.getSource() == source) {
             return cached;
@@ -104,6 +112,71 @@ public final class EventSeams {
         ForgeEventBus.post(event);
         DAMAGE.set(event);
         return event;
+    }
+
+    // ------------------------------------------------------------------ suppressed damage events
+
+    /**
+     * Non-zero while a caller has asked for the damage events <b>not</b> to be posted — 1.12.2's
+     * {@code runPlayerAttack(triggerEvent = false)}.
+     *
+     * <h2>What it is for</h2>
+     * 1.12.2's helper posted {@code AttackEntityEvent} / {@code LivingAttackEvent} /
+     * {@code LivingHurtEvent} / {@code LivingDamageEvent} itself, and {@code triggerEvent = false}
+     * skipped all four — so a mod-dealt hit could be invisible to the mod's own handlers and could not
+     * recurse into another enchantment. In 1.21 those events are fired from inside
+     * {@code LivingEntity#damage} by the mixins, i.e. <b>below</b> any caller, so the only way to offer
+     * the same switch is a scope the seams themselves consult. This is it.
+     *
+     * <h2>Design notes</h2>
+     * <ul>
+     *   <li><b>Depth counter, not a boolean</b>: nested {@code runPlayerAttack} calls (an AoE hit whose
+     *       target dies and damages something else…) must not have the inner call's exit re-enable
+     *       posting for the outer one. {@code runPlayerAttack} pairs push/pop in a
+     *       {@code try/finally}, so an exception cannot leak the scope either.</li>
+     *   <li><b>Per thread</b> ({@link ThreadLocal}): in singleplayer the client and the integrated
+     *       server are two threads in one JVM, and this must never affect the other side.</li>
+     *   <li><b>Scope is the two damage seams only</b> — exactly 1.12.2's four events minus
+     *       {@code AttackEntityEvent}, which in 1.21 belongs to the vanilla attack flow
+     *       ({@code PlayerEntityAttackMixin}) rather than to this helper. {@code LivingDeathEvent} is
+     *       deliberately <b>not</b> suppressed, matching 1.12.2 (a death is not part of
+     *       {@code triggerEvent}).</li>
+     * </ul>
+     *
+     * <p>Handlers that call {@code getAmount()} on the returned event see the original amount and
+     * {@code isCanceled() == false} — i.e. exactly what they would have observed had no handler run.
+     */
+    private static final ThreadLocal<Integer> SUPPRESS_DAMAGE = ThreadLocal.withInitial(() -> 0);
+
+    /** Opens a suppression scope; pair with {@link #popSuppressDamageEvents()} in a finally block. */
+    public static void pushSuppressDamageEvents() {
+        SUPPRESS_DAMAGE.set(SUPPRESS_DAMAGE.get() + 1);
+    }
+
+    public static void popSuppressDamageEvents() {
+        int depth = SUPPRESS_DAMAGE.get() - 1;
+        if (depth <= 0) {
+            SUPPRESS_DAMAGE.remove();
+        } else {
+            SUPPRESS_DAMAGE.set(depth);
+        }
+    }
+
+    public static boolean isDamageEventSuppressed() {
+        return SUPPRESS_DAMAGE.get() > 0;
+    }
+
+    /**
+     * The event the two injectors would have shared had nothing posted one. A fresh instance per call
+     * is fine here: with no handlers running there is nothing to share, and the injectors only read
+     * {@code getAmount()} / {@code isCanceled()} off it.
+     */
+    private static LivingHurtEvent unpostedHurt(LivingEntity entity, DamageSource source, float amount) {
+        return new LivingHurtEvent(entity, source, amount);
+    }
+
+    private static LivingDamageEvent unpostedDamage(LivingEntity entity, DamageSource source, float amount) {
+        return new LivingDamageEvent(entity, source, amount);
     }
 
     public static void clearDamage() {

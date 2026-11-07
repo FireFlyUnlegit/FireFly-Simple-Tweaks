@@ -1,7 +1,7 @@
 package dev.firefly.simpletweaks.enchantments.handlers.epic
 
 import dev.firefly.simpletweaks.SimpleTweaks
-import dev.firefly.simpletweaks.compat.STLog
+import dev.firefly.simpletweaks.compat.FSTLog
 import dev.firefly.simpletweaks.compat.WorldSide
 import dev.firefly.simpletweaks.compat.event.PlayerEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
@@ -14,10 +14,11 @@ import net.minecraft.entity.attribute.EntityAttributeModifier
 import net.minecraft.entity.attribute.EntityAttributes
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.util.Identifier
-import java.util.*
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantItemWeights
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSupportedItemTags
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 
@@ -52,11 +53,11 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
     category = EnchantCategory.EPIC,
     type = EnchantType.ARMOR,
     maxLevel = 10,
-    weight = 4,
+    weight = EnchantItemWeights.EPIC,
     anvilCost = 8,
     minCostBase = 10,
     minCostPerLevel = 10,
-    supportedItems = "#minecraft:enchantable/armor",
+    supportedItems = EnchantSupportedItemTags.ARMOR,
     slots = [EnchantSlot.ARMOR],
     order = 31,
 )
@@ -86,12 +87,12 @@ object EnchantVitalityHandler : Listenable {
             val bonus = total * 4.0 + (total / 10) * 10.0
             val percentage = bonus * 0.01 * total
             attr.addPersistentModifier(EntityAttributeModifier(MODIFIER_ID, bonus + percentage, EntityAttributeModifier.Operation.ADD_VALUE))
-            STLog.log("Vitality") {
+            FSTLog.log("Vitality") {
                 "player=${p.name.string}, totalLvl=$total, hadModifier=$hasModifier, bonus=$bonus, " +
                     "percentage=$percentage, modifier=${bonus + percentage}, outcome=applied"
             }
         } else {
-            STLog.log("Vitality") {
+            FSTLog.log("Vitality") {
                 "player=${p.name.string}, totalLvl=$total, hadModifier=$hasModifier, outcome=removed"
             }
         }

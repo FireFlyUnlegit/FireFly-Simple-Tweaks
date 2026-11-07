@@ -1,6 +1,6 @@
 package dev.firefly.simpletweaks.enchantments.handlers.legendary
 
-import dev.firefly.simpletweaks.compat.STLog
+import dev.firefly.simpletweaks.compat.FSTLog
 import dev.firefly.simpletweaks.compat.WorldSide
 import dev.firefly.simpletweaks.compat.event.PlayerDropsEvent
 import dev.firefly.simpletweaks.compat.event.PlayerEvent
@@ -12,7 +12,9 @@ import net.minecraft.item.ItemStack
 import java.util.UUID
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantItemWeights
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSupportedItemTags
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 
@@ -56,10 +58,10 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
     category = EnchantCategory.LEGENDARY,
     type = EnchantType.BREAKABLE,
     maxLevel = 1,
-    weight = 2,
+    weight = EnchantItemWeights.LEGENDARY,
     anvilCost = 10,
     minCostBase = 25,
-    supportedItems = "#minecraft:enchantable/durability",
+    supportedItems = EnchantSupportedItemTags.DURABILITY,
     slots = [EnchantSlot.ANY],
     order = 39,
 )
@@ -93,7 +95,7 @@ object EnchantSoulBoundHandler : Listenable {
         e.drops.removeAll(toRemove)
         saved[player.uuid] = kept
 
-        STLog.log("SoulBound") {
+        FSTLog.log("SoulBound") {
             "player=${player.name.string}, drops=${e.drops.size}, saved=${kept.size}, " +
                 "items=${kept.joinToString(",") { it.item.toString() }}, outcome=withheld-from-drops"
         }
@@ -115,7 +117,7 @@ object EnchantSoulBoundHandler : Listenable {
             restored.add(stack)
         }
 
-        STLog.log("SoulBound") {
+        FSTLog.log("SoulBound") {
             "player=${e.player.name.string}, original=${e.original.name.string}, " +
                 "restored=${restored.size}, outcome=restored-on-respawn"
         }

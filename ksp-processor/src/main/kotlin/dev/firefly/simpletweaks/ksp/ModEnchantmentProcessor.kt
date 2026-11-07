@@ -54,6 +54,73 @@ private const val NOT_IN_ENCHANTING_TABLE_ID = "infinite_power"
 private val ID_PATTERN = Regex("[a-z][a-z0-9_]*")
 
 /**
+ * The "derive from the tier" sentinel, mirroring `WEIGHT_FROM_CATEGORY` /
+ * `DAMAGE_PER_LEVEL_FROM_CATEGORY` in `ModEnchantment.kt` (a real weight is `>= 1` and a real damage
+ * per level is `>= 0`, so a negative can only mean "derive"). Duplicated because this module cannot
+ * import from the mod: it is a plain Kotlin/JVM library that reads enum *names* out of the annotations.
+ */
+private const val DERIVE = -1
+
+/**
+ * Tier → enchanting-table weight: 1.12.2's `EnchantmentCategories#weight`
+ * (`10 - rarity * 2`, floored at 1), which is also what `EnchantItemWeights` spells out for call
+ * sites. `@ModEnchantment.weight` defaults to "derive from this table".
+ *
+ * ⚠️ **The single deviation**: the formula yields `0` for UNIQUE, and `0` is rejected below, so UNIQUE
+ * is `1`. UNIQUE/MYSTERY are excluded from the enchanting table by category anyway, so the value is
+ * descriptive only. `EnchantItemWeights` documents the same curve; if one changes, change both — this
+ * is the copy the build actually uses.
+ */
+private val TIER_WEIGHTS = mapOf(
+    "UNIQUE" to 1,
+    "COMMON" to 10,
+    "UNCOMMON" to 8,
+    "RARE" to 6,
+    "EPIC" to 4,
+    "LEGENDARY" to 2,
+    "MYTHIC" to 1,
+    "MYSTERY" to 1,
+)
+
+/** 1.12.2 rarity per category, from `EnchantmentCategories` in the reference project. */
+private val TIER_RARITY = mapOf(
+    "UNIQUE" to 0,
+    "COMMON" to 0,
+    "UNCOMMON" to 1,
+    "RARE" to 2,
+    "EPIC" to 3,
+    "LEGENDARY" to 4,
+    "MYTHIC" to 5,
+    "MYSTERY" to 6,
+)
+
+private fun tierWeight(category: String): Int = TIER_WEIGHTS[category] ?: 1
+
+/**
+ * The derived `damagePerLevel`, **only for SWORD types** — every other type gets `0.0` (the reference
+ * project's base `itemExtraDamage` returned `0.0` for them too).
+ *
+ * The curve is `rarity * 1.5 / 20`, i.e. `UNIQUE 0 / COMMON 0 / UNCOMMON 0.075 / RARE 0.15 /
+ * EPIC 0.225 / LEGENDARY 0.3 / MYTHIC 0.375 / MYSTERY 0.45`.
+ *
+ * ⚠️ **This is deliberately NOT the reference project's formula.** 1.12.2 used `0.2 + rarity / 20`
+ * (COMMON 0.2 … MYTHIC 0.45), which the author replaced with this curve in `build=cleanup21` as a
+ * rebalance: low tiers lose most of their flat damage and COMMON now adds none at all. The 1.12.2
+ * provenance of every *override* below still holds (they are the six `itemExtraDamage` overrides plus
+ * explicit opt-outs) — only the derived default changed. Keep this comment and the function together:
+ * a comment describing a formula the code no longer implements is how this project's earlier drift
+ * started.
+ *
+ * A value below 0 means "derive" (the annotation's sentinel), which is why [TIER_RARITY] never has to
+ * express "no damage": the type does.
+ */
+private fun tierDamagePerLevel(category: String, type: String): Double {
+    if (type != "SWORD") return 0.0
+    val rarity = TIER_RARITY[category] ?: 0
+    return (rarity * 1.5) / 20.0
+}
+
+/**
  * The shape every enum argument must have, checked by [ModEnchantmentProcessor.validEnum].
  *
  * This is not cosmetic. An annotation argument that is **not a compile-time constant** — say
@@ -137,6 +204,13 @@ class ModEnchantmentProcessor(
 
     private var done = false
 
+    /**
+     * Declarations whose explicit `weight` / `damagePerLevel` disagree with their tier's derived value,
+     * rendered as `field: Handler=value (tier CATEGORY=derived)`. Reported once per build so that an
+     * override is visible in the build log instead of being discovered in game.
+     */
+    private val overrides = mutableListOf<String>()
+
     override fun process(resolver: Resolver): List<KSAnnotated> {
         if (done || codeGenerator.generatedFile.isNotEmpty()) return emptyList()
         done = true
@@ -150,6 +224,16 @@ class ModEnchantmentProcessor(
         val metas = unique.map { it.toMeta() }
 
         logger.info("ModEnchantment: ${annotated.size} annotated handler(s) -> ${unique.size} enchantment(s)")
+
+        // Deliberate overrides are fine, invisible ones are not: see `overrides`.
+        // `warn`, not `info`: KSP's info output is swallowed by a plain `gradlew build` (no `-i`), and a
+        // report nobody sees cannot catch the drift it exists for.
+        if (overrides.isNotEmpty()) {
+            logger.warn(
+                "ModEnchantment: ${overrides.size} explicit value(s) differ from the tier default " +
+                    "(deliberate overrides) -> " + overrides.joinToString("; ")
+            )
+        }
 
         // Only the declarations that asked for a generated JSON. `jsonEmit = false` still contributes the
         // key, the HANDLERS entry and the index metadata -- it just leaves the datapack file to the
@@ -306,14 +390,41 @@ class ModEnchantmentProcessor(
         val color = validEnum(enumName("color") ?: "INHERIT", "color", decl) ?: return null
 
         val maxLevel = number("maxLevel", 1)
-        val weight = number("weight", 1)
         if (maxLevel < 1) {
             logger.error("@ModEnchantment on '$where': `maxLevel` must be >= 1 (got $maxLevel)", decl)
             return null
         }
+
+        // `weight` and `damagePerLevel` are DERIVED from `category` unless the declaration overrides
+        // them. Deriving is the only way this can work at all: an annotation argument must be a
+        // compile-time constant, so the call site cannot compute `10 - rarity * 2` from the category,
+        // and the annotation's default is therefore a sentinel ("negative = derive").
+        //
+        // ⚠️ The fallbacks below must be the SENTINELS, not "1" / "0.0". KSP is not obliged to surface an
+        // omitted argument at all, so a declaration that leaves `weight` out can arrive here as a missing
+        // key — and a fallback of 1 would then ship weight 1 while the author expected the tier value.
+        // Mirrors `WEIGHT_FROM_CATEGORY` / `DAMAGE_PER_LEVEL_FROM_CATEGORY` in `ModEnchantment.kt`.
+        val declaredWeight = number("weight", DERIVE)
+        val derivedWeight = tierWeight(category!!)
+        val weight = if (declaredWeight < 0) derivedWeight else declaredWeight
         if (weight < 1) {
             logger.error("@ModEnchantment on '$where': `weight` must be >= 1 (got $weight)", decl)
             return null
+        }
+
+        val declaredDamage = (args["damagePerLevel"]?.value as? Number)?.toDouble() ?: DERIVE.toDouble()
+        val derivedDamage = tierDamagePerLevel(category, type!!)
+        val damagePerLevel = if (declaredDamage < 0.0) derivedDamage else declaredDamage
+
+        // Drift report: everything below compares what the author wrote against what the tier says.
+        // Reported at info level because an override is legitimate — the point is that an *accidental*
+        // disagreement (the kind that silently changes enchanting-table odds or weapon damage) cannot
+        // hide. `build=cleanup21` exists because it did: see DEVLOG.md.
+        if (declaredWeight >= 0 && declaredWeight != derivedWeight) {
+            overrides += "weight: $where=${declaredWeight} (tier $category=$derivedWeight)"
+        }
+        if (declaredDamage >= 0.0 && declaredDamage != derivedDamage) {
+            overrides += "damagePerLevel: $where=${declaredDamage} (tier $category=$derivedDamage)"
         }
 
         val supportedItems = text("supportedItems")
@@ -342,7 +453,7 @@ class ModEnchantmentProcessor(
             minCostPerLevel = number("minCostPerLevel", 0),
             maxCostBase = number("maxCostBase", 65535),
             maxCostPerLevel = number("maxCostPerLevel", 0),
-            damagePerLevel = (args["damagePerLevel"]?.value as? Number)?.toDouble() ?: 0.0,
+            damagePerLevel = damagePerLevel,
             attributes = attributes,
             order = number("order", Int.MAX_VALUE),
             // Defaults to true here as well as in the annotation: an omitted argument may or may not appear

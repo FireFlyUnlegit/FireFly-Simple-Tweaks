@@ -1,6 +1,6 @@
 package dev.firefly.simpletweaks.enchantments.handlers.rare
 
-import dev.firefly.simpletweaks.compat.STLog
+import dev.firefly.simpletweaks.compat.FSTLog
 import dev.firefly.simpletweaks.compat.attacker
 import dev.firefly.simpletweaks.compat.chance
 import dev.firefly.simpletweaks.compat.event.LivingHurtEvent
@@ -15,7 +15,9 @@ import net.minecraft.sound.SoundCategory
 import net.minecraft.sound.SoundEvents
 import java.util.*
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantItemWeights
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSupportedItemTags
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 
@@ -38,10 +40,10 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
     category = EnchantCategory.RARE,
     type = EnchantType.ARMOR,
     maxLevel = 1,
-    weight = 6,
+    weight = EnchantItemWeights.RARE,
     anvilCost = 6,
     minCostBase = 30,
-    supportedItems = "#minecraft:enchantable/armor",
+    supportedItems = EnchantSupportedItemTags.ARMOR,
     slots = [EnchantSlot.ARMOR],
     order = 21,
 )
@@ -68,7 +70,7 @@ object EnchantImmortalHandler : Listenable {
         if (shield > 0) {
             shieldCounter[id] = shield - 1
             e.isCanceled = true
-            STLog.log("Immortal") {
+            FSTLog.log("Immortal") {
                 "target=${target.name.string}, attacker=${attacker.name.string}, lvl=$lvl, " +
                     "shieldLeft=${shield - 1}, damage=${e.amount}, outcome=shield-absorbed"
             }
@@ -86,7 +88,7 @@ object EnchantImmortalHandler : Listenable {
 
         shieldCounter[id] = lvl - 1
         e.isCanceled = true
-        STLog.log("Immortal") {
+        FSTLog.log("Immortal") {
             "target=${target.name.string}, attacker=${attacker.name.string}, lvl=$lvl, hits=$hits, " +
                 "threshold=${22 - lvl * 2}, shieldGranted=${lvl - 1}, damage=${e.amount}, outcome=shield-triggered"
         }

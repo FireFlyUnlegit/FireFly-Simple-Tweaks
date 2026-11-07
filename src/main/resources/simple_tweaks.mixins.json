@@ -30,7 +30,8 @@
     "AnvilScreenMixin",
     "EnchantmentNameColorMixin",
     "InputSlowDownMixin",
-    "LivingEntityDrawSpeedMixin"
+    "LivingEntityDrawSpeedMixin",
+    "NoHurtCamMixin"
   ],
   "server": [],
   "injectors": {

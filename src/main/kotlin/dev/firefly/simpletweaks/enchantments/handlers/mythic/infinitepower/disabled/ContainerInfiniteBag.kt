@@ -1,10 +1,9 @@
 package dev.firefly.simpletweaks.enchantments.handlers.mythic.infinitepower
 
 import dev.firefly.simpletweaks.SimpleTweaks
-import dev.firefly.simpletweaks.compat.STLog
+import dev.firefly.simpletweaks.compat.FSTLog
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.entity.player.PlayerInventory
-import net.minecraft.inventory.Inventory
 import net.minecraft.item.ItemStack
 import net.minecraft.network.packet.s2c.play.InventoryS2CPacket
 import net.minecraft.registry.Registries
@@ -173,7 +172,7 @@ class ContainerInfiniteBag(
             }
         }
 
-        STLog.log("InfinitePower") {
+        FSTLog.log("InfinitePower") {
             "bag quickMove: slot=$slotId, from=${if (fromBag) "bag" else "player"}, before=$before, " +
                 "remaining=${stack.count}, moved=$moved, outcome=${if (moved) "moved" else "refused"}"
         }

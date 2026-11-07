@@ -93,6 +93,8 @@ object SimpleTweaksConfig {
         GeneralConfig.enabledSpecialParticles = s.bool("enabledSpecialParticles", true)
         GeneralConfig.autoSprintEnabled = s.bool("autoSprintEnabled", false)
         GeneralConfig.autoSprintOmniSprint = s.bool("autoSprintOmniSprint", false)
+        // New in cleanup21, not a 1.12.2 option — hence a `false` default rather than a ported one.
+        GeneralConfig.noHurtCam = s.bool("noHurtCam", false)
     }
 
     private fun readDamageIndicator(s: JsonObject) {
@@ -137,6 +139,7 @@ object SimpleTweaksConfig {
             addProperty("enabledSpecialParticles", GeneralConfig.enabledSpecialParticles)
             addProperty("autoSprintEnabled", GeneralConfig.autoSprintEnabled)
             addProperty("autoSprintOmniSprint", GeneralConfig.autoSprintOmniSprint)
+            addProperty("noHurtCam", GeneralConfig.noHurtCam)
         }
         val indicator = JsonObject().apply {
             addProperty("enabled", DamageIndicatorConfig.enabled)

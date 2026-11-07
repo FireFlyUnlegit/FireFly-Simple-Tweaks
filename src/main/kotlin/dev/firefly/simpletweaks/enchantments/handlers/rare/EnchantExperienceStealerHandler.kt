@@ -1,6 +1,6 @@
 package dev.firefly.simpletweaks.enchantments.handlers.rare
 
-import dev.firefly.simpletweaks.compat.STLog
+import dev.firefly.simpletweaks.compat.FSTLog
 import dev.firefly.simpletweaks.compat.attacker
 import dev.firefly.simpletweaks.compat.event.LivingHurtEvent
 import dev.firefly.simpletweaks.compat.event.PlayerEvent
@@ -13,9 +13,12 @@ import net.minecraft.entity.player.PlayerEntity
 import java.util.WeakHashMap
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantItemWeights
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSupportedItemTags
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
+import org.spongepowered.tools.obfuscation.SupportedOptions
 
 /**
  * 1.21 port of `enchantments/handlers/rare/EnchantExperienceStealerHandler.kt`.
@@ -40,13 +43,12 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
     category = EnchantCategory.RARE,
     type = EnchantType.SWORD,
     maxLevel = 8,
-    weight = 6,
+    weight = EnchantItemWeights.RARE,
     anvilCost = 6,
     minCostBase = 25,
     minCostPerLevel = 5,
-    supportedItems = "#minecraft:enchantable/sword",
+    supportedItems = EnchantSupportedItemTags.SWORD,
     slots = [EnchantSlot.MAINHAND],
-    damagePerLevel = 0.3,
     order = 17,
 )
 object EnchantExperienceStealerHandler : Listenable {
@@ -67,7 +69,7 @@ object EnchantExperienceStealerHandler : Listenable {
             if (whole > 0) {
                 atk.addExperience(whole)
                 pendingXp[atk] = acc - whole
-                STLog.log("ExperienceStealer") {
+                FSTLog.log("ExperienceStealer") {
                     "attacker=${atk.name.string}, target=${e.entityLiving.name.string}, lvl=$lvl, " +
                         "raw=$raw, gained=$whole, pending=${acc - whole}"
                 }
@@ -80,7 +82,7 @@ object EnchantExperienceStealerHandler : Listenable {
         if (tgt is PlayerEntity) {
             val drain = raw.coerceAtMost(tgt.experienceProgress)
             tgt.experienceProgress = (tgt.experienceProgress - drain).coerceAtLeast(0f)
-            STLog.log("ExperienceStealer") {
+            FSTLog.log("ExperienceStealer") {
                 "attacker=${atk.name.string}, target=${tgt.name.string}, lvl=$lvl, " +
                     "raw=$raw, drained=$drain, targetProgress=${tgt.experienceProgress}"
             }

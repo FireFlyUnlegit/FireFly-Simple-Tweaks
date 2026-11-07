@@ -1,6 +1,6 @@
 package dev.firefly.simpletweaks.enchantments.handlers.epic
 
-import dev.firefly.simpletweaks.compat.STLog
+import dev.firefly.simpletweaks.compat.FSTLog
 import dev.firefly.simpletweaks.compat.WorldSide
 import dev.firefly.simpletweaks.compat.event.BlockEvent
 import dev.firefly.simpletweaks.compat.event.EventPriority
@@ -16,7 +16,9 @@ import net.minecraft.util.math.Direction
 import kotlin.math.abs
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantItemWeights
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSupportedItemTags
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 
@@ -51,11 +53,11 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
     category = EnchantCategory.EPIC,
     type = EnchantType.TOOL,
     maxLevel = 3,
-    weight = 4,
+    weight = EnchantItemWeights.EPIC,
     anvilCost = 8,
     minCostBase = 30,
     minCostPerLevel = 10,
-    supportedItems = "#minecraft:enchantable/mining",
+    supportedItems = EnchantSupportedItemTags.MINING,
     slots = [EnchantSlot.MAINHAND],
     order = 30,
 )
@@ -102,7 +104,7 @@ object EnchantTunnelingHandler : Listenable {
 
                 tool.damage(1, player, EquipmentSlot.MAINHAND)
                 broken++
-                STLog.log("Tunneling") {
+                FSTLog.log("Tunneling") {
                     "player=${player.name.string}, lvl=$lvl, origin=$origin, normal=$normal, block=$originBlock, " +
                         "broke=$p, brokenSoFar=$broken, toolDamage=${tool.damage}"
                 }
@@ -111,7 +113,7 @@ object EnchantTunnelingHandler : Listenable {
         } finally {
             inTunneling.set(false)
             if (broken > 0) {
-                STLog.log("Tunneling") {
+                FSTLog.log("Tunneling") {
                     "player=${player.name.string}, lvl=$lvl, origin=$origin, extraBlocks=$broken, outcome=done"
                 }
             }

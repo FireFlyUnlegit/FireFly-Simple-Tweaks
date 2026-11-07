@@ -41,7 +41,7 @@ import org.slf4j.LoggerFactory
  * server. For tick-driven state machines, log on **state transitions** only. Prefer the lambda
  * overload below so the detail string is not even built when logging is off.
  */
-object STLog {
+object FSTLog {
 
     private val LOGGER = LoggerFactory.getLogger("${SimpleTweaks.MOD_ID}/debug")
 
@@ -49,7 +49,7 @@ object STLog {
      * True only when a startup switch asked for debug output.
      *
      * Read once at class-init — see the class KDoc. A Java mixin reaches this as
-     * `STLog.INSTANCE.getEnabled()`.
+     * `FSTLog.INSTANCE.getEnabled()`.
      */
     val enabled: Boolean =
         isOn(System.getProperty("simpletweaks.debug")) || isOn(System.getenv("SIMPLETWEAKS_DEBUG"))

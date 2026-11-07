@@ -1,6 +1,6 @@
 package dev.firefly.simpletweaks.enchantments.handlers.epic
 
-import dev.firefly.simpletweaks.compat.STLog
+import dev.firefly.simpletweaks.compat.FSTLog
 import dev.firefly.simpletweaks.compat.event.EventPriority
 import dev.firefly.simpletweaks.compat.event.LivingHurtEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
@@ -10,7 +10,9 @@ import dev.firefly.simpletweaks.core.Listenable
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 import dev.firefly.simpletweaks.util.getArmorEnchantLevel
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantItemWeights
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSupportedItemTags
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 
@@ -33,11 +35,11 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
     category = EnchantCategory.EPIC,
     type = EnchantType.ARMOR,
     maxLevel = 5,
-    weight = 4,
+    weight = EnchantItemWeights.EPIC,
     anvilCost = 8,
     minCostBase = 10,
     minCostPerLevel = 10,
-    supportedItems = "#minecraft:enchantable/armor",
+    supportedItems = EnchantSupportedItemTags.ARMOR,
     slots = [EnchantSlot.ARMOR],
     order = 25,
 )
@@ -54,7 +56,7 @@ object EnchantDamageReductionHandler : Listenable {
             val totalReduction = (reduction1 + reduction2 + reduction3 + reduction4).coerceAtMost(0.9f)
             val damageBefore = e.amount
             e.amount = (e.amount * (1f - totalReduction) - (lvl * 0.001f)).coerceAtLeast(0f)
-            STLog.log("DamageReduction") {
+            FSTLog.log("DamageReduction") {
                 "target=${e.target.name.string}, lvl=$lvl, reduction=$totalReduction, " +
                     "damage=$damageBefore->${e.amount}"
             }
