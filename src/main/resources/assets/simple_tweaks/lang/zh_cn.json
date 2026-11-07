@@ -132,7 +132,7 @@
   "gui.simple_tweaks.config.off": "关",
   "gui.simple_tweaks.config.on": "开",
   "gui.simple_tweaks.config.page": "%s（第 %s/%s 页）",
-  "gui.simple_tweaks.config.save_hint": "直接输入数值即可生效（超出范围会自动夹到上下限）",
+  "gui.simple_tweaks.config.save_hint": "直接输入数值即可生效（越界会自动夹到范围内）",
   "gui.simple_tweaks.config.section.damage": "伤害飘字",
   "gui.simple_tweaks.config.section.general": "通用",
   "gui.simple_tweaks.config.section.mob": "怪物强化",
@@ -324,5 +324,6 @@
   "enchantment.simple_tweaks.infusion": "经验灌注",
   "enchantment.simple_tweaks.infusion.desc": "贴上即消耗：消耗 10 级经验，把物品上等级最高的未满级附魔 +1 级。全部满级或经验不足时不消耗",
   "enchantment.simple_tweaks.reaction_cascade": "万法归寂",
-  "enchantment.simple_tweaks.reaction_cascade.desc": "命中时若目标身上已有元素量，立刻用能与之反应的最强元素结算一次反应（无视附着 ICD），并把本次伤害的 40%%+20%%×等级 作为反应基底。内置 0.5 秒冷却"
+  "enchantment.simple_tweaks.reaction_cascade.desc": "命中时若目标身上已有元素量，立刻用能与之反应的最强元素结算一次反应（无视附着 ICD），并把本次伤害的 40%%+20%%×等级 作为反应基底。内置 0.5 秒冷却",
+  "gui.simple_tweaks.config.range": "可填范围：%s ~ %s"
 }
