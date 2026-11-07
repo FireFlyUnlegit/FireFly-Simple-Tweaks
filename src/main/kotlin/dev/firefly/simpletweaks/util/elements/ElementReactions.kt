@@ -105,8 +105,8 @@ object ElementReactions {
         add(ElementReaction(WATER, FIRE, "steam", amplify = 1.5f))
 
         // ---- 剧变 (transformative): its own flat hit --------------------------------------------
-        // 感电 — water ↔ lightning. The reference's 1 s per-target cooldown is enforced in
-        // `ElementMarks` (`TRANSFORMATIVE_ICD`), not here.
+        // 感电 — water ↔ lightning. The reference's ~1 s per-target cooldown on transformative damage is
+        // enforced in `ElementMarks` (`TRANSFORMATIVE_ICD_TICKS`), not here.
         add(
             ElementReaction(
                 LIGHTNING, WATER, "conduct",

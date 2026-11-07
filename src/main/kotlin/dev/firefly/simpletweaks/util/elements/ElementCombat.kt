@@ -439,7 +439,7 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
             e.amount *= mastery
             // 增幅 reaction: `melt`-style multipliers are applied to the *hit*, which is why they
             // come back from `record` instead of being dealt as extra damage.
-            val outcome = ElementMarks.record(attacker, target, incoming, e.amount)
+            val outcome = ElementMarks.record(attacker, target, incoming, e.amount, source = e.source)
             if (outcome.amplify > 1f) {
                 e.amount *= outcome.amplify
                 FSTLog.log("Element") {
@@ -465,7 +465,7 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
             // and mastery still applies to it.
             val before = e.amount
             e.amount *= mastery
-            val outcome = ElementMarks.record(attacker, target, element, e.amount)
+            val outcome = ElementMarks.record(attacker, target, element, e.amount, source = e.source)
             if (outcome.amplify > 1f) {
                 e.amount *= outcome.amplify
                 FSTLog.log("Element") {
