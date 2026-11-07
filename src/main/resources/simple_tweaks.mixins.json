@@ -5,6 +5,7 @@
   "compatibilityLevel": "JAVA_21",
   "mixins": [
     "AbstractBlockBreakingDeltaMixin",
+    "AnvilScreenHandlerMixin",
     "BlockHarvestDropsMixin",
     "BowItemArrowLooseMixin",
     "EntityDamageMixin",
@@ -25,6 +26,7 @@
     "ServerPlayerDropsMixin"
   ],
   "client": [
+    "AnvilScreenMixin",
     "EnchantmentNameColorMixin",
     "InputSlowDownMixin"
   ],
