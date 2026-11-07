@@ -1,0 +1,312 @@
+// ---------------------------------------------------------------------------------------------
+// runTest - post-build verification of the remapped jar.
+//
+// Applied from build.gradle. `build` depends on it, so `gradlew build` cannot succeed with a jar
+// that violates any of the invariants below. It needs no Minecraft runtime: every check reads the
+// jar plus the source tree, which keeps it usable in CI and on a machine without a launcher.
+//
+// Why these checks (each one is a bug this repository actually shipped at least once):
+//   1. jar presence/naming        - the version in gradle.properties and the file name drifted apart
+//                                   during the 2.1.0 -> 2.2.x line.
+//   2. required entries           - a `clean build` that lost the refmap produced a jar that loads
+//                                   but silently applies no mixin (DEV_GUIDE 2.5).
+//   3. fabric.mod.json fields     - `contact` used to be `{}` and the icon was missing entirely
+//                                   (DEVLOG v2.2.3).
+//   4. declared icon exists       - `"icon"` pointing at a path nobody wrote is invisible until a
+//                                   launcher draws a placeholder.
+//   5. refmap covers every mixin  - AGENTS 4.3 build gate. A mixin listed in the config with no
+//                                   mapping is an injector that will do nothing at runtime.
+//   6. refmap targets intermediary- the classic `devlibs/*-dev.jar` mistake: it boots, logs the
+//                                   entrypoint, then fails on every `@Mixin target ... was not found`.
+//   7-10. lang coverage/order/%   - AGENTS 3.2/3.3. Missing description keys ship as raw translation
+//                                   keys in the tooltip; a bare `%` throws inside vanilla's formatter.
+//   11. datapack referential      - a tag file naming an enchantment that no longer exists is a
+//                                   datapack load error, not a warning.
+//   12. no backup artifacts       - `.bak`/`.prev`/`.disabled` files inside the jar mean packaging
+//                                   picked up the wrong directory.
+//   13. build id matches version  - the `client ready` line is the only way to tell which jar is
+//                                   running; it must name the current version (AGENTS 4.6).
+//
+// Groovy gotcha, learned the hard way while writing this file: `"a${b}c"` is a **GString**, and its
+// `equals`/`hashCode` are not those of the equal `String`. `Set.contains(gstring)` and
+// `Map.containsKey(gstring)` are therefore always false. Every lookup key below is built with `+`
+// (which yields a real String) instead of interpolation.
+// ---------------------------------------------------------------------------------------------
+
+import groovy.json.JsonSlurper
+
+tasks.register('runTest') {
+    group = 'verification'
+    description = 'Post-build verification of the remapped jar (metadata, mixins, lang, datapack).'
+    dependsOn tasks.named('remapJar')
+
+    def jarName = "${project.base.archivesName.get()}-${project.version}.jar"
+    def libsDir = project.layout.buildDirectory.dir('libs')
+    def jarProvider = project.layout.buildDirectory.file("libs/${jarName}")
+
+    inputs.file(jarProvider)
+    inputs.file(project.file('src/main/kotlin/dev/firefly/simpletweaks/SimpleTweaksClient.kt'))
+    inputs.dir(project.file('src/main/resources/assets/simple_tweaks/lang'))
+    // Always run. A cached "up to date" would keep reporting success for a jar that was just rebuilt
+    // with a different toolchain or a stale output directory.
+    outputs.upToDateWhen { false }
+
+    doLast {
+        def jarFile = jarProvider.get().asFile
+        if (!jarFile.isFile()) {
+            throw new GradleException("runTest: ${jarFile} not found - run ':remapJar' (or 'build') first")
+        }
+
+        def modId = 'simple_tweaks'
+        def failures = []
+        def checkCount = 0
+
+        def truncate = { Collection values ->
+            def list = values as List
+            return list.size() <= 8
+                    ? list.join(', ')
+                    : list.take(8).join(', ') + " ... (+" + (list.size() - 8) + " more)"
+        }
+        def expect = { boolean condition, String message ->
+            if (!condition) throw new GradleException(message)
+        }
+        def check = { String name, Closure body ->
+            checkCount++
+            try {
+                body()
+                println '  [ ok ] ' + name
+            } catch (Throwable t) {
+                def detail = t.message ?: t.getClass().simpleName
+                failures << (name + ': ' + detail)
+                println '  [FAIL] ' + name + ' -> ' + detail
+            }
+        }
+
+        println 'runTest: verifying ' + jarFile.name
+
+        def zip = new java.util.zip.ZipFile(jarFile)
+        try {
+            def entries = zip.entries().toList().collect { it.name } as Set
+            def readText = { String name ->
+                def entry = zip.getEntry(name)
+                if (entry == null) return null
+                def stream = zip.getInputStream(entry)
+                try {
+                    return new String(stream.bytes, 'UTF-8')
+                } finally {
+                    stream.close()
+                }
+            }
+            def parseJson = { String name ->
+                def text = readText(name)
+                expect(text != null, 'missing jar entry: ' + name)
+                return new JsonSlurper().parseText(text)
+            }
+
+            // --- 1. jar is named for the current project version ----------------------------------
+            check('jar is named after the current version') {
+                expect(jarFile.name == jarName, 'unexpected jar name: ' + jarFile.name)
+            }
+
+            // --- 2. entries the game needs at runtime ---------------------------------------------
+            def mixinsConfigName = modId + '.mixins.json'
+            def refmapName = modId + '-refmap.json'
+            check('required jar entries exist') {
+                def required = ['fabric.mod.json', 'pack.mcmeta', mixinsConfigName, refmapName]
+                def missing = required.findAll { !entries.contains(it) }
+                def rootEntries = entries.findAll { !it.contains('/') }
+                expect(missing.isEmpty(),
+                        'missing: ' + truncate(missing) + ' (jar root: ' + truncate(rootEntries) + ')')
+            }
+
+            // --- 3. fabric.mod.json is complete and self-consistent --------------------------------
+            def metadata = null
+            check('fabric.mod.json metadata') {
+                metadata = parseJson('fabric.mod.json')
+                expect(metadata.id == modId, "id is '" + metadata.id + "', expected '" + modId + "'")
+                expect(metadata.version == project.version.toString(),
+                        "version is '" + metadata.version + "', expected '" + project.version + "'")
+                expect(metadata.name != null && !metadata.name.trim().isEmpty(), 'name is empty')
+                expect(metadata.description != null && !metadata.description.trim().isEmpty(),
+                        'description is empty')
+                expect(metadata.license != null && !metadata.license.trim().isEmpty(), 'license is empty')
+                expect(metadata.entrypoints?.main instanceof List && !metadata.entrypoints.main.isEmpty(),
+                        'entrypoints.main is missing')
+                expect(metadata.entrypoints?.client instanceof List && !metadata.entrypoints.client.isEmpty(),
+                        'entrypoints.client is missing')
+                expect(metadata.depends?.minecraft != null, 'depends.minecraft is missing')
+                expect(metadata.depends?.fabricloader != null, 'depends.fabricloader is missing')
+                expect(metadata.depends?.java != null, 'depends.java is missing')
+            }
+
+            // --- 4. the declared icon actually exists in the jar ----------------------------------
+            check('declared icon exists in the jar') {
+                expect(metadata != null, 'fabric.mod.json could not be parsed')
+                expect(metadata.icon != null && !metadata.icon.trim().isEmpty(), 'icon is not declared')
+                expect(entries.contains(metadata.icon.toString()),
+                        'icon path is not in the jar: ' + metadata.icon)
+            }
+
+            // --- 5. every declared mixin has a refmap entry ---------------------------------------
+            def refmapRoot = null
+            check('every declared mixin is present in the refmap') {
+                def mixinConfig = parseJson(mixinsConfigName)
+                expect(mixinConfig.refmap == refmapName,
+                        "mixins.json refmap is '" + mixinConfig.refmap + "'")
+                def refmap = parseJson(refmapName)
+                refmapRoot = refmap.data?.get('named:intermediary')
+                expect(refmapRoot != null, "refmap has no 'named:intermediary' section")
+                def packagePath = mixinConfig.package.replace('.', '/')
+                def declared = ((mixinConfig.mixins ?: []) + (mixinConfig.client ?: [])
+                        + (mixinConfig.server ?: []))
+                expect(!declared.isEmpty(), 'mixins.json declares no mixins')
+                def missing = declared.findAll { String relative ->
+                    !refmapRoot.containsKey(packagePath + '/' + relative.replace('.', '/'))
+                }
+                expect(missing.isEmpty(), 'no refmap mapping for: ' + truncate(missing))
+            }
+
+            // --- 6. the refmap maps to intermediary names (i.e. this is the remapped jar) ---------
+            check('refmap targets intermediary names') {
+                expect(refmapRoot != null, 'refmap could not be parsed')
+                def hasIntermediary
+                hasIntermediary = { value ->
+                    if (value instanceof Map) return value.values().any { hasIntermediary(it) }
+                    if (value instanceof Collection) return value.any { hasIntermediary(it) }
+                    return value instanceof String && value.find(/(class|method|field)_\d+/)
+                }
+                expect(hasIntermediary(refmapRoot),
+                        'no intermediary names in the refmap - this looks like an unremapped -dev jar')
+            }
+
+            // --- 7..10. lang files ----------------------------------------------------------------
+            def langEn = null
+            def langZh = null
+            check('both lang files parse and share one key order') {
+                langEn = parseJson('assets/' + modId + '/lang/en_us.json')
+                langZh = parseJson('assets/' + modId + '/lang/zh_cn.json')
+                expect((langEn.keySet() as List) == (langZh.keySet() as List),
+                        'en_us.json and zh_cn.json list the same keys in a different order')
+            }
+
+            def enchantmentIds = entries
+                    .findAll { it.startsWith('data/' + modId + '/enchantment/') && it.endsWith('.json') }
+                    .collect {
+                        it.substring(('data/' + modId + '/enchantment/').length(), it.length() - '.json'.length())
+                    } as Set
+            check('enchantment datapack files exist') {
+                expect(!enchantmentIds.isEmpty(), 'no enchantment JSON in the jar (KSP output missing?)')
+            }
+
+            // 1.21 keys: the display name is `enchantment.<ns>.<id>`, the description is `...<id>.desc`.
+            check('every enchantment has a name and a description in both languages') {
+                expect(langEn != null && langZh != null, 'lang files could not be parsed')
+                def missing = []
+                enchantmentIds.each { String id ->
+                    def nameKey = 'enchantment.' + modId + '.' + id
+                    def descKey = nameKey + '.desc'
+                    if (!langEn.containsKey(nameKey)) missing << ('en_us:' + nameKey)
+                    if (!langEn.containsKey(descKey)) missing << ('en_us:' + descKey)
+                    if (!langZh.containsKey(nameKey)) missing << ('zh_cn:' + nameKey)
+                    if (!langZh.containsKey(descKey)) missing << ('zh_cn:' + descKey)
+                }
+                expect(missing.isEmpty(), 'missing lang keys: ' + truncate(missing))
+            }
+
+            check('every enchantment lang key belongs to a datapack file') {
+                expect(langEn != null, 'lang files could not be parsed')
+                def pattern = java.util.regex.Pattern.compile(
+                        '^enchantment\\.' + modId.replace('.', '\\.') + '\\.([a-z0-9_]+)(\\.desc)?$')
+                def orphans = langEn.keySet().findAll { String key ->
+                    def matcher = pattern.matcher(key)
+                    matcher.matches() && !enchantmentIds.contains(matcher.group(1))
+                }
+                expect(orphans.isEmpty(), 'lang keys without an enchantment JSON: ' + truncate(orphans))
+            }
+
+            check('lang format strings are valid (%% / %s / %N$s only)') {
+                expect(langEn != null && langZh != null, 'lang files could not be parsed')
+                // `%` must be followed by `%`, `s`, or `<digits>$s`. Anything else is a runtime
+                // IllegalFormatException inside vanilla's formatter (AGENTS 3.3).
+                def indexed = java.util.regex.Pattern.compile('^[0-9]+\\$s')
+                def percentOk = { String value ->
+                    int i = 0
+                    while (i < value.length()) {
+                        if (value.charAt(i) == ('%' as char)) {
+                            def rest = value.substring(i + 1)
+                            if (rest.startsWith('%') || rest.startsWith('s')) {
+                                i += 2
+                                continue
+                            }
+                            def matcher = indexed.matcher(rest)
+                            if (matcher.find()) {
+                                i += 1 + matcher.group(0).length()
+                                continue
+                            }
+                            return false
+                        }
+                        i++
+                    }
+                    return true
+                }
+                def bad = []
+                [en_us: langEn, zh_cn: langZh].each { lang, map ->
+                    map.each { key, value ->
+                        if (value instanceof String && !percentOk(value)) bad << (lang + ':' + key)
+                    }
+                }
+                expect(bad.isEmpty(), 'invalid format string in: ' + truncate(bad))
+            }
+
+            // --- 11. datapack tags only reference enchantments that exist --------------------------
+            check('datapack tags reference existing enchantments only') {
+                def tagEntries = entries.findAll {
+                    it.startsWith('data/minecraft/tags/enchantment/') && it.endsWith('.json')
+                }
+                expect(!tagEntries.isEmpty(), 'no enchantment tag files in the jar')
+                def dangling = []
+                tagEntries.each { String tagEntry ->
+                    def tag = parseJson(tagEntry)
+                    (tag.values ?: []).each { value ->
+                        def text = value.toString()
+                        def id = text.substring(text.indexOf(':') + 1)
+                        if (!enchantmentIds.contains(id)) dangling << (tagEntry + ' -> ' + text)
+                    }
+                }
+                expect(dangling.isEmpty(), 'tags referencing missing enchantments: ' + truncate(dangling))
+            }
+
+            // --- 12. no packaging leftovers -------------------------------------------------------
+            check('jar contains no backup or scratch artifacts') {
+                def junk = entries.findAll {
+                    it.find(/\.(bak|prev|disabled|log|iml)$/) || it.startsWith('.git/')
+                }
+                expect(junk.isEmpty(), 'unexpected entries: ' + truncate(junk))
+            }
+
+            // --- 13. the run-time build identifier names this version -----------------------------
+            check('build id line matches the project version') {
+                def source = project.file('src/main/kotlin/dev/firefly/simpletweaks/SimpleTweaksClient.kt')
+                        .getText('UTF-8')
+                def expected = '(v' + project.version + ', build=cleanup'
+                expect(source.contains(expected),
+                        "SimpleTweaksClient.kt does not contain '" + expected + "' - bump the versioned " +
+                                'build identifier together with gradle.properties, or the client ready line ' +
+                                'will lie about which jar is running')
+            }
+        } finally {
+            zip.close()
+        }
+
+        println 'runTest: ' + checkCount + ' checks, ' + failures.size() + ' failed'
+        if (!failures.isEmpty()) {
+            throw new GradleException('runTest failed:\n  - ' + failures.join('\n  - '))
+        }
+    }
+}
+
+// `build` must not succeed with a jar that failed verification. Depending on the task (rather than
+// using finalizedBy) keeps it from running - and reporting noise - when an earlier build step fails.
+tasks.named('build') {
+    dependsOn tasks.named('runTest')
+}

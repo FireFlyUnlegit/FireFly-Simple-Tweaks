@@ -74,3 +74,8 @@ jar {
         rename { "${it}_${project.base.archivesName.get()}" }
     }
 }
+
+// runTest: post-build verification of the remapped jar. `build` depends on it, so a jar that fails
+// any check cannot be produced by a successful `gradlew build`. See the script's header for the list
+// of invariants and why each one exists.
+apply from: "$rootDir/gradle/post-build-tests.gradle"
