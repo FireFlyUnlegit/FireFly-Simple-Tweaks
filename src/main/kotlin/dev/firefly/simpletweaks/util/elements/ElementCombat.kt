@@ -555,7 +555,17 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
      * [onWorldTick] and the note in `onLivingHurt` for the event-cache corruption that causes.
      */
     fun enqueueElemental(attacker: LivingEntity, target: LivingEntity, element: ElementType, amount: Float) {
-        if (amount <= 0f) return
+        // ⚠️ A non-finite amount must never be queued. `NaN` health is not recoverable in-game: the
+        // entity can never be killed (`health <= 0` is false forever) and every later `health + x`
+        // stays `NaN`. `build=cleanup11` was that report ("打不死怪物 / lag on 0hp"): a handler
+        // multiplied its own re-dealt damage until it overflowed to `Infinity` and then `NaN`.
+        if (amount <= 0f || !amount.isFinite()) {
+            FSTLog.log("Element") {
+                "element=${element.id}, refused_amount=$amount, " +
+                    "target=${target.type.name.string}, outcome=element-amount-not-finite"
+            }
+            return
+        }
         PENDING.computeIfAbsent(target.world) { java.util.ArrayDeque() }.add(
             PendingElement(attacker, target, element, amount, amount, target.health),
         )
@@ -563,6 +573,9 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
 
     /** Queued elemental damage, one deque per world, flushed on the server tick. */
     private val PENDING = java.util.concurrent.ConcurrentHashMap<net.minecraft.world.World, java.util.ArrayDeque<PendingElement>>()
+
+    /** Upper bound on elemental hits dealt per world per tick; see [onWorldTick]. */
+    private const val FLUSH_CAP_PER_TICK = 256
 
     /**
      * Deals every queued elemental hit and logs the end-to-end total.
@@ -574,7 +587,13 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
     fun onWorldTick(e: dev.firefly.simpletweaks.compat.event.TickEvent.WorldTickEvent) {
         if (e.phase != dev.firefly.simpletweaks.compat.event.TickEvent.Phase.END) return
         val queue = PENDING[e.world] ?: return
-        while (queue.isNotEmpty()) {
+        // A hard cap on hits flushed per world per tick. Element hits are normally one or two per
+        // player swing; the only way to need dozens is a handler that re-queues its own output (which
+        // `build=cleanup11` caught: the queue grew exponentially until the floats overflowed). The cap
+        // is a backstop so a future feedback loop costs one logged warning instead of a dead server.
+        var flushed = 0
+        while (queue.isNotEmpty() && flushed < FLUSH_CAP_PER_TICK) {
+            flushed++
             val pending = queue.poll() ?: break
             val target = pending.target
             // Re-check on flush: the target may have died to the physical share of the very hit that

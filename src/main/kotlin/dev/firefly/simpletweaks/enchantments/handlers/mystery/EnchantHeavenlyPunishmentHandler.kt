@@ -147,6 +147,21 @@ object EnchantHeavenlyPunishmentHandler : Listenable {
         val attacker = source.attacker
         val now = world.time
 
+        // ⚠️ **Never punish elemental damage — including the lightning share this handler re-deals.**
+        //
+        // Since `build=cleanup9` the extra damage is its own `element_lightning` hit, which fires
+        // `LivingDamageEvent` again with the player as attacker. Without this guard the handler
+        // multiplied *its own output*: 31.25 -> x4 = 125 -> x4 = 500 -> … inside one tick's flush
+        // loop, until the float overflowed to `Infinity` and then `NaN`. `NaN` health can never be
+        // killed (`health <= 0` is false forever) — that is the reported "打不死怪物 / lag on 0hp",
+        // and its `0/0` is also what crashed StatusWarnings' HUD.
+        //
+        // Element damage also has no meaning for the "physical swing multiplied by level" fantasy:
+        // the bonus is defined on the swing, and a rider is not a swing.
+        if (ElementType.of(source) != ElementType.PHYSICAL) return
+        // A non-finite hit cannot produce a finite bonus; refusing here keeps `Infinity` out of the queue.
+        if (!event.amount.isFinite()) return
+
         if (attacker is LivingEntity && attacker !== target) {
             val level = getItemSpecificEnchantLevel(
                 attacker.mainHandStack,
