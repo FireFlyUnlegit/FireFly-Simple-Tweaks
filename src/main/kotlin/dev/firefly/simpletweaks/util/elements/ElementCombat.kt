@@ -268,7 +268,11 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
      * reported as `outcome=multiple-conversions` instead of silently changing which element the player
      * gets.
      */
-    fun conversionOf(attacker: PlayerEntity, stack: ItemStack = attacker.mainHandStack): Conversion? {
+    fun conversionOf(
+        attacker: PlayerEntity,
+        stack: ItemStack = attacker.mainHandStack,
+        target: LivingEntity? = null,
+    ): Conversion? {
         var found: Conversion? = null
         for (element in ElementType.CONVERTIBLE) {
             // `physical_conversion` is the exception: PHYSICAL is the default element, so a physical
@@ -285,7 +289,30 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
             }
             found = Conversion(element, level)
         }
-        return found
+        if (found == null || target == null) return found
+
+        // `elemental_sovereign`: pick the element that would actually react with the target's aura.
+        val sovereign = getItemSpecificEnchantLevel(attacker.mainHandStack, GeneratedEnchantments.ELEMENTAL_SOVEREIGN)
+        if (sovereign <= 0) return found
+
+        val aura = ElementAuras.peek(target)
+        if (aura == null) {
+            // Nothing to react with: keep the element the weapon declares. A random pick would look like a
+            // bug to the player, and a "weakest resistance" pick needs resistance data the target may not
+            // have — both were rejected on purpose.
+            return found
+        }
+        val reacting = ElementType.CONVERTIBLE.firstOrNull { candidate ->
+            candidate != aura.first && ElementReactions.of(aura.first, candidate) != null
+        }
+        if (reacting == null) return found
+        if (reacting != found.element) {
+            FSTLog.log("Element") {
+                "outcome=sovereign-element, declared=${found.element.id}, chosen=${reacting.id}, " +
+                    "aura=${aura.first.id}"
+            }
+        }
+        return Conversion(reacting, found.level)
     }
 
     /** One conversion: which element, and at what level. */
@@ -406,7 +433,7 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
         val weapon = attacker.combatStack(e.source)
         val mastery = masteryMultiplier(masteryLevel(weapon))
 
-        val conversion = conversionOf(attacker, weapon)
+        val conversion = conversionOf(attacker, weapon, e.entityLiving)
 
         if (conversion == null) {
             // No conversion enchantment. Two things can still happen here:

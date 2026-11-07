@@ -121,6 +121,19 @@ object ElementMarks {
 
                 outcome = apply(attacker, target, reaction, damage, auraUnits, consumed, dampening, source)
 
+                // `elemental_sovereign`: every reaction this attacker triggers is worth more. Applied to the
+                // outcome rather than inside `apply` so amplifying and transformative reactions scale through
+                // one number.
+                val sovereign = sovereignLevel(attacker)
+                if (sovereign > 0) {
+                    val bonus = 1f + 0.30f * sovereign
+                    outcome = ReactionOutcome(
+                        key = outcome.key,
+                        amplify = outcome.amplify * bonus,
+                        flatDamage = outcome.flatDamage * bonus,
+                    )
+                }
+
                 // Announce the reaction to whoever wants to build on it (`elemental_spread` attaches the same
                 // element to nearby enemies). Fired **after** `apply`, so the reaction itself is already
                 // resolved and a listener cannot change its numbers.
@@ -293,6 +306,17 @@ object ElementMarks {
      * attacker wears, and the ICD is consulted in the middle of damage resolution where the main-hand
      * window is already open (`ShotWeapon`), so no `DamageSource` plumbing is needed.
      */
+    /**
+     * `elemental_sovereign` level — scales **both** reaction outcomes by `1 + 0.30 × level`.
+     *
+     * Read here rather than in a handler for the same reason as `catalystLevel`: the reaction is resolved
+     * inside this object, and a second owner of "how strong is a reaction" would let the engine and the
+     * enchantment disagree.
+     */
+    private fun sovereignLevel(attacker: PlayerEntity?): Int =
+        if (attacker == null) 0
+        else getItemSpecificEnchantLevel(attacker.mainHandStack, GeneratedEnchantments.ELEMENTAL_SOVEREIGN)
+
     private fun catalystLevel(attacker: PlayerEntity?): Int =
         if (attacker == null) 0
         else getItemSpecificEnchantLevel(attacker.chestplate, GeneratedEnchantments.ELEMENTAL_CATALYST)

@@ -308,5 +308,11 @@
   "element.simple_tweaks.shadow": "暗影",
   "element.simple_tweaks.light": "光辉",
   "message.simple_tweaks.elemental_sight.none": "%s：无元素附着",
-  "message.simple_tweaks.elemental_sight.aura": "%s：%s %s"
+  "message.simple_tweaks.elemental_sight.aura": "%s：%s %s",
+  "enchantment.simple_tweaks.void_collapse": "虚空坍缩",
+  "enchantment.simple_tweaks.void_collapse.desc": "5 层「坍缩」后引爆：造成 min(目标最大生命×(5%%+5%%×等级), 累计伤害×2) 的真实伤害（无视护甲/无敌帧/不暴击），6 格内其它敌人受 50%%；额外每层使目标受你伤害 +12%%×等级。无副作用，仅同一目标 10 秒一次",
+  "enchantment.simple_tweaks.elemental_sovereign": "元素主宰",
+  "enchantment.simple_tweaks.elemental_sovereign.desc": "转化元素自动改成能与目标当前元素量反应的那一个（无元素量时用你原本的转化元素）；你触发的所有反应伤害 +30%%×等级",
+  "enchantment.simple_tweaks.midas_touch": "点金之手",
+  "enchantment.simple_tweaks.midas_touch.desc": "方块掉落数量 ×(1+25%%×等级)（与时运相乘），挖掘速度 +20%%×等级，并有概率掉经验。不干预怪物掉落与经验获取（分别属于战利品 / 经验偷取）"
 }

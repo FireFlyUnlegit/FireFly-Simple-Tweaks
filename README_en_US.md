@@ -12,7 +12,7 @@
 
 A Minecraft mod I build for fun: new enchantments, new mechanics and better combat feedback for vanilla.
 
-Current **1.21.1 / Fabric** release: **v2.2.5** (95 enchantments, 19 elemental reactions, aura gauges, reworked armour curve).
+Current **1.21.1 / Fabric** release: **v2.2.5** (98 enchantments, 19 elemental reactions, aura gauges, reworked armour curve).
 
 ## 🌿 Branches
 
@@ -31,13 +31,13 @@ Current **1.21.1 / Fabric** release: **v2.2.5** (95 enchantments, 19 elemental r
 
 ### 🧙 Custom enchantments
 
-**95** unique enchantments, split by rarity:
+**98** unique enchantments, split by rarity:
 
 | Rarity | Count | Rarity | Count |
 |--------|-------|--------|-------|
 | COMMON | 7 | LEGENDARY | 16 |
 | UNCOMMON | 9 | MYTHIC | 9 |
-| RARE | 27 | MYSTERY | 2 |
+| RARE | 27 | MYSTERY | 5 |
 | EPIC | 24 | UNIQUE | 1 |
 
 #### 🌈 Elemental system
@@ -211,6 +211,9 @@ A 100-damage hit: armour 26 → 17 taken; armour 40 → 10 taken.
 | Enchantment | Effect |
 |-------------|--------|
 | **Infinite Power** | flight, invulnerability, instant mining, infinite food/durability, laser attack, huge drops, soulbound — everything (creative only) |
+| **Void Collapse** | at 5 stacks, collapse: `min(target max health × (5%% + 5%% × level), accumulated × 2)` **true damage** (ignores armour, i-frames, no crits), 50%% of it to other enemies within 6 blocks; each stack also makes the target take +12%% × level from you. **No downside**, just one collapse per target per 10 s |
+| **Elemental Sovereign** | the conversion element **becomes whichever one reacts with the target's current aura** (falls back to your own conversion element when there is none); every reaction you trigger deals **+30%% × level** |
+| **Midas Touch** | block drops `×(1 + 25%% × level)` (**multiplicative with Fortune**), mining speed `+20%% × level`, plus bonus experience on a chance. Deliberately ignores mob drops and experience gain (those belong to Scavenger / Experience Stealer) |
 
 ### 🎮 Client features
 
