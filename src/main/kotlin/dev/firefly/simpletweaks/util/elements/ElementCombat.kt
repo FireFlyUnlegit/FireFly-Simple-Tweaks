@@ -151,7 +151,7 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
      * downgrade are still worth knowing, because both are silent:
      *
      * 1. **The elemental half can be discarded by the i-frame gate** unless the element type is in
-     *    `#minecraft:bypasses_cooldown` (it is; see [damageElemental]).
+     *    `#minecraft:bypasses_cooldown` — since `build=cleanup14` the element types are **not** in that tag; `damageElemental` lifts the gate for its own instance and restores it (see there).
      * 2. **A curve whose level-1 value is inside vanilla's ±0.5 damage roll reads as "no change"** —
      *    at `f = 0.015` the elemental share is deliberately below that noise on a 10-damage hit, which
      *    is fine now that the point of the enchantment is *element identity* (marks, reactions,
@@ -354,7 +354,7 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
         //
         // So this handler used to cancel a share of the incoming damage and queue the elemental rider
         // *before* the shield was ever consulted. The shield then blocked the (now smaller) physical
-        // hit — and the rider, which lives in `#minecraft:bypasses_cooldown` and is applied on the
+        // hit — and the rider, which `damageElemental` deals with the gate lifted for its own instance, and is applied on the
         // world tick, landed anyway. That is the reported "元素伤害可以穿盾": a raised shield stopped
         // only the physical share, mob elemental attacks went straight through, and the barrier was
         // therefore "好难防住".

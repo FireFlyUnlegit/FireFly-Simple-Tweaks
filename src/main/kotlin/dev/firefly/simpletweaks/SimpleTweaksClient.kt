@@ -114,7 +114,8 @@ class SimpleTweaksClient : ClientModInitializer {
                 "+ enchant index can group by applicable item (Tab) + elemental riders respect shields " +
                 "+ mob levels start low and scale with the player's whole loadout " +
                 "+ conversion share is 1.5 %/level (cap 7.5 %), element damage bypasses armour again " +
-                "(v2.2.3, build=cleanup13)",
+                "+ element damage is no longer exempt from the i-frame gate (only combo cancels it) " +
+                "(v2.2.3, build=cleanup14)",
             SimpleTweaks.NAME,
             enchantmentCount,
         )
