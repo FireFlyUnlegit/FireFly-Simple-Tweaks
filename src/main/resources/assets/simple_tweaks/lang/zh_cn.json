@@ -345,5 +345,5 @@
   "enchantment.simple_tweaks.quake": "震心",
   "enchantment.simple_tweaks.quake.desc": "命中正在使用物品的目标时打断其动作（拉弓/举盾/喝药/吃食物），并让该物品进入 1 秒冷却",
   "enchantment.simple_tweaks.elemental_supremacy": "万法归元",
-  "enchantment.simple_tweaks.elemental_supremacy.desc": "① 你最高的一系元素亲和同时对全部八种元素生效（取最大值，不叠加）。② 你受到的每次元素反应都会被记住（最多 5 条）；下一次攻击会把这些反应全部还给目标，每条以本次伤害的 40%% 作为基底重新结算"
+  "enchantment.simple_tweaks.elemental_supremacy.desc": "① 你最高的一系元素亲和同时对全部八种元素生效（取最大值，不叠加）。② 你受到的每次元素反应都会被记住，可记住的条数 = 全身万法归元等级总和÷2（上限 10，即四件满级 20 级）；下一次攻击把这些反应全部还给目标，每条以本次伤害的 40%% 作为基底重新结算"
 }

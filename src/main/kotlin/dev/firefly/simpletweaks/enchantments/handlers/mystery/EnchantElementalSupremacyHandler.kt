@@ -44,7 +44,7 @@ import net.minecraft.entity.player.PlayerEntity
     id = "elemental_supremacy",
     category = EnchantCategory.MYSTERY,
     type = EnchantType.ARMOR,
-    maxLevel = 1,
+    maxLevel = 5,
     weight = EnchantItemWeights.MYSTERY,
     anvilCost = 90,
     minCostBase = 30,

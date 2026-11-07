@@ -33,24 +33,41 @@ import java.util.WeakHashMap
 object ReactionMemory {
 
     /** How many reactions can be stored and replayed at once. */
-    const val CAPACITY = 5
+    /**
+     * Hard ceiling on the queue.
+     *
+     * The live capacity is `total level across the four armour slots / 2` (see [capacityOf]), so this ceiling is
+     * reached at 20 total levels — level 5 on all four pieces.
+     */
+    const val MAX_CAPACITY = 10
 
     private val stored = WeakHashMap<PlayerEntity, ArrayDeque<String>>()
+
+    /** Sum of `elemental_supremacy` levels across the four armour slots. */
+    fun totalLevel(player: PlayerEntity): Int =
+        getItemSpecificEnchantLevel(player.helmet, GeneratedEnchantments.ELEMENTAL_SUPREMACY) +
+            getItemSpecificEnchantLevel(player.chestplate, GeneratedEnchantments.ELEMENTAL_SUPREMACY) +
+            getItemSpecificEnchantLevel(player.leggings, GeneratedEnchantments.ELEMENTAL_SUPREMACY) +
+            getItemSpecificEnchantLevel(player.boots, GeneratedEnchantments.ELEMENTAL_SUPREMACY)
+
+    /**
+     * How many reactions this player can hold: **total level / 2**, capped at [MAX_CAPACITY].
+     *
+     * Level 1 in one slot is 0 (nothing is stored — the passive half still works), level 5 in four slots is 10.
+     */
+    fun capacityOf(player: PlayerEntity): Int = (totalLevel(player) / 2).coerceIn(0, MAX_CAPACITY)
 
     /** Records [key] if [entity] is a player wearing the enchantment; otherwise a no-op. */
     fun recordIfWearing(entity: LivingEntity, key: String) {
         val player = entity as? PlayerEntity ?: return
         if (player.world.isClient) return
-        if (getItemSpecificEnchantLevel(player.chestplate, GeneratedEnchantments.ELEMENTAL_SUPREMACY) <= 0 &&
-            getItemSpecificEnchantLevel(player.leggings, GeneratedEnchantments.ELEMENTAL_SUPREMACY) <= 0 &&
-            getItemSpecificEnchantLevel(player.helmet, GeneratedEnchantments.ELEMENTAL_SUPREMACY) <= 0 &&
-            getItemSpecificEnchantLevel(player.boots, GeneratedEnchantments.ELEMENTAL_SUPREMACY) <= 0
-        ) {
-            return
-        }
+        if (totalLevel(player) <= 0) return
 
-        val queue = stored.getOrPut(player) { ArrayDeque(CAPACITY) }
-        if (queue.size >= CAPACITY) queue.removeFirst()
+        val capacity = capacityOf(player)
+        if (capacity <= 0) return
+
+        val queue = stored.getOrPut(player) { ArrayDeque(capacity) }
+        while (queue.size >= capacity) queue.removeFirst()
         queue.addLast(key)
 
         FSTLog.log("Supremacy") {
