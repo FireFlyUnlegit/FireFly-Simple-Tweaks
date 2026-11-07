@@ -12,7 +12,7 @@
 
 A Minecraft mod I build for fun: new enchantments, new mechanics and better combat feedback for vanilla.
 
-Current **1.21.1 / Fabric** release: **v2.2.5** (102 enchantments, 19 elemental reactions, aura gauges, reworked armour curve).
+Current **1.21.1 / Fabric** release: **v2.2.5** (103 enchantments, 19 elemental reactions, aura gauges, reworked armour curve).
 
 ## 🌿 Branches
 
@@ -31,13 +31,13 @@ Current **1.21.1 / Fabric** release: **v2.2.5** (102 enchantments, 19 elemental 
 
 ### 🧙 Custom enchantments
 
-**102** unique enchantments, split by rarity:
+**103** unique enchantments, split by rarity:
 
 | Rarity | Count | Rarity | Count |
 |--------|-------|--------|-------|
 | COMMON | 7 | LEGENDARY | 16 |
 | UNCOMMON | 9 | MYTHIC | 9 |
-| RARE | 27 | MYSTERY | 5 |
+| RARE | 27 | MYSTERY | 6 |
 | EPIC | 24 | UNIQUE | 5 |
 
 #### 🌈 Elemental system
@@ -218,6 +218,7 @@ A 100-damage hit: armour 26 → 17 taken; armour 40 → 10 taken.
 | **Void Collapse** | at 5 stacks, collapse: `min(target max health × (5%% + 5%% × level), accumulated × 2)` **true damage** (ignores armour, i-frames, no crits), 50%% of it to other enemies within 6 blocks; each stack also makes the target take +12%% × level from you. **No downside**, just one collapse per target per 1 s |
 | **Elemental Sovereign** | the conversion element **becomes whichever one reacts with the target's current aura** (falls back to your own conversion element when there is none); every reaction you trigger deals **+30%% × level** |
 | **Midas Touch** | block drops `×(1 + 25%% × level)` (**multiplicative with Fortune**), mining speed `+20%% × level`, plus bonus experience on a chance. Deliberately ignores mob drops and experience gain (those belong to Scavenger / Experience Stealer) |
+| **Reaction Cascade** | if the target **already carries** an aura, immediately resolve a reaction with the **strongest element that reacts with it** (**ignoring the attachment ICD**), feeding `40%% + 20%% × level` of the hit into it; **0.5 s** internal cooldown |
 
 ### 🎮 Client features
 

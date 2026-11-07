@@ -322,5 +322,7 @@
   "enchantment.simple_tweaks.reroll": "Reroll",
   "enchantment.simple_tweaks.reroll.desc": "Consumed on use: strip every **mod** enchantment from the item and roll 2 fresh ones that are legal for it (level 1 to half its max), never creating a conflicting pair. Vanilla enchantments are untouched",
   "enchantment.simple_tweaks.infusion": "Infusion",
-  "enchantment.simple_tweaks.infusion.desc": "Consumed on use: spend **10 experience levels** to raise the item's highest non-maxed enchantment by **one level**. Nothing is consumed when everything is maxed or you lack the levels"
+  "enchantment.simple_tweaks.infusion.desc": "Consumed on use: spend **10 experience levels** to raise the item's highest non-maxed enchantment by **one level**. Nothing is consumed when everything is maxed or you lack the levels",
+  "enchantment.simple_tweaks.reaction_cascade": "Reaction Cascade",
+  "enchantment.simple_tweaks.reaction_cascade.desc": "If the target already carries an aura, immediately resolve a reaction with the **strongest element that reacts with it** (ignoring the attachment ICD), feeding 40%% + 20%% × level of this hit into it. 0.5 s internal cooldown"
 }
