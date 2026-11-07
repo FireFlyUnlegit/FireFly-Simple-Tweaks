@@ -107,8 +107,11 @@ object DamageIndicatorHandler : Listenable {
             if (element == ElementType.PHYSICAL) {
                 bucket.physical += event.amount
             } else {
-                bucket.elemental += event.amount
-                bucket.elementOrdinal = element.ordinal
+                // One bucket **per element**, not one shared "elemental" sum. With a single sum a hit
+                // carrying water + lightning (conversion rider + `heavenly_punishment`) collapsed into
+                // one number coloured by whichever element landed last — the reported
+                // "打开不合并之后还是只有两个数字".
+                bucket.elemental.merge(element.ordinal, event.amount, Float::plus)
             }
         }
     }
@@ -116,8 +119,16 @@ object DamageIndicatorHandler : Listenable {
     /** One entity's per-tick damage broken down by element. */
     private class Composition {
         var physical: Float = 0f
-        var elemental: Float = 0f
-        var elementOrdinal: Int = ElementType.NONE_ORDINAL
+
+        /** `element ordinal -> damage this tick`, in arrival order so the numbers stay stable. */
+        val elemental: LinkedHashMap<Int, Float> = LinkedHashMap()
+
+        /** Total of every elemental share this tick; the over-clamp rescale needs the sum. */
+        fun elementalTotal(): Float {
+            var total = 0f
+            for (value in elemental.values) total += value
+            return total
+        }
     }
 
     /**
@@ -209,22 +220,23 @@ object DamageIndicatorHandler : Listenable {
                                 // through to the single merged number, which is what the health differ
                                 // is good at.
                                 val split = if (isHeal) null else composition.remove(uuid)
-                                if (split != null && (split.physical > 0.001f || split.elemental > 0.001f)) {
+                                if (split != null &&
+                                    (split.physical > 0.001f || split.elementalTotal() > 0.001f)
+                                ) {
                                     // The components come from the damage seam, i.e. they are *pre-clamp*
                                     // and can sum to more than the target had left; the health differ is
                                     // the only part of this handler that knows what the player actually
-                                    // watched happen. So when the two disagree the observed delta wins and
-                                    // both halves are scaled by the same factor -- the ratio between them
-                                    // (the whole point of the split) survives, the total stops lying
-                                    // (`cleanup47`, same reasoning as the deleted `originalDamage`).
-                                    val componentTotal = split.physical + split.elemental
+                                    // watched happen. So when they disagree the observed delta wins and
+                                    // every component is scaled by the same factor — the ratio between
+                                    // them (the whole point of the split) survives, the total stops
+                                    // lying (`cleanup47`, same reasoning as the deleted `originalDamage`).
+                                    val componentTotal = split.physical + split.elementalTotal()
                                     val componentScale = if (componentTotal > actualDamage + 0.001f) {
                                         actualDamage / componentTotal
                                     } else {
                                         1f
                                     }
                                     val physical = split.physical * componentScale
-                                    val elemental = split.elemental * componentScale
 
                                     // `minHealthChange` is applied per component here, so a tiny
                                     // elemental tick can be hidden while the physical part still shows.
@@ -240,17 +252,22 @@ object DamageIndicatorHandler : Listenable {
                                             PacketDamageIndicator.ROLE_PHYSICAL,
                                         )
                                     }
-                                    if (elemental > 0.001f && elemental >= minChange) {
+
+                                    // **One number per element.** A hit can carry several at once
+                                    // (water conversion rider + lightning from `heavenly_punishment` +
+                                    // their reaction shares), and merging them was what made the display
+                                    // show two numbers instead of three.
+                                    for ((ordinal, raw) in split.elemental) {
+                                        val value = raw * componentScale
+                                        if (value <= 0.001f || value < minChange) continue
                                         sendToNearbyPlayers(
                                             entity,
-                                            elemental,
+                                            value,
                                             false,
                                             entity.maxHealth,
                                             currentRealMaxHealth,
                                             afterRealHealth,
-                                            split.elementOrdinal,
-                                            // Elemental half: opposite side of the same XZ radius,
-                                            // and no second line (see DamageNumber).
+                                            ordinal,
                                             PacketDamageIndicator.ROLE_ELEMENTAL,
                                         )
                                     }
