@@ -18,3 +18,7 @@ run-gametest/
 # 个人工作文档：只在本机维护，不入库（AGENTS/DEVLOG 里对 docs/ 的引用是本地指针
 # —— 在 GitHub 上是 404，这是有意的）
 docs/
+# 代理 / 开发契约：同样只在本机维护，不入库
+# （AGENTS.md 是给 AI 代理的操作契约，DEV_GUIDE 是作者自己的实现笔记）
+AGENTS.md
+DEV_GUIDE_1.21.1.md
