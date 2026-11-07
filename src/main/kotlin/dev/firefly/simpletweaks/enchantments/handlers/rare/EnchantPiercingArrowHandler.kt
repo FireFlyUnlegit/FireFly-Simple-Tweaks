@@ -72,7 +72,7 @@ import net.minecraft.util.math.MathHelper
     anvilCost = 6,
     minCostBase = 32,
     minCostPerLevel = 12,
-    supportedItems = EnchantSupportedItemTags.BOW,
+    supportedItems = EnchantSupportedItemTags.BOW_OR_CROSSBOW,
     slots = [EnchantSlot.MAINHAND, EnchantSlot.OFFHAND],
 )
 object EnchantPiercingArrowHandler : Listenable {

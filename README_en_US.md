@@ -12,7 +12,7 @@
 
 A Minecraft mod I build for fun: new enchantments, new mechanics and better combat feedback for vanilla.
 
-Current **1.21.1 / Fabric** release: **v2.2.5** (109 enchantments, 19 elemental reactions, aura gauges, reworked armour curve).
+Current **1.21.1 / Fabric** release: **v2.2.5** (112 enchantments, 19 elemental reactions, aura gauges, reworked armour curve).
 
 ## 🌿 Branches
 
@@ -31,14 +31,14 @@ Current **1.21.1 / Fabric** release: **v2.2.5** (109 enchantments, 19 elemental 
 
 ### 🧙 Custom enchantments
 
-**109** unique enchantments, split by rarity:
+**112** unique enchantments, split by rarity:
 
 | Rarity | Count | Rarity | Count |
 |--------|-------|--------|-------|
 | COMMON | 7 | LEGENDARY | 16 |
 | UNCOMMON | 9 | MYTHIC | 9 |
 | RARE | 31 | MYSTERY | 6 |
-| EPIC | 26 | UNIQUE | 5 |
+| EPIC | 29 | UNIQUE | 5 |
 
 #### 🌈 Elemental system
 
@@ -225,6 +225,9 @@ A 100-damage hit: armour 26 → 17 taken; armour 40 → 10 taken.
 | **Shield Breaker** | an axe hit on a **blocking** target drops the block at once (that hit lands unprotected) and costs `2 × level` extra shield durability |
 | **Gale Elytra** | gliding pushes you along your heading (1.2% per level, cap 5%); every 10 s **sneak while gliding** to dash, costing `3 × level` elytra durability |
 | **Attunement** | every distinct enchantment on the weapon (vanilla included) adds `+2% × level` **final damage**; several levels of one enchantment count once |
+| **Skyfall** | holding the mace cancels fall damage; a hit carrying fall distance sends a `15% × level` shockwave to every other enemy within `2 + level` blocks |
+| **Sunder** | a mace blow goes straight **through a raised shield** (that hit lands unprotected) and costs `4 × level` extra shield durability |
+| **Quake** | interrupts a target that is **using an item** (bow draw / shield / potion / food) and puts that item on a 1 s cooldown |
 
 ### 🎮 Client features
 

@@ -58,7 +58,7 @@ import kotlin.math.min
     anvilCost = 8,
     minCostBase = 30,
     minCostPerLevel = 12,
-    supportedItems = EnchantSupportedItemTags.BOW,
+    supportedItems = EnchantSupportedItemTags.BOW_OR_CROSSBOW,
     slots = [EnchantSlot.MAINHAND, EnchantSlot.OFFHAND],
 )
 object EnchantSniperHandler : Listenable {

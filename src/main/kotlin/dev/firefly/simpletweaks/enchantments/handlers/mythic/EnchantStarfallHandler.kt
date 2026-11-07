@@ -101,7 +101,7 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
     anvilCost = 12,
     minCostBase = 45,
     minCostPerLevel = 15,
-    supportedItems = EnchantSupportedItemTags.BOW,
+    supportedItems = EnchantSupportedItemTags.BOW_OR_CROSSBOW,
     slots = [EnchantSlot.MAINHAND, EnchantSlot.OFFHAND],
     order = 45,
 )

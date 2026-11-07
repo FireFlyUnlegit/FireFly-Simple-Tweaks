@@ -81,7 +81,7 @@ import kotlin.math.sin
     anvilCost = 6,
     minCostBase = 25,
     minCostPerLevel = 10,
-    supportedItems = EnchantSupportedItemTags.BOW,
+    supportedItems = EnchantSupportedItemTags.BOW_OR_CROSSBOW,
     slots = [EnchantSlot.MAINHAND, EnchantSlot.OFFHAND],
     order = 28,
 )

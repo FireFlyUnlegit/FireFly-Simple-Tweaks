@@ -31,6 +31,18 @@ const val CONVERSION_WEAPONS = "#simple_tweaks:conversion_weapons"
 
 // ranged
 const val BOW           = "#minecraft:enchantable/bow"
+
+/**
+ * Bows **and** crossbows — the tags the arrow-based enchantments declare.
+ *
+ * A mod-owned tag for the same reason as [CONVERSION_WEAPONS]: no vanilla tag means "bow or crossbow".
+ * Every arrow enchantment (`piercing_arrow`, `echo_shot`, `tracking_arrow`, `sniper`, `hunters_mark`,
+ * `multishot`, `starfall`) works purely off the arrow that lands, so restricting them to bows was a
+ * mechanical accident, not a design choice. `fast_bow` deliberately stays on [BOW]: it shortens the **draw**
+ * time, and a crossbow has a reload instead of a draw. Its equivalent for the crossbow would need a
+ * separate charge-time hook.
+ */
+const val BOW_OR_CROSSBOW = "#simple_tweaks:bow_enchantable"
 const val CROSSBOW      = "#minecraft:enchantable/crossbow"
 const val TRIDENT       = "#minecraft:enchantable/trident"
 const val FISHING       = "#minecraft:enchantable/fishing"

@@ -337,5 +337,11 @@
   "enchantment.simple_tweaks.gale_elytra": "Gale Elytra",
   "enchantment.simple_tweaks.gale_elytra.desc": "Gliding pushes you along your heading (1.2%% per level, cap 5%%). Every 10 s, sneak while gliding to dash once, costing 3 x level elytra durability",
   "enchantment.simple_tweaks.attunement": "Attunement",
-  "enchantment.simple_tweaks.attunement.desc": "Every distinct enchantment on the weapon (vanilla included) adds +2%% x level to final damage; multiple levels of one enchantment still count once"
+  "enchantment.simple_tweaks.attunement.desc": "Every distinct enchantment on the weapon (vanilla included) adds +2%% x level to final damage; multiple levels of one enchantment still count once",
+  "enchantment.simple_tweaks.skyfall": "Skyfall",
+  "enchantment.simple_tweaks.skyfall.desc": "Holding this mace cancels fall damage; a hit that carries fall distance sends a shockwave for 15%% x level of the damage to every other enemy within 2 + level blocks",
+  "enchantment.simple_tweaks.sunder": "Sunder",
+  "enchantment.simple_tweaks.sunder.desc": "A mace blow goes straight through a raised shield: the block is broken at once (that hit lands unprotected) and the shield loses 4 x level extra durability",
+  "enchantment.simple_tweaks.quake": "Quake",
+  "enchantment.simple_tweaks.quake.desc": "Hitting a target that is using an item interrupts it (bow draw, shield, potion, food) and puts that item on a 1 s cooldown"
 }
