@@ -325,5 +325,13 @@
   "enchantment.simple_tweaks.infusion.desc": "贴上即消耗：消耗 10 级经验，把物品上等级最高的未满级附魔 +1 级。全部满级或经验不足时不消耗",
   "enchantment.simple_tweaks.reaction_cascade": "万法归寂",
   "enchantment.simple_tweaks.reaction_cascade.desc": "命中时若目标身上已有元素量，立刻用能与之反应的最强元素结算一次反应（无视附着 ICD），并把本次伤害的 40%%+20%%×等级 作为反应基底。内置 0.5 秒冷却",
-  "gui.simple_tweaks.config.range": "可填范围：%s ~ %s"
+  "gui.simple_tweaks.config.range": "可填范围：%s ~ %s",
+  "enchantment.simple_tweaks.shockwave_landing": "震荡落地",
+  "enchantment.simple_tweaks.shockwave_landing.desc": "摔落伤害减半，另一半化作半径 3+等级 格的冲击波（伤害随摔落高度与等级提升）。只有超过 3 格才有冲击波",
+  "enchantment.simple_tweaks.aegis": "护盾强化",
+  "enchantment.simple_tweaks.aegis.desc": "最大伤害吸收上限 +2/级（上限 +8），让生命虹吸、回响之盾、死亡保护的吸收盾真的能存住（原版默认上限是 0）",
+  "enchantment.simple_tweaks.trident_wrath": "海神之怒",
+  "enchantment.simple_tweaks.trident_wrath.desc": "三叉戟投掷命中后额外劈下一道雷：伤害的 40%%x等级 作为雷霆元素伤害（可打反应）；下雨或目标在水中时翻倍并附着 1.0 雷元素量",
+  "enchantment.simple_tweaks.shield_breaker": "破盾",
+  "enchantment.simple_tweaks.shield_breaker.desc": "斧头命中正在举盾的目标时立刻打断其格挡（该击全额吃伤害），并额外消耗 2x等级 点盾牌耐久"
 }
