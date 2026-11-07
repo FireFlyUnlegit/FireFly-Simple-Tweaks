@@ -179,6 +179,15 @@ object ElementReactions {
     /** The reaction for an aura of [mark] triggered by a hit of [trigger], or `null`. */
     fun of(mark: ElementType, trigger: ElementType): ElementReaction? = TABLE[mark to trigger]
 
+    /**
+     * Look a reaction up by its display key.
+     *
+     * Used by `elemental_supremacy`: the enchantment remembers which reactions hit the player and replays
+     * them, and a key is all it can cheaply store. Several table entries share a key (the two directions of
+     * melt/vaporize), so the first match wins — they have the same name and the replay only needs one.
+     */
+    fun byKey(key: String): ElementReaction? = TABLE.values.firstOrNull { it.key == key }
+
     /** Every declared reaction, for logging and for the acceptance checklist. */
     val ALL: List<ElementReaction> get() = TABLE.values.toList()
 

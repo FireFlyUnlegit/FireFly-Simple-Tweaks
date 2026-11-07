@@ -137,6 +137,9 @@ object ElementMarks {
                 // Announce the reaction to whoever wants to build on it (`elemental_spread` attaches the same
                 // element to nearby enemies). Fired **after** `apply`, so the reaction itself is already
                 // resolved and a listener cannot change its numbers.
+                // `elemental_supremacy`: remember what hit the wearer, so their next swing can replay it.
+                ReactionMemory.recordIfWearing(target, reaction.key)
+
                 ReactionSeam.fire(attacker, target, element)
 
                 FSTLog.log("Element") {

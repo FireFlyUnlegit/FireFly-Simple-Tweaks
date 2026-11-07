@@ -888,7 +888,7 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
      */
     fun protectionLevel(entity: LivingEntity, element: ElementType): Int {
         val own = rawProtectionLevel(entity, element)
-        if (!hasSupremacy(entity)) return own
+        if (!wearsSupremacy(entity)) return own
         var best = own
         for (candidate in ElementType.entries) {
             val level = rawProtectionLevel(entity, candidate)
@@ -907,7 +907,7 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
     }
 
     /** Whether [entity] wears `elemental_supremacy` (any armour slot). */
-    private fun hasSupremacy(entity: LivingEntity): Boolean =
+    fun wearsSupremacy(entity: LivingEntity): Boolean =
         ARMOR_SLOTS.any { getItemSpecificEnchantLevel(entity.getEquippedStack(it), GeneratedEnchantments.ELEMENTAL_SUPREMACY) > 0 }
 
     /**

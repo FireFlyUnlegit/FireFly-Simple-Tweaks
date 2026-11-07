@@ -345,5 +345,5 @@
   "enchantment.simple_tweaks.quake": "Quake",
   "enchantment.simple_tweaks.quake.desc": "Hitting a target that is using an item interrupts it (bow draw, shield, potion, food) and puts that item on a 1 s cooldown",
   "enchantment.simple_tweaks.elemental_supremacy": "Elemental Supremacy",
-  "enchantment.simple_tweaks.elemental_supremacy.desc": "Your highest elemental affinity defends against all eight elements (maximum, never summed) — specialise in one and gain them all"
+  "enchantment.simple_tweaks.elemental_supremacy.desc": "(1) Your highest elemental affinity defends against all eight elements (maximum, never summed). (2) Every elemental reaction that hits you is remembered (up to 5); your next hit replays all of them onto the target, each resolving with 40%% of that hit as its base"
 }
