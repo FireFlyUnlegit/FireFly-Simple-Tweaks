@@ -203,6 +203,28 @@ public class SimpleTweaksGameTests implements FabricGameTest {
      * the game. The points that matter are the two boundaries — vanilla parity at 20 and saturation —
      * because those are the two claims the feature makes.
      */
+
+    /**
+     * Smoke test for the damage window: a hit resolved through `LivingEntity#damage` must open the window,
+     * read the main hand through the mixin and close again without throwing.
+     *
+     * <p>⚠️ <b>It does not reproduce the `build=cleanup34` crash.</b> That recursion needs a
+     * <b>player</b>-attributed source (`PlayerEntity#getWeaponStack` → `getMainHandStack` → the mixin), and a
+     * game test has no player to attribute damage to — verified by disabling the re-entrancy guard and
+     * watching this test still pass. Closing that gap needs a fake `ServerPlayerEntity`; until then the guard
+     * is covered by review, and this test only guards the window's open/close path on a mob.
+     */
+    @GameTest(templateName = FabricGameTest.EMPTY_STRUCTURE)
+    public void damageWindowDoesNotRecurse(TestContext context) {
+        ZombieEntity zombie = context.spawnMob(EntityType.ZOMBIE, 1, 1, 1);
+        // Player-attributed source and a projectile source: the two shapes that went through the resolver.
+        var sources = context.getWorld().getDamageSources();
+        zombie.damage(sources.playerAttack(context.getWorld().getClosestPlayer(0, 0, 0, 10, false)), 1.0F);
+        zombie.damage(sources.arrow(new net.minecraft.entity.projectile.ArrowEntity(
+            context.getWorld(), 0.0, 1.0, 0.0, new net.minecraft.item.ItemStack(net.minecraft.item.Items.ARROW), null
+        ), null), 1.0F);
+        context.complete();
+    }
     @GameTest(templateName = FabricGameTest.EMPTY_STRUCTURE)
     public void armorCurveExtendsPastTheVanillaWall(TestContext context) {
         // --- percentage part: bit-identical to vanilla up to the wall --------------------------
