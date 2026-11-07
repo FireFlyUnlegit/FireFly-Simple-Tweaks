@@ -15,7 +15,7 @@
 | 分支                                                                                            | 游戏版本   | 加载器    | 状态          |
 |-----------------------------------------------------------------------------------------------|--------|--------|-------------|
 | [`master`](https://github.com/FireFlyUnlegit/FireFly-Simple-Tweaks/tree/master)               | 1.12.2 | Forge  | ✅ 稳定        |
-| [`fabric-1.21.1`](https://github.com/FireFlyUnlegit/FireFly-Simple-Tweaks/tree/fabric-1.21.1) | 1.21.1 | Fabric | ✅ **v2.2.2** |
+| [`fabric-1.21.1`](https://github.com/FireFlyUnlegit/FireFly-Simple-Tweaks/tree/fabric-1.21.1) | 1.21.1 | Fabric | ✅ **v2.2.3** |
 
 - **1.21.1 / Fabric 版**是完整的跨版本迁移，详见 [`MIGRATION.md`](./MIGRATION.md)
 - 两个版本**平行维护**，不做合并
@@ -179,7 +179,7 @@
 
 **步骤**：
 
-1. 从 [Releases](https://github.com/FireFlyUnlegit/FireFly-Simple-Tweaks/releases) 下载 `simple_tweaks-2.2.2.jar`
+1. 从 [Releases](https://github.com/FireFlyUnlegit/FireFly-Simple-Tweaks/releases) 下载 `simple_tweaks-2.2.3.jar`
 2. 放进 `.minecraft/mods/`
 3. 启动游戏
 

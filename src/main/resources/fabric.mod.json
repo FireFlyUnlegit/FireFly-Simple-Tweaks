@@ -3,12 +3,17 @@
   "id": "simple_tweaks",
   "version": "${version}",
   "name": "FireFly's Simple Tweaks",
-  "description": "A mod that adds custom enchantments, client-side QoL modules, and visual feedback.",
+  "description": "85 custom enchantments with an elemental conversion / affinity / mastery / reaction system, a mob level system that scales with the world and with the player's whole loadout, mod enchantments on mob gear that are stripped before the drop, per-element floating damage numbers, and a handful of client-side quality-of-life modules. Every command lives under /simple_tweaks (alias /fst).",
   "authors": [
     "FireFly"
   ],
-  "contact": {},
+  "contact": {
+    "homepage": "https://github.com/FireFlyUnlegit/FireFly-Simple-Tweaks",
+    "sources": "https://github.com/FireFlyUnlegit/FireFly-Simple-Tweaks/tree/fabric-1.21.1",
+    "issues": "https://github.com/FireFlyUnlegit/FireFly-Simple-Tweaks/issues"
+  },
   "license": "MIT",
+  "icon": "assets/simple_tweaks/icon.png",
   "environment": "*",
   "entrypoints": {
     "main": [
@@ -27,5 +32,16 @@
     "fabric-language-kotlin": ">=1.12.0",
     "minecraft": "~1.21.1",
     "java": ">=21"
+  },
+  "suggests": {
+    "modmenu": "*"
+  },
+  "custom": {
+    "modmenu": {
+      "links": {
+        "modmenu.github": "https://github.com/FireFlyUnlegit/FireFly-Simple-Tweaks",
+        "modmenu.website": "https://github.com/FireFlyUnlegit/FireFly-Simple-Tweaks"
+      }
+    }
   }
 }

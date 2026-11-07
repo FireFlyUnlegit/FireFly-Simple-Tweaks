@@ -240,5 +240,7 @@
   "enchantment.simple_tweaks.vitality.desc": "增加你的最大生命值",
   "enchantment.simple_tweaks.void_protection.desc": "落入虚空时消耗一级附魔将你传送至高空，避免死亡。",
   "enchantment.simple_tweaks.water_conversion.desc": "将攻击伤害的 10%% + 每级 5%%（最多 50%%）转化为流水伤害：该部分从原伤害中取消，以流水伤害重新结算，并额外追加其一倍的流水伤害。与其他所有转化附魔互斥。",
-  "enchantment.simple_tweaks.water_protection.desc": "每件护甲每级减少受到的流水伤害 4%%，最多 80%%。"
+  "enchantment.simple_tweaks.water_protection.desc": "每件护甲每级减少受到的流水伤害 4%%，最多 80%%。",
+  "modmenu.summaryTranslation.simple_tweaks": "85 个附魔、8 种元素、怪物等级与飘字伤害",
+  "modmenu.descriptionTranslation.simple_tweaks": "85 个自定义附魔，含 8 种元素转化、8 种元素亲和、元素精通，以及 18 种元素反应。\n\n怪物会获得等级（以及随之提升的生命、攻击与护甲），等级由世界「年龄」和玩家整身的强度共同决定；它们的装备可能带有本模组的附魔，但掉落前会被剥离。\n\n伤害飘字按元素上色，可选择把物理/元素拆成两个数字，且永远只报血条真实减少的血量。\n\n所有命令都在 /simple_tweaks 下（别名 /fst）。"
 }
