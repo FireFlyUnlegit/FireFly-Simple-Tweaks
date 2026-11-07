@@ -36,6 +36,10 @@ import java.util.WeakHashMap
  * system produces. Clamping by `accumulated × 2` ties the payoff to damage you actually dealt, so the
  * enchantment is strong against tanky targets and not an exploit against a damage-sponge boss.
  *
+ * ## Pace: a 1 s safety window, not a cooldown
+ * The real gate is the 5-stack requirement, and a collapse clears the stacks itself. The window only
+ * prevents two collapses from resolving inside the same damage tick.
+ *
  * ## Deliberate pacing limit (not a downside)
  * One collapse per target per `10 s`. Without it, a 5-hit collapse loop on a high-attack-speed build would
  * print the same 20% every second. The stacks themselves still fall off after 6 s of not hitting that target,
@@ -69,8 +73,15 @@ object EnchantVoidCollapseHandler : Listenable {
     /** Stacks die after 6 s without hitting the same target. */
     private const val STACK_TIMEOUT = 120L
 
-    /** One collapse per target per 10 s. */
-    private const val COLLAPSE_COOLDOWN = 200L
+    /**
+     * One collapse per target per **1 s**.
+     *
+     * This is not a pacing limit any more — the 5-stack requirement is the real gate (and stacks are
+     * cleared by the collapse itself, so a second one needs five fresh hits). The window only exists to
+     * stop two collapses landing inside the same damage resolution, which AoE/multi-hit sources could
+     * otherwise cause.
+     */
+    private const val COLLAPSE_COOLDOWN = 20L
 
     /** Per-stack damage amplification: 12% × level. */
     private const val AMP_PER_STACK = 0.12f
@@ -97,8 +108,14 @@ object EnchantVoidCollapseHandler : Listenable {
 
         // Stacks are per target: switching targets throws the progress away, which is what keeps this a
         // single-target finisher rather than a passive damage buff in a crowd.
-        var stacks = if (nbt.getString(NBT_TARGET) == targetId) nbt.getInt(NBT_STACKS) else 0
-        if (now - nbt.getLong(NBT_LAST_HIT) > STACK_TIMEOUT) stacks = 0
+        // The streak (stacks **and** accumulated damage) is one thing: if it times out, both reset. Clearing
+        // only the stacks used to leave `accumulated` growing forever, which silently disabled the cap on the
+        // collapse — see DEVLOG `build=cleanup39`.
+        val sameTarget = nbt.getString(NBT_TARGET) == targetId
+        val timedOut = sameTarget && now - nbt.getLong(NBT_LAST_HIT) > STACK_TIMEOUT
+        val streakAlive = sameTarget && !timedOut
+
+        var stacks = if (streakAlive) nbt.getInt(NBT_STACKS) else 0
 
         // Ramp first, then stack: the hit that adds the 5th stack does not also get its own bonus.
         if (stacks > 0) {
@@ -106,7 +123,7 @@ object EnchantVoidCollapseHandler : Listenable {
             e.amount *= amp
         }
 
-        var accumulated = if (nbt.getString(NBT_TARGET) == targetId) nbt.getFloat(NBT_ACCUM) else 0f
+        var accumulated = if (streakAlive) nbt.getFloat(NBT_ACCUM) else 0f
         accumulated += e.amount
         stacks = (stacks + 1).coerceAtMost(MAX_STACKS)
 
@@ -144,8 +161,9 @@ object EnchantVoidCollapseHandler : Listenable {
         }
 
         FSTLog.log("VoidCollapse") {
+            val cap = if (byHealth <= accumulated * 2f) "health" else "accumulated"
             "target=${target.type.name.string}, level=$level, byHealth=${"%.2f".format(byHealth)}, " +
-                "accumulated=${"%.2f".format(accumulated)}, amount=${"%.2f".format(amount)}, " +
+                "accumulated=${"%.2f".format(accumulated)}, amount=${"%.2f".format(amount)}, cap=$cap, " +
                 "applied=$applied, splashed=$splashed, outcome=collapsed"
         }
     }

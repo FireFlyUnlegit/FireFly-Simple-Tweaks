@@ -211,7 +211,7 @@ A 100-damage hit: armour 26 → 17 taken; armour 40 → 10 taken.
 | Enchantment | Effect |
 |-------------|--------|
 | **Infinite Power** | flight, invulnerability, instant mining, infinite food/durability, laser attack, huge drops, soulbound — everything (creative only) |
-| **Void Collapse** | at 5 stacks, collapse: `min(target max health × (5%% + 5%% × level), accumulated × 2)` **true damage** (ignores armour, i-frames, no crits), 50%% of it to other enemies within 6 blocks; each stack also makes the target take +12%% × level from you. **No downside**, just one collapse per target per 10 s |
+| **Void Collapse** | at 5 stacks, collapse: `min(target max health × (5%% + 5%% × level), accumulated × 2)` **true damage** (ignores armour, i-frames, no crits), 50%% of it to other enemies within 6 blocks; each stack also makes the target take +12%% × level from you. **No downside**, just one collapse per target per 1 s |
 | **Elemental Sovereign** | the conversion element **becomes whichever one reacts with the target's current aura** (falls back to your own conversion element when there is none); every reaction you trigger deals **+30%% × level** |
 | **Midas Touch** | block drops `×(1 + 25%% × level)` (**multiplicative with Fortune**), mining speed `+20%% × level`, plus bonus experience on a chance. Deliberately ignores mob drops and experience gain (those belong to Scavenger / Experience Stealer) |
 
