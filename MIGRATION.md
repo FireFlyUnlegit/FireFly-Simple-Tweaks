@@ -3,6 +3,20 @@
 从 `../`（Minecraft 1.12.2 / Forge / RetroFuturaGradle）迁移到 Minecraft 1.21.1 / Fabric / Yarn。
 1.12.2 源码原样保留在上一级目录，可随时对照。
 
+---
+
+> ## 👉 要动手改代码，先读 [`DEV_GUIDE_1.21.1.md`](DEV_GUIDE_1.21.1.md)
+>
+> 本文件是**流水账与决策记录**（append-only，回答"当初为什么"）；
+> **`DEV_GUIDE_1.21.1.md` 才是操作手册**：项目结构 / 构建 / 加附魔（KSP）/ 写 Mixin /
+> 四条铁律 / 常见坑 / 验收脚手架 / 诊断命令 / 文档地图。
+>
+> **新会话请从那一份开始**，不要靠通读本文件来推断现状 —— 本文件按时间顺序书写，
+> 早期段落描述的是**当时**的状态（例如「服务端验收基础设施」整节已作废、
+> 「当前 47 个处理器 / 13 个 mixin」已是历史值）。
+
+---
+
 **阶段 0（垂直切片）已完成并编译通过**：附魔 `acid_attack` 从 JSON 定义 → 注册键 → 伤害事件接缝 → 处理器，全链路代码已就位，`gradlew build` 成功产出 jar。
 
 ---
@@ -555,11 +569,19 @@ src/main/resources/data/minecraft/tags/enchantment/non_treasure.json
 `Cannot find target method`，refmap 才暴露出问题。
 
 **当时的状态**（阶段 2 快照，已被后续阶段超越）：`41` 个处理器注册，`7` 个 mixin，`deferred/` 9 个。
-> **当前（阶段 4 收尾）**：`47` 个处理器注册，`13` 个 mixin，`deferred/` 4 个。
+> **阶段 4 收尾时**（历史值）：`47` 个处理器注册，`13` 个 mixin，`deferred/` 4 个。
 > mixin 数在阶段 4 期间是 `15`，其中 2 个「原版粒子抑制」mixin **已被主动删除**（选项语义搞错，
-> 见 `docs/phase4-mixin-notes.md` §9），故为 `13`。
-**仍未处理 3 个**：`Momentum`（BreakSpeed 缺 `pos`）、`InfinitePower`（hard 组）、
-`AutoSmelt` 已完成；余下 `AntiKnockback`/`SwiftSneak`/`Unbreakable`/`PrismaticBlessing` 为声明式（无需处理器）。
+> 见 `docs/phase4-mixin-notes.md` §9），故当时为 `13`。
+> **阶段 4 当时仍未处理 3 个**：`Momentum`（BreakSpeed 缺 `pos`）、`InfinitePower`（hard 组）、
+> `AutoSmelt`；余下 `AntiKnockback`/`SwiftSneak`/`Unbreakable`/`PrismaticBlessing` 为声明式（无需处理器）。
+> 这三个**后续都已解决**，现有各自的 handler。
+
+> ⏩ **迁移收尾后（`build=cleanup6`）—— 当前值，以此为准：**
+> **`56` 个处理器** = `55` 个 `EnchantmentManager.handlerList` 手写 + `1` 个 `@ModEnchantment`
+> 由 KSP 生成并自动注册；
+> **`24` 个 mixin** = `20` common + `4` client + `0` server（见 `simple_tweaks.mixins.json`）；
+> `deferred/` **已整个删除（0）**。另有 `src/main/java/.../mixin/disabled/` 下 `3` 个**未注册**的
+> mixin 文件（背包实验遗留：`SlotPositionMixin` / `PlayerEntityBagDataMixin` / `ScreenHandlerClickProbeMixin`）。
 
 > ⚠️ **AutoSmelt 的接缝只做了静态验证**（refmap 四条映射全部命中），
 > **逐掉落的捕获行为需要实机验证**：给镐附上 `simple_tweaks:auto_smelt` 挖矿石，
