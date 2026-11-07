@@ -1,5 +1,6 @@
 package dev.firefly.simpletweaks.gametest;
 
+import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments;
 import dev.firefly.simpletweaks.util.mobs.LevelledMob;
 import dev.firefly.simpletweaks.util.mobs.MobLevels;
 import net.fabricmc.fabric.api.gametest.v1.FabricGameTest;
@@ -7,6 +8,8 @@ import net.minecraft.entity.EntityType;
 import net.minecraft.entity.mob.ZombieEntity;
 import net.minecraft.test.GameTest;
 import net.minecraft.test.TestContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Game tests: a real server, real entities, the real damage pipeline.
@@ -18,36 +21,65 @@ import net.minecraft.test.TestContext;
  * are, and deals damage through {@code LivingEntity#damage}, which is the exact seam the elemental
  * and enchantment handlers sit on.
  *
+ * <h2>Why every test logs its values before asserting</h2>
+ * Fabric's {@code invokeTestMethod} reports a failed assertion as the generic
+ * <em>"Failed to invoke test method"</em>, which says nothing about <em>what</em> was wrong — the
+ * first CI run produced three failures and no reasons. So each test logs the numbers it is about to
+ * assert on (prefixed {@code [FST-GameTest]}), and the workflow prints the JUnit XML. Between the two,
+ * a red run explains itself.
+ *
  * <h2>How it runs</h2>
  * Only on demand: {@code ./gradlew runGametest} (the {@code gametest} run config in build.gradle) or
  * the {@code gametest} GitHub workflow, which is scheduled/manual and deliberately <b>not</b> part of
  * {@code build} — it needs a world, a server tick loop and the Minecraft EULA, none of which belong in
  * a per-push build.
- *
- * <h2>Why the test class ships in the jar</h2>
- * The {@code fabric-gametest} entrypoint has to be declared in this mod's own {@code fabric.mod.json},
- * so the class has to be in the same artifact. Fabric Loader only instantiates that entrypoint inside
- * the game-test runtime, so a normal client/server never touches it.
  */
 public class SimpleTweaksGameTests implements FabricGameTest {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger("simple_tweaks/gametest");
+
+    static {
+        // If a test fails with "Failed to invoke test method", this line proves the class itself
+        // initialised (as opposed to a NoClassDefFoundError / ExceptionInInitializerError).
+        LOGGER.info("[FST-GameTest] test class initialised");
+    }
+
+    /**
+     * KSP output is on the runtime classpath.
+     *
+     * <p>A Fabric Loader warning (<em>"Class path entries reference missing files:
+     * build/generated/ksp/main/classes"</em>) reads like the generated enchantment table might be
+     * absent at runtime. It is an empty intermediate directory that KSP registers but never writes;
+     * the actual class is compiled into {@code build/classes/kotlin/main}. This test turns that
+     * argument into a runtime fact instead of a code-reading opinion.
+     */
+    @GameTest(templateName = FabricGameTest.EMPTY_STRUCTURE)
+    public void generatedEnchantmentTableIsAvailableAtRuntime(TestContext context) {
+        int keys = GeneratedEnchantments.INSTANCE.getKEYS().size();
+        int categories = GeneratedEnchantments.INSTANCE.getCATEGORY().size();
+        LOGGER.info("[FST-GameTest] generated table: keys={}, categories={}", keys, categories);
+        context.assertEquals(85, keys, "GeneratedEnchantments.KEYS should list all 85 enchantments");
+        context.assertEquals(85, categories, "GeneratedEnchantments.CATEGORY should cover every id");
+    }
 
     /**
      * A mob that spawns must come out levelled, with the health the level curve promises.
      *
      * <p>Regression this guards: {@code v2.2.1} fixed mobs that never reached
-     * {@code MobLevels.ensureLevel} at all (only mobs with equipment did). If that seam breaks again,
-     * this test fails on the very first assertion instead of needing a player to notice level-1
-     * zombies in a world where everything else scales.
+     * {@code MobLevels.ensureLevel} at all (only mobs with equipment did).
      */
     @GameTest(templateName = FabricGameTest.EMPTY_STRUCTURE)
     public void spawnedMobGetsALevelAndItsStats(TestContext context) {
         ZombieEntity zombie = context.spawnMob(EntityType.ZOMBIE, 1, 2, 1);
 
         int level = ((LevelledMob) zombie).getMobLevel();
-        context.assertTrue(level >= 1, "a spawned mob must have a level, got " + level);
-
+        float baseHealth = zombie.getMaxHealth();
         // MobLevels.apply(): max_health = base * (1 + HEALTH_PER_LEVEL * (level - 1))
         double expectedHealth = 20.0 * (1.0 + MobLevels.HEALTH_PER_LEVEL * (level - 1));
+        LOGGER.info("[FST-GameTest] spawned zombie: level={}, maxHealth={}, expectedMaxHealth={}, health={}",
+                level, baseHealth, expectedHealth, zombie.getHealth());
+
+        context.assertTrue(level >= 1, "a spawned mob must have a level, got " + level);
         context.assertTrue(
                 Math.abs(zombie.getMaxHealth() - expectedHealth) < 0.01,
                 "max health " + zombie.getMaxHealth() + " does not follow the level curve for level "
@@ -61,24 +93,28 @@ public class SimpleTweaksGameTests implements FabricGameTest {
      * <p>This is the vanilla gate the elemental riders have to work around (they save and restore
      * {@code timeUntilRegen} / {@code lastDamageTaken}). If a future change breaks that accounting in
      * a way that also disables the gate, "combo" behaviour comes back — observed in real play as
-     * "元素伤害无视无敌帧" — and this test is where it should fail first.
+     * "元素伤害无视无敌帧".
      */
     @GameTest(templateName = FabricGameTest.EMPTY_STRUCTURE)
     public void damageLandsAndIFramesGateTheNextHit(TestContext context) {
         ZombieEntity zombie = context.spawnMob(EntityType.ZOMBIE, 1, 2, 1);
         zombie.setHealth(zombie.getMaxHealth());
-        context.assertTrue(zombie.getHealth() > 0.0f, "the test zombie must spawn alive");
 
         float before = zombie.getHealth();
         boolean firstHit = zombie.damage(context.getWorld().getDamageSources().generic(), 4.0f);
-        context.assertTrue(firstHit, "the first hit must be applied");
-        context.assertTrue(zombie.getHealth() < before, "health must drop after the first hit");
-
-        float afterFirstHit = zombie.getHealth();
+        float afterFirst = zombie.getHealth();
         boolean secondHit = zombie.damage(context.getWorld().getDamageSources().generic(), 1.0f);
+        float afterSecond = zombie.getHealth();
+
+        LOGGER.info("[FST-GameTest] damage: before={}, firstHit={}, afterFirst={}, secondHit={}, "
+                        + "afterSecond={}, lastDamageTaken(hurtTime)={}",
+                before, firstHit, afterFirst, secondHit, afterSecond, zombie.hurtTime);
+
+        context.assertTrue(before > 0.0f, "the test zombie must spawn alive");
+        context.assertTrue(firstHit, "the first hit must be applied");
+        context.assertTrue(afterFirst < before, "health must drop after the first hit");
         context.assertFalse(secondHit, "a smaller hit inside the i-frame window must be discarded");
-        context.assertEquals(afterFirstHit, zombie.getHealth(),
-                "a discarded hit must not change health");
+        context.assertEquals(afterFirst, afterSecond, "a discarded hit must not change health");
     }
 
     /**
@@ -99,6 +135,7 @@ public class SimpleTweaksGameTests implements FabricGameTest {
 
     private static void assertLevel(TestContext context, float difficulty, int expected) {
         int actual = MobLevels.INSTANCE.averageLevelFor(difficulty);
+        LOGGER.info("[FST-GameTest] averageLevelFor({}) = {} (expected {})", difficulty, actual, expected);
         context.assertEquals(expected, actual,
                 "averageLevelFor(" + difficulty + ") should be " + expected + " but was " + actual);
     }

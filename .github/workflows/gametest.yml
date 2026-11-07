@@ -65,6 +65,24 @@ jobs:
       - name: Run game tests
         run: ./gradlew runGametest --console=plain --stacktrace
 
+      # Fabric reports a failed assertion to the console as the generic "Failed to invoke test
+      # method", so the reason only exists in the JUnit XML (and in our own [FST-GameTest] log lines).
+      # Print both, always, so a red run explains itself in the log instead of requiring a download.
+      - name: Show game test failures
+        if: always()
+        run: |
+          report=build/gametest-junit.xml
+          if [ -f "$report" ]; then
+            echo '--- failure messages ---'
+            grep -o 'message="[^"]*"' "$report" || true
+            echo '--- test cases ---'
+            grep -o '<testcase[^>]*name="[^"]*"[^>]*>' "$report" || true
+          else
+            echo "no $report was produced"
+          fi
+          echo '--- [FST-GameTest] lines from the server log ---'
+          grep -F '[FST-GameTest]' run-gametest/logs/latest.log || echo '(none)'
+
       - name: Upload game test report
         if: always()
         uses: actions/upload-artifact@v4
