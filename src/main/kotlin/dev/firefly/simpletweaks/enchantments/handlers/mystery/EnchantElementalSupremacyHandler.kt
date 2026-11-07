@@ -85,6 +85,18 @@ object EnchantElementalSupremacyHandler : Listenable {
         // Checked **before** draining: draining for a non-wearer would throw the memory away for nothing.
         if (!ElementCombat.wearsSupremacy(attacker)) return
 
+        // ⚠️ The swing itself may be about to be discarded by vanilla's i-frame gate. `LivingHurtEvent` fires
+        // *before* that gate, so anything queued here would land while the swing does not — exactly the
+        // "elemental damage ignores i-frames" report this handler must not re-introduce (`build=cleanup61`).
+        // Bail **before** draining: a discarded swing must not eat the remembered reactions either.
+        if (ElementCombat.wouldBeDiscardedByIFrames(target, e.source, e.amount)) {
+            FSTLog.log("Supremacy") {
+                "target=${target.type.name.string}, amount=${"%.2f".format(e.amount)}, " +
+                    "outcome=skipped-swing-would-be-gated"
+            }
+            return
+        }
+
         val totalLevel = ReactionMemory.totalLevel(attacker)
 
         // Free elemental riders. This block used to sit *after* the replay gate, so it only ran when the

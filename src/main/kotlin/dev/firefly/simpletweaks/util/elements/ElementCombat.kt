@@ -863,7 +863,19 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
      * dropping the `amount` comparison would skip conversion on *legitimate* hits that happen to arrive
      * inside a weakened i-frame window.
      */
-    private fun wouldBeDiscardedByIFrames(target: LivingEntity, source: net.minecraft.entity.damage.DamageSource, amount: Float): Boolean {
+    /**
+     * True when vanilla's i-frame gate is about to discard this hit.
+     *
+     * Public because handlers that deal **their own** damage inside `LivingHurtEvent` need the same test: the
+     * event fires at the HEAD of `LivingEntity#damage`, before the gate, so a rider queued here can land while
+     * the swing it belongs to is thrown away — that is the "elemental damage ignores i-frames" bug this guard
+     * exists to prevent (`build=cleanup61`, second time it bit).
+     */
+    fun wouldBeDiscardedByIFrames(
+        target: LivingEntity,
+        source: net.minecraft.entity.damage.DamageSource,
+        amount: Float,
+    ): Boolean {
         if (target.timeUntilRegen <= 10) return false
         if (source.isIn(DamageTypeTags.BYPASSES_COOLDOWN)) return false
         val last = (target as? LivingEntityAccessor)?.modLastDamageTaken ?: return false
