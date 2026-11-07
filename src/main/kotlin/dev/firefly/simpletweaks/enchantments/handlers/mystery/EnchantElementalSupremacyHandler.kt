@@ -94,13 +94,26 @@ object EnchantElementalSupremacyHandler : Listenable {
         repeat(riders) {
             val pool = ElementType.CONVERTIBLE
             val element = pool[target.world.random.nextInt(pool.size)]
+            val riderDamage = e.amount * RIDER_SHARE
+
+            // Two separate concerns, deliberately handled separately (`build=cleanup60`):
+            //
+            // 1. **damage** — the conversion's 5 % is real damage and must land on every hit. It is queued
+            //    directly through `enqueueElemental`, which is the engine's ICD-free path (the same one the
+            //    conversion enchantments use). `recordAndReact` cannot be relied on for this: it returns
+            //    early when the attachment ICD throttles, and its `damage` argument is only a **reaction
+            //    base**, never damage of its own.
+            // 2. **attachment** — bypassed (`forceAttach = true`) because 万法 is the mod's own re-dealt
+            //    damage, exactly like a poison tick. Without it only every third swing attached anything,
+            //    which is what the author saw in `latest.log` (`attachment-throttled, hitsInWindow=11/12/14`).
+            ElementCombat.enqueueElemental(attacker, target, element, riderDamage)
             ElementMarks.recordAndReact(
                 attacker,
                 target,
                 element,
-                e.amount * RIDER_SHARE,
+                riderDamage,
                 units = ElementAuras.WEAK,
-                forceAttach = false,
+                forceAttach = true,
                 source = e.source,
             )
         }
