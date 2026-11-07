@@ -75,6 +75,14 @@ object ElementMarks {
         damage: Float,
         units: Float = ElementAuras.WEAK,
         forceAttach: Boolean = false,
+        /**
+         * The hit that triggered this, when the caller has it.
+         *
+         * Threaded through so the reaction's own scaling reads the **weapon that dealt the hit** rather
+         * than whatever the attacker holds now — an arrow fired with a bow must not borrow the stats of
+         * the sword the player swapped to while it flew (`build=cleanup31`).
+         */
+        source: net.minecraft.entity.damage.DamageSource? = null,
     ): ReactionOutcome {
         if (!target.isAlive) return ReactionOutcome()
         val now = target.world.time
@@ -104,7 +112,7 @@ object ElementMarks {
                 val cost = units * dampening
                 val consumed = ElementAuras.consume(target, cost)
 
-                outcome = apply(attacker, target, reaction, damage, auraUnits, consumed, dampening)
+                outcome = apply(attacker, target, reaction, damage, auraUnits, consumed, dampening, source)
 
                 FSTLog.log("Element") {
                     "reaction=${reaction.key}, aura=${auraElement.id}:${"%.2f".format(auraUnits)}, " +
@@ -172,8 +180,9 @@ object ElementMarks {
         auraUnits: Float,
         consumed: Float,
         dampening: Float,
+        source: net.minecraft.entity.damage.DamageSource? = null,
     ): ReactionOutcome {
-        val resonance = attacker?.let { ElementCombat.resonanceMultiplier(it) } ?: 1f
+        val resonance = attacker?.let { ElementCombat.resonanceMultiplier(it, source) } ?: 1f
 
         // 增幅: hand the multiplier back to the caller, which owns `e.amount`.
         val amplify = reaction.amplify

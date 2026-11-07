@@ -559,6 +559,7 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
         // application, which survives a weak trigger instead of being eaten by it.
         val reacted = ElementMarks.recordAndReact(
             attacker, target, element, original * mastery, units = ElementAuras.STRONG,
+            source = e.source,
         )
         if (reacted.amplify > 1f) {
             // 增幅: the multiplier lands on the physical share of this very swing.
@@ -793,8 +794,8 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
         else getItemSpecificEnchantLevel(attacker.combatStack(source), GeneratedEnchantments.ELEMENTAL_RESONANCE)
 
     /** Reaction damage multiplier from `elemental_resonance`, capped. */
-    fun resonanceMultiplier(attacker: LivingEntity?): Float {
-        val lvl = resonanceOf(attacker)
+    fun resonanceMultiplier(attacker: LivingEntity?, source: DamageSource? = null): Float {
+        val lvl = resonanceOf(attacker, source)
         return 1.0f + if (lvl <= 0) 0f else (RESONANCE_PER_LEVEL * lvl).coerceAtMost(RESONANCE_CAP)
     }
 
