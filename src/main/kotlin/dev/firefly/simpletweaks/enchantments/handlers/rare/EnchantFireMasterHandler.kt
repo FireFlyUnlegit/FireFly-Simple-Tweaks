@@ -7,6 +7,7 @@ import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.invalid
 import dev.firefly.simpletweaks.compat.target
 import dev.firefly.simpletweaks.core.Listenable
+import dev.firefly.simpletweaks.util.combatStack
 import dev.firefly.simpletweaks.util.damagesource.isAuxiliaryDamage
 import dev.firefly.simpletweaks.util.fireTime
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
@@ -63,7 +64,7 @@ object EnchantFireMasterHandler : Listenable {
         if (e.invalid) return
         val attacker = e.attacker as? PlayerEntity ?: return
         val target = e.target
-        val lvl = getItemSpecificEnchantLevel(attacker.mainHandStack, GeneratedEnchantments.FIRE_MASTER)
+        val lvl = getItemSpecificEnchantLevel(attacker.combatStack(e.source), GeneratedEnchantments.FIRE_MASTER)
         if (lvl > 0) {
             val fireTimeBefore = target.fireTime
             val fireBonus = (target.fireTime * 0.05f).coerceAtLeast(0f)

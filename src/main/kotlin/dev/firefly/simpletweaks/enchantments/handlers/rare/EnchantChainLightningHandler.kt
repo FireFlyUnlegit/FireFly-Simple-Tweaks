@@ -15,6 +15,7 @@ import dev.firefly.simpletweaks.enchantments.annotations.EnchantSupportedItemTag
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
+import dev.firefly.simpletweaks.util.combatStack
 import dev.firefly.simpletweaks.util.damagesource.ElementDamageTypes
 import dev.firefly.simpletweaks.util.damagesource.damageElemental
 import dev.firefly.simpletweaks.util.elements.ElementMarks
@@ -96,7 +97,7 @@ object EnchantChainLightningHandler : Listenable {
         val attacker = e.attacker as? PlayerEntity ?: return
         if (attacker === target) return
 
-        val lvl = getItemSpecificEnchantLevel(attacker.mainHandStack, GeneratedEnchantments.CHAIN_LIGHTNING)
+        val lvl = getItemSpecificEnchantLevel(attacker.combatStack(e.source), GeneratedEnchantments.CHAIN_LIGHTNING)
         if (lvl <= 0) return
 
         val now = System.currentTimeMillis()

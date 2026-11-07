@@ -15,6 +15,7 @@ import dev.firefly.simpletweaks.enchantments.annotations.EnchantSupportedItemTag
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
+import dev.firefly.simpletweaks.util.combatStack
 import dev.firefly.simpletweaks.util.damagesource.isAuxiliaryDamage
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import net.minecraft.entity.LivingEntity
@@ -131,7 +132,7 @@ object EnchantFrostbiteHandler : Listenable {
         val attacker = e.attacker as? PlayerEntity ?: return
         if (attacker === target) return
 
-        val lvl = getItemSpecificEnchantLevel(attacker.mainHandStack, GeneratedEnchantments.FROSTBITE)
+        val lvl = getItemSpecificEnchantLevel(attacker.combatStack(e.source), GeneratedEnchantments.FROSTBITE)
         if (lvl <= 0) return
 
         val state = stateOf(target)

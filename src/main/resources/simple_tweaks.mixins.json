@@ -24,6 +24,7 @@
     "MobLevelMixin",
     "accessors.LivingEntityAccessor",
     "accessors.PersistentProjectileEntityAccessor",
+    "ProjectileShotWeaponMixin",
     "PersistentProjectileEntityPiercingMixin",
     "PersistentProjectileEntityStateMixin",
     "PlayerEntityAttackMixin",

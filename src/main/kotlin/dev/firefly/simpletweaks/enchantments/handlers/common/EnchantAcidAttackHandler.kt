@@ -5,6 +5,7 @@ import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.FSTLog
 import dev.firefly.simpletweaks.compat.invalid
 import dev.firefly.simpletweaks.core.Listenable
+import dev.firefly.simpletweaks.util.combatStack
 import dev.firefly.simpletweaks.util.damagesource.isAuxiliaryDamage
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import net.minecraft.entity.EquipmentSlot
@@ -63,7 +64,7 @@ object EnchantAcidAttackHandler : Listenable {
         val attacker = e.source.attacker as? LivingEntity ?: return
         val target = e.entityLiving
 
-        val lvl = getItemSpecificEnchantLevel(attacker.mainHandStack, GeneratedEnchantments.ACID_ATTACK)
+        val lvl = getItemSpecificEnchantLevel(attacker.combatStack(e.source), GeneratedEnchantments.ACID_ATTACK)
         if (lvl <= 0) return
 
         val rate = 0.15f * lvl + 0.1f

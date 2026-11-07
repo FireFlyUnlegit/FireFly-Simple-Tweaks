@@ -8,6 +8,7 @@ import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.invalid
 import dev.firefly.simpletweaks.mixin.accessors.LivingEntityAccessor
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
+import dev.firefly.simpletweaks.util.combatStack
 import dev.firefly.simpletweaks.util.damagesource.CelestialDamageSources
 import dev.firefly.simpletweaks.util.damagesource.ElementDamageTypes
 import dev.firefly.simpletweaks.util.damagesource.ModDamageTypes
@@ -17,6 +18,7 @@ import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import dev.firefly.simpletweaks.util.mobs.MobElements
 import net.minecraft.entity.EquipmentSlot
 import net.minecraft.entity.LivingEntity
+import net.minecraft.entity.damage.DamageSource
 import net.minecraft.entity.mob.MobEntity
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.registry.tag.DamageTypeTags
@@ -266,8 +268,7 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
      * reported as `outcome=multiple-conversions` instead of silently changing which element the player
      * gets.
      */
-    fun conversionOf(attacker: PlayerEntity): Conversion? {
-        val stack = attacker.mainHandStack
+    fun conversionOf(attacker: PlayerEntity, stack: ItemStack = attacker.mainHandStack): Conversion? {
         var found: Conversion? = null
         for (element in ElementType.CONVERTIBLE) {
             // `physical_conversion` is the exception: PHYSICAL is the default element, so a physical
@@ -400,9 +401,12 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
         // already elemental (a fire weapon on a fire hit, an arrow from a fire arrow, ...). Reading it
         // inside the conversion branch only would make the enchantment silently do nothing to any
         // player who is not carrying one of the eight conversions — the "键存在 ≠ 有人读它" shape.
-        val mastery = masteryMultiplier(masteryLevel(attacker.mainHandStack))
+        // The weapon **that fired this shot**, not whatever is in hand now: swapping to a
+        // strong melee weapon after releasing the bow must not upgrade the arrow in flight.
+        val weapon = attacker.combatStack(e.source)
+        val mastery = masteryMultiplier(masteryLevel(weapon))
 
-        val conversion = conversionOf(attacker)
+        val conversion = conversionOf(attacker, weapon)
 
         if (conversion == null) {
             // No conversion enchantment. Two things can still happen here:
@@ -737,7 +741,7 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
         val wardReduction = wardReduction(e.entityLiving)
         val mob = e.entityLiving as? MobEntity
         val mobReduction = if (mob != null) MobElements.resistanceFor(mob, element) else 0f
-        val penetration = penetrationOf(e.source.attacker as? LivingEntity)
+        val penetration = penetrationOf(e.source.attacker as? LivingEntity, e.source)
 
         val mitigated = 1.0f - (1.0f - enchantReduction) * (1.0f - mobReduction) * (1.0f - wardReduction)
         val effective = (mitigated * (1.0f - penetration)).coerceIn(0f, 0.95f)
@@ -778,10 +782,15 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
         return if (lvl <= 0) 0f else (WARD_PER_LEVEL * lvl).coerceAtMost(WARD_CAP)
     }
 
-    /** `elemental_resonance` level from [attacker]'s main hand (reaction damage only). */
-    fun resonanceOf(attacker: LivingEntity?): Int =
+    /**
+     * `elemental_resonance` level from the weapon **that dealt this hit** (reaction damage only).
+     *
+     * [source] is threaded through so an arrow uses the bow it was fired with; `null` means "no source
+     * available" (the caller could not supply one), which falls back to the main hand.
+     */
+    fun resonanceOf(attacker: LivingEntity?, source: DamageSource? = null): Int =
         if (attacker == null) 0
-        else getItemSpecificEnchantLevel(attacker.mainHandStack, GeneratedEnchantments.ELEMENTAL_RESONANCE)
+        else getItemSpecificEnchantLevel(attacker.combatStack(source), GeneratedEnchantments.ELEMENTAL_RESONANCE)
 
     /** Reaction damage multiplier from `elemental_resonance`, capped. */
     fun resonanceMultiplier(attacker: LivingEntity?): Float {
@@ -789,10 +798,10 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
         return 1.0f + if (lvl <= 0) 0f else (RESONANCE_PER_LEVEL * lvl).coerceAtMost(RESONANCE_CAP)
     }
 
-    /** `elemental_penetration` level from [attacker]'s main hand. */
-    fun penetrationOf(attacker: LivingEntity?): Float {
+    /** `elemental_penetration` level from the weapon that dealt this hit (see [resonanceOf]). */
+    fun penetrationOf(attacker: LivingEntity?, source: DamageSource? = null): Float {
         if (attacker == null) return 0f
-        val lvl = getItemSpecificEnchantLevel(attacker.mainHandStack, GeneratedEnchantments.ELEMENTAL_PENETRATION)
+        val lvl = getItemSpecificEnchantLevel(attacker.combatStack(source), GeneratedEnchantments.ELEMENTAL_PENETRATION)
         return if (lvl <= 0) 0f else (PENETRATION_PER_LEVEL * lvl).coerceAtMost(PENETRATION_CAP)
     }
 

@@ -5,6 +5,7 @@ import dev.firefly.simpletweaks.compat.event.LivingHurtEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.invalid
 import dev.firefly.simpletweaks.core.Listenable
+import dev.firefly.simpletweaks.util.combatStack
 import dev.firefly.simpletweaks.util.damagesource.isAuxiliaryDamage
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import dev.firefly.simpletweaks.util.runPlayerAttack
@@ -77,7 +78,7 @@ object EnchantAoeAttackHandler : Listenable {
         val attacker = e.source.attacker as? PlayerEntity ?: return
         val target = e.entityLiving ?: return
 
-        val lvl = getItemSpecificEnchantLevel(attacker.mainHandStack, GeneratedEnchantments.AOE_ATTACK)
+        val lvl = getItemSpecificEnchantLevel(attacker.combatStack(e.source), GeneratedEnchantments.AOE_ATTACK)
         if (lvl <= 0) return
 
         val box = target.boundingBox.expand((0.5 * lvl).coerceAtMost(2.0))

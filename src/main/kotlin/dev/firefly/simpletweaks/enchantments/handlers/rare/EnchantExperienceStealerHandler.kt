@@ -8,6 +8,7 @@ import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.invalid
 import dev.firefly.simpletweaks.compat.target
 import dev.firefly.simpletweaks.core.Listenable
+import dev.firefly.simpletweaks.util.combatStack
 import dev.firefly.simpletweaks.util.damagesource.isAuxiliaryDamage
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import net.minecraft.entity.player.PlayerEntity
@@ -65,7 +66,7 @@ object EnchantExperienceStealerHandler : Listenable {
         if (e.source.isAuxiliaryDamage()) return
         if (e.invalid) return
         val atk = e.attacker ?: return
-        val lvl = getItemSpecificEnchantLevel(atk.mainHandStack, GeneratedEnchantments.EXPERIENCE_STEALER)
+        val lvl = getItemSpecificEnchantLevel(atk.combatStack(e.source), GeneratedEnchantments.EXPERIENCE_STEALER)
         if (lvl <= 0) return
 
         val raw = e.amount * 0.1f * lvl

@@ -7,6 +7,7 @@ import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.invalid
 import dev.firefly.simpletweaks.compat.target
 import dev.firefly.simpletweaks.core.Listenable
+import dev.firefly.simpletweaks.util.combatStack
 import dev.firefly.simpletweaks.util.damagesource.isAuxiliaryDamage
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import net.minecraft.util.math.Vec3d
@@ -65,7 +66,7 @@ object EnchantSuperKnockbackHandler : Listenable {
         val attacker =e.attacker ?: return
         val target = e.target
         val lvl = getItemSpecificEnchantLevel(
-            itemStack = attacker.mainHandStack,
+            itemStack = attacker.combatStack(e.source),
             key = GeneratedEnchantments.SUPER_KNOCKBACK
         )
         if (lvl>0) {
