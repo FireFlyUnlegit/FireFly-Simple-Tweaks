@@ -3,6 +3,7 @@ package dev.firefly.simpletweaks.util
 import dev.firefly.simpletweaks.compat.EventSeams
 import net.minecraft.entity.EquipmentSlot
 import net.minecraft.entity.LivingEntity
+import net.minecraft.entity.attribute.EntityAttributes
 import net.minecraft.entity.damage.DamageSource
 import net.minecraft.entity.effect.StatusEffects
 import net.minecraft.entity.player.PlayerEntity
@@ -159,7 +160,7 @@ val PlayerEntity.attackCharge: Float
  *     figure.
  *
  * ✅ **The crit block is no longer inert** (it was, until the `CriticalHitEvent` seam landed). It now
- * calls [dev.firefly.simpletweaks.compat.EventSeams.forgeCriticalHit], which is a line-for-line
+ * calls [EventSeams.forgeCriticalHit], which is a line-for-line
  * reproduction of `ForgeHooks.getCriticalHit`, so `allowCrit` and a handler's `damageModifier` change
  * both take effect. `vanillaCrit` comes from [canCrit], a port of the 1.12.2 helper.
  *
@@ -217,3 +218,5 @@ fun PlayerEntity.canCrit(): Boolean =
         !this.hasVehicle() &&
         !this.isSprinting
 
+val LivingEntity.armorToughness: Double
+    get() = this.getAttributeValue(EntityAttributes.GENERIC_ARMOR_TOUGHNESS)

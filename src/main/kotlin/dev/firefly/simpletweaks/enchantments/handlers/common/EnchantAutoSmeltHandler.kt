@@ -6,7 +6,7 @@ import dev.firefly.simpletweaks.compat.event.BlockEvent
 import dev.firefly.simpletweaks.compat.event.EventPriority
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.core.Listenable
-import dev.firefly.simpletweaks.enchantments.ModEnchantmentKeys
+import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import net.minecraft.enchantment.Enchantment
 import net.minecraft.entity.EquipmentSlot
@@ -17,6 +17,10 @@ import net.minecraft.registry.RegistryKey
 import net.minecraft.registry.RegistryKeys
 import net.minecraft.server.world.ServerWorld
 import net.minecraft.util.Identifier
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
+import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 
 /**
  * 1.21 port of `enchantments/handlers/common/EnchantAutoSmeltHandler.kt`.
@@ -27,7 +31,7 @@ import net.minecraft.util.Identifier
  * | `net.minecraftforge.event.world.BlockEvent.HarvestDropsEvent` | `compat.event.BlockEvent.HarvestDropsEvent` (mixin seam, see below) |
  * | `e.harvester`                                            | `e.harvester` (same name)                                            |
  * | `e.drops`                                                | `e.drops` — `MutableList<ItemStack>`, same mutation style             |
- * | `EnchantAutoSmelt` (Enchantment object)                  | `ModEnchantmentKeys.AUTO_SMELT` (RegistryKey)                        |
+ * | `EnchantAutoSmelt` (Enchantment object)                  | `GeneratedEnchantments.AUTO_SMELT` (RegistryKey)                        |
  * | `Enchantments.SILK_TOUCH`                                | `SILK_TOUCH` registry key built from `Identifier.ofVanilla`          |
  * | `FurnaceRecipes.instance().getSmeltingResult(drop)`      | `world.recipeManager.getFirstMatch(RecipeType.SMELTING, input, world)` |
  * | `FurnaceRecipes.instance().getSmeltingExperience(drop)`  | `AbstractCookingRecipe#getExperience()` (`method_8171`)              |
@@ -44,6 +48,18 @@ import net.minecraft.util.Identifier
  *    this handler got a real mixin seam instead of a data-only `LootTableEvents.MODIFY` rewrite
  *    (a loot function is a pure item transform and could express neither).
  */
+@ModEnchantment(
+    id = "auto_smelt",
+    category = EnchantCategory.COMMON,
+    type = EnchantType.TOOL,
+    maxLevel = 1,
+    weight = 10,
+    anvilCost = 2,
+    minCostBase = 20,
+    supportedItems = "#minecraft:enchantable/mining",
+    slots = [EnchantSlot.MAINHAND],
+    order = 2,
+)
 object EnchantAutoSmeltHandler : Listenable {
 
     /** 1.12.2 referenced the `Enchantments.SILK_TOUCH` object; 1.21 only exposes registry keys. */
@@ -54,7 +70,7 @@ object EnchantAutoSmeltHandler : Listenable {
     fun onHarvestDrops(e: BlockEvent.HarvestDropsEvent) {
         val player = e.harvester ?: return
         val tool = player.mainHandStack
-        if (getItemSpecificEnchantLevel(tool, ModEnchantmentKeys.AUTO_SMELT) <= 0) return
+        if (getItemSpecificEnchantLevel(tool, GeneratedEnchantments.AUTO_SMELT) <= 0) return
 
         if (getItemSpecificEnchantLevel(tool, SILK_TOUCH) > 0) return
 
@@ -89,7 +105,7 @@ object EnchantAutoSmeltHandler : Listenable {
 
         if (smeltedCount > 0) {
             STLog.log("AutoSmelt") {
-                "player=${player.name.string}, lvl=${getItemSpecificEnchantLevel(tool, ModEnchantmentKeys.AUTO_SMELT)}, " +
+                "player=${player.name.string}, lvl=${getItemSpecificEnchantLevel(tool, GeneratedEnchantments.AUTO_SMELT)}, " +
                     "smelted=$smeltedCount/${drops.size}, exp=$totalExp, toolDamage=${tool.damage}"
             }
         }

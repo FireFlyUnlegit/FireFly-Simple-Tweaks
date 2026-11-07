@@ -5,7 +5,6 @@ import dev.firefly.simpletweaks.compat.WorldSide
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.event.TickEvent
 import dev.firefly.simpletweaks.core.Listenable
-import dev.firefly.simpletweaks.enchantments.ModEnchantmentKeys
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import net.minecraft.component.DataComponentTypes
 import net.minecraft.component.type.ItemEnchantmentsComponent
@@ -13,6 +12,11 @@ import net.minecraft.enchantment.EnchantmentHelper
 import net.minecraft.entity.player.PlayerInventory
 import net.minecraft.item.ItemStack
 import net.minecraft.item.Items
+import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
+import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
+import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 
 /**
  * 1.21 port of `enchantments/handlers/unique/EnchantReForgeHandler.kt`.
@@ -23,7 +27,7 @@ import net.minecraft.item.Items
  * | `net.minecraftforge...TickEvent`                          | `compat.event.TickEvent`                                               |
  * | `net.minecraftforge...SubscribeEvent`                     | `compat.event.SubscribeEvent`                                          |
  * | `p.world.isRemote`                                        | `WorldSide.isClient(p.world)` (field_9236 is a FIELD, see MIGRATION)   |
- * | `EnchantReForge` (Enchantment object)                     | `ModEnchantmentKeys.REFORGE` (RegistryKey; id is `reforge`, not `re_forge`) |
+ * | `EnchantReForge` (Enchantment object)                     | `GeneratedEnchantments.REFORGE` (RegistryKey; id is `reforge`, not `re_forge`) |
  * | `EnchantmentHelper.getEnchantments(stack)` (mutable map)  | `EnchantmentHelper.getEnchantments(stack)` -> immutable `ItemEnchantmentsComponent` |
  * | `enchants.remove(EnchantReForge)` + `setEnchantments(...)`| `ItemEnchantmentsComponent.Builder(enchants).remove { it.matchesKey(REFORGE) }` + `EnchantmentHelper.set(stack, ...)` |
  * | `stack.tagCompound.removeTag("RepairCost")` / `tag.isEmpty`| `stack.remove(DataComponentTypes.REPAIR_COST)`                        |
@@ -47,6 +51,25 @@ import net.minecraft.item.Items
  * The 1.12.2 guard `if (stack.item == Items.ENCHANTED_BOOK) continue` is preserved verbatim: an
  * enchanted book carries the `reforge` enchantment but must not have it stripped.
  */
+@ModEnchantment(
+    id = "reforge",
+    category = EnchantCategory.UNIQUE,
+    type = EnchantType.BREAKABLE,
+    maxLevel = 1,
+    weight = 1,
+    anvilCost = 2,
+    minCostBase = 1,
+    minCostPerLevel = 1,
+    supportedItems = "#minecraft:enchantable/durability",
+    slots = [EnchantSlot.ANY],
+    order = 52,
+    // This declaration does NOT own the datapack JSON. `reforge` is a treasure enchantment, and the 1.12.2
+    // generator wrote no `primary_items` field for those -- something this processor cannot express, since
+    // it always emits the key. So the hand-written
+    // `src/main/resources/data/simple_tweaks/enchantment/reforge.json` stays authoritative, and the fields
+    // above are documentation of what it contains: change one, change the other.
+    jsonEmit = false,
+)
 object EnchantReForgeHandler : Listenable {
 
     @SubscribeEvent
@@ -73,14 +96,14 @@ object EnchantReForgeHandler : Listenable {
             val stack = list[i]
             if (stack.isEmpty) continue
             if (stack.item == Items.ENCHANTED_BOOK) continue
-            if (getItemSpecificEnchantLevel(stack, ModEnchantmentKeys.REFORGE) <= 0) continue
+            if (getItemSpecificEnchantLevel(stack, GeneratedEnchantments.REFORGE) <= 0) continue
 
             // 1.12.2: `val enchants = EnchantmentHelper.getEnchantments(stack)`;
             //          `enchants.remove(EnchantReForge)`; `EnchantmentHelper.setEnchantments(enchants, stack)`.
             // 1.21: the component is immutable, so rebuild it with the same one entry dropped.
             val enchants = EnchantmentHelper.getEnchantments(stack)
             val builder = ItemEnchantmentsComponent.Builder(enchants)
-            builder.remove { it.matchesKey(ModEnchantmentKeys.REFORGE) }
+            builder.remove { it.matchesKey(GeneratedEnchantments.REFORGE) }
             EnchantmentHelper.set(stack, builder.build())
 
             // 1.12.2: `val tag = stack.tagCompound ?: continue; tag.removeTag("RepairCost")`.

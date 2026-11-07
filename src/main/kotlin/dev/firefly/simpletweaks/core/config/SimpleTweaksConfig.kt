@@ -72,14 +72,12 @@ object SimpleTweaksConfig {
 
         SimpleTweaks.LOGGER.info(
             "Config loaded from {} (anvilLimit={}, enchantTableLimit={}, damageIndicator={}, " +
-                "cancelVanillaDmgIndicator={}, noFov={}@{})",
+                "cancelVanillaDmgIndicator={})",
             path,
             GeneralConfig.disableAnvilCostLimit,
             GeneralConfig.disableEnchantmentTableLimit,
             DamageIndicatorConfig.enabled,
-            GeneralConfig.cancelVanillaDamageIndicator,
-            GeneralConfig.noFovEnabled,
-            GeneralConfig.noFovValue
+            GeneralConfig.cancelVanillaDamageIndicator
         )
     }
 
@@ -93,11 +91,6 @@ object SimpleTweaksConfig {
         GeneralConfig.maxEnchantmentPower = s.int("maxEnchantmentPower", 15).coerceAtLeast(1)
         GeneralConfig.enabledEnchantmentColor = s.bool("enabledEnchantmentColor", true)
         GeneralConfig.enabledSpecialParticles = s.bool("enabledSpecialParticles", true)
-        GeneralConfig.anvilDisenchant = s.bool("anvilDisenchant", true)
-        // NoFOV: bounds 30..120 are 1.12.2's `float("Fov", 90f, 30f, 120f)` range, clamped on load
-        // exactly like the Forge `@RangeDouble` used to clamp a hand-edited `.cfg`.
-        GeneralConfig.noFovEnabled = s.bool("noFovEnabled", false)
-        GeneralConfig.noFovValue = s.dbl("noFovValue", 90.0).coerceIn(30.0, 120.0).toFloat()
         GeneralConfig.autoSprintEnabled = s.bool("autoSprintEnabled", false)
         GeneralConfig.autoSprintOmniSprint = s.bool("autoSprintOmniSprint", false)
     }
@@ -142,9 +135,6 @@ object SimpleTweaksConfig {
             addProperty("maxEnchantmentPower", GeneralConfig.maxEnchantmentPower)
             addProperty("enabledEnchantmentColor", GeneralConfig.enabledEnchantmentColor)
             addProperty("enabledSpecialParticles", GeneralConfig.enabledSpecialParticles)
-            addProperty("anvilDisenchant", GeneralConfig.anvilDisenchant)
-            addProperty("noFovEnabled", GeneralConfig.noFovEnabled)
-            addProperty("noFovValue", GeneralConfig.noFovValue)
             addProperty("autoSprintEnabled", GeneralConfig.autoSprintEnabled)
             addProperty("autoSprintOmniSprint", GeneralConfig.autoSprintOmniSprint)
         }

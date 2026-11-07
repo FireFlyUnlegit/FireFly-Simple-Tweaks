@@ -5,6 +5,7 @@ import dev.firefly.simpletweaks.network.packets.PacketCelestialRing
 import dev.firefly.simpletweaks.network.packets.PacketDamageIndicator
 import dev.firefly.simpletweaks.network.packets.PacketLaser
 import dev.firefly.simpletweaks.network.packets.PacketManaPoolSync
+import dev.firefly.simpletweaks.network.packets.PacketOpenModScreen
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking
 import net.minecraft.network.packet.CustomPayload
@@ -59,6 +60,10 @@ object NetworkManager {
         // CelestialBlessing (`mystery` tier) — see docs/phase6-client-notes.md §22.
         PayloadTypeRegistry.playS2C().register(PacketCelestialRing.ID, PacketCelestialRing.CODEC)
         PayloadTypeRegistry.playS2C().register(PacketManaPoolSync.ID, PacketManaPoolSync.CODEC)
+        // `stconfig` / `enchantinfo` open client-only screens, but every command now lives in the
+        // SERVER tree (a client-registered root name shadows the server's children -- see
+        // ScreenCommands), so the server asks the client to open them.
+        PayloadTypeRegistry.playS2C().register(PacketOpenModScreen.ID, PacketOpenModScreen.CODEC)
         // InfinitePower laser — the project's FIRST C2S payload. See docs/infinite-power-deferred.md §9.
         PayloadTypeRegistry.playC2S().register(PacketLaser.ID, PacketLaser.CODEC)
     }
