@@ -10,6 +10,7 @@ import dev.firefly.simpletweaks.util.elements.ElementAuras
 import dev.firefly.simpletweaks.util.elements.ElementCombat
 import dev.firefly.simpletweaks.util.elements.ElementMarks
 import dev.firefly.simpletweaks.util.elements.ElementReactions
+import dev.firefly.simpletweaks.util.elements.ElementType
 import dev.firefly.simpletweaks.util.elements.ReactionMemory
 import net.minecraft.entity.player.PlayerEntity
 
@@ -28,6 +29,13 @@ import net.minecraft.entity.player.PlayerEntity
  *
  * This is what makes the enchantment MYSTERY rather than "a defensive stat": it turns everything the elemental
  * system throws at you into ammunition, and the ammunition's *kind* is decided by what actually hit you.
+ *
+ * ## Third half — free elemental riders
+ * Each hit also carries `5 %` of its damage as a **converted elemental rider**, `floor(total level / 10)` times
+ * (0 at 1–9 levels, 1 at 10–19, 2 at 20). These riders are *extra* damage — the original hit is not reduced —
+ * and each one goes through `recordAndReact`, so it can start a reaction on whatever aura the target already
+ * has. The element is picked at random from the eight, which is what makes it "some element" rather than a
+ * fixed conversion.
  *
  * ## Why the replay goes through `ElementMarks` and not raw damage
  * Replaying the reaction through the engine means the replay gets the same amplification / transformative maths,
@@ -59,6 +67,12 @@ object EnchantElementalSupremacyHandler : Listenable {
 
     /** Aura units the replay attaches before triggering, so even an empty target reacts. */
     private const val REPLAY_AURA = ElementAuras.STRONG
+
+    /** Share of the hit that each free elemental rider carries. */
+    private const val RIDER_SHARE = 0.05f
+
+    /** Total enchantment levels needed per extra rider (floor). */
+    private const val RIDER_LEVELS_EACH = 10
 
     @SubscribeEvent
     fun onLivingHurt(e: LivingHurtEvent) {
@@ -93,9 +107,26 @@ object EnchantElementalSupremacyHandler : Listenable {
             replayed++
         }
 
+        // Free elemental riders: extra damage, never a reduction of this hit. Count scales with the total
+        // level, so a single level-5 piece (5) gets none and a full set (20) gets two.
+        val riders = ReactionMemory.totalLevel(attacker) / RIDER_LEVELS_EACH
+        repeat(riders) {
+            val pool = ElementType.CONVERTIBLE
+            val element = pool[target.world.random.nextInt(pool.size)]
+            ElementMarks.recordAndReact(
+                attacker,
+                target,
+                element,
+                e.amount * RIDER_SHARE,
+                units = ElementAuras.WEAK,
+                forceAttach = false,
+                source = e.source,
+            )
+        }
+
         FSTLog.log("Supremacy") {
             "target=${target.type.name.string}, replay=${remembered.joinToString(",")}, " +
-                "replayed=$replayed, base=${"%.2f".format(base)}, outcome=returned"
+                "replayed=$replayed, base=${"%.2f".format(base)}, riders=$riders, outcome=returned"
         }
     }
 }

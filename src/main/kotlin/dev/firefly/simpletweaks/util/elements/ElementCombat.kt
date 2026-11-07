@@ -111,8 +111,8 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
     const val PROTECTION_PER_LEVEL = 0.04f
     const val PROTECTION_CAP = 0.80f
     /** Per total level of `elemental_supremacy`: its own mitigation share (see [supremacyReduction]). */
-    const val SUPREMACY_PER_LEVEL = 0.05f
-    const val SUPREMACY_CAP = 0.25f
+    const val SUPREMACY_PER_LEVEL = 0.025f
+    const val SUPREMACY_CAP = 0.50f
 
     // ---------------------------------------------------------------- mastery tuning
 
@@ -918,7 +918,11 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
     }
 
     /**
-     * `elemental_supremacy`'s own mitigation: `5 % × total level`, capped at 25 %.
+     * `elemental_supremacy`'s own mitigation: `2.5 % × total level`, capped at 50 %.
+     *
+     * At full investment (level 5 on all four pieces = 20 total levels, plus a maxed affinity on those same
+     * pieces) the two sources compose to `1 − (1 − 0.80) × (1 − 0.50) = 90 %` elemental damage reduction:
+     * the "max level is 90 %" figure the author asked for.
      *
      * Deliberately separate from [protectionLevel]: the 80 % affinity cap is a promise the rest of the elemental
      * system relies on, so supremacy must not quietly raise it. Instead it contributes one more multiplicative

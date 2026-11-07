@@ -228,7 +228,7 @@ A 100-damage hit: armour 26 → 17 taken; armour 40 → 10 taken.
 | **Skyfall** | holding the mace cancels fall damage; a hit carrying fall distance sends a `15% × level` shockwave to every other enemy within `2 + level` blocks |
 | **Sunder** | a mace blow goes straight **through a raised shield** (that hit lands unprotected) and costs `4 × level` extra shield durability |
 | **Quake** | interrupts a target that is **using an item** (bow draw / shield / potion / food) and puts that item on a 1 s cooldown |
-| **Elemental Supremacy** | (1) your **highest** elemental affinity defends against **all eight** elements (maximum, never summed). (2) elemental damage taken is cut by a further `5% × total level` (max 25%), **multiplied** with the affinity so it never reaches 100%. (3) every reaction that hits you is remembered, capacity = total armour level / 2 (max 10), and your **next hit** replays all of them onto the target, each at 40% of that hit |
+| **Elemental Supremacy** | (1) your **highest** elemental affinity defends against **all eight** elements (maximum, never summed). (2) a further `2.5% × total level` (max 50%) elemental reduction, multiplied with the affinity — **90% total at a full set with maxed affinity**. (3) every hit carries an extra `5%` of its damage as an elemental conversion (the hit itself is not reduced), once per 10 total levels (2 at a full set), random element, can start a reaction. (4) every reaction that hits you is remembered, capacity = total armour level / 2 (max 10), and your **next hit** replays all of them, each at 40% of that hit |
 
 ### 🎮 Client features
 
