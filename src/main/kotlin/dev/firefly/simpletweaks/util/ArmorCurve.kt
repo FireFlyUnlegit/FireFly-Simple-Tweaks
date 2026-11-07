@@ -1,7 +1,6 @@
 package dev.firefly.simpletweaks.util
 
 import net.minecraft.entity.LivingEntity
-import net.minecraft.entity.player.PlayerEntity
 
 /**
  * The **armour curve** — what a point of armour is worth above vanilla's wall.
@@ -52,9 +51,13 @@ import net.minecraft.entity.player.PlayerEntity
  *
  * ## Who it applies to
  *
- * **Players only.** Mobs get `+1 armour per level` (`MobLevels.ARMOR_PER_LEVEL`) with no ceiling; a flat
- * reduction scaled by that would make a level-40 zombie immune to a wooden sword. Mobs keep vanilla's
- * 20-point wall and scale through health instead.
+ * **Everyone** — players *and* mobs (`build=cleanup27`).
+ *
+ * The first revision gated this on players, reasoning that mob armour grows with level and a flat
+ * reduction would trivialise low-damage weapons. The author's reply: *"都 40 级怪物了玩家怎么可能用木剑"* —
+ * i.e. a mob that has reached the armour wall has also reached the stage where a wooden sword is not the
+ * answer, so letting the overflow armour matter is the point, not an exploit. The 75 % flat ceiling is
+ * what keeps it bounded.
  */
 object ArmorCurve {
 
@@ -101,6 +104,12 @@ object ArmorCurve {
         return 1.0f - taken / damage
     }
 
-    /** True when [entity] is the kind of entity this curve is meant for. */
-    fun appliesTo(entity: LivingEntity): Boolean = entity is PlayerEntity
+    /**
+     * Every living entity — see the "Who it applies to" note in the class KDoc.
+     *
+     * Kept as a predicate rather than deleted so the call site in `DamageUtilMixin` reads as
+     * "is this an entity we reform?" instead of an unexplained unconditional block, and so a future
+     * whitelist/blacklist (e.g. bosses with hand-tuned defence) has one obvious home.
+     */
+    fun appliesTo(entity: LivingEntity): Boolean = true
 }

@@ -7,6 +7,8 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder
 import com.mojang.brigadier.context.CommandContext
 import com.mojang.brigadier.exceptions.Dynamic2CommandExceptionType
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType
+import dev.firefly.simpletweaks.core.config.SimpleTweaksConfig
+import dev.firefly.simpletweaks.core.config.MobEnhancementConfig
 import dev.firefly.simpletweaks.compat.FSTLog
 import dev.firefly.simpletweaks.util.mobs.MobLevels
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback
@@ -173,6 +175,7 @@ object EnchantCommand {
                         )
                 )
                 .then(difficultyNode())
+            .then(DebugItemCommand.node())
         )
 
     /**
@@ -209,21 +212,91 @@ object EnchantCommand {
                         reportDifficulty(ctx.source)
                     }
             )
+            // ---- cleanup27: persisted knob + a report of the *computed* number ----------------
+            .then(
+                CommandManager.literal("check")
+                    .executes { ctx -> reportComputedDifficulty(ctx.source) }
+            )
+            .then(
+                CommandManager.literal("modify")
+                    .executes { ctx -> reportComputedDifficulty(ctx.source) }
+                    // `modify <delta>` **adds** to the persistent modifier; negative values are legal, so
+                    // the same node both raises and lowers it.
+                    .then(
+                        CommandManager.argument("delta", FloatArgumentType.floatArg(-100f, 100f))
+                            .executes { ctx ->
+                                val delta = FloatArgumentType.getFloat(ctx, "delta")
+                                MobEnhancementConfig.difficultyModifier =
+                                    (MobEnhancementConfig.difficultyModifier + delta)
+                                        .coerceIn(-100f, 1000f)
+                                SimpleTweaksConfig.save()
+                                reportComputedDifficulty(ctx.source)
+                            }
+                    )
+                    .then(
+                        CommandManager.literal("clear")
+                            .executes { ctx ->
+                                MobEnhancementConfig.difficultyModifier = 0f
+                                SimpleTweaksConfig.save()
+                                reportComputedDifficulty(ctx.source)
+                            }
+                    )
+            )
+            .then(
+                CommandManager.literal("show")
+                    .executes { ctx -> reportComputedDifficulty(ctx.source) }
+            )
 
     /**
      * Prints the current offset **and what it maps to**, because the offset alone does not tell the author
      * whether the value they picked is interesting: `level = 1 + floor(difficulty / 0.30)` is the thing
-     * they are actually tuning.
+     * they are actually tuning. The persistent `/fst difficulty modify` value is printed next to it so
+     * the two knobs can never be confused for one another.
      */
     private fun reportDifficulty(source: ServerCommandSource): Int {
         val offset = MobLevels.difficultyOffset
-        val level = MobLevels.averageLevelFor(offset)
+        val modifier = MobEnhancementConfig.difficultyModifier
+        val level = MobLevels.averageLevelFor((offset + modifier).coerceAtLeast(0f))
         source.sendFeedback(
             {
-                Text.translatable(
-                    KEY_DIFFICULTY,
-                    "%.2f".format(offset),
-                    level,
+                Text.literal(
+                    "[FST] session offset=${"%.2f".format(offset)} " +
+                        "persistent modify=${"%.2f".format(modifier)} " +
+                        "(sum -> level $level; `/fst difficulty check` shows the full computed number)"
+                )
+            },
+            false,
+        )
+        return level
+    }
+
+    /**
+     * The **computed** number a mob would spawn with right here, which is the only figure that answers
+     * "is my difficulty actually doing anything".
+     *
+     * Reports every term separately, because a single total cannot tell the author whether the world
+     * term, their persistent `modify`, or their gear is doing the work:
+     *
+     * ```text
+     * localDifficulty=0.13  base=0.00  offset=0.00  modify=2.00  playerPower=4.20 -> effective=10.40  level=35
+     * ```
+     */
+    private fun reportComputedDifficulty(source: ServerCommandSource): Int {
+        val world = source.world
+        val pos = source.player?.blockPos ?: net.minecraft.util.math.BlockPos.ORIGIN
+        val effective = MobLevels.previewDifficulty(world, pos, source.player)
+        val level = MobLevels.averageLevelFor(effective)
+        val local = world.getLocalDifficulty(pos).localDifficulty
+        val base = MobLevels.baseDifficulty(local)
+        val power = effective - base
+        source.sendFeedback(
+            {
+                Text.literal(
+                    "[FST] localDifficulty=${"%.2f".format(local)} base=${"%.2f".format(base)} " +
+                        "offset=${"%.2f".format(MobLevels.difficultyOffset)} " +
+                        "modify=${"%.2f".format(MobEnhancementConfig.difficultyModifier)} " +
+                        "playerPower=${"%.2f".format(power)} -> effective=${"%.2f".format(effective)} " +
+                        "level=$level"
                 )
             },
             false,
