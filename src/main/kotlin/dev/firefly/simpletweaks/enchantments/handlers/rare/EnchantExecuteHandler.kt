@@ -5,6 +5,7 @@ import dev.firefly.simpletweaks.compat.event.LivingHurtEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.invalid
 import dev.firefly.simpletweaks.core.Listenable
+import dev.firefly.simpletweaks.util.combatStack
 import dev.firefly.simpletweaks.util.damagesource.isAuxiliaryDamage
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import net.minecraft.entity.LivingEntity
@@ -53,7 +54,7 @@ object EnchantExecuteHandler : Listenable {
         if (e.invalid) return
         val attacker = (e.source.attacker as? LivingEntity)?: return
         val target = e.entityLiving
-        val lvl = getItemSpecificEnchantLevel(attacker.mainHandStack, GeneratedEnchantments.EXECUTE)
+        val lvl = getItemSpecificEnchantLevel(attacker.combatStack(e.source), GeneratedEnchantments.EXECUTE)
         if (lvl > 0) {
             val lostHealth = ((target.maxHealth + target.absorptionAmount) - (target.health+ target.absorptionAmount)) * 0.02f * lvl
             val damageBefore = e.amount

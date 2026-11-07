@@ -5,6 +5,7 @@ import dev.firefly.simpletweaks.compat.event.LivingHurtEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.invalid
 import dev.firefly.simpletweaks.core.Listenable
+import dev.firefly.simpletweaks.util.combatStack
 import dev.firefly.simpletweaks.util.damagesource.isAuxiliaryDamage
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import net.minecraft.entity.LivingEntity
@@ -61,7 +62,7 @@ object EnchantBloodLustHandler : Listenable {
         if (e.invalid) return
         val source = e.source
         val attacker = (source.attacker as? LivingEntity)?: return
-        val stack = attacker.mainHandStack
+        val stack = attacker.combatStack(e.source)
         val level = getItemSpecificEnchantLevel(stack, GeneratedEnchantments.BLOODLUST)
         if (level > 0) {
             val ratio = (attacker.maxHealth - attacker.health) / attacker.maxHealth

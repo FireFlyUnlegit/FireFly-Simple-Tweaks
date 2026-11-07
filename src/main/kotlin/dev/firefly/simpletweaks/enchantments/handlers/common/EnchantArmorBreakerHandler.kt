@@ -5,6 +5,7 @@ import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.FSTLog
 import dev.firefly.simpletweaks.compat.invalid
 import dev.firefly.simpletweaks.core.Listenable
+import dev.firefly.simpletweaks.util.combatStack
 import dev.firefly.simpletweaks.util.damagesource.isAuxiliaryDamage
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import dev.firefly.simpletweaks.util.getRandomArmor
@@ -62,7 +63,7 @@ object EnchantArmorBreakerHandler : Listenable {
         val attacker = (e.source.attacker as? LivingEntity)?: return
         val target = e.entityLiving as? PlayerEntity?: return
 
-        val lvl = getItemSpecificEnchantLevel( attacker.mainHandStack, GeneratedEnchantments.ARMOR_BREAKER)
+        val lvl = getItemSpecificEnchantLevel( attacker.combatStack(e.source), GeneratedEnchantments.ARMOR_BREAKER)
         val rate = 0.15 * lvl + 0.1
         if (lvl > 0 && rate > nextFloat()) {
             val armor = target.getRandomArmor()

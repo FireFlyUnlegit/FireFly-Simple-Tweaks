@@ -14,6 +14,7 @@ import dev.firefly.simpletweaks.enchantments.annotations.EnchantSupportedItemTag
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
+import dev.firefly.simpletweaks.util.combatStack
 import dev.firefly.simpletweaks.util.damagesource.isAuxiliaryDamage
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import net.minecraft.entity.LivingEntity
@@ -84,7 +85,7 @@ object EnchantGrievousWoundsHandler : Listenable {
         val attacker = e.source.attacker as? PlayerEntity ?: return
         if (attacker === target) return
 
-        val lvl = getItemSpecificEnchantLevel(attacker.mainHandStack, GeneratedEnchantments.GRIEVOUS_WOUNDS)
+        val lvl = getItemSpecificEnchantLevel(attacker.combatStack(e.source), GeneratedEnchantments.GRIEVOUS_WOUNDS)
         if (lvl <= 0) return
 
         val ratio = (0.2f * lvl).coerceAtMost(1.0f)

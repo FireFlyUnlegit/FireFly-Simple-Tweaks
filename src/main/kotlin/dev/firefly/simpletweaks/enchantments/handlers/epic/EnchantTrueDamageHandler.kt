@@ -8,6 +8,7 @@ import dev.firefly.simpletweaks.compat.event.PlayerEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.invalid
 import dev.firefly.simpletweaks.core.Listenable
+import dev.firefly.simpletweaks.util.combatStack
 import dev.firefly.simpletweaks.util.damagesource.isAuxiliaryDamage
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import java.util.*
@@ -64,7 +65,7 @@ object EnchantTrueDamageHandler : Listenable {
         if (e.source.isAuxiliaryDamage()) return
         val attacker = e.attacker?: return
         val aid = attacker.uuid
-        val lvl = getItemSpecificEnchantLevel(attacker.mainHandStack, GeneratedEnchantments.TRUE_DAMAGE)
+        val lvl = getItemSpecificEnchantLevel(attacker.combatStack(e.source), GeneratedEnchantments.TRUE_DAMAGE)
         if (lvl > 0) {
             val addition = e.amount * 0.025f * (lvl + 1).coerceAtMost(8)
             val damageBefore = e.amount
@@ -83,7 +84,7 @@ object EnchantTrueDamageHandler : Listenable {
         if (e.invalid) return
         val attacker = e.attacker?: return
         val aid = attacker.uuid
-        val lvl = getItemSpecificEnchantLevel(attacker.mainHandStack, GeneratedEnchantments.TRUE_DAMAGE)
+        val lvl = getItemSpecificEnchantLevel(attacker.combatStack(e.source), GeneratedEnchantments.TRUE_DAMAGE)
         if (lvl > 0 && damagePool[aid] != null) {
             val pooled = damagePool[aid]?: 0f
             val damageBefore = e.amount

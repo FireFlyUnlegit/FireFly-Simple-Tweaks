@@ -11,6 +11,7 @@ import dev.firefly.simpletweaks.compat.event.TickEvent
 import dev.firefly.simpletweaks.compat.invalid
 import dev.firefly.simpletweaks.compat.target
 import dev.firefly.simpletweaks.core.Listenable
+import dev.firefly.simpletweaks.util.combatStack
 import dev.firefly.simpletweaks.util.damagesource.isAuxiliaryDamage
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import dev.firefly.simpletweaks.util.syncAttributes
@@ -109,7 +110,7 @@ object EnchantComboHandler : Listenable {
         val attacker = e.attacker ?: return
         val target = e.target
 
-        val level = getItemSpecificEnchantLevel(attacker.mainHandStack, GeneratedEnchantments.COMBO)
+        val level = getItemSpecificEnchantLevel(attacker.combatStack(e.source), GeneratedEnchantments.COMBO)
         if (level <= 0) return
 
         // `combo` is the **only** thing in this mod allowed to shorten or cancel the target's i-frame

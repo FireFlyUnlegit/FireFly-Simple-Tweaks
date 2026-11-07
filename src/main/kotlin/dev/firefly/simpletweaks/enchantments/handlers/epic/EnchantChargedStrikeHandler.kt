@@ -6,6 +6,7 @@ import dev.firefly.simpletweaks.compat.event.LivingHurtEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.invalid
 import dev.firefly.simpletweaks.core.Listenable
+import dev.firefly.simpletweaks.util.combatStack
 import dev.firefly.simpletweaks.util.damagesource.isAuxiliaryDamage
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import net.minecraft.entity.player.PlayerEntity
@@ -61,7 +62,7 @@ object EnchantChargedStrikeHandler : Listenable {
         if (e.invalid) return
         val attacker = e.source.attacker as? PlayerEntity ?: return
 
-        val lvl = getItemSpecificEnchantLevel(attacker.mainHandStack, GeneratedEnchantments.CHARGED_STRIKE)
+        val lvl = getItemSpecificEnchantLevel(attacker.combatStack(e.source), GeneratedEnchantments.CHARGED_STRIKE)
         if (lvl <= 0) {
             stored.remove(attacker)
             return
