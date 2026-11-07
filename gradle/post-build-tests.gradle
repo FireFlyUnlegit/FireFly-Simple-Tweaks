@@ -243,20 +243,47 @@ tasks.register('runTest') {
                 expect(orphans.isEmpty(), 'lang keys without an enchantment JSON: ' + truncate(orphans))
             }
 
-            // `#minecraft:enchantable/durability` means "anything with durability" — mace, shield, every tool. It
-            // is correct for the UNIQUE one-shot meta items, and wrong for anything that describes a specific
-            // piece of gear: `gale_elytra` shipped on a mace because of exactly this (`build=cleanup53`).
-            check('specific-slot enchantments do not use the any-durable-item tag') {
+            // `#minecraft:enchantable/durability` means "anything with durability" — mace, shield, every tool. A
+            // gear-specific enchantment must not use it, which is how `gale_elytra` ended up on a mace
+            // (`build=cleanup53`).
+            //
+            // The first version of this check only matched the **literal** string, so every handler that used the
+            // `EnchantSupportedItemTags.DURABILITY` constant walked straight through it — `prismatic_blessing`
+            // included (the author spotted that one). It now matches the word `durability` case-insensitively
+            // (constant *or* string) and decides by **id** against an explicit allowlist, so "any durable item"
+            // has to be a deliberate, documented choice rather than an accident.
+            check('only allowlisted enchantments may accept any durable item') {
+                // Each entry is here because "any item" is the whole design, not a convenience:
+                //   prismatic_blessing : 17 attribute bonuses, type BREAKABLE, slots ANY — gear-agnostic on purpose
+                //   unbreakable        : durability is the subject; any damageable item is the point
+                //   item_fixer         : repairs whatever it is on
+                //   soul_bound         : "keep this item on death" applies to any item
+                //   reforge            : UNIQUE one-shot meta operation (consumes itself, edits the item)
+                //   extraction / infusion / reroll : the other UNIQUE one-shot meta operations
+                def allowed = [
+                    'prismatic_blessing', 'unbreakable', 'item_fixer', 'soul_bound', 'reforge',
+                    'extraction', 'infusion', 'reroll',
+                ]
                 def offenders = []
                 def handlers = fileTree('src/main/kotlin') { include '**/enchantments/handlers/**/*.kt' }
                 handlers.each { File f ->
                     def text = f.getText('UTF-8')
-                    if (!text.contains('enchantable/durability')) return
-                    if (text.contains('EnchantCategory.UNIQUE')) return
-                    offenders << f.name
+                    // Inspect the **argument**, not the prose: a KDoc that explains the durability tag (or a
+                    // comment mentioning item durability) must not trip this check. Only `supportedItems = …`
+                    // decides which items an enchantment can land on.
+                    def supported = text =~ /(?m)^\s*supportedItems\s*=\s*([^,\n]+)/
+                    if (!supported.find()) return
+                    def value = supported.group(1)
+                    if (!value.toLowerCase().contains('durability')) return
+                    // AGENTS.md §4.5: the id is the first string literal after @ModEnchantment(, never `id = "…"`.
+                    def m = text =~ /@ModEnchantment\(\s*(?:"[^"]*")\s*,\s*(?:"[^"]*")?/
+                    def idMatcher = text =~ /@ModEnchantment\([^)]*?"([^"]+)"/
+                    if (!idMatcher.find()) return
+                    def id = idMatcher.group(1)
+                    if (!allowed.contains(id)) offenders << (f.name + ' (' + id + ')')
                 }
                 expect(offenders.isEmpty(),
-                    'these enchantments are not UNIQUE but accept any durable item: ' + truncate(offenders))
+                    'these enchantments accept any durable item but are not on the allowlist: ' + truncate(offenders))
             }
 
             // Minecraft renders **none** of Markdown. A `**bold**` in a description shows up as literal
