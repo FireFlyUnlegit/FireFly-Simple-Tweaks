@@ -7,6 +7,9 @@ import dev.firefly.simpletweaks.compat.event.LivingEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.invalid
 import dev.firefly.simpletweaks.core.Listenable
+import dev.firefly.simpletweaks.util.elements.ElementCombat
+import dev.firefly.simpletweaks.util.elements.ElementMarks
+import dev.firefly.simpletweaks.util.elements.ElementType
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import net.minecraft.entity.Entity
 import net.minecraft.entity.EntityType
@@ -14,6 +17,7 @@ import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.attribute.EntityAttributeInstance
 import net.minecraft.entity.attribute.EntityAttributeModifier
 import net.minecraft.entity.attribute.EntityAttributes
+import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.nbt.NbtCompound
 import net.minecraft.particle.ParticleTypes
 import net.minecraft.server.world.ServerWorld
@@ -149,7 +153,34 @@ object EnchantHeavenlyPunishmentHandler : Listenable {
                 GeneratedEnchantments.HEAVENLY_PUNISHMENT
             )
             if (level > 0) {
-                event.amount *= 1.0f * level + 1f
+                // The extra share is dealt as its **own lightning-element hit** rather than folded into
+                // this one — author: "天罚造成的额外伤害应该算成雷霆伤害且可以打反应吧?".
+                //
+                // The old `event.amount *= level + 1` kept the same total but gave the bonus no element
+                // at all: it left no mark, could never react (`conduct` on a wet target, `overload`…),
+                // ignored `lightning_protection`, and the floating number stayed physical-red. Splitting
+                // it keeps the intended `×(level+1)` total (base + level × base) while letting the extra
+                // go through the element pipeline.
+                //
+                // Note the seam: `LivingDamageEvent` is post-armour, and element types are in
+                // `#minecraft:bypasses_armor`, so `bonus` is paid out roughly as computed here — the one
+                // thing that can shrink it is lightning resistance / `lightning_protection`, which is the
+                // point of making it an element.
+                val bonus = event.amount * level
+                if (bonus > 0f) {
+                    ElementCombat.enqueueElemental(attacker, target, ElementType.LIGHTNING, bonus)
+                    // Marks + reactions are keyed by the **attacker**, which is the wielder; a non-player
+                    // wielder simply gets the damage without the mark (the enchantment is on a sword).
+                    if (attacker is PlayerEntity) {
+                        val reaction = ElementMarks.recordAndReact(attacker, target, ElementType.LIGHTNING, bonus)
+                        if (reaction != null) {
+                            FSTLog.log("HeavenlyPunishment") {
+                                "target=${target.name.string}, reaction=$reaction, bonus=$bonus, " +
+                                    "outcome=lightning-reaction"
+                            }
+                        }
+                    }
+                }
 
                 val data: NbtCompound = target.data()
                 data.putLong(NBT_WEAK_UNTIL, now + level * 10)
@@ -164,12 +195,13 @@ object EnchantHeavenlyPunishmentHandler : Listenable {
 
                 spawnLightningVisual(world, target)
                 FSTLog.log("HeavenlyPunishment") {
-                    // `damage` is the amount **after** the `level + 1` multiplier on the line above, i.e. the
-                    // raw damage this hit deals — not what the target can lose. `targetHealth` is here so the
-                    // two can be compared directly: when damage > health the hit is an overkill and the health
-                    // bar can only drop by the remaining health, which reads as "打了 150 只掉几十".
+                    // `damage` is the physical part of this hit; `lightning_bonus` is the extra share
+                    // queued as its own element hit for the end of the tick. An overkill still reads
+                    // immediately: when the two together exceed health, the bar can only drop by the
+                    // remaining health, which is what "打了 150 只掉几十" was.
                     "attacker=${attacker.name.string}, target=${target.name.string}, lvl=$level, " +
-                        "damage=${event.amount}, targetHealth=${target.health}/${target.maxHealth}, " +
+                        "damage=${event.amount}, lightning_bonus=${event.amount * level}, " +
+                        "targetHealth=${target.health}/${target.maxHealth}, " +
                         "weakUntil=${now + level * 10}, weakAmount=${0.225f * level}, " +
                         "freezeUntil=${data.getLong(NBT_FREEZE_UNTIL)}, outcome=punished"
                 }
