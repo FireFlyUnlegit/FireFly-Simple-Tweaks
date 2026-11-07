@@ -339,18 +339,20 @@ object DamageIndicatorHandler : Listenable {
     }
 
     /**
-     * Sends a **floating label** (a reaction name) to everyone within 64 blocks.
+     * Sends a **floating label** (a reaction name plus the damage it dealt) to everyone within 64
+     * blocks.
      *
      * `ElementMarks.noticeReaction` calls this for every reaction. The wire carries the translation
-     * **key**, and the client resolves it in the player's own language. `elementOrdinal` colours it like
-     * the damage it belongs to; a label has no second health line and sits above the numbers.
+     * **key**, and the client resolves it in the player's own language; `amount` is that reaction's own
+     * bonus, rendered as `感电 (-28.30)`. `elementOrdinal` colours it like the damage it belongs to; a
+     * label has no second health line and sits above the numbers.
      */
-    fun broadcastLabel(target: LivingEntity, labelKey: String, elementOrdinal: Int) {
+    fun broadcastLabel(target: LivingEntity, labelKey: String, elementOrdinal: Int, amount: Float) {
         if (!DamageIndicatorConfig.enabled) return
         if (target.world.isClient) return
         sendToNearbyPlayers(
             target,
-            0f,
+            amount,
             false,
             target.maxHealth,
             target.maxHealth,

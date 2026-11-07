@@ -277,5 +277,11 @@
   "reaction.simple_tweaks.backstab": "背刺",
   "reaction.simple_tweaks.annihilate": "湮灭",
   "reaction.simple_tweaks.extinguish": "熄灭",
-  "reaction.simple_tweaks.smother": "窒息"
+  "reaction.simple_tweaks.smother": "窒息",
+  "reaction.simple_tweaks.overload": "过载",
+  "reaction.simple_tweaks.sanctify": "圣化",
+  "reaction.simple_tweaks.purify": "涤净",
+  "reaction.simple_tweaks.scorch": "灼魂",
+  "reaction.simple_tweaks.blight": "枯萎",
+  "reaction.simple_tweaks.eclipse": "日蚀"
 }

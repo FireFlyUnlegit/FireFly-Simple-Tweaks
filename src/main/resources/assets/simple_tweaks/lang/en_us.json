@@ -277,5 +277,11 @@
   "reaction.simple_tweaks.backstab": "Backstab",
   "reaction.simple_tweaks.annihilate": "Annihilate",
   "reaction.simple_tweaks.extinguish": "Extinguish",
-  "reaction.simple_tweaks.smother": "Smother"
+  "reaction.simple_tweaks.smother": "Smother",
+  "reaction.simple_tweaks.overload": "Overload",
+  "reaction.simple_tweaks.sanctify": "Sanctify",
+  "reaction.simple_tweaks.purify": "Purify",
+  "reaction.simple_tweaks.scorch": "Scorch",
+  "reaction.simple_tweaks.blight": "Blight",
+  "reaction.simple_tweaks.eclipse": "Eclipse"
 }
