@@ -243,6 +243,22 @@ tasks.register('runTest') {
                 expect(orphans.isEmpty(), 'lang keys without an enchantment JSON: ' + truncate(orphans))
             }
 
+            // Minecraft renders **none** of Markdown. A `**bold**` in a description shows up as literal
+            // asterisks in the tooltip — which is exactly what shipped in `build=cleanup42` for nine values,
+            // because the descriptions were written in Markdown for this repo's docs and then pasted in.
+            check('lang values contain no markdown markers') {
+                expect(langEn != null && langZh != null, 'lang files could not be parsed')
+                def offenders = []
+                ['en_us': langEn, 'zh_cn': langZh].each { String lang, Map map ->
+                    map.each { String key, String value ->
+                        if (value != null && (value.contains('**') || value.contains('`'))) {
+                            offenders << (lang + ':' + key)
+                        }
+                    }
+                }
+                expect(offenders.isEmpty(), 'markdown markers in lang values: ' + truncate(offenders))
+            }
+
             check('lang format strings are valid (%% / %s / %N$s only)') {
                 expect(langEn != null && langZh != null, 'lang files could not be parsed')
                 // `%` must be followed by `%`, `s`, or `<digits>$s`. Anything else is a runtime
