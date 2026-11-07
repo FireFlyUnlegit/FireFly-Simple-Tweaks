@@ -1,8 +1,7 @@
 package dev.firefly.simpletweaks.client
 
+import dev.firefly.simpletweaks.enchantments.EnchantmentMeta
 import dev.firefly.simpletweaks.enchantments.EnchantmentNameColors
-import dev.firefly.simpletweaks.enchantments.EnchantmentTiers
-import dev.firefly.simpletweaks.enchantments.ModEnchantmentKeys
 import net.minecraft.client.gui.DrawContext
 import net.minecraft.client.gui.screen.Screen
 import net.minecraft.component.DataComponentTypes
@@ -35,10 +34,10 @@ import org.lwjgl.glfw.GLFW
  * <h2>What had to change, and why</h2>
  * <table>
  *   <tr><th>1.12.2</th><th>here</th></tr>
- *   <tr><td>`EnchantmentCategories` enum</td><td>generated [EnchantmentTiers.CATEGORY]</td></tr>
- *   <tr><td>`ModEnchantmentType` enum</td><td>generated [EnchantmentTiers.TYPE]</td></tr>
- *   <tr><td>`ench.getMaxLevel()`</td><td>generated [EnchantmentTiers.MAX_LEVEL]</td></tr>
- *   <tr><td>iterate `Enchantment.REGISTRY`</td><td>iterate [ModEnchantmentKeys.ALL]</td></tr>
+ *   <tr><td>`EnchantmentCategories` enum</td><td>[EnchantmentMeta.category]</td></tr>
+ *   <tr><td>`ModEnchantmentType` enum</td><td>[EnchantmentMeta.type]</td></tr>
+ *   <tr><td>`ench.getMaxLevel()`</td><td>[EnchantmentMeta.maxLevel]</td></tr>
+ *   <tr><td>iterate `Enchantment.REGISTRY`</td><td>iterate `EnchantmentMeta.allKeys()` — the legacy table **plus** every `@ModEnchantment` declaration</td></tr>
  *   <tr><td>`ItemStack(Blocks.WOOL, 1, meta)`</td><td>the matching 1.21 `Items.*_WOOL`</td></tr>
  *   <tr><td>`ItemEnchantedBook.addEnchantment(book, ...)`</td><td>`ENCHANTMENT_GLINT_OVERRIDE`</td></tr>
  *   <tr><td>`drawTexturedModalRect(generic_54.png)`</td><td>`DrawContext.fill` panels</td></tr>
@@ -130,12 +129,18 @@ class EnchantInfoScreen(private val parent: Screen?) :
         return out
     }
 
-    /** id -> tier, and the reverse, both derived once from the generated table. */
+    /**
+     * id -> tier, and the reverse, both derived once from the merged key set.
+     *
+     * The keys come from [EnchantmentMeta], not `ModEnchantmentKeys.ALL`: the latter is generated from
+     * the 1.12.2 sources and by definition cannot know about an enchantment declared with
+     * `@ModEnchantment`. Reading it directly is exactly how `fast_bow` went missing from this screen.
+     */
     private val idsByCategory: Map<String, List<String>> =
-        ModEnchantmentKeys.ALL
+        EnchantmentMeta.allKeys()
             .map { it.value.path }
             .sorted()
-            .groupBy { EnchantmentTiers.CATEGORY[it] ?: "common" }
+            .groupBy { EnchantmentMeta.category(it) ?: "common" }
 
     private var selected: String? = null
     private var page = 0
@@ -282,7 +287,10 @@ class EnchantInfoScreen(private val parent: Screen?) :
         val name = Text.translatable("enchantment.simple_tweaks.$id")
         lines.add(if (colour != null) name.formatted(colour) else name)
 
-        val cat = EnchantmentTiers.CATEGORY[id]
+        // All three lookups go through EnchantmentMeta so an enchantment declared with
+        // @ModEnchantment shows its real tier / "applies to" / max level instead of the "common"
+        // fallback and a bogus max level of 1.
+        val cat = EnchantmentMeta.category(id)
         if (cat != null) {
             lines.add(
                 Text.translatable("gui.simple_tweaks.enchant_info.category", categoryText(cat))
@@ -290,7 +298,7 @@ class EnchantInfoScreen(private val parent: Screen?) :
             )
         }
 
-        val typeKey = appliesToKey(EnchantmentTiers.TYPE[id])
+        val typeKey = appliesToKey(EnchantmentMeta.type(id))
         if (typeKey != null) {
             lines.add(
                 Text.translatable(
@@ -303,7 +311,7 @@ class EnchantInfoScreen(private val parent: Screen?) :
         lines.add(
             Text.translatable(
                 "gui.simple_tweaks.enchant_info.max_level",
-                EnchantmentTiers.MAX_LEVEL[id] ?: 1,
+                EnchantmentMeta.maxLevel(id) ?: 1,
             ).formatted(Formatting.GRAY)
         )
         lines.add(Text.empty())

@@ -1539,3 +1539,76 @@ fabric-1.21.1/
 
 > `ordinal` 是唯一脆弱点。若日后铁砧又不生效，第一步是重新 `javap -c` 数 `updateResult` 里的
 > `bipush 40` 个数与位置，而不是先怀疑配置读取。
+
+---
+
+## 15. KSP：让「写一个新附魔」回到一个文件（`build=cleanup5`）
+
+> §13 不存在 —— 编号不复用（同验收清单 J 组「保留空缺，不再重排」的约定）。
+
+**目标**（作者原话）：写新附魔回到 1.12.2 那种"一个文件搞定"的体感，其余全由 KSP 生成。
+
+**试点范围**：只做 `fast_bow` **一个**；**现有 56 个附魔一律不动**，仍由 `tools/gen-enchantments.ps1` 生成的表驱动。
+
+### 15.1 一个注解 = 5 份产物
+
+在 handler 上写 `@ModEnchantment(...)`，KSP 生成：
+
+| 产物 | 位置 | 取代了 |
+|---|---|---|
+| `<id>.json` | `resources/data/simple_tweaks/enchantment/` | 手写数据包定义 |
+| `GeneratedEnchantments.<ID>` | `enchantments/generated/GeneratedEnchantments.kt` | `ModEnchantmentKeys` 里的一行 |
+| `.KEYS` | 同上 | `ModEnchantmentKeys.ALL` 列表 |
+| `.CATEGORY` / `.TYPE` / `.COLOR` / `.MAX_LEVEL` | 同上 | `EnchantmentTiers` 三张表 |
+| `.HANDLERS` | 同上 | `EnchantmentManager.handlerList` 手写清单 |
+
+**lang 不生成** —— 附魔名与描述手写（`enchantment.simple_tweaks.<id>` / `.desc`）：文字是注解唯一表达不了的东西。
+
+### 15.2 接线
+
+| 文件 | 作用 |
+|---|---|
+| `settings.gradle` | `include 'ksp-processor'` |
+| `gradle.properties` | `ksp_version=2.0.21-1.0.28`（**必须**与 `kotlin_version` 同线，已核对 Maven Central） |
+| `build.gradle` | KSP 插件 + `ksp project(':ksp-processor')` |
+| `ksp-processor/` | 纯 Kotlin/JVM 库，只依赖 `symbol-processing-api`；**不应用 Loom**，不依赖 mod 的 source set |
+| `enchantments/annotations/ModEnchantment.kt` | 注解本身放在 **mod 里**，这样 handler 文件不必 import 构建期模块（processor 只按全限定名字符串查找它） |
+| `enchantments/EnchantmentMeta.kt` | 手写门面：合并「旧表 + KSP 表」，KSP 条目优先 |
+
+**KSP 生成物落点已实测**：`build/generated/ksp/main/kotlin`（Kotlin）与 `build/generated/ksp/main/resources`（**非 kt/java 的扩展名一律进 resources**）。KSP 插件自己把两者挂到 `main` source set，所以 `build.gradle` 里**不需要**额外的 `sourceSets` 接线，jar 里直接就有 `data/simple_tweaks/enchantment/fast_bow.json`。
+
+### 15.3 三个踩过才知道的坑
+
+1. **`validate()` 延后机制在这里会死锁 —— 本批最大的坑。** KSP 的常规写法是把"未解析"的符号 return 出去等下一轮；但被注解的 handler **自己引用了本 processor 即将生成的 `GeneratedEnchantments.<ID>`**，所以 `validate()` 每轮都是 false。后果：第 1 轮 specs 为空、生成空文件并 return deferred，第 2 轮再生成 → `FileAlreadyExistsException`。**结论：不做 deferral**（读注解参数不需要解析类体），真正的问题交给 Kotlin 编译器报。
+2. **`process()` 每轮都会被调用**，而"某轮生成过文件"必然触发下一轮。必须防重：本实现用 `done` 标志 + `codeGenerator.generatedFile` 双保险。
+3. **`ordinal` 是 `@Constant` 的元素，不是 `@ModifyConstant` 的**（§14.2 同批踩到）。
+
+### 15.4 验证（全部离线可验，不需要开客户端）
+
+| 检查 | 结果 |
+|---|---|
+| 生成的 `fast_bow.json` vs 被它取代的手写原件 | **逐字节一致**（忽略换行风格差异） |
+| jar 内 datapack 附魔 JSON 数 | **57** = 原 56 + `fast_bow` |
+| jar 内含 | `GeneratedEnchantments.class`、`EnchantFastBowHandler.class`、`ChargeBoost.class`、`EnchantmentMeta.class` |
+| KSP processor / `symbol-processing-api` 泄漏进 mod jar | **无** |
+
+### 15.5 顺带修掉的一个真 bug
+
+`ModEnchantmentKeys.kt` 第 86 行有 `FAST_BOW`，但**没有进 `ALL` 列表** —— 而 `EnchantInfoScreen` 正是用 `ALL` 分组的，所以图鉴里根本看不到它。该文件表头写着"自动生成、勿手改"，这类不一致正是 KSP 要消灭的对象。现已删除该行，键改由 `GeneratedEnchantments.FAST_BOW` 提供。
+
+### 15.6 迁移路径（旧附魔怎么搬）
+
+给旧附魔的 handler 加 `@ModEnchantment`，然后**从 `gen-enchantments.ps1` 的表里删掉它**即可（`EnchantmentMeta` 中 KSP 侧优先）。两代并存不冲突，所以可以一个一个搬，不必一次性全改 —— 这是刻意的：一次性迁移 56 个附魔等于制造 56 个潜在回归。
+
+### 15.7 fast_bow 的效果实现（唯一的新 mixin 改动）
+
+`fast_bow` 在 1.12.2 **不存在**，是全新的。1.21 没有"拉弓更快"的组件，且 `ArrowLooseEvent.charge` 只是快照、原版从不回读，所以事件本身改不了射出的力度。真正的算式在 `BowItem.onStoppedUsing` 里：
+
+```
+offset 34:  invokevirtual  getMaxUseTime(ItemStack, LivingEntity)I
+offset 44:  invokestatic   getPullProgress(I)F          <-- @ModifyArg 挂在这里
+```
+
+实测 `getPullProgress` 是 **static**、且在 `onStoppedUsing` 里**只出现一次** → 不需要 `slice`/`ordinal`（与 §14.2 的铁砧恰成对照）。handler 通过 `compat/ChargeBoost` 把倍率交给这个 `@ModifyArg`；因为 `getPullProgress` 会把结果夹到 `1.0`，**加速只能补足"没拉满"，不可能超过满蓄力**。3 级 = 1.75×，12 tick 即满。
+
+> ⚠️ 这动的是**多个弓附魔共用的** `BowItemArrowLooseMixin`，所以验收 §O3.2 专门回归 `multishot` / `tracking_arrow` / `piercing_arrow` / `starfall`。
