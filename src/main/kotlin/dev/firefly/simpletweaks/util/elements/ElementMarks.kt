@@ -2,6 +2,9 @@ package dev.firefly.simpletweaks.util.elements
 
 import dev.firefly.simpletweaks.compat.FSTLog
 import dev.firefly.simpletweaks.util.damagesource.damageElemental
+import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
+import dev.firefly.simpletweaks.util.chestplate
+import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.attribute.EntityAttributeInstance
 import net.minecraft.entity.attribute.EntityAttributeModifier
@@ -94,7 +97,11 @@ object ElementMarks {
         if (quickened != null && quickened <= now) QUICKENED.remove(target)
         val isQuickened = QUICKENED[target]?.let { it > now } == true
 
-        if (!forceAttach && !AttachmentIcd.allows(target, attacker)) {
+        // `elemental_catalyst` shortens the attachment window: 2.5 s -> 2.0 / 1.5 / 1.0 s at I / II / III.
+        // It is applied here rather than inside `AttachmentIcd` because the counter is engine state and the
+        // window is a per-attacker build choice; mixing them would make the ICD impossible to reason about.
+        val icdWindow = AttachmentIcd.WINDOW_TICKS - 10L * catalystLevel(attacker)
+        if (!forceAttach && !AttachmentIcd.allows(target, attacker, icdWindow.coerceAtLeast(20L))) {
             FSTLog.log("Element") {
                 "outcome=no-aura-throttled, element=${element.id}, aura=${ElementAuras.describe(target)}"
             }
@@ -113,6 +120,11 @@ object ElementMarks {
                 val consumed = ElementAuras.consume(target, cost)
 
                 outcome = apply(attacker, target, reaction, damage, auraUnits, consumed, dampening, source)
+
+                // Announce the reaction to whoever wants to build on it (`elemental_spread` attaches the same
+                // element to nearby enemies). Fired **after** `apply`, so the reaction itself is already
+                // resolved and a listener cannot change its numbers.
+                ReactionSeam.fire(attacker, target, element)
 
                 FSTLog.log("Element") {
                     "reaction=${reaction.key}, aura=${auraElement.id}:${"%.2f".format(auraUnits)}, " +
@@ -273,6 +285,18 @@ object ElementMarks {
      * on elemental damage (`ElementCombat.MASTERY_PER_LEVEL` is 10 %; this uses 8 %), so the two enchant
      * builds stay distinct.
      */
+    /**
+     * `elemental_catalyst` level from [attacker]'s chestplate — the build choice that shortens the
+     * attachment window.
+     *
+     * Read straight from the equipment rather than through a handler: it is a pure function of what the
+     * attacker wears, and the ICD is consulted in the middle of damage resolution where the main-hand
+     * window is already open (`ShotWeapon`), so no `DamageSource` plumbing is needed.
+     */
+    private fun catalystLevel(attacker: PlayerEntity?): Int =
+        if (attacker == null) 0
+        else getItemSpecificEnchantLevel(attacker.chestplate, GeneratedEnchantments.ELEMENTAL_CATALYST)
+
     private fun transformativeDamage(attacker: PlayerEntity?, coeff: Float): Float {
         val level = attacker?.experienceLevel ?: 0
         val base = TRANSFORMATIVE_BASE + level * TRANSFORMATIVE_PER_LEVEL
