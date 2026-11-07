@@ -20,7 +20,7 @@ import dev.firefly.simpletweaks.util.damagesource.ElementDamageTypes
 import dev.firefly.simpletweaks.util.damagesource.damageElemental
 import dev.firefly.simpletweaks.util.elements.ElementMarks
 import dev.firefly.simpletweaks.util.elements.ElementType
-import dev.firefly.simpletweaks.util.damagesource.isElementDamage
+import dev.firefly.simpletweaks.util.damagesource.isAuxiliaryDamage
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.passive.TameableEntity
@@ -105,7 +105,7 @@ object EnchantVenomHandler : Listenable {
     @SubscribeEvent
     fun onHurt(e: LivingHurtEvent) {
         if (e.invalid) return
-        if (e.source.isElementDamage()) return
+        if (e.source.isAuxiliaryDamage()) return
 
         val target = e.entityLiving
         val attacker = e.attacker as? PlayerEntity ?: return
@@ -168,7 +168,7 @@ object EnchantVenomHandler : Listenable {
         // Recorded here, not inside `damageElemental`, and only for a tick that actually landed: a mark
         // left by a refused tick would fake a reaction the player never caused.
         if (applied && owner != null) {
-            ElementMarks.recordAndReact(owner, entity, ElementType.NATURE, damage)
+            ElementMarks.markOnly(entity, ElementType.NATURE)
         }
 
         val world = entity.world as? ServerWorld

@@ -102,6 +102,38 @@ fun DamageSource.isElementDamage(): Boolean =
     this.typeRegistryEntry.matchesKey(ElementDamageTypes.VENOM) ||
         this.typeRegistryEntry.matchesKey(ElementDamageTypes.CHAIN_LIGHTNING)
 
+/**
+ * Damage this mod dealt **on its own behalf**, as a follow-up to a real hit.
+ *
+ * Today: the poison tick, one chain arc, one holy-light hit, one shield reflection. All four are
+ * credited to the player, so to every `LivingHurtEvent` listener they look exactly like a fresh sword
+ * swing — which is why they must be filtered out of the **on-hit** stack (`build=cleanup22`).
+ * Without this, one poisoned target re-fired crit / combo / double strike / aoe / charged strike once
+ * per second and the damage exploded (the reported "然后就会导致伤害爆高").
+ *
+ * Deliberately **not** the eight `element_*` damage types: a mob's elemental attack uses those
+ * directly, so the defensive half of the enchantment list (echo shield, immortal, damage reduction,
+ * adopted armour) has to keep seeing them.
+ */
+fun DamageSource.isAuxiliaryDamage(): Boolean =
+    auxDamageInFlight ||
+        this.isElementDamage() ||
+        this.typeRegistryEntry.matchesKey(CelestialDamageSources.CELESTIAL_PARTICLE) ||
+        this.typeRegistryEntry.matchesKey(ModDamageTypes.REFLECTION)
+
+/**
+ * True while [damageElemental] is inside `LivingEntity#damage`, i.e. while a rider this mod queued is
+ * landing.
+ *
+ * Needed *in addition* to [isAuxiliaryDamage]'s per-type checks: the eight `element_*` types are also
+ * the type a **mob's own** elemental attack uses, so they cannot be classified as auxiliary by type.
+ * The flag disambiguates by call path instead — a converted / reaction / shield-reflection rider is ours,
+ * a mob swinging an elemental weapon is not.
+ */
+val auxDamageInFlight: Boolean get() = AUX_DEPTH.get() > 0
+
+private val AUX_DEPTH: ThreadLocal<Int> = ThreadLocal.withInitial { 0 }
+
 
 
 /**
@@ -123,6 +155,16 @@ fun DamageSource.isElementDamage(): Boolean =
  * re-enter the event bus with [isElementDamage] true. Every elemental handler in this mod returns
  * early on that, which bounds the recursion to one level.
  */
+/** Runs [block] with [auxDamageInFlight] set, restoring the previous value afterwards. */
+private inline fun <T> withAuxFlag(block: () -> T): T {
+    AUX_DEPTH.set(AUX_DEPTH.get() + 1)
+    try {
+        return block()
+    } finally {
+        AUX_DEPTH.set(AUX_DEPTH.get() - 1)
+    }
+}
+
 fun LivingEntity.damageElemental(
     attacker: LivingEntity?,
     key: RegistryKey<DamageType>,
@@ -135,7 +177,7 @@ fun LivingEntity.damageElemental(
         if (attacker != null) attacker.damageSources.create(key, attacker)
         else this.damageSources.create(key)
 
-    if (this.damage(source, amount)) return true
+    if (withAuxFlag { this.damage(source, amount) }) return true
 
     if (!this.isAlive) return false
 
@@ -198,13 +240,13 @@ fun LivingEntity.damageElemental(
     // hit: it can only exist when the swing itself landed (the conversion path skips gated swings), and
     // both fields are restored below, so the **next** swing is judged exactly as vanilla would.
     if (accessor != null) accessor.modLastDamageTaken = 0f
-    var landed = this.damage(source, amount)
+    var landed = withAuxFlag { this.damage(source, amount) }
 
     if (!landed && this.isAlive) {
         // Second attempt for a type a datapack moved out of `#minecraft:bypasses_cooldown`; see above.
         this.timeUntilRegen = 0
         if (accessor != null) accessor.modLastDamageTaken = 0f
-        landed = this.damage(source, amount)
+        landed = withAuxFlag { this.damage(source, amount) }
     }
 
     // ⚠️ **Unconditionally**, while the target is alive — not only on the retry path.

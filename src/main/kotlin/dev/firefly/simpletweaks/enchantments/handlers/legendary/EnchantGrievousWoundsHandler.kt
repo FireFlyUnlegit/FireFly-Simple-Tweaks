@@ -14,6 +14,7 @@ import dev.firefly.simpletweaks.enchantments.annotations.EnchantSupportedItemTag
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
+import dev.firefly.simpletweaks.util.damagesource.isAuxiliaryDamage
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.player.PlayerEntity
@@ -74,6 +75,11 @@ object EnchantGrievousWoundsHandler : Listenable {
 
     @SubscribeEvent
     fun onHurt(e: LivingHurtEvent) {
+
+        // `build=cleanup22`: the mod's own follow-up damage (poison tick, chain arc, holy light, shield
+        // reflection) is player-attributed, so without this guard each of them counts as a new hit and
+        // re-fires the whole on-hit stack — one poisoned target multiplied the damage every second.
+        if (e.source.isAuxiliaryDamage()) return
         val target = e.entityLiving ?: return
         val attacker = e.source.attacker as? PlayerEntity ?: return
         if (attacker === target) return

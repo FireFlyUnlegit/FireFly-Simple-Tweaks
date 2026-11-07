@@ -15,7 +15,7 @@ import dev.firefly.simpletweaks.enchantments.annotations.EnchantSupportedItemTag
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
-import dev.firefly.simpletweaks.util.damagesource.isElementDamage
+import dev.firefly.simpletweaks.util.damagesource.isAuxiliaryDamage
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.effect.StatusEffectInstance
@@ -108,7 +108,7 @@ object EnchantFrostbiteHandler : Listenable {
     @SubscribeEvent
     fun onHurt(e: LivingHurtEvent) {
         if (e.invalid) return
-        if (e.source.isElementDamage()) return
+        if (e.source.isAuxiliaryDamage()) return
 
         val target = e.entityLiving ?: return
         val now = target.world.time
