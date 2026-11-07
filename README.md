@@ -22,7 +22,7 @@
 - **1.21.1 / Fabric 版**是完整的跨版本迁移，详见 [`MIGRATION.md`](./MIGRATION.md)
 - 两个版本**平行维护**，不做合并
 - 逐批改动与"哪些还没验收"见 [`DEVLOG.md`](./DEVLOG.md)
-- 逐条验收项在 `docs/acceptance-checklist.md` —— **`docs/` 是作者本机的个人文档，不入库**
+- 逐条验收项由作者本机维护（`docs/`、`AGENTS.md`、`DEV_GUIDE_1.21.1.md` 都是本机文件，不入库）
 
 ---
 
