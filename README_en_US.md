@@ -12,7 +12,7 @@
 
 A Minecraft mod I build for fun: new enchantments, new mechanics and better combat feedback for vanilla.
 
-Current **1.21.1 / Fabric** release: **v2.2.5** (112 enchantments, 19 elemental reactions, aura gauges, reworked armour curve).
+Current **1.21.1 / Fabric** release: **v2.2.5** (113 enchantments, 19 elemental reactions, aura gauges, reworked armour curve).
 
 ## 🌿 Branches
 
@@ -31,13 +31,13 @@ Current **1.21.1 / Fabric** release: **v2.2.5** (112 enchantments, 19 elemental 
 
 ### 🧙 Custom enchantments
 
-**112** unique enchantments, split by rarity:
+**113** unique enchantments, split by rarity:
 
 | Rarity | Count | Rarity | Count |
 |--------|-------|--------|-------|
 | COMMON | 7 | LEGENDARY | 16 |
 | UNCOMMON | 9 | MYTHIC | 9 |
-| RARE | 31 | MYSTERY | 6 |
+| RARE | 31 | MYSTERY | 7 |
 | EPIC | 29 | UNIQUE | 5 |
 
 #### 🌈 Elemental system
@@ -228,6 +228,7 @@ A 100-damage hit: armour 26 → 17 taken; armour 40 → 10 taken.
 | **Skyfall** | holding the mace cancels fall damage; a hit carrying fall distance sends a `15% × level` shockwave to every other enemy within `2 + level` blocks |
 | **Sunder** | a mace blow goes straight **through a raised shield** (that hit lands unprotected) and costs `4 × level` extra shield durability |
 | **Quake** | interrupts a target that is **using an item** (bow draw / shield / potion / food) and puts that item on a 1 s cooldown |
+| **Elemental Supremacy** | your **highest** elemental affinity defends against **all eight** elements (maximum, never summed) — specialise in one and gain them all |
 
 ### 🎮 Client features
 

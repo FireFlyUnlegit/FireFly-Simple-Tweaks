@@ -873,14 +873,42 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
     fun lastElementOrdinal(entity: LivingEntity): Int =
         LAST_ELEMENT[entity.uuid]?.ordinal ?: ElementType.NONE_ORDINAL
 
-    /** Sum of the element's `xx_protection` levels across [entity]'s four armour slots. */
+    /**
+     * Sum of the element's `xx_protection` levels across [entity]'s four armour slots.
+     *
+     * ## `elemental_supremacy`
+     * With that enchantment worn, the **highest** single-element total is used for **every** element instead
+     * of each element's own total. So four pieces of fire protection defend exactly as well against frost —
+     * "specialise into one affinity, gain all eight" — but they do **not** stack: the answer is a maximum,
+     * not a sum, so wearing one piece of each element still gives you the single highest one.
+     *
+     * This is deliberately implemented here and nowhere else: [protectionLevel] is the only reader of the
+     * protective levels, so the rule cannot disagree with itself (the same "one owner per rule" reasoning as
+     * `ConfigBounds`).
+     */
     fun protectionLevel(entity: LivingEntity, element: ElementType): Int {
+        val own = rawProtectionLevel(entity, element)
+        if (!hasSupremacy(entity)) return own
+        var best = own
+        for (candidate in ElementType.entries) {
+            val level = rawProtectionLevel(entity, candidate)
+            if (level > best) best = level
+        }
+        return best
+    }
+
+    /** Per-element sum, without the `elemental_supremacy` override. */
+    private fun rawProtectionLevel(entity: LivingEntity, element: ElementType): Int {
         var total = 0
         for (slot in ARMOR_SLOTS) {
             total += getElementSpecificEnchantLevel(entity.getEquippedStack(slot), element, protective = true)
         }
         return total
     }
+
+    /** Whether [entity] wears `elemental_supremacy` (any armour slot). */
+    private fun hasSupremacy(entity: LivingEntity): Boolean =
+        ARMOR_SLOTS.any { getItemSpecificEnchantLevel(entity.getEquippedStack(it), GeneratedEnchantments.ELEMENTAL_SUPREMACY) > 0 }
 
     /**
      * True when this hit's damage type is one of **our own** `element_<id>` types.

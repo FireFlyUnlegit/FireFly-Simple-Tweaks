@@ -343,5 +343,7 @@
   "enchantment.simple_tweaks.sunder": "Sunder",
   "enchantment.simple_tweaks.sunder.desc": "A mace blow goes straight through a raised shield: the block is broken at once (that hit lands unprotected) and the shield loses 4 x level extra durability",
   "enchantment.simple_tweaks.quake": "Quake",
-  "enchantment.simple_tweaks.quake.desc": "Hitting a target that is using an item interrupts it (bow draw, shield, potion, food) and puts that item on a 1 s cooldown"
+  "enchantment.simple_tweaks.quake.desc": "Hitting a target that is using an item interrupts it (bow draw, shield, potion, food) and puts that item on a 1 s cooldown",
+  "enchantment.simple_tweaks.elemental_supremacy": "Elemental Supremacy",
+  "enchantment.simple_tweaks.elemental_supremacy.desc": "Your highest elemental affinity defends against all eight elements (maximum, never summed) — specialise in one and gain them all"
 }
