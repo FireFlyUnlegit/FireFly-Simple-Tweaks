@@ -35,6 +35,18 @@ jobs:
       - name: Check out
         uses: actions/checkout@v4
 
+      # Which commit is actually under test. A manual dispatch runs the **ref it was started from**,
+      # so a run can easily be one or two commits behind the fix being verified — that happened once
+      # (a run from 87ee44d reported "3 required tests failed" while the fix was already pushed) and
+      # cost a whole round trip. These two lines make the answer obvious in the log.
+      - name: Show the commit under test
+        run: |
+          echo "github.sha : $GITHUB_SHA"
+          echo "github.ref : $GITHUB_REF"
+          git log -1 --format='checked out: %h %s'
+          echo "mod_version: $(grep '^mod_version' gradle.properties)"
+          echo "game tests : $(grep -c '@GameTest' src/main/java/dev/firefly/simpletweaks/gametest/SimpleTweaksGameTests.java)"
+
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
