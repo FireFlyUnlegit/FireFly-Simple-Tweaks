@@ -213,6 +213,25 @@ tasks.register('runTest') {
                 expect(missing.isEmpty(), 'missing lang keys: ' + truncate(missing))
             }
 
+            // A description that is present but *wrong* passes the coverage check above and still ships a
+            // useless tooltip. That happened for real in `build=cleanup37`: six descriptions were written with
+            // a shifted tuple index, so `zh_cn` got the item-type label ("剑", "胸甲") and `en_us` got the
+            // **Chinese** text. Too short to be a description is the cheapest reliable signal.
+            check('enchantment descriptions are not placeholders') {
+                expect(langEn != null && langZh != null, 'lang files could not be parsed')
+                def bad = []
+                enchantmentIds.each { String id ->
+                    def descKey = 'enchantment.' + modId + '.' + id + '.desc'
+                    ['en_us': langEn, 'zh_cn': langZh].each { String lang, Map map ->
+                        String value = map[descKey]
+                        if (value != null && value.trim().length() < 8) {
+                            bad << (lang + ':' + id + '="' + value.trim() + '"')
+                        }
+                    }
+                }
+                expect(bad.isEmpty(), 'descriptions too short to be real: ' + truncate(bad))
+            }
+
             check('every enchantment lang key belongs to a datapack file') {
                 expect(langEn != null, 'lang files could not be parsed')
                 def pattern = java.util.regex.Pattern.compile(
