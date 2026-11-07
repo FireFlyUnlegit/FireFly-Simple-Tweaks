@@ -28,11 +28,7 @@ import java.util.WeakHashMap
  * Vanilla's mob-gear enchanting is data-driven: `MobEntity#enchantEquipment` calls
  * `EnchantmentHelper#applyEnchantmentProvider(stack, …)` with `EnchantmentProviders.MOB_SPAWN_EQUIPMENT`,
  * whose file is `data/minecraft/enchantment_provider/mob_spawn_equipment.json`:
- *
- * ```json
- * { "type": "minecraft:by_cost_with_difficulty", "enchantments": "#minecraft:on_mob_spawn_equipment", … }
- * ```
- *
+
  * The mod's 85 enchantments are in none of the tags that provider reads, so a mob could never roll one
  * no matter how the enchanting-table weights were tuned. This object adds a **second** pass on top of
  * vanilla's, so vanilla gear progression (and its cost curve) is untouched.
@@ -112,22 +108,14 @@ object MobEnchantments {
      * The old rule was per **item** — `1 + (level-1)/4` enchantments, each rolled at
      * `1 + random(maxLevel)` — so a level-9 zombie in full armour could carry up to 3 enchantments per
      * item on five items, several of them level 4-5. The rule is now per **mob** and in *levels*:
-     *
-     * ```
-     * total mod-enchantment levels = 1 + floor(mobLevel / 10)
-     * ```
-     *
-     * Level 1-9 → 1, 10-19 → 2, 20-29 → 3, … That budget is spent across the mob's whole loadout
-     * (see [modEnchantmentLevelsOn]), so two level-20 mobs have the same total power even if one of them
-     * rolled its enchants onto a sword instead of a helmet.
      */
-    const val LEVELS_PER_ENCHANT_LEVEL = 10
+    const val LEVELS_PER_ENCHANT_LEVEL = 5
 
     /** Floor of the budget: even a level-1 mob that rolls the gear chance gets one level's worth. */
     private const val MIN_TOTAL_ENCHANT_LEVELS = 1
 
     /** Ceiling on how many mod enchantments one item can receive. */
-    private const val MAX_ENCHANTS_PER_ITEM = 3
+    private const val MAX_ENCHANTS_PER_ITEM = 20
 
     /**
      * Categories eligible for mob gear.
