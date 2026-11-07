@@ -90,8 +90,8 @@ object ElementEnchantments {
     anvilCost = 8,
     minCostBase = 25,
     minCostPerLevel = 10,
-    supportedItems = EnchantSupportedItemTags.SWORD,
-    slots = [EnchantSlot.MAINHAND],
+    supportedItems = EnchantSupportedItemTags.CONVERSION_WEAPONS,
+    slots = [EnchantSlot.MAINHAND, EnchantSlot.OFFHAND],
     exclusiveSet = ElementEnchantments.ELEMENT_EXCLUSIVE_SET,
 )
 object PhysicalConversion : Listenable
@@ -105,8 +105,8 @@ object PhysicalConversion : Listenable
     anvilCost = 8,
     minCostBase = 25,
     minCostPerLevel = 10,
-    supportedItems = EnchantSupportedItemTags.SWORD,
-    slots = [EnchantSlot.MAINHAND],
+    supportedItems = EnchantSupportedItemTags.CONVERSION_WEAPONS,
+    slots = [EnchantSlot.MAINHAND, EnchantSlot.OFFHAND],
     exclusiveSet = ElementEnchantments.ELEMENT_EXCLUSIVE_SET,
 )
 object FireConversion : Listenable
@@ -120,8 +120,8 @@ object FireConversion : Listenable
     anvilCost = 8,
     minCostBase = 25,
     minCostPerLevel = 10,
-    supportedItems = EnchantSupportedItemTags.SWORD,
-    slots = [EnchantSlot.MAINHAND],
+    supportedItems = EnchantSupportedItemTags.CONVERSION_WEAPONS,
+    slots = [EnchantSlot.MAINHAND, EnchantSlot.OFFHAND],
     exclusiveSet = ElementEnchantments.ELEMENT_EXCLUSIVE_SET,
 )
 object FrostConversion : Listenable
@@ -135,8 +135,8 @@ object FrostConversion : Listenable
     anvilCost = 8,
     minCostBase = 25,
     minCostPerLevel = 10,
-    supportedItems = EnchantSupportedItemTags.SWORD,
-    slots = [EnchantSlot.MAINHAND],
+    supportedItems = EnchantSupportedItemTags.CONVERSION_WEAPONS,
+    slots = [EnchantSlot.MAINHAND, EnchantSlot.OFFHAND],
     exclusiveSet = ElementEnchantments.ELEMENT_EXCLUSIVE_SET,
 )
 object LightningConversion : Listenable
@@ -150,8 +150,8 @@ object LightningConversion : Listenable
     anvilCost = 8,
     minCostBase = 25,
     minCostPerLevel = 10,
-    supportedItems = EnchantSupportedItemTags.SWORD,
-    slots = [EnchantSlot.MAINHAND],
+    supportedItems = EnchantSupportedItemTags.CONVERSION_WEAPONS,
+    slots = [EnchantSlot.MAINHAND, EnchantSlot.OFFHAND],
     exclusiveSet = ElementEnchantments.ELEMENT_EXCLUSIVE_SET,
 )
 object WaterConversion : Listenable
@@ -165,8 +165,8 @@ object WaterConversion : Listenable
     anvilCost = 8,
     minCostBase = 25,
     minCostPerLevel = 10,
-    supportedItems = EnchantSupportedItemTags.SWORD,
-    slots = [EnchantSlot.MAINHAND],
+    supportedItems = EnchantSupportedItemTags.CONVERSION_WEAPONS,
+    slots = [EnchantSlot.MAINHAND, EnchantSlot.OFFHAND],
     exclusiveSet = ElementEnchantments.ELEMENT_EXCLUSIVE_SET,
 )
 object NatureConversion : Listenable
@@ -180,8 +180,8 @@ object NatureConversion : Listenable
     anvilCost = 8,
     minCostBase = 25,
     minCostPerLevel = 10,
-    supportedItems = EnchantSupportedItemTags.SWORD,
-    slots = [EnchantSlot.MAINHAND],
+    supportedItems = EnchantSupportedItemTags.CONVERSION_WEAPONS,
+    slots = [EnchantSlot.MAINHAND, EnchantSlot.OFFHAND],
     exclusiveSet = ElementEnchantments.ELEMENT_EXCLUSIVE_SET,
 )
 object DarkConversion : Listenable
@@ -195,8 +195,8 @@ object DarkConversion : Listenable
     anvilCost = 8,
     minCostBase = 25,
     minCostPerLevel = 10,
-    supportedItems = EnchantSupportedItemTags.SWORD,
-    slots = [EnchantSlot.MAINHAND],
+    supportedItems = EnchantSupportedItemTags.CONVERSION_WEAPONS,
+    slots = [EnchantSlot.MAINHAND, EnchantSlot.OFFHAND],
     exclusiveSet = ElementEnchantments.ELEMENT_EXCLUSIVE_SET,
 )
 object LightConversion : Listenable
@@ -361,8 +361,8 @@ object LightProtection : Listenable
     anvilCost = 12,
     minCostBase = 30,
     minCostPerLevel = 12,
-    supportedItems = EnchantSupportedItemTags.SWORD,
-    slots = [EnchantSlot.MAINHAND],
+    supportedItems = EnchantSupportedItemTags.CONVERSION_WEAPONS,
+    slots = [EnchantSlot.MAINHAND, EnchantSlot.OFFHAND],
 )
 object ElementalMastery : Listenable
 
@@ -418,8 +418,8 @@ object ElementalWard : Listenable
     anvilCost = 12,
     minCostBase = 26,
     minCostPerLevel = 10,
-    supportedItems = EnchantSupportedItemTags.SWORD,
-    slots = [EnchantSlot.MAINHAND],
+    supportedItems = EnchantSupportedItemTags.CONVERSION_WEAPONS,
+    slots = [EnchantSlot.MAINHAND, EnchantSlot.OFFHAND],
 )
 object ElementalResonance : Listenable
 
@@ -442,7 +442,7 @@ object ElementalResonance : Listenable
     anvilCost = 10,
     minCostBase = 22,
     minCostPerLevel = 9,
-    supportedItems = EnchantSupportedItemTags.SWORD,
-    slots = [EnchantSlot.MAINHAND],
+    supportedItems = EnchantSupportedItemTags.CONVERSION_WEAPONS,
+    slots = [EnchantSlot.MAINHAND, EnchantSlot.OFFHAND],
 )
 object ElementalPenetration : Listenable

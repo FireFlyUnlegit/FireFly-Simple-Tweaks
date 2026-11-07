@@ -10,6 +10,8 @@ import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import net.minecraft.enchantment.Enchantment
 import net.minecraft.entity.EquipmentSlot
 import net.minecraft.item.ItemStack
+import net.minecraft.recipe.AbstractCookingRecipe
+import net.minecraft.recipe.RecipeManager
 import net.minecraft.recipe.RecipeType
 import net.minecraft.recipe.input.SingleStackRecipeInput
 import net.minecraft.registry.RegistryKey
@@ -67,6 +69,26 @@ object EnchantAutoSmeltHandler : Listenable {
     private val SILK_TOUCH: RegistryKey<Enchantment> =
         RegistryKey.of(RegistryKeys.ENCHANTMENT, Identifier.ofVanilla("silk_touch"))
 
+    /**
+     * The cooking recipe to use for [drop]: **blasting** if one exists, otherwise smelting.
+     *
+     * Blast-furnace recipes are the "faster" variant of a smelting recipe, so when both exist the
+     * blast-furnace output is what the player asked for. Returns `null` when neither matches, which the
+     * caller treats as "leave the drop untouched".
+     */
+    private fun firstRecipe(
+        recipes: RecipeManager,
+        drop: ItemStack,
+        world: ServerWorld,
+    ): AbstractCookingRecipe? {
+        val input = SingleStackRecipeInput(drop)
+        val blasting = recipes.getFirstMatch(RecipeType.BLASTING, input, world)
+        if (blasting.isPresent) return blasting.get().value()
+        val smelting = recipes.getFirstMatch(RecipeType.SMELTING, input, world)
+        if (smelting.isPresent) return smelting.get().value()
+        return null
+    }
+
     @SubscribeEvent(priority = 50)
     fun onHarvestDrops(e: BlockEvent.HarvestDropsEvent) {
         val player = e.harvester ?: return
@@ -87,10 +109,15 @@ object EnchantAutoSmeltHandler : Listenable {
 
         for (drop in drops) {
             if (drop.isEmpty) continue
-            val match = recipes.getFirstMatch(RecipeType.SMELTING, SingleStackRecipeInput(drop), world)
-            if (match.isPresent) {
+            // `build=cleanup25`: **blasting first, smelting as the fallback.**
+            //
+            // A blast furnace is a strictly better furnace for everything it supports, so a player with
+            // this enchantment expects the blast-furnace product — and for a few items the two recipes
+            // genuinely differ (a datapack may define both). The lookup is per-drop, so a mixed harvest
+            // gets each item processed the way its own recipe set implies.
+            val recipe = firstRecipe(recipes, drop, world)
+            if (recipe != null) {
                 smeltedCount++
-                val recipe = match.get().value()
                 val smelted = recipe.craft(SingleStackRecipeInput(drop), world.registryManager)
                 smelted.count = drop.count * smelted.count
                 newDrops.add(smelted)
