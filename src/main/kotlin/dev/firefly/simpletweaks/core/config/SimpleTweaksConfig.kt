@@ -83,14 +83,15 @@ object SimpleTweaksConfig {
         )
     }
 
-    // ------------------------------------------------------------------ read
 
     private fun readGeneral(s: JsonObject) {
         GeneralConfig.cancelVanillaDamageIndicator = s.bool("cancelVanillaDamageIndicator", true)
         GeneralConfig.disableAnvilCostLimit = s.bool("disableAnvilCostLimit", true)
-        GeneralConfig.maxAnvilCost = s.int("maxAnvilCost", Int.MAX_VALUE).coerceAtLeast(1)
+        GeneralConfig.maxAnvilCost = s.int("maxAnvilCost", Int.MAX_VALUE)
+            .coerceIn(ConfigBounds.ANVIL_COST)
         GeneralConfig.disableEnchantmentTableLimit = s.bool("disableEnchantmentTableLimit", true)
-        GeneralConfig.maxEnchantmentPower = s.int("maxEnchantmentPower", 15).coerceAtLeast(1)
+        GeneralConfig.maxEnchantmentPower = s.int("maxEnchantmentPower", 15)
+            .coerceIn(ConfigBounds.ENCHANT_POWER)
         GeneralConfig.enabledEnchantmentColor = s.bool("enabledEnchantmentColor", true)
         GeneralConfig.enabledSpecialParticles = s.bool("enabledSpecialParticles", true)
         GeneralConfig.autoSprintEnabled = s.bool("autoSprintEnabled", false)
@@ -114,24 +115,29 @@ object SimpleTweaksConfig {
         // cleanup27: persistent difficulty bonus (`/fst difficulty modify`). Bounded so a typo cannot
         // turn every spawn into a level-5000 mob.
         MobEnhancementConfig.difficultyModifier = s.dbl("difficultyModifier", 0.0)
-            .coerceIn(-100.0, 1000.0).toFloat()
+            .coerceIn(ConfigBounds.DIFFICULTY_MODIFIER).toFloat()
     }
 
     private fun readDamageIndicator(s: JsonObject) {
         DamageIndicatorConfig.enabled = s.bool("enabled", true)
         DamageIndicatorConfig.symbol = s.bool("symbol", true)
         // Bounds copied from the 1.12.2 @RangeInt / @RangeDouble annotations.
-        DamageIndicatorConfig.duration = s.int("duration", 40).coerceIn(10, 500)
-        DamageIndicatorConfig.riseDuration = s.int("riseDuration", 10).coerceIn(5, 50)
-        DamageIndicatorConfig.maxDistance = s.int("maxDistance", 64).coerceIn(16, 256)
-        DamageIndicatorConfig.scale = s.dbl("scale", 1.2).coerceIn(0.5, 10.0)
+        DamageIndicatorConfig.duration = s.int("duration", 40)
+            .coerceIn(ConfigBounds.DAMAGE_DURATION)
+        DamageIndicatorConfig.riseDuration = s.int("riseDuration", 10)
+            .coerceIn(ConfigBounds.DAMAGE_RISE)
+        DamageIndicatorConfig.maxDistance = s.int("maxDistance", 64)
+            .coerceIn(ConfigBounds.DAMAGE_DISTANCE)
+        DamageIndicatorConfig.scale = s.dbl("scale", 1.2).coerceIn(ConfigBounds.DAMAGE_SCALE)
         DamageIndicatorConfig.percentageMode = s.bool("percentageMode", false)
         // cleanup26: below this absolute health delta no number is spawned. 0 = no filtering, which is
         // why the default does not change any pre-existing behaviour.
-        DamageIndicatorConfig.minHealthChange = s.dbl("minHealthChange", 0.0).coerceIn(0.0, 1000.0)
+        DamageIndicatorConfig.minHealthChange = s.dbl("minHealthChange", 0.0)
+            .coerceIn(ConfigBounds.DAMAGE_MIN_HEALTH_CHANGE)
         DamageIndicatorConfig.splitElemental = s.bool("splitElemental", false)
         DamageIndicatorConfig.showShadow = s.bool("showShadow", true)
-        DamageIndicatorConfig.yStartFactor = s.dbl("yStartFactor", 1.0).coerceIn(0.5, 2.0)
+        DamageIndicatorConfig.yStartFactor = s.dbl("yStartFactor", 1.0)
+            .coerceIn(ConfigBounds.DAMAGE_Y_START)
     }
 
     // ------------------------------------------------------------------ write

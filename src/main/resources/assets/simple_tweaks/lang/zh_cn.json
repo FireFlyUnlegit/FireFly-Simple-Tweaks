@@ -132,7 +132,7 @@
   "gui.simple_tweaks.config.off": "关",
   "gui.simple_tweaks.config.on": "开",
   "gui.simple_tweaks.config.page": "%s（第 %s/%s 页）",
-  "gui.simple_tweaks.config.save_hint": "改动即时保存到 config/simple_tweaks.json",
+  "gui.simple_tweaks.config.save_hint": "直接输入数值即可生效（超出范围会自动夹到上下限）",
   "gui.simple_tweaks.config.section.damage": "伤害飘字",
   "gui.simple_tweaks.config.section.general": "通用",
   "gui.simple_tweaks.config.section.mob": "怪物强化",
