@@ -43,6 +43,22 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x ./gradlew
 
+      # The committed wrapper URL is a **China-only mirror** (mirrors.cloud.tencent.com), which the
+      # author needs locally and which a GitHub runner cannot reach reliably: run #1 died in ~21s
+      # because the wrapper's 10s networkTimeout expired before a single Gradle task started
+      # ("No Gradle build results detected"). This swaps ONLY the host, so gradle-wrapper.properties
+      # stays the single source of truth for the Gradle version, and it is a no-op if the URL is ever
+      # changed to the official distribution.
+      - name: Point the wrapper at the official Gradle distribution
+        run: |
+          sed -i -E 's#^distributionUrl=https\\://mirrors\.cloud\.tencent\.com/gradle/#distributionUrl=https\\://services.gradle.org/distributions/#' gradle/wrapper/gradle-wrapper.properties
+          grep '^distributionUrl' gradle/wrapper/gradle-wrapper.properties
+
+      # Fails immediately and loudly if the wrapper itself is broken, instead of surfacing as a
+      # confusing build error several steps later.
+      - name: Wrapper smoke test
+        run: ./gradlew --version
+
       - name: Build (includes :runTest)
         run: ./gradlew build --console=plain --stacktrace
 
