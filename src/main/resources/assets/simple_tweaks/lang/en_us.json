@@ -333,5 +333,9 @@
   "enchantment.simple_tweaks.trident_wrath": "Trident Wrath",
   "enchantment.simple_tweaks.trident_wrath.desc": "A thrown trident keeps striking: an extra 40%% x level of the hit lands as lightning elemental damage (it can react); doubles in rain or when the target is in water, and leaves 1.0 lightning aura",
   "enchantment.simple_tweaks.shield_breaker": "Shield Breaker",
-  "enchantment.simple_tweaks.shield_breaker.desc": "An axe hit on a blocking target drops the block immediately (so the same hit lands unprotected) and costs 2 x level extra shield durability"
+  "enchantment.simple_tweaks.shield_breaker.desc": "An axe hit on a blocking target drops the block immediately (so the same hit lands unprotected) and costs 2 x level extra shield durability",
+  "enchantment.simple_tweaks.gale_elytra": "Gale Elytra",
+  "enchantment.simple_tweaks.gale_elytra.desc": "Gliding pushes you along your heading (1.2%% per level, cap 5%%). Every 10 s, sneak while gliding to dash once, costing 3 x level elytra durability",
+  "enchantment.simple_tweaks.attunement": "Attunement",
+  "enchantment.simple_tweaks.attunement.desc": "Every distinct enchantment on the weapon (vanilla included) adds +2%% x level to final damage; multiple levels of one enchantment still count once"
 }

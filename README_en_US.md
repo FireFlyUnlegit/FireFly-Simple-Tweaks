@@ -12,7 +12,7 @@
 
 A Minecraft mod I build for fun: new enchantments, new mechanics and better combat feedback for vanilla.
 
-Current **1.21.1 / Fabric** release: **v2.2.5** (107 enchantments, 19 elemental reactions, aura gauges, reworked armour curve).
+Current **1.21.1 / Fabric** release: **v2.2.5** (109 enchantments, 19 elemental reactions, aura gauges, reworked armour curve).
 
 ## 🌿 Branches
 
@@ -31,14 +31,14 @@ Current **1.21.1 / Fabric** release: **v2.2.5** (107 enchantments, 19 elemental 
 
 ### 🧙 Custom enchantments
 
-**107** unique enchantments, split by rarity:
+**109** unique enchantments, split by rarity:
 
 | Rarity | Count | Rarity | Count |
 |--------|-------|--------|-------|
 | COMMON | 7 | LEGENDARY | 16 |
 | UNCOMMON | 9 | MYTHIC | 9 |
 | RARE | 31 | MYSTERY | 6 |
-| EPIC | 24 | UNIQUE | 5 |
+| EPIC | 26 | UNIQUE | 5 |
 
 #### 🌈 Elemental system
 
@@ -223,6 +223,8 @@ A 100-damage hit: armour 26 → 17 taken; armour 40 → 10 taken.
 | **Aegis** | maximum absorption `+2/level` (cap +8) — finally lets Life Siphon / Echo Shield / Death Protection shields hold a value (vanilla cap defaults to 0) |
 | **Trident Wrath** | a **thrown** trident adds a lightning strike: `40%% × level` of the hit as lightning elemental damage (can react); **doubles** in rain or water and leaves 1.0 lightning aura |
 | **Shield Breaker** | an axe hit on a **blocking** target drops the block at once (that hit lands unprotected) and costs `2 × level` extra shield durability |
+| **Gale Elytra** | gliding pushes you along your heading (1.2% per level, cap 5%); every 10 s **sneak while gliding** to dash, costing `3 × level` elytra durability |
+| **Attunement** | every distinct enchantment on the weapon (vanilla included) adds `+2% × level` **final damage**; several levels of one enchantment count once |
 
 ### 🎮 Client features
 

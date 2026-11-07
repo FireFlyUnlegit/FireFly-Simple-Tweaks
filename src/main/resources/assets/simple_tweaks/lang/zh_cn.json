@@ -333,5 +333,9 @@
   "enchantment.simple_tweaks.trident_wrath": "海神之怒",
   "enchantment.simple_tweaks.trident_wrath.desc": "三叉戟投掷命中后额外劈下一道雷：伤害的 40%%x等级 作为雷霆元素伤害（可打反应）；下雨或目标在水中时翻倍并附着 1.0 雷元素量",
   "enchantment.simple_tweaks.shield_breaker": "破盾",
-  "enchantment.simple_tweaks.shield_breaker.desc": "斧头命中正在举盾的目标时立刻打断其格挡（该击全额吃伤害），并额外消耗 2x等级 点盾牌耐久"
+  "enchantment.simple_tweaks.shield_breaker.desc": "斧头命中正在举盾的目标时立刻打断其格挡（该击全额吃伤害），并额外消耗 2x等级 点盾牌耐久",
+  "enchantment.simple_tweaks.gale_elytra": "疾风鞘翅",
+  "enchantment.simple_tweaks.gale_elytra.desc": "滑翔时沿朝向持续加速（每级 1.2%%，上限 5%%）；每 10 秒可在滑翔中按住潜行冲刺一次，消耗 3x等级 鞘翅耐久",
+  "enchantment.simple_tweaks.attunement": "同调",
+  "enchantment.simple_tweaks.attunement.desc": "武器上每多一种不同的附魔（含原版），最终伤害 +2%%x等级；同一条附魔的多个等级只算一条"
 }
