@@ -4,7 +4,7 @@
 [![Minecraft](https://img.shields.io/badge/Minecraft-1.12.2%20%7C%201.21.1-blue.svg)]()
 [![Loader](https://img.shields.io/badge/Loader-Forge%20%7C%20Fabric-orange.svg)]()
 
-[简体中文](README.md) | **English**
+**[简体中文](README.md) | [English](README_en_US.md)**
 
 ---
 
