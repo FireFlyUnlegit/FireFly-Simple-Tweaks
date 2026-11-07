@@ -111,8 +111,8 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
     const val PROTECTION_PER_LEVEL = 0.04f
     const val PROTECTION_CAP = 0.80f
     /** Per total level of `elemental_supremacy`: its own mitigation share (see [supremacyReduction]). */
-    const val SUPREMACY_PER_LEVEL = 0.025f
-    const val SUPREMACY_CAP = 0.50f
+    const val SUPREMACY_PER_LEVEL = 0.045f
+    const val SUPREMACY_CAP = 0.90f
 
     // ---------------------------------------------------------------- mastery tuning
 
@@ -918,16 +918,12 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
     }
 
     /**
-     * `elemental_supremacy`'s own mitigation: `2.5 % × total level`, capped at 50 %.
+     * `elemental_supremacy`'s own mitigation **zone**: `4.5 % × total level`, capped at 90 %.
      *
-     * At full investment (level 5 on all four pieces = 20 total levels, plus a maxed affinity on those same
-     * pieces) the two sources compose to `1 − (1 − 0.80) × (1 − 0.50) = 90 %` elemental damage reduction:
-     * the "max level is 90 %" figure the author asked for.
-     *
-     * Deliberately separate from [protectionLevel]: the 80 % affinity cap is a promise the rest of the elemental
-     * system relies on, so supremacy must not quietly raise it. Instead it contributes one more multiplicative
-     * factor, composing exactly like `enchant × ward × mob` already does. Four maxed fire pieces give 80 %, and
-     * supremacy V then removes a further quarter of the remainder → `1 − 0.2 × 0.75 = 85 %`.
+     * This is a separate zone from the 80 % affinity cap, not a refinement of it: at a full set (20 levels)
+     * the zone alone is 90 %, and it composes multiplicatively with whatever affinity you have
+     * (`1 − (1 − affinity) × (1 − zone)`). With a maxed affinity that lands at 98 %, which the engine's
+     * final clamp reduces to the **95 %** ceiling every elemental hit is subject to.
      */
     fun supremacyReduction(entity: LivingEntity): Float {
         if (!wearsSupremacy(entity)) return 0f

@@ -82,34 +82,15 @@ object EnchantElementalSupremacyHandler : Listenable {
         val target = e.entityLiving
         if (attacker === target) return
 
-        // Cheap gate first: only a wearer has anything stored.
-        val remembered = ReactionMemory.drain(attacker)
-        if (remembered.isEmpty()) return
-
-        // The enchantment may have been removed between recording and swinging.
+        // Checked **before** draining: draining for a non-wearer would throw the memory away for nothing.
         if (!ElementCombat.wearsSupremacy(attacker)) return
 
-        val base = e.amount * REPLAY_SHARE
-        var replayed = 0
-        for (key in remembered) {
-            val reaction = ElementReactions.byKey(key) ?: continue
-            // Attach the mark the reaction needs, then let the engine resolve it.
-            ElementAuras.attach(target, reaction.mark, REPLAY_AURA)
-            ElementMarks.recordAndReact(
-                attacker,
-                target,
-                reaction.trigger,
-                base,
-                units = REPLAY_AURA,
-                forceAttach = true,
-                source = e.source,
-            )
-            replayed++
-        }
+        val totalLevel = ReactionMemory.totalLevel(attacker)
 
-        // Free elemental riders: extra damage, never a reduction of this hit. Count scales with the total
-        // level, so a single level-5 piece (5) gets none and a full set (20) gets two.
-        val riders = ReactionMemory.totalLevel(attacker) / RIDER_LEVELS_EACH
+        // Free elemental riders. This block used to sit *after* the replay gate, so it only ran when the
+        // player happened to have a reaction stored — which is why the author could not see it working
+        // (`build=cleanup56`).
+        val riders = totalLevel / RIDER_LEVELS_EACH
         repeat(riders) {
             val pool = ElementType.CONVERTIBLE
             val element = pool[target.world.random.nextInt(pool.size)]
@@ -124,9 +105,31 @@ object EnchantElementalSupremacyHandler : Listenable {
             )
         }
 
+        // Reaction memory replay (independent of the riders above).
+        val remembered = ReactionMemory.drain(attacker)
+        val base = e.amount * REPLAY_SHARE
+        var replayed = 0
+        for (key in remembered) {
+            val reaction = ElementReactions.byKey(key) ?: continue
+            ElementAuras.attach(target, reaction.mark, REPLAY_AURA)
+            ElementMarks.recordAndReact(
+                attacker,
+                target,
+                reaction.trigger,
+                base,
+                units = REPLAY_AURA,
+                forceAttach = true,
+                source = e.source,
+            )
+            replayed++
+        }
+
+        if (riders <= 0 && replayed <= 0) return
+
         FSTLog.log("Supremacy") {
-            "target=${target.type.name.string}, replay=${remembered.joinToString(",")}, " +
-                "replayed=$replayed, base=${"%.2f".format(base)}, riders=$riders, outcome=returned"
+            "target=${target.type.name.string}, totalLevel=$totalLevel, riders=$riders, " +
+                "replay=${remembered.joinToString(",")}, replayed=$replayed, " +
+                "base=${"%.2f".format(base)}, outcome=returned"
         }
     }
 }
