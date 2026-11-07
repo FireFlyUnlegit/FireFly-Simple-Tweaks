@@ -791,6 +791,16 @@ class ModEnchantmentProcessor(
         appendLine("    val MAX_LEVEL: Map<String, Int> = ${
             mapEntries(metas) { "\"${it.id}\" to ${it.maxLevel}" }
         }")
+        // Which item tag an enchantment declares, and which conflict set it belongs to. Both are needed at
+        // run time by `reroll` (it must roll *applicable* enchantments and must not build an illegal
+        // combination), and the processor already knows both -- generating them here is the only way to
+        // answer "may this enchantment go on this item" without hand-duplicating the tables.
+        appendLine("    val SUPPORTED_TAGS: Map<String, String> = ${
+            mapEntries(specs) { "\"${it.id}\" to \"${it.supportedItems}\"" }
+        }")
+        appendLine("    val EXCLUSIVE_SETS: Map<String, String> = ${
+            mapEntries(specs.filter { it.exclusiveSet.isNotEmpty() }) { "\"${it.id}\" to \"${it.exclusiveSet}\"" }
+        }")
         appendLine()
         // Sorted by the declaration's `order`. A handler migrated out of `EnchantmentManager.handlerList`
         // carries the position it had there, so the bus ends up dispatching in the same sequence as before

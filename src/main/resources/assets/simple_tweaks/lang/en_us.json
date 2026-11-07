@@ -314,5 +314,13 @@
   "enchantment.simple_tweaks.elemental_sovereign": "Elemental Sovereign",
   "enchantment.simple_tweaks.elemental_sovereign.desc": "The conversion element becomes whichever one actually reacts with the target's aura (falls back to your own conversion element when there is no aura); every reaction you trigger deals +30%% × level",
   "enchantment.simple_tweaks.midas_touch": "Midas Touch",
-  "enchantment.simple_tweaks.midas_touch.desc": "Block drops ×(1 + 25%% × level) (multiplicative with Fortune), mining speed +20%% × level, plus a chance of bonus experience. Deliberately does not touch mob drops or experience gain (owned by Scavenger / Experience Stealer)"
+  "enchantment.simple_tweaks.midas_touch.desc": "Block drops ×(1 + 25%% × level) (multiplicative with Fortune), mining speed +20%% × level, plus a chance of bonus experience. Deliberately does not touch mob drops or experience gain (owned by Scavenger / Experience Stealer)",
+  "enchantment.simple_tweaks.extraction": "Extraction",
+  "enchantment.simple_tweaks.extraction.desc": "Consumed on use: remove this item's **highest-level** enchantment and turn it into an enchantment book of the same level; the item keeps the rest. Cannot extract itself and never duplicates",
+  "enchantment.simple_tweaks.elemental_attunement": "Elemental Attunement",
+  "enchantment.simple_tweaks.elemental_attunement.desc": "Consumed on use: replace the item's conversion enchantment with **another random element**, keeping the level. Nothing is consumed if the item has no conversion",
+  "enchantment.simple_tweaks.reroll": "Reroll",
+  "enchantment.simple_tweaks.reroll.desc": "Consumed on use: strip every **mod** enchantment from the item and roll 2 fresh ones that are legal for it (level 1 to half its max), never creating a conflicting pair. Vanilla enchantments are untouched",
+  "enchantment.simple_tweaks.infusion": "Infusion",
+  "enchantment.simple_tweaks.infusion.desc": "Consumed on use: spend **10 experience levels** to raise the item's highest non-maxed enchantment by **one level**. Nothing is consumed when everything is maxed or you lack the levels"
 }
