@@ -22,3 +22,5 @@ docs/
 # （AGENTS.md 是给 AI 代理的操作契约，DEV_GUIDE 是作者自己的实现笔记）
 AGENTS.md
 DEV_GUIDE_1.21.1.md
+# 逐批开发流水：同样是本机文件（对外只保留 README 与提交信息）
+DEVLOG.md
