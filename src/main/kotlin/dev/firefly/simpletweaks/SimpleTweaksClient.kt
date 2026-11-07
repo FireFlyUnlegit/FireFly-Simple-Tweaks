@@ -69,7 +69,11 @@ class SimpleTweaksClient : ClientModInitializer {
                 "+ yStartFactor multiplies entity height + debug logs off by default " +
                 "+ anvil cost cap actually applied " +
                 "+ KSP-generated enchantment definitions, first = fast_bow " +
-                "+ fast_bow colour + client draw-speed hook (build=cleanup6)",
+                "+ fast_bow colour + client draw-speed hook " +
+                "+ piercing_arrow/crit migrated to KSP + crit-damage priority split " +
+                "+ @ModEnchantment enums (category/type/color/slot) " +
+                "+ enchant index enumerates the live registry " +
+                "+ name colour derived from tier (EnchantmentNameColors deleted) (build=cleanup10)",
             SimpleTweaks.NAME,
         )
     }
