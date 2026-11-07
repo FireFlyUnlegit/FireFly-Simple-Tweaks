@@ -10,10 +10,16 @@ import net.minecraft.component.DataComponentTypes
 import net.minecraft.component.type.NbtComponent
 import net.minecraft.item.ItemStack
 import net.minecraft.nbt.NbtCompound
+import java.util.UUID
+import net.minecraft.registry.entry.RegistryEntry
+import net.minecraft.enchantment.Enchantment
+import net.minecraft.component.type.ItemEnchantmentsComponent
 import net.minecraft.nbt.NbtElement
 import net.minecraft.nbt.NbtOps
 import net.minecraft.nbt.StringNbtReader
 import net.minecraft.registry.Registries
+import net.minecraft.registry.RegistryKeys
+import net.minecraft.registry.Registry
 import net.minecraft.server.command.CommandManager
 import net.minecraft.server.command.ServerCommandSource
 import net.minecraft.text.Text
@@ -44,6 +50,13 @@ import net.minecraft.util.Identifier
  * /fst debugItem name <string>                  set `custom_name`
  * /fst debugItem damage <int>                   set `damage`
  * /fst debugItem unbreakable [true|false]       set / clear `unbreakable`
+ * /fst debugItem enchants show                 the held item's enchantments
+ * /fst debugItem enchants copy                 remember them (per player)
+ * /fst debugItem enchants paste                replace another item's enchantments with them
+ * /fst debugItem enchants merge                same, but keep the target's other enchantments
+ * /fst debugItem enchants set <id> <level>     one enchantment
+ * /fst debugItem enchants remove <id>          drop one
+ * /fst debugItem enchants clear                drop the whole component
  * ```
  *
  * ## Design notes
@@ -74,6 +87,7 @@ object DebugItemCommand {
             .executes { ctx -> reportInfo(ctx) }
             .then(CommandManager.literal("info").executes { ctx -> reportInfo(ctx) })
             .then(nbtNode())
+            .then(enchantsNode())
             .then(componentNode())
             .then(
                 CommandManager.literal("name")
@@ -301,6 +315,199 @@ object DebugItemCommand {
         val encoded = codec.encodeStart(NbtOps.INSTANCE, value).result().orElse(null)
         return encoded?.let { snbt(it) } ?: "(unencodable)"
     }
+
+    // ------------------------------------------------------------------ enchantments
+
+    /**
+     * Copy / paste the **enchantment component** between held items.
+     *
+     * ## Why a clipboard instead of two item arguments
+     * One hand can only hold one item, so "copy A onto B" is naturally two steps: copy while holding A,
+     * then swap to B and paste. That also keeps the command independent of inventory-slot plumbing, and
+     * therefore independent of any other mod's slot handling.
+     *
+     * ## Why `paste` replaces and `merge` merges
+     * - `paste` makes the target's enchantments **exactly** the copied set — the mental model of "copy this
+     *   item's enchants onto that one".
+     * - `merge` keeps the target's own enchantments and only overrides the ids that were copied, which is
+     *   the useful half when building a test item from two sources.
+     *
+     * **Nothing else on the target is touched**: the command writes only
+     * `minecraft:enchantments`, so name / lore / custom_data / damage / attribute modifiers all survive.
+     */
+    private fun enchantsNode(): LiteralArgumentBuilder<ServerCommandSource> =
+        CommandManager.literal("enchants")
+            .executes { ctx -> showEnchants(ctx) }
+            .then(CommandManager.literal("show").executes { ctx -> showEnchants(ctx) })
+            .then(
+                CommandManager.literal("copy")
+                    .executes { ctx -> copyEnchants(ctx) }
+            )
+            .then(
+                CommandManager.literal("paste")
+                    .executes { ctx -> applyClipboard(ctx, merge = false) }
+            )
+            .then(
+                CommandManager.literal("merge")
+                    .executes { ctx -> applyClipboard(ctx, merge = true) }
+            )
+            .then(
+                CommandManager.literal("clear")
+                    .executes { ctx ->
+                        val stack = heldStack(ctx) ?: return@executes 0
+                        if (stack.get(DataComponentTypes.ENCHANTMENTS) == null) {
+                            error(ctx, "no enchantments on this item")
+                            return@executes 0
+                        }
+                        stack.remove(DataComponentTypes.ENCHANTMENTS)
+                        feedback(ctx, "enchantments removed")
+                        1
+                    }
+            )
+            .then(
+                CommandManager.literal("set")
+                    .then(
+                        CommandManager.argument("id", IdentifierArgumentType.identifier())
+                            .then(
+                                CommandManager.argument("level", IntegerArgumentType.integer(1, 255))
+                                    .executes { ctx ->
+                                        val stack = heldStack(ctx) ?: return@executes 0
+                                        val id = IdentifierArgumentType.getIdentifier(ctx, "id")
+                                        val level = IntegerArgumentType.getInteger(ctx, "level")
+                                        val entry = enchantmentEntry(ctx, id) ?: return@executes 0
+                                        val builder = enchantmentBuilder(stack)
+                                        builder.set(entry, level)
+                                        stack.set(DataComponentTypes.ENCHANTMENTS, builder.build())
+                                        feedback(ctx, "set $id = $level")
+                                        1
+                                    }
+                            )
+                    )
+            )
+            .then(
+                CommandManager.literal("remove")
+                    .then(
+                        CommandManager.argument("id", IdentifierArgumentType.identifier())
+                            .executes { ctx ->
+                                val stack = heldStack(ctx) ?: return@executes 0
+                                val id = IdentifierArgumentType.getIdentifier(ctx, "id")
+                                val existing = stack.get(DataComponentTypes.ENCHANTMENTS)
+                                if (existing == null || existing.isEmpty) {
+                                    error(ctx, "no enchantments on this item")
+                                    return@executes 0
+                                }
+                                val entry = existing.enchantments.firstOrNull {
+                                    (it.key.map { key -> key.value }.orElse(null)) == id
+                                }
+                                if (entry == null) {
+                                    error(ctx, "$id is not on this item")
+                                    return@executes 0
+                                }
+                                val builder = ItemEnchantmentsComponent.Builder(ItemEnchantmentsComponent.DEFAULT)
+                                for (other in existing.enchantments) {
+                                    if (other !== entry) builder.set(other, existing.getLevel(other))
+                                }
+                                stack.set(DataComponentTypes.ENCHANTMENTS, builder.build())
+                                feedback(ctx, "removed $id")
+                                1
+                            }
+                    )
+            )
+
+    private fun showEnchants(ctx: CommandContext<ServerCommandSource>): Int {
+        val stack = heldStack(ctx) ?: return 0
+        val component = stack.get(DataComponentTypes.ENCHANTMENTS)
+        if (component == null || component.isEmpty) {
+            feedback(ctx, "enchantments: (none)")
+            return 1
+        }
+        val listed = component.enchantments
+            .mapNotNull { entry ->
+                val id = entry.key.map { key -> key.value }.orElse(null) ?: return@mapNotNull null
+                "$id=${component.getLevel(entry)}"
+            }
+            .sorted()
+        feedback(ctx, "enchantments (${listed.size}): ${listed.joinToString(", ")}")
+        return 1
+    }
+
+    private fun copyEnchants(ctx: CommandContext<ServerCommandSource>): Int {
+        val stack = heldStack(ctx) ?: return 0
+        val player = ctx.source.player ?: return 0
+        val component = stack.get(DataComponentTypes.ENCHANTMENTS)
+        if (component == null || component.isEmpty) {
+            error(ctx, "this item has no enchantments to copy")
+            return 0
+        }
+        val copied = LinkedHashMap<Identifier, Int>()
+        for (entry in component.enchantments) {
+            val id = entry.key.map { key -> key.value }.orElse(null) ?: continue
+            copied[id] = component.getLevel(entry)
+        }
+        CLIPBOARD[player.uuid] = copied
+        feedback(ctx, "copied ${copied.size} enchantment(s): ${copied.entries.joinToString(", ") { "${it.key}=${it.value}" }}")
+        return 1
+    }
+
+    private fun applyClipboard(ctx: CommandContext<ServerCommandSource>, merge: Boolean): Int {
+        val stack = heldStack(ctx) ?: return 0
+        val player = ctx.source.player ?: return 0
+        val copied = CLIPBOARD[player.uuid]
+        if (copied.isNullOrEmpty()) {
+            error(ctx, "clipboard is empty — hold the source item and run `enchants copy` first")
+            return 0
+        }
+        val builder =
+            if (merge) enchantmentBuilder(stack)
+            else ItemEnchantmentsComponent.Builder(ItemEnchantmentsComponent.DEFAULT)
+
+        var applied = 0
+        for ((id, level) in copied) {
+            val entry = enchantmentRegistry(ctx).getEntry(id).orElse(null)
+            if (entry == null) {
+                error(ctx, "unknown enchantment '$id' (skipped)")
+                continue
+            }
+            builder.set(entry, level)
+            applied++
+        }
+        if (applied == 0) {
+            error(ctx, "nothing was applied")
+            return 0
+        }
+        stack.set(DataComponentTypes.ENCHANTMENTS, builder.build())
+        feedback(ctx, "${if (merge) "merged" else "pasted"} $applied enchantment(s); other components untouched")
+        return 1
+    }
+
+    /** Builder seeded with the item's current enchantments (or an empty one). */
+    private fun enchantmentBuilder(stack: ItemStack): ItemEnchantmentsComponent.Builder {
+        val existing = stack.get(DataComponentTypes.ENCHANTMENTS) ?: ItemEnchantmentsComponent.DEFAULT
+        return ItemEnchantmentsComponent.Builder(existing)
+    }
+
+    private fun enchantmentEntry(
+        ctx: CommandContext<ServerCommandSource>,
+        id: Identifier,
+    ): RegistryEntry<Enchantment>? {
+        val entry = enchantmentRegistry(ctx).getEntry(id).orElse(null)
+        if (entry == null) {
+            error(ctx, "unknown enchantment '$id'")
+        }
+        return entry
+    }
+
+    /**
+     * The **dynamic** enchantment registry.
+     *
+     * 1.21 enchantments are not a static `Registries` field — they are loaded from the datapack, so the
+     * only way to resolve an id to an entry is through the server's registry manager.
+     */
+    private fun enchantmentRegistry(ctx: CommandContext<ServerCommandSource>): Registry<Enchantment> =
+        ctx.source.server.registryManager.get(RegistryKeys.ENCHANTMENT)
+
+    /** Per-player clipboard, so two operators in one session cannot overwrite each other. */
+    private val CLIPBOARD: MutableMap<UUID, Map<Identifier, Int>> = java.util.concurrent.ConcurrentHashMap()
 
     // ------------------------------------------------------------------ shared helpers
 
