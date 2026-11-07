@@ -3,10 +3,12 @@ package dev.firefly.simpletweaks.client
 import dev.firefly.simpletweaks.core.config.DamageIndicatorConfig
 import dev.firefly.simpletweaks.core.config.GeneralConfig
 import dev.firefly.simpletweaks.core.config.MobEnhancementConfig
+import dev.firefly.simpletweaks.core.config.ConfigBounds
 import dev.firefly.simpletweaks.core.config.SimpleTweaksConfig
 import net.minecraft.client.gui.DrawContext
 import net.minecraft.client.gui.screen.Screen
 import net.minecraft.client.gui.widget.ButtonWidget
+import net.minecraft.client.gui.widget.TextFieldWidget
 import net.minecraft.text.Text
 
 /**
@@ -56,7 +58,7 @@ class SimpleTweaksConfigScreen(private val parent: Screen?) :
     private var page = 0
 
     /** Numbers have no widget for their label/value, so they are drawn in [render]. */
-    private data class NumRow(val label: Text, val value: Text, val y: Int)
+    private data class NumRow(val label: Text, val y: Int)
 
     private val numRows = mutableListOf<NumRow>()
 
@@ -80,31 +82,55 @@ class SimpleTweaksConfigScreen(private val parent: Screen?) :
             y += ROW_H
         }
 
+        /**
+         * A numeric option as an **editable text field**.
+         *
+         * ## Why not the old [-] / [+] pair
+         * Clicking was the only way to change a value, so every ceiling had to be reachable by clicking —
+         * which is why the old ranges stopped at 500 ticks and a scale of 10. Typing removes that link: the
+         * range is now whatever [ConfigBounds] says, and 1500 is two keystrokes instead of 149 clicks.
+         *
+         * ## Behaviour
+         * - Applies live, clamped to `min..max`, and saves on every accepted keystroke. A partial entry like
+         *   `-` or `.` parses to null and is neither applied nor rewritten, so the cursor never jumps.
+         * - Text is rebuilt from [raw] whenever the widgets are recreated (page switch, screen open), which
+         *   makes a clamped value visible as the value that was actually stored.
+         *
+         * `step` stays in the signature so the call sites did not need rewriting; keyboard entry has no step.
+         */
         fun numRow(
             name: String,
             get: () -> Double,
             set: (Double) -> Unit,
-            step: Double,
+            @Suppress("UNUSED_PARAMETER") step: Double,
             min: Double,
             max: Double,
             fmt: (Double) -> Text,
+            raw: (Double) -> String = { value ->
+                if (value == value.toInt().toDouble()) value.toInt().toString()
+                else "%.2f".format(value)
+            },
         ) {
-            val minusX = x0 + ROW_W - 40
-            addDrawableChild(
-                ButtonWidget.builder(Text.literal("§c-§r")) {
-                    set((get() - step).coerceIn(min, max))
+            val fieldW = 92
+            val field = TextFieldWidget(
+                this.textRenderer,
+                x0 + ROW_W - fieldW,
+                y + 1,
+                fieldW,
+                ROW_H - 6,
+                key(name),
+            ).apply {
+                setMaxLength(12)
+                text = raw(get())
+                setChangedListener { input ->
+                    val parsed = input.trim().replace(',', '.').toDoubleOrNull() ?: return@setChangedListener
+                    if (!parsed.isFinite()) return@setChangedListener
+                    set(parsed.coerceIn(min, max))
                     SimpleTweaksConfig.save()
-                    clearAndInit()
-                }.dimensions(minusX, y, 18, ROW_H - 2).build()
-            )
-            addDrawableChild(
-                ButtonWidget.builder(Text.literal("§a+§r")) {
-                    set((get() + step).coerceIn(min, max))
-                    SimpleTweaksConfig.save()
-                    clearAndInit()
-                }.dimensions(minusX + 20, y, 18, ROW_H - 2).build()
-            )
-            numRows.add(NumRow(key(name), fmt(get()), y))
+                }
+            }
+            addDrawableChild(field)
+            numRows.add(NumRow(key(name), y))
             y += ROW_H
         }
 
@@ -119,7 +145,7 @@ class SimpleTweaksConfigScreen(private val parent: Screen?) :
                 numRow(
                     "maxAnvilCost", { GeneralConfig.maxAnvilCost.toDouble() },
                     { GeneralConfig.maxAnvilCost = it.toInt() },
-                    step = 1000.0, min = 1.0, max = Int.MAX_VALUE.toDouble(),
+                    step = 0.0, min = ConfigBounds.ANVIL_COST.first.toDouble(), max = ConfigBounds.ANVIL_COST.last.toDouble(),
                     fmt = {
                         if (it >= Int.MAX_VALUE.toDouble()) key("unlimited")
                         else Text.literal(it.toInt().toString())
@@ -131,7 +157,7 @@ class SimpleTweaksConfigScreen(private val parent: Screen?) :
                 numRow(
                     "maxEnchantmentPower", { GeneralConfig.maxEnchantmentPower.toDouble() },
                     { GeneralConfig.maxEnchantmentPower = it.toInt() },
-                    step = 1.0, min = 1.0, max = 255.0,
+                    step = 0.0, min = ConfigBounds.ENCHANT_POWER.first.toDouble(), max = ConfigBounds.ENCHANT_POWER.last.toDouble(),
                     fmt = { Text.literal(it.toInt().toString()) },
                 )
                 boolRow("enabledEnchantmentColor", { GeneralConfig.enabledEnchantmentColor }) {
@@ -157,7 +183,7 @@ class SimpleTweaksConfigScreen(private val parent: Screen?) :
                 numRow(
                     "damageIndicator.minHealthChange", { DamageIndicatorConfig.minHealthChange },
                     { DamageIndicatorConfig.minHealthChange = it },
-                    step = 1.0, min = 0.0, max = 1000.0,
+                    step = 0.0, min = ConfigBounds.DAMAGE_MIN_HEALTH_CHANGE.start, max = ConfigBounds.DAMAGE_MIN_HEALTH_CHANGE.endInclusive,
                     fmt = {
                         if (it == it.toInt().toDouble()) Text.literal(it.toInt().toString())
                         else Text.literal("%.1f".format(it))
@@ -175,7 +201,7 @@ class SimpleTweaksConfigScreen(private val parent: Screen?) :
                 numRow(
                     "damageIndicator.duration", { DamageIndicatorConfig.duration.toDouble() },
                     { DamageIndicatorConfig.duration = it.toInt() },
-                    step = 10.0, min = 10.0, max = 500.0,
+                    step = 0.0, min = ConfigBounds.DAMAGE_DURATION.first.toDouble(), max = ConfigBounds.DAMAGE_DURATION.last.toDouble(),
                     fmt = { Text.literal(it.toInt().toString()) },
                 )
             }
@@ -186,25 +212,25 @@ class SimpleTweaksConfigScreen(private val parent: Screen?) :
                 numRow(
                     "damageIndicator.riseDuration", { DamageIndicatorConfig.riseDuration.toDouble() },
                     { DamageIndicatorConfig.riseDuration = it.toInt() },
-                    step = 1.0, min = 5.0, max = 50.0,
+                    step = 0.0, min = ConfigBounds.DAMAGE_RISE.first.toDouble(), max = ConfigBounds.DAMAGE_RISE.last.toDouble(),
                     fmt = { Text.literal(it.toInt().toString()) },
                 )
                 numRow(
                     "damageIndicator.maxDistance", { DamageIndicatorConfig.maxDistance.toDouble() },
                     { DamageIndicatorConfig.maxDistance = it.toInt() },
-                    step = 8.0, min = 16.0, max = 256.0,
+                    step = 0.0, min = ConfigBounds.DAMAGE_DISTANCE.first.toDouble(), max = ConfigBounds.DAMAGE_DISTANCE.last.toDouble(),
                     fmt = { Text.literal(it.toInt().toString()) },
                 )
                 numRow(
                     "damageIndicator.scale", { DamageIndicatorConfig.scale },
                     { DamageIndicatorConfig.scale = it },
-                    step = 0.1, min = 0.5, max = 10.0,
+                    step = 0.0, min = ConfigBounds.DAMAGE_SCALE.start, max = ConfigBounds.DAMAGE_SCALE.endInclusive,
                     fmt = { Text.literal("%.1f".format(it)) },
                 )
                 numRow(
                     "damageIndicator.yStartFactor", { DamageIndicatorConfig.yStartFactor },
                     { DamageIndicatorConfig.yStartFactor = it },
-                    step = 0.1, min = 0.5, max = 2.0,
+                    step = 0.0, min = ConfigBounds.DAMAGE_Y_START.start, max = ConfigBounds.DAMAGE_Y_START.endInclusive,
                     fmt = { Text.literal("%.1f".format(it)) },
                 )
             }
@@ -270,14 +296,10 @@ class SimpleTweaksConfigScreen(private val parent: Screen?) :
             this.width / 2, 28, 0xA0A0A0,
         )
 
-        // Numeric rows: label on the left, value right-aligned just before the [-] button.
-        val valueRight = this.width / 2 + ROW_W / 2 - 46
+        // Numeric rows: the label is drawn here; the value is the editable field on the right.
+        val labelX = this.width / 2 - ROW_W / 2
         for (row in numRows) {
-            context.drawTextWithShadow(this.textRenderer, row.label, valueRight - 108, row.y + 5, 0xFFFFFF)
-            context.drawTextWithShadow(
-                this.textRenderer, row.value,
-                valueRight - this.textRenderer.getWidth(row.value), row.y + 5, 0xFFFF55,
-            )
+            context.drawTextWithShadow(this.textRenderer, row.label, labelX, row.y + 5, 0xFFFFFF)
         }
 
         context.drawCenteredTextWithShadow(

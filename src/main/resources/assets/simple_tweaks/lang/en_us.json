@@ -132,7 +132,7 @@
   "gui.simple_tweaks.config.off": "Off",
   "gui.simple_tweaks.config.on": "On",
   "gui.simple_tweaks.config.page": "%s (page %s/%s)",
-  "gui.simple_tweaks.config.save_hint": "Changes are saved to config/simple_tweaks.json immediately",
+  "gui.simple_tweaks.config.save_hint": "Type a value and it applies immediately (out-of-range values are clamped)",
   "gui.simple_tweaks.config.section.damage": "Damage indicator",
   "gui.simple_tweaks.config.section.general": "General",
   "gui.simple_tweaks.config.section.mob": "Mob enhancement",
