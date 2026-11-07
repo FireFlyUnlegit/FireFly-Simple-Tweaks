@@ -308,5 +308,11 @@
   "element.simple_tweaks.shadow": "Shadow",
   "element.simple_tweaks.light": "Light",
   "message.simple_tweaks.elemental_sight.none": "%s: no aura",
-  "message.simple_tweaks.elemental_sight.aura": "%s: %s %s"
+  "message.simple_tweaks.elemental_sight.aura": "%s: %s %s",
+  "enchantment.simple_tweaks.void_collapse": "Void Collapse",
+  "enchantment.simple_tweaks.void_collapse.desc": "At 5 stacks, collapse: deal min(target max health × (5%% + 5%% × level), accumulated damage × 2) true damage (ignores armour, i-frames, cannot crit), 50%% of it to other enemies within 6 blocks; each stack also makes the target take +12%% × level from you. No downside — just one collapse per target per 10 s",
+  "enchantment.simple_tweaks.elemental_sovereign": "Elemental Sovereign",
+  "enchantment.simple_tweaks.elemental_sovereign.desc": "The conversion element becomes whichever one actually reacts with the target's aura (falls back to your own conversion element when there is no aura); every reaction you trigger deals +30%% × level",
+  "enchantment.simple_tweaks.midas_touch": "Midas Touch",
+  "enchantment.simple_tweaks.midas_touch.desc": "Block drops ×(1 + 25%% × level) (multiplicative with Fortune), mining speed +20%% × level, plus a chance of bonus experience. Deliberately does not touch mob drops or experience gain (owned by Scavenger / Experience Stealer)"
 }
