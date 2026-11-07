@@ -44,6 +44,15 @@ object ElementAuras {
     /** 超强元素: only the loudest effects (heavenly punishment). */
     const val ULTRA = 4.0f
 
+
+    /**
+     * Share of a repeat application that accumulates onto an existing aura (see [attach]).
+     *
+     * 0.5 means eight weak hits accumulate to one ultra application; the value is deliberately below 1 so a
+     * single big application is still the fastest route to a high aura.
+     */
+    const val ACCUMULATION_RATE = 0.5f
+
     /** Lifetime in ticks for each class (9.5 s / 12 s / 17 s). */
     const val WEAK_TICKS = 190
     const val STRONG_TICKS = 240
@@ -76,15 +85,26 @@ object ElementAuras {
         else -> ULTRA_TICKS
     }
 
-    /** Attaches [units] of [element], **replacing** whatever was there (same element stacks to max). */
+    /**
+     * Attaches [units] of [element], **accumulating** onto the same element already present.
+     *
+     * ## Why accumulation is slower than the application
+     * A repeat application adds only [ACCUMULATION_RATE] of its units, so **eight** weak (1.0) hits
+     * accumulate to one ultra application (4.0): `0.5 × 8`. That is the author's rule — "many small
+     * attachments can reach a high value, but the accumulation is slow" — and it keeps the original
+     * concern in check: an ultra application is still the fastest way to reach 4.0, while a stream of weak
+     * hits gets there eventually instead of being capped at 1.0 forever.
+     *
+     * A **stronger** application still lands at least its own value: with 1.0 present, a strong (2.0) hit
+     * yields `1.0 + 1.0 = 2.0`, and with 3.0 present an ultra (4.0) hit caps at 4.0.
+     */
     fun attach(entity: LivingEntity, element: ElementType, units: Float = WEAK) {
         val now = entity.world.time
         val existing = auras[entity]
         val merged =
             if (existing != null && existing.element == element) {
-                // Same element on the same target refreshes to the stronger of the two applications
-                // rather than adding up: `1 + 1 + 1` would out-class an ultra application for free.
-                maxOf(existing.unitsAt(now), units)
+                val current = existing.unitsAt(now).coerceAtLeast(0f)
+                (current + units * ACCUMULATION_RATE).coerceAtMost(ULTRA)
             } else {
                 units
             }

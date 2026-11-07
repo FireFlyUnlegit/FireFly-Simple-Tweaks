@@ -71,6 +71,9 @@ enchantment (RARE), plus four **cross-element** enchantments (mastery / resonanc
 | Weak | 1.0 | 9.5 s | most elemental hits, lightning arcs |
 | Strong | 2.0 | 12 s | conversion riders, starfall, celestial light |
 | Ultra | 4.0 | 17 s | heavenly punishment |
+- **Accumulation**: a repeat application of the same element **adds up**, but only counts **50%** - eight
+  weak hits (1.0 x 0.5 x 8) are needed to reach 4.0, so many small attachments do reach a high class,
+  just **slowly**; a single ultra application is still the fastest route.
 
 - **Attachment ICD (two counters)**: against the same target, only the 1st, 4th, 7th… hit from the same
   attacker actually attaches an element within a **2.5 s** window; the window resets afterwards. Venom
