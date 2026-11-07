@@ -145,7 +145,8 @@ object ElementMarks {
         element: ElementType,
         damage: Float,
         units: Float = ElementAuras.WEAK,
-    ): ReactionOutcome = recordAndReact(attacker, target, element, damage, units)
+        source: net.minecraft.entity.damage.DamageSource? = null,
+    ): ReactionOutcome = recordAndReact(attacker, target, element, damage, units, source = source)
 
     /**
      * Sets [element] as the target's aura **without** looking for a reaction.
@@ -188,11 +189,27 @@ object ElementMarks {
         val amplify = reaction.amplify
 
         // 剧变: its own flat hit, scaled by attacker level + mastery (never by the weapon).
+        //
+        // ⚠️ **Per-target ICD.** The reference gives the big transformative reactions their own internal
+        // cooldown (感电 ≈ 1 s on the same target), and without one a fast attacker re-triggered the same
+        // reaction every swing — the "reaction spam" the ICD exists to prevent. The status effects below
+        // still apply; only the damage is throttled, so a reaction is never "free" but also never a
+        // second damage source at melee speed.
         var flat = 0f
         if (reaction.transformativeCoeff > 0f) {
-            flat = transformativeDamage(attacker, reaction.transformativeCoeff) * resonance
-            if (flat > 0f && attacker != null) {
-                ElementCombat.enqueueElemental(attacker, target, reaction.trigger, flat)
+            val now = target.world.time
+            val last = TRANSFORMATIVE_AT[target]
+            if (last != null && now - last < TRANSFORMATIVE_ICD_TICKS) {
+                FSTLog.log("Element") {
+                    "reaction=${reaction.key}, target=${target.type.name.string}, " +
+                        "sinceLast=${now - last}, outcome=transformative-icd"
+                }
+            } else {
+                TRANSFORMATIVE_AT[target] = now
+                flat = transformativeDamage(attacker, reaction.transformativeCoeff) * resonance
+                if (flat > 0f && attacker != null) {
+                    ElementCombat.enqueueElemental(attacker, target, reaction.trigger, flat)
+                }
             }
         }
 
@@ -289,6 +306,16 @@ object ElementMarks {
     /** 激化 (quicken) flat bonus per triggering hit. */
     const val QUICKEN_BASE = 2.5f
     const val QUICKEN_PER_LEVEL = 0.35f
+
+    /**
+     * Minimum gap between two **transformative** reaction hits on the same target, in ticks (1 s).
+     *
+     * See the note in [apply]: status effects are not throttled, damage is.
+     */
+    const val TRANSFORMATIVE_ICD_TICKS = 20L
+
+    /** Target → tick of its last transformative reaction hit. */
+    private val TRANSFORMATIVE_AT = WeakHashMap<LivingEntity, Long>()
 
     /** Target → tick at which its quickened state expires. */
     private val QUICKENED = WeakHashMap<LivingEntity, Long>()

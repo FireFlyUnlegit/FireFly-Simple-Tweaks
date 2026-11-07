@@ -4,6 +4,7 @@ import dev.firefly.simpletweaks.util.ShotWeapon;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.projectile.PersistentProjectileEntity;
+import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NbtCompound;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -34,6 +35,39 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  */
 @Mixin(PersistentProjectileEntity.class)
 public abstract class ProjectileShotWeaponMixin {
+
+    /**
+     * The seam vanilla **actually** uses: `ArrowItem#createArrow` builds the arrow with
+     * `(type, shooter, world, stack, weapon)` and never calls `setOwner` (`javap` on 1.21.1: the 4-arg
+     * `ArrowEntity` constructor delegates straight to it). The `setOwner` injection below therefore never
+     * fires for a normal bow shot — this one does.
+     *
+     * <p>The `weapon` argument is exactly the firing weapon vanilla recorded, so it is preferred over
+     * reading the shooter's hand.
+     */
+    @Inject(
+        method = "<init>(Lnet/minecraft/entity/EntityType;Lnet/minecraft/entity/LivingEntity;" +
+            "Lnet/minecraft/world/World;Lnet/minecraft/item/ItemStack;Lnet/minecraft/item/ItemStack;)V",
+        at = @At("TAIL")
+    )
+    private void simpletweaks$snapshotOnConstruct(
+        net.minecraft.entity.EntityType<?> type,
+        net.minecraft.entity.LivingEntity owner,
+        net.minecraft.world.World world,
+        ItemStack stack,
+        ItemStack weapon,
+        CallbackInfo ci
+    ) {
+        if (!(owner instanceof PlayerEntity player)) {
+            return;
+        }
+        if (world.isClient()) {
+            return;
+        }
+        PersistentProjectileEntity self = (PersistentProjectileEntity) (Object) this;
+        ItemStack chosen = (weapon != null && !weapon.isEmpty()) ? weapon : player.getMainHandStack();
+        ShotWeapon.INSTANCE.record(self, chosen);
+    }
 
     @Inject(method = "setOwner", at = @At("TAIL"))
     private void simpletweaks$snapshotShotWeapon(Entity owner, CallbackInfo ci) {
