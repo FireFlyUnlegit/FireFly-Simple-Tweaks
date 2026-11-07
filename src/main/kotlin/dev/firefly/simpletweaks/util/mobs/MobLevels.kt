@@ -122,7 +122,20 @@ object MobLevels {
     private const val PLAYER_POWER_WEIGHT = 2.0f
 
     /** How far away a player still counts as "the one this mob is scaling against", in blocks. */
-    private const val PLAYER_SCAN_RANGE = 64.0
+    /**
+     * How far away a player can be and still count for [effectiveDifficulty].
+     *
+     * **128**, not 64, and that is a bug fix (`build=cleanup24`). Vanilla's natural spawner only keeps
+     * mobs away from players within `SpawnHelper`'s `24.0` minimum (`javap` on 1.21.1: `ldc2_w 576.0` =
+     * `24²`), but it *attempts* spawns anywhere in the loaded chunks — routinely 70–120 blocks out.
+     * With a 64-block scan those spawns found **no player**, fell back to the bare chunk difficulty
+     * (`0.0–0.3`) and produced level 1–2 mobs, while a `/summon`-ed or egg-spawned mob sat right next to
+     * the player and got the full gear-based bonus. That is exactly the reported "只有指令生成的等级才正确".
+     *
+     * 128 is also the outer limit a hostile mob will path towards a player from, so it matches "the
+     * player this mob is going to meet" rather than an arbitrary radius.
+     */
+    private const val PLAYER_SCAN_RANGE = 128.0
 
     /** Slots whose enchantments count toward [playerPower]. Off-hand is skipped: it is usually a torch. */
     private val PLAYER_POWER_SLOTS = arrayOf(
@@ -183,7 +196,10 @@ object MobLevels {
         if (!MobEnhancementConfig.enabled) return difficulty.localDifficulty
 
         val base = (difficulty.localDifficulty - LOCAL_DIFFICULTY_FLOOR).coerceAtLeast(0f) + difficultyOffset
-        val player = nearestPlayer(mob, world) ?: return base
+        // A mob that spawns outside [PLAYER_SCAN_RANGE] still belongs to *someone's* difficulty. Falling
+        // back to "the nearest player, however far" keeps the curve continuous instead of dropping a
+        // whole region to the bare chunk difficulty (see the KDoc on [PLAYER_SCAN_RANGE]).
+        val player = nearestPlayer(mob, world) ?: nearestPlayerAnyDistance(mob, world) ?: return base
         return base + playerPower(player) * PLAYER_POWER_WEIGHT
     }
 
@@ -245,6 +261,21 @@ object MobLevels {
     private fun nearestPlayer(mob: MobEntity, world: ServerWorldAccess): PlayerEntity? {
         val worldView = world as? World ?: return null
         return worldView.getClosestPlayer(mob.x, mob.y, mob.z, PLAYER_SCAN_RANGE, false)
+    }
+
+    /** Nearest player at **any** distance; the fallback for spawns outside [PLAYER_SCAN_RANGE]. */
+    private fun nearestPlayerAnyDistance(mob: MobEntity, world: ServerWorldAccess): PlayerEntity? {
+        val worldView = world as? World ?: return null
+        var best: PlayerEntity? = null
+        var bestSq = Double.MAX_VALUE
+        for (player in worldView.players) {
+            val sq = player.squaredDistanceTo(mob)
+            if (sq < bestSq) {
+                bestSq = sq
+                best = player
+            }
+        }
+        return best
     }
 
     /**
