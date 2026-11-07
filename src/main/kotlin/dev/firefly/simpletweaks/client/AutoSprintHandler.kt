@@ -1,6 +1,5 @@
 package dev.firefly.simpletweaks.client
 
-import dev.firefly.simpletweaks.compat.event.EventPriority
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.event.TickEvent
 import dev.firefly.simpletweaks.core.Listenable
@@ -63,7 +62,7 @@ object AutoSprintHandler : Listenable {
     /** Previous value of the option, so the disable transition can be detected. */
     private var wasEnabled = false
 
-    @SubscribeEvent(priority = EventPriority.NORMAL)
+    @SubscribeEvent(priority = 0)
     fun onPlayerTick(event: TickEvent.PlayerTickEvent) {
         if (event.phase != TickEvent.Phase.END) return
 

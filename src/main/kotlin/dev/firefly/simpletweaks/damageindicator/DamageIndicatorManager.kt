@@ -1,5 +1,7 @@
 package dev.firefly.simpletweaks.damageindicator
 
+import dev.firefly.simpletweaks.network.packets.PacketDamageIndicator
+
 import net.minecraft.entity.Entity
 import java.util.concurrent.ConcurrentLinkedQueue
 
@@ -24,25 +26,25 @@ object DamageIndicatorManager {
     fun addDamage(
         entity: Entity,
         actualDamage: Float,
-        originalDamage: Float,
         isHeal: Boolean = false,
-        isOverkill: Boolean = false,
         isSelf: Boolean = false,
         maxHealth: Float = 0f,
         realMaxHealth: Float = 0f,
         afterRealHealth: Float = 0f,
+        elementOrdinal: Int = dev.firefly.simpletweaks.util.elements.ElementType.NONE_ORDINAL,
+        role: Int = PacketDamageIndicator.ROLE_SINGLE,
     ) {
         damageNumbers.add(
             DamageNumber(
                 entity,
                 actualDamage,
-                originalDamage,
                 isHeal,
-                isOverkill,
                 isSelf,
                 maxHealth,
                 realMaxHealth,
                 afterRealHealth,
+                elementOrdinal,
+                role,
             )
         )
     }

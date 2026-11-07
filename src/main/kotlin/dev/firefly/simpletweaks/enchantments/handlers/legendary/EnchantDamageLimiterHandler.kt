@@ -1,7 +1,6 @@
 package dev.firefly.simpletweaks.enchantments.handlers.legendary
 
 import dev.firefly.simpletweaks.compat.FSTLog
-import dev.firefly.simpletweaks.compat.event.EventPriority
 import dev.firefly.simpletweaks.compat.event.LivingDamageEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.invalid
@@ -25,14 +24,14 @@ import dev.firefly.simpletweaks.util.getArmorEnchantLevel
  * | 1.12.2                                                       | 1.21.1                                                          |
  * |--------------------------------------------------------------|-----------------------------------------------------------------|
  * | `net.minecraftforge...LivingDamageEvent`                     | `compat.event.LivingDamageEvent`                                 |
- * | `net.minecraftforge...EventPriority`                         | `compat.event.EventPriority` (the annotation keeps `priority`)   |
+ * | `net.minecraftforge...EventPriority`                         | `compat.event.EventPriority` (the annotation now carries an int `priority`)   |
  * | `EntityEquipmentSlot.entries` + `slotType != Type.ARMOR`     | `EquipmentSlot.entries` + `slot.type != EquipmentSlot.Type.HUMANOID_ARMOR` (1.21 renamed the slot-type constant; `ANIMAL_ARMOR` is the new non-humanoid one — same shape already used by `EnchantVitalityHandler`) |
  * | `p.getItemStackFromSlot(slot)`                               | `p.getEquippedStack(slot)` (`method_6118`)                       |
  * | `p.maxHealth`                                                | `p.maxHealth` (`getMaxHealth()`, `method_6063`)                  |
  * | `e.amount` (read + write)                                    | `e.amount` (mutable `Float`, same as Forge)                      |
  * | `EnchantDamageLimiter` (Enchantment object)                  | `GeneratedEnchantments.DAMAGE_LIMITER` (RegistryKey)                |
  *
- * No forced mappings: the clamp formula, the `in limit..maxLimit` window, the LOW priority and the
+ * No forced mappings: the clamp formula, the `in limit..maxLimit` window, the `priority = 50` (LOW) and the
  * max-over-armour-slots scan are all copied verbatim.
  */
 @ModEnchantment(
@@ -50,7 +49,7 @@ import dev.firefly.simpletweaks.util.getArmorEnchantLevel
 )
 object EnchantDamageLimiterHandler : Listenable {
 
-    @SubscribeEvent(priority = EventPriority.LOW)
+    @SubscribeEvent(priority = 50)
     fun onLivingDamage(e: LivingDamageEvent) {
         if (e.invalid) return
         val p = e.entityLiving

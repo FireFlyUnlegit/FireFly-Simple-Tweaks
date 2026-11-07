@@ -2,7 +2,6 @@ package dev.firefly.simpletweaks.enchantments.handlers.epic
 
 import dev.firefly.simpletweaks.compat.FSTLog
 import dev.firefly.simpletweaks.compat.WorldSide
-import dev.firefly.simpletweaks.compat.event.EventPriority
 import dev.firefly.simpletweaks.compat.event.LivingDamageEvent
 import dev.firefly.simpletweaks.compat.event.LivingDeathEvent
 import dev.firefly.simpletweaks.compat.event.PlayerEvent
@@ -72,7 +71,7 @@ object EnchantDelayedRecoveryHandler : Listenable {
 
     private val pending = mutableMapOf<UUID, MutableList<PendingHeal>>()
 
-    @SubscribeEvent(priority = EventPriority.LOW)
+    @SubscribeEvent(priority = 50)
     fun onDamage(e: LivingDamageEvent) {
         if (e.invalid) return
         val player = e.target as? PlayerEntity ?: return

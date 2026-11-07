@@ -1,7 +1,6 @@
 package dev.firefly.simpletweaks.enchantments.handlers.epic
 
 import dev.firefly.simpletweaks.compat.FSTLog
-import dev.firefly.simpletweaks.compat.event.EventPriority
 import dev.firefly.simpletweaks.compat.event.LivingDeathEvent
 import dev.firefly.simpletweaks.compat.event.LivingHurtEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
@@ -26,7 +25,7 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
  * |--------------------------------------------|-----------------------------------------------------------------|
  * | `net.minecraftforge...LivingHurtEvent`     | `compat.event.LivingHurtEvent`                                  |
  * | `net.minecraftforge...LivingDeathEvent`    | `compat.event.LivingDeathEvent`                                 |
- * | `net.minecraftforge...EventPriority`       | `compat.event.EventPriority` (annotation keeps `priority = LOWEST`) |
+ * | `net.minecraftforge...EventPriority`       | `compat.event.EventPriority` (annotation now carries `priority = 100` (LOWEST)) |
  * | `EntityPlayer`                             | `net.minecraft.entity.player.PlayerEntity`                      |
  * | `e.source.trueSource`                      | `e.source.attacker` (Yarn `DamageSource.getAttacker`, method_5529) |
  * | `attacker.heldItemMainhand`                | `attacker.mainHandStack` (method_6047)                          |
@@ -51,7 +50,7 @@ object EnchantChargedStrikeHandler : Listenable {
 
     private val stored = WeakHashMap<PlayerEntity, Float>()
 
-    @SubscribeEvent(priority = EventPriority.LOWEST)
+    @SubscribeEvent(priority = 100)
     fun onLivingHurt(e: LivingHurtEvent) {
         if (e.invalid) return
         val attacker = e.source.attacker as? PlayerEntity ?: return

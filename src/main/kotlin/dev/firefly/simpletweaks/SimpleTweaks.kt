@@ -4,10 +4,14 @@ import dev.firefly.simpletweaks.compat.bridge.ServerEventBridge
 import dev.firefly.simpletweaks.core.EnchantCommand
 import dev.firefly.simpletweaks.core.EnchantmentManager
 import dev.firefly.simpletweaks.core.config.SimpleTweaksConfig
+import dev.firefly.simpletweaks.core.MobLevelTracker
 import dev.firefly.simpletweaks.core.registerEvents
 import dev.firefly.simpletweaks.damageindicator.DamageIndicatorHandler
 import dev.firefly.simpletweaks.network.NetworkManager
 import dev.firefly.simpletweaks.particle.ModParticles
+import dev.firefly.simpletweaks.util.ArrowDamageSeam
+import dev.firefly.simpletweaks.util.elements.ElementCombat
+import dev.firefly.simpletweaks.util.elements.ElementShredTicker
 import net.fabricmc.api.ModInitializer
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -37,12 +41,31 @@ class SimpleTweaks : ModInitializer {
         // TickEvent / PlayerEvent reach the handlers registered below.
         ServerEventBridge.register()
 
+        // The unified arrow-damage seam. Registered **before** the handlers on purpose: same-priority
+        // listeners dispatch in registration order, so this one runs first within NORMAL and every
+        // handler that derives its effect from `e.amount` sees the already-scaled arrow damage.
+        // See ArrowDamageSeam's KDoc for why the damage event (and not `onEntityHit`) is the seam.
+        ArrowDamageSeam.registerEvents()
+
+        // The elemental engine: one object owns conversion, protection, marks and reactions for all
+        // sixteen element enchantments plus mastery (see util/elements/ElementCombat).
+        //
+        // Its conversion listener sits at `priority = 200`, i.e. **above** LOWEST, so that it runs after
+        // every other damage handler and converts the *final* hit rather than a figure that is about to
+        // change again. Registration order cannot express that (this object registers before
+        // `initHandlers`, so at the same priority it would run first — the opposite of "last"), which is
+        // why the number is deliberately out of the five named bands.
+        ElementCombat.registerEvents()
+        ElementShredTicker.registerEvents()
+
         // Register every ported enchantment handler on the bus.
         EnchantmentManager.initHandlers()
 
         // Phase-6 batch 3: the network skeleton plus the damage indicator. `registerPackets` is common
         // (not client-only) because a client must know how to *decode* what a server sends, and on a
         // singleplayer world both sides live in this one JVM.
+        // Server: announce each mob's level to a player when that player starts tracking it.
+        MobLevelTracker.registerEvents()
         NetworkManager.registerPackets()
         NetworkManager.registerServerReceivers()
         DamageIndicatorHandler.registerEvents()

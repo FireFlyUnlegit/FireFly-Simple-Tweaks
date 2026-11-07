@@ -4,7 +4,6 @@ import dev.firefly.simpletweaks.SimpleTweaks
 import dev.firefly.simpletweaks.compat.FSTLog
 import dev.firefly.simpletweaks.compat.WorldSide
 import dev.firefly.simpletweaks.compat.attacker
-import dev.firefly.simpletweaks.compat.event.EventPriority
 import dev.firefly.simpletweaks.compat.event.LivingHurtEvent
 import dev.firefly.simpletweaks.compat.event.PlayerEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
@@ -36,7 +35,7 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
  * | `net.minecraftforge...LivingHurtEvent`                      | `compat.event.LivingHurtEvent`                                          |
  * | `net.minecraftforge...PlayerEvent` (entity) + `...gameevent.PlayerEvent` | `compat.event.PlayerEvent` (both merged; the alias is gone) |
  * | `net.minecraftforge...TickEvent`                            | `compat.event.TickEvent`                                                |
- * | `net.minecraftforge...EventPriority`                        | `compat.event.EventPriority` (the annotation keeps `priority`)           |
+ * | `net.minecraftforge...EventPriority`                        | `compat.event.EventPriority` (the annotation now carries an int `priority`)           |
  * | `e.attacker` / `e.target` / `e.invalid`                     | same extension names, now `compat.attacker` / `compat.target` / `compat.invalid` |
  * | `attacker.heldItemMainhand`                                 | `attacker.mainHandStack` (`method_6047`)                                |
  * | `target.hurtResistantTime` (write)                          | `target.timeUntilRegen` (`Entity`'s public field `field_6019`)           |
@@ -82,10 +81,23 @@ object EnchantComboHandler : Listenable {
 
     private const val ATTACK_SPEED_PER_LEVEL = 0.35
 
+    /**
+     * The attack-speed bonus `combo` applies at [level], as a fraction of the **total**
+     * (`ADD_MULTIPLIED_TOTAL`, so the player's attack speed becomes `total * (1 + this)`).
+     *
+     * This is the single source of truth for the constant: the modifier below and the client-side
+     * tooltip fold ([dev.firefly.simpletweaks.client.tooltips.EnchantAttributeToolTipHandler]) both
+     * go through it, because the tooltip cannot read it from the enchantment JSON — this half is
+     * applied in code, not declared as `minecraft:attributes` (see the class KDoc).
+     *
+     * @return `0.0` for a non-positive [level], so callers need no separate guard.
+     */
+    fun attackSpeedBonus(level: Int): Double = if (level > 0) ATTACK_SPEED_PER_LEVEL * level else 0.0
+
     private val ATTACK_SPEED_ID: Identifier = Identifier.of(SimpleTweaks.MOD_ID, "combo_attack_speed")
     private val appliedLevel = WeakHashMap<PlayerEntity, Int>()
 
-    @SubscribeEvent(priority = EventPriority.NORMAL)
+    @SubscribeEvent(priority = 0)
     fun onLivingHurt(e: LivingHurtEvent) {
         if (e.invalid) return
         val attacker = e.attacker ?: return
@@ -127,7 +139,7 @@ object EnchantComboHandler : Listenable {
             attr.addPersistentModifier(
                 EntityAttributeModifier(
                     ATTACK_SPEED_ID,
-                    ATTACK_SPEED_PER_LEVEL * level,
+                    attackSpeedBonus(level),
                     EntityAttributeModifier.Operation.ADD_MULTIPLIED_TOTAL
                 )
             )
@@ -139,7 +151,7 @@ object EnchantComboHandler : Listenable {
         p.syncAttributes()
         FSTLog.log("Combo") {
             "player=${p.name.string}, lvl=$level, hadModifier=$hasModifier, " +
-                "modifier=${ATTACK_SPEED_PER_LEVEL * level}, outcome=${if (level > 0) "applied" else "removed"}"
+                "modifier=${attackSpeedBonus(level)}, outcome=${if (level > 0) "applied" else "removed"}"
         }
     }
 

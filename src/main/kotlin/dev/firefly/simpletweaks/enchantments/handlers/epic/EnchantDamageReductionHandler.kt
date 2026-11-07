@@ -1,7 +1,6 @@
 package dev.firefly.simpletweaks.enchantments.handlers.epic
 
 import dev.firefly.simpletweaks.compat.FSTLog
-import dev.firefly.simpletweaks.compat.event.EventPriority
 import dev.firefly.simpletweaks.compat.event.LivingHurtEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.invalid
@@ -23,7 +22,7 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
  * | 1.12.2                                  | 1.21.1                                                       |
  * |-----------------------------------------|--------------------------------------------------------------|
  * | `net.minecraftforge...LivingHurtEvent`  | `compat.event.LivingHurtEvent`                               |
- * | `net.minecraftforge...EventPriority`    | `compat.event.EventPriority` (annotation keeps `priority = HIGH`) |
+ * | `net.minecraftforge...EventPriority`    | `compat.event.EventPriority` (annotation now carries `priority = -50` (HIGH)) |
  * | `e.target`                              | `compat.target` extension (Forge's `LivingHurtEvent.getEntityLiving()`) |
  * | `e.target.getArmorEnchantLevel(EnchantDamageReduction)` | `getArmorEnchantLevel(GeneratedEnchantments.DAMAGE_REDUCTION)` (already ported) |
  *
@@ -44,7 +43,7 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
     order = 25,
 )
 object EnchantDamageReductionHandler : Listenable {
-    @SubscribeEvent(priority = EventPriority.HIGH)
+    @SubscribeEvent(priority = -50)
     fun onLivingHurt(e: LivingHurtEvent) {
         if (e.invalid) return
         val lvl = e.target.getArmorEnchantLevel(GeneratedEnchantments.DAMAGE_REDUCTION)

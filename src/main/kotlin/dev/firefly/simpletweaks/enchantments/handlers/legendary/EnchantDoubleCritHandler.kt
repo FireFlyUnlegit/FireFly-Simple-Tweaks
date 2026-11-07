@@ -2,7 +2,6 @@ package dev.firefly.simpletweaks.enchantments.handlers.legendary
 
 import dev.firefly.simpletweaks.compat.FSTLog
 import dev.firefly.simpletweaks.compat.event.CriticalHitEvent
-import dev.firefly.simpletweaks.compat.event.EventPriority
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.invalid
 import dev.firefly.simpletweaks.compat.isCrit
@@ -58,7 +57,7 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 )
 object EnchantDoubleCritHandler : Listenable {
 
-    @SubscribeEvent(priority = EventPriority.HIGH)
+    @SubscribeEvent(priority = -50)
     fun onCrit(e: CriticalHitEvent) {
         if (e.invalid) return
 

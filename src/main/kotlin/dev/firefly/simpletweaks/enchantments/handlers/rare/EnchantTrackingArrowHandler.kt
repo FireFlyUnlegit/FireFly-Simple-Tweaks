@@ -6,6 +6,7 @@ import dev.firefly.simpletweaks.compat.event.TickEvent
 import dev.firefly.simpletweaks.core.Listenable
 import dev.firefly.simpletweaks.interfaces.SimpleTweaksArrow
 import dev.firefly.simpletweaks.mixin.accessors.PersistentProjectileEntityAccessor
+import dev.firefly.simpletweaks.util.firingWeapon
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.player.PlayerEntity
@@ -73,7 +74,9 @@ object EnchantTrackingArrowHandler : Listenable {
         if (e.world.isClient) return
         val arrow = e.entity as? PersistentProjectileEntity ?: return
         val shooter = arrow.owner as? PlayerEntity ?: return
-        val lvl = getItemSpecificEnchantLevel(shooter.mainHandStack, GeneratedEnchantments.TRACKING_ARROW)
+        // cleanup27: the bow that actually fired this arrow (vanilla `weapon`), not the main hand —
+        // an off-hand bow used to make this a silent no-op. See util/ProjectileUtil.kt.
+        val lvl = getItemSpecificEnchantLevel(arrow.firingWeapon(shooter), GeneratedEnchantments.TRACKING_ARROW)
         if (lvl <= 0) return
         (arrow as SimpleTweaksArrow).`simpletweaks$setTrackingLevel`(lvl)
     }

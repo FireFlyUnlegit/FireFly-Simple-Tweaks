@@ -1,7 +1,6 @@
 package dev.firefly.simpletweaks.enchantments.handlers.mythic
 
 import dev.firefly.simpletweaks.compat.attacker
-import dev.firefly.simpletweaks.compat.event.EventPriority
 import dev.firefly.simpletweaks.compat.event.LivingDamageEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.invalid
@@ -33,7 +32,7 @@ import kotlin.math.sqrt
     slots = [EnchantSlot.ARMOR]
 )
 object EnchantArmorEnhanceHandler : Listenable {
-    @SubscribeEvent(priority = EventPriority.LOW)
+    @SubscribeEvent(priority = 50)
     fun onLivingDamage(e: LivingDamageEvent) {
         if (e.invalid)return
 

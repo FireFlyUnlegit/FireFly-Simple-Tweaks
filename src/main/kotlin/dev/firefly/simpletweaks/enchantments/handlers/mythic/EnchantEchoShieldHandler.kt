@@ -4,7 +4,6 @@ import dev.firefly.simpletweaks.compat.FSTLog
 import dev.firefly.simpletweaks.compat.WorldSide
 import dev.firefly.simpletweaks.compat.attacker
 import dev.firefly.simpletweaks.compat.cancel
-import dev.firefly.simpletweaks.compat.event.EventPriority
 import dev.firefly.simpletweaks.compat.event.LivingDamageEvent
 import dev.firefly.simpletweaks.compat.event.LivingDeathEvent
 import dev.firefly.simpletweaks.compat.event.LivingEvent
@@ -113,7 +112,7 @@ object EnchantEchoShieldHandler : Listenable {
     // "st_echo_no_heal_until"; see the class KDoc for why it is a weak-keyed map here.
     private val noHealUntil = WeakHashMap<LivingEntity, Long>()
 
-    @SubscribeEvent(priority = EventPriority.LOWEST)
+    @SubscribeEvent(priority = 100)
     fun onHurt(e: LivingHurtEvent) {
         if (e.invalid) return
         // Reflection damage must never reach the buffer-burst branch below: a shield cannot counter its
@@ -165,7 +164,7 @@ object EnchantEchoShieldHandler : Listenable {
         }
     }
 
-    @SubscribeEvent(priority = EventPriority.LOWEST)
+    @SubscribeEvent(priority = 100)
     fun onDamage(e: LivingDamageEvent) {
         if (e.invalid) return
         // Not skipped for reflection damage -- it is downgraded. See the branch below.

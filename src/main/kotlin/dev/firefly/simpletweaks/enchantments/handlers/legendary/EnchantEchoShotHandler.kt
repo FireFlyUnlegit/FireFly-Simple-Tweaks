@@ -2,12 +2,12 @@ package dev.firefly.simpletweaks.enchantments.handlers.legendary
 
 import dev.firefly.simpletweaks.compat.FSTLog
 import dev.firefly.simpletweaks.compat.WorldSide
-import dev.firefly.simpletweaks.compat.event.EventPriority
 import dev.firefly.simpletweaks.compat.event.LivingHurtEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.event.TickEvent
 import dev.firefly.simpletweaks.core.Listenable
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
+import dev.firefly.simpletweaks.util.firingWeapon
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import dev.firefly.simpletweaks.util.runPlayerAttack
 import net.minecraft.entity.LivingEntity
@@ -32,7 +32,7 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
  * | 1.12.2                                                     | 1.21.1                                                                 |
  * |------------------------------------------------------------|------------------------------------------------------------------------|
  * | `net.minecraftforge...LivingHurtEvent` / `...TickEvent`    | `compat.event.LivingHurtEvent` / `compat.event.TickEvent`               |
- * | `net.minecraftforge...EventPriority`                       | `compat.event.EventPriority` (the annotation keeps `priority`)           |
+ * | `net.minecraftforge...EventPriority`                       | `compat.event.EventPriority` (the annotation now carries an int `priority`)           |
  * | `e.source.immediateSource as? EntityArrow`                 | `e.source.source as? ArrowEntity` — `DamageSource#getSource()` **is** the direct entity that phase-2.5 calls `getDirectEntity()` (verified in the yarn jar: `getSource` = official `getDirectEntity`, `getAttacker` = `getEntity`) |
  * | `arrow.shootingEntity as? EntityPlayer`                    | `arrow.owner as? PlayerEntity` (`ProjectileEntity#getOwner()`)           |
  * | `target.uniqueID` / `shooter.uniqueID`                     | `target.uuid` / `shooter.uuid` (`getUuid()`, declared on `EntityLike`)   |
@@ -82,14 +82,17 @@ object EnchantEchoShotHandler : Listenable {
 
     private val echoes = mutableListOf<DelayedEcho>()
 
-    @SubscribeEvent(priority = EventPriority.LOW)
+    @SubscribeEvent(priority = 50)
     fun onHurt(e: LivingHurtEvent) {
         val arrow = e.source.source as? ArrowEntity ?: return
         val shooter = arrow.owner as? PlayerEntity ?: return
         val target = e.entityLiving ?: return
         if (target === shooter) return
 
-        val lvl = getItemSpecificEnchantLevel(shooter.mainHandStack, GeneratedEnchantments.ECHO_SHOT)
+        // cleanup27: the bow that actually fired this arrow (vanilla `weapon`), not the main hand —
+        // an off-hand bow used to make this a silent no-op, and switching items mid-flight broke it
+        // too. See util/ProjectileUtil.kt.
+        val lvl = getItemSpecificEnchantLevel(arrow.firingWeapon(shooter), GeneratedEnchantments.ECHO_SHOT)
         if (lvl <= 0) return
 
         val ratio = 0.35f + 0.07f * lvl

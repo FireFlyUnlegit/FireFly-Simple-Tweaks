@@ -1,5 +1,6 @@
 package dev.firefly.simpletweaks.core
 
+import com.mojang.brigadier.arguments.FloatArgumentType
 import com.mojang.brigadier.arguments.IntegerArgumentType
 import com.mojang.brigadier.arguments.StringArgumentType
 import com.mojang.brigadier.builder.LiteralArgumentBuilder
@@ -7,6 +8,7 @@ import com.mojang.brigadier.context.CommandContext
 import com.mojang.brigadier.exceptions.Dynamic2CommandExceptionType
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType
 import dev.firefly.simpletweaks.compat.FSTLog
+import dev.firefly.simpletweaks.util.mobs.MobLevels
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback
 import net.minecraft.command.CommandRegistryAccess
 import net.minecraft.command.argument.EntityArgumentType
@@ -91,6 +93,7 @@ object EnchantCommand {
     private const val KEY_REMOVED = "commands.simple_tweaks.enchant.removed"
     private const val KEY_BAD_SLOT = "commands.simple_tweaks.enchant.bad_slot"
     private const val KEY_NO_ITEM = "commands.simple_tweaks.enchant.no_item"
+    private const val KEY_DIFFICULTY = "commands.simple_tweaks.difficulty"
 
     /**
      * Two arguments, hence `Dynamic2...`: the offending name **and** the valid list. The list is
@@ -169,7 +172,64 @@ object EnchantCommand {
                                 )
                         )
                 )
+                .then(difficultyNode())
         )
+
+    /**
+     * `<root> difficulty [<offset>|reset]` — a **session-only** difficulty offset for the mob-enhancement
+     * system.
+     *
+     * ## Why this exists
+     * Vanilla's `clampedLocalDifficulty` is ~`0.13` near spawn and in freshly loaded chunks, so the level
+     * (and both probabilities) sit at their floor exactly where a player spends most of their time. Tuning
+     * by "go find a long-inhabited hard-difficulty chunk" is not a usable loop, so this command lets the
+     * author dial the number directly and see level / enchant / element all respond at once.
+     *
+     * It writes [MobLevels.difficultyOffset], which `MobLevels.effectiveDifficulty` adds to every mob's
+     * base. Deliberately **not persisted**: a restart clears it, which is what a tuning aid should do.
+     *
+     * `0` is legal and means "no offset", so the same argument doubles as the reset.
+     */
+    private fun difficultyNode(): LiteralArgumentBuilder<ServerCommandSource> =
+        CommandManager.literal("difficulty")
+            .requires { it.hasPermissionLevel(2) }
+            .executes { ctx -> reportDifficulty(ctx.source) }
+            .then(
+                CommandManager.literal("reset")
+                    .executes { ctx ->
+                        MobLevels.difficultyOffset = 0f
+                        reportDifficulty(ctx.source)
+                    }
+            )
+            .then(
+                CommandManager.argument("offset", FloatArgumentType.floatArg(0f, 100f))
+                    .executes { ctx ->
+                        MobLevels.difficultyOffset =
+                            FloatArgumentType.getFloat(ctx, "offset")
+                        reportDifficulty(ctx.source)
+                    }
+            )
+
+    /**
+     * Prints the current offset **and what it maps to**, because the offset alone does not tell the author
+     * whether the value they picked is interesting: `level = 1 + floor(difficulty / 0.30)` is the thing
+     * they are actually tuning.
+     */
+    private fun reportDifficulty(source: ServerCommandSource): Int {
+        val offset = MobLevels.difficultyOffset
+        val level = MobLevels.averageLevelFor(offset)
+        source.sendFeedback(
+            {
+                Text.translatable(
+                    KEY_DIFFICULTY,
+                    "%.2f".format(offset),
+                    level,
+                )
+            },
+            false,
+        )
+        return level
+    }
 
     private fun apply(ctx: CommandContext<ServerCommandSource>, slotName: String): Int {
         val source = ctx.source

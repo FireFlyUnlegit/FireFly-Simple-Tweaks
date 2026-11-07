@@ -66,18 +66,20 @@ object SimpleTweaksConfig {
         }
 
         readGeneral(root.objectOrEmpty("general"))
+        readMobEnhancement(root.objectOrEmpty("mobEnhancement"))
         readDamageIndicator(root.objectOrEmpty("damageIndicator"))
 
         save()
 
         SimpleTweaks.LOGGER.info(
             "Config loaded from {} (anvilLimit={}, enchantTableLimit={}, damageIndicator={}, " +
-                "cancelVanillaDmgIndicator={})",
+                "cancelVanillaDmgIndicator={}, mobEnhance={})",
             path,
             GeneralConfig.disableAnvilCostLimit,
             GeneralConfig.disableEnchantmentTableLimit,
             DamageIndicatorConfig.enabled,
-            GeneralConfig.cancelVanillaDamageIndicator
+            GeneralConfig.cancelVanillaDamageIndicator,
+            MobEnhancementConfig.enabled
         )
     }
 
@@ -97,6 +99,20 @@ object SimpleTweaksConfig {
         GeneralConfig.noHurtCam = s.bool("noHurtCam", false)
     }
 
+    /**
+     * Mob-enhancement options (new section, no 1.12.2 counterpart — defaults are this port's choice).
+     *
+     * Both keys are read immediately after load: [MobEnhancementConfig.enabled] by the spawn-path guard
+     * and [MobEnhancementConfig.enchantmentsEnabled] by `tryApplyAtSpawn`. Neither is persisted back into
+     * the world, so flipping them takes effect on the next spawn without a restart.
+     */
+    private fun readMobEnhancement(s: JsonObject) {
+        MobEnhancementConfig.enabled = s.bool("enabled", true)
+        MobEnhancementConfig.enchantmentsEnabled = s.bool("enchantmentsEnabled", true)
+        MobEnhancementConfig.levelsEnabled = s.bool("levelsEnabled", true)
+        MobEnhancementConfig.elementsEnabled = s.bool("elementsEnabled", true)
+    }
+
     private fun readDamageIndicator(s: JsonObject) {
         DamageIndicatorConfig.enabled = s.bool("enabled", true)
         DamageIndicatorConfig.symbol = s.bool("symbol", true)
@@ -106,6 +122,10 @@ object SimpleTweaksConfig {
         DamageIndicatorConfig.maxDistance = s.int("maxDistance", 64).coerceIn(16, 256)
         DamageIndicatorConfig.scale = s.dbl("scale", 1.2).coerceIn(0.5, 10.0)
         DamageIndicatorConfig.percentageMode = s.bool("percentageMode", false)
+        // cleanup26: below this absolute health delta no number is spawned. 0 = no filtering, which is
+        // why the default does not change any pre-existing behaviour.
+        DamageIndicatorConfig.minHealthChange = s.dbl("minHealthChange", 0.0).coerceIn(0.0, 1000.0)
+        DamageIndicatorConfig.splitElemental = s.bool("splitElemental", false)
         DamageIndicatorConfig.showShadow = s.bool("showShadow", true)
         DamageIndicatorConfig.yStartFactor = s.dbl("yStartFactor", 1.0).coerceIn(0.5, 2.0)
     }
@@ -141,6 +161,12 @@ object SimpleTweaksConfig {
             addProperty("autoSprintOmniSprint", GeneralConfig.autoSprintOmniSprint)
             addProperty("noHurtCam", GeneralConfig.noHurtCam)
         }
+        val mobEnhancement = JsonObject().apply {
+            addProperty("enabled", MobEnhancementConfig.enabled)
+            addProperty("enchantmentsEnabled", MobEnhancementConfig.enchantmentsEnabled)
+            addProperty("levelsEnabled", MobEnhancementConfig.levelsEnabled)
+            addProperty("elementsEnabled", MobEnhancementConfig.elementsEnabled)
+        }
         val indicator = JsonObject().apply {
             addProperty("enabled", DamageIndicatorConfig.enabled)
             addProperty("symbol", DamageIndicatorConfig.symbol)
@@ -149,11 +175,14 @@ object SimpleTweaksConfig {
             addProperty("maxDistance", DamageIndicatorConfig.maxDistance)
             addProperty("scale", DamageIndicatorConfig.scale)
             addProperty("percentageMode", DamageIndicatorConfig.percentageMode)
+            addProperty("minHealthChange", DamageIndicatorConfig.minHealthChange)
+            addProperty("splitElemental", DamageIndicatorConfig.splitElemental)
             addProperty("showShadow", DamageIndicatorConfig.showShadow)
             addProperty("yStartFactor", DamageIndicatorConfig.yStartFactor)
         }
         return JsonObject().apply {
             add("general", general)
+            add("mobEnhancement", mobEnhancement)
             add("damageIndicator", indicator)
         }
     }

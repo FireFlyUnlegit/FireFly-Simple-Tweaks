@@ -2,7 +2,6 @@ package dev.firefly.simpletweaks.enchantments.handlers.common
 
 import dev.firefly.simpletweaks.compat.FSTLog
 import dev.firefly.simpletweaks.compat.WorldSide
-import dev.firefly.simpletweaks.compat.event.EventPriority
 import dev.firefly.simpletweaks.compat.event.LivingDamageEvent
 import dev.firefly.simpletweaks.compat.event.LivingEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
@@ -30,7 +29,7 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
  * |----------------------------------------------|-------------------------------------------------------------------|
  * | `net.minecraftforge...LivingDamageEvent`     | `compat.event.LivingDamageEvent`                                   |
  * | `net.minecraftforge...LivingEvent`           | `compat.event.LivingEvent`                                         |
- * | `net.minecraftforge...EventPriority`         | `compat.event.EventPriority` (annotation still carries `priority`) |
+ * | `net.minecraftforge...EventPriority`         | `compat.event.EventPriority` (annotation now carries an int `priority`) |
  * | `EntityLivingBase` / `EntityPlayer`          | `LivingEntity` / `PlayerEntity`                                    |
  * | `e.entityLiving` / `e.source.trueSource`     | same field / `source.attacker` (method_5529)                       |
  * | `world.isRemote`                             | `WorldSide.isClient(world)` (field_9236 is a FIELD, see MIGRATION) |
@@ -73,7 +72,7 @@ object EnchantCombatMasterHandler : Listenable {
 
     private fun Entity.data(): NbtCompound = entityData.getOrPut(this) { NbtCompound() }
 
-    @SubscribeEvent(priority = EventPriority.LOWEST)
+    @SubscribeEvent(priority = 100)
     fun onLivingDamage(event: LivingDamageEvent) {
         if (event.invalid) return
 

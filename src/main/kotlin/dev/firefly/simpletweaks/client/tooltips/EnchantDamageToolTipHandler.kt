@@ -4,7 +4,6 @@ import dev.firefly.simpletweaks.SimpleTweaks
 import dev.firefly.simpletweaks.compat.FSTLog
 import net.fabricmc.fabric.api.client.item.v1.ItemTooltipCallback
 import net.minecraft.component.EnchantmentEffectComponentTypes
-import net.minecraft.component.type.AttributeModifiersComponent
 import net.minecraft.enchantment.EnchantmentHelper
 import net.minecraft.entity.attribute.EntityAttributes
 import net.minecraft.item.ItemStack
@@ -12,7 +11,6 @@ import net.minecraft.text.Text
 import net.minecraft.text.TranslatableTextContent
 import net.minecraft.util.Formatting
 import net.minecraft.util.math.random.Random
-import kotlin.math.roundToInt
 
 /**
  * Folds this mod's enchantment damage into the **vanilla attack-damage total line**, so a sword reads
@@ -62,6 +60,14 @@ import kotlin.math.roundToInt
  *    treated as unparseable rather than guessed at).
  *
  * ## Deliberate restrictions
+ * 0. **The item must declare attack damage in its own `ATTRIBUTE_MODIFIERS`.** This is what keeps the
+ *    fold — and, more importantly, the fallback line — off an **enchanted book**. Books are not an
+ *    edge case here: `EnchantmentHelper.getEnchantments` reads `STORED_ENCHANTMENTS` for an enchanted
+ *    book (bytecode: `getEnchantmentsComponentType` tests `isOf(Items.ENCHANTED_BOOK)`), so a book's
+ *    enchantments *are* visible to this file, while a book has no attack damage and therefore no total
+ *    line to correct — every such book therefore took the fallback and grew a bogus `+X 攻击伤害`
+ *    line. An item with attack damage but no rendered attribute block (creative search) is unaffected
+ *    and still gets the fallback, which is what §X5 asks for.
  * 1. **This mod's namespace only** for the damage sum — another mod's damage effect may be conditional
  *    in ways its `requirements` do not capture.
  * 2. **Entries carrying `requirements` are skipped** (vanilla Sharpness/Smite/Bane are mob-type
@@ -70,6 +76,10 @@ import kotlin.math.roundToInt
  *    (`attribute.modifier.*`, `item.modifiers.*`) and the attack-damage attribute's own key (read from
  *    the registry: 1.21.1 spells it `attribute.name.generic.attack_damage`) are stable across
  *    languages. `EnchantmentNameColorMixin`'s KDoc records the same reasoning.
+ *
+ * The sibling-aware line matching and the number rewrite now live in [TooltipTotals], shared with
+ * [EnchantAttributeToolTipHandler] — the statements are the ones this file has carried since the
+ * sibling bug was found, moved so the two folds cannot drift apart.
  *
  * ## The alternative that was NOT taken
  * Declaring the bonus as `attributes = [AttributeSpec("minecraft:generic.attack_damage", …)]` makes
@@ -99,6 +109,20 @@ object EnchantDamageToolTipHandler {
     fun register() {
         ItemTooltipCallback.EVENT.register { stack, _, _, lines ->
             if (stack.isEmpty) return@register
+
+            // 🔴 Only for an item that has attack damage of its own.
+            //
+            // `EnchantmentHelper.getEnchantments` returns the **stored** enchantments for an enchanted
+            // book (bytecode: `getEnchantmentsComponentType` checks `isOf(Items.ENCHANTED_BOOK)`), so
+            // without this gate every enchanted book carrying one of this mod's damage enchantments got
+            // a `+X 攻击伤害` line: a book has no attack-damage total line, so the fold failed and the
+            // fallback below fired. A book neither deals attack damage nor has anything to correct, so
+            // it must be skipped entirely rather than fall back.
+            //
+            // Note this deliberately does *not* also require the total line to exist: an item whose
+            // attribute block is not rendered (creative search) still has attack damage, and that is
+            // precisely the case the fallback line exists for (checklist §X5).
+            if (!TooltipTotals.declaresAttribute(stack, EntityAttributes.GENERIC_ATTACK_DAMAGE)) return@register
 
             val bonus = enchantmentDamageBonus(stack)
             if (bonus <= 0f) return@register
@@ -131,101 +155,30 @@ object EnchantDamageToolTipHandler {
      * the class KDoc), in which case the caller adds its own line.
      */
     private fun foldIntoVanillaTotal(lines: MutableList<Text>, bonus: Float): Boolean {
-        val target = findAttackDamageTotal(lines) ?: return false
+        val target = TooltipTotals.findTotalLine(lines, ATTACK_DAMAGE_NAME) ?: return false
 
-        val content = target.content
-        val numberIndex = content.args.indexOfFirst { parseFlatNumber(numberOf(it)) != null }
-        if (numberIndex < 0) return false
-        val current = parseFlatNumber(numberOf(content.args[numberIndex])) ?: return false
-
-        val merged = formatNumber(current + bonus)
-        val args = content.args.toMutableList()
-        args[numberIndex] = merged
-        val replacement = Text.translatable(content.key, *args.toTypedArray())
-
-        if (target.siblingIndex < 0) {
-            lines[target.lineIndex] = replacement.setStyle(lines[target.lineIndex].style)
-        } else {
-            // `space().append(translatable)` wrapper: replace the inner node, keeping the wrapper (and
-            // therefore the leading space and the inherited DARK_GREEN) intact.
-            val parent = lines[target.lineIndex]
-            val siblings = parent.siblings
-            if (siblings is MutableList<Text>) {
-                siblings[target.siblingIndex] = replacement
-            } else {
-                // Defensive: rebuild the wrapper rather than mutating a list that turned out to be
-                // immutable. `MutableText`'s is mutable, so this is not expected to run.
-                val rebuilt = parent.copyContentOnly().setStyle(parent.style)
-                siblings.forEachIndexed { i, sibling ->
-                    rebuilt.append(if (i == target.siblingIndex) replacement else sibling)
-                }
-                lines[target.lineIndex] = rebuilt
-            }
+        val numberIndex = target.content.args.indexOfFirst {
+            TooltipTotals.parseFlatNumber(TooltipTotals.numberOf(it)) != null
         }
+        if (numberIndex < 0) return false
+        val current = TooltipTotals.parseFlatNumber(TooltipTotals.numberOf(target.content.args[numberIndex]))
+            ?: return false
+
+        val merged = TooltipTotals.format(current + bonus)
+        if (!TooltipTotals.replaceNumber(lines, target, merged)) return false
 
         FSTLog.log("EnchantDamageTooltip") {
-            "total=${formatNumber(current)}, enchantmentBonus=$bonus, shown=$merged, " +
+            "total=${TooltipTotals.format(current)}, enchantmentBonus=$bonus, shown=$merged, " +
                 "line=${target.lineIndex}, sibling=${target.siblingIndex}, outcome=folded-into-vanilla-total"
         }
         return true
-    }
-
-    /** Where the attack-damage total lives: the line itself, or one of its siblings. */
-    private class TotalLine(val lineIndex: Int, val siblingIndex: Int, val content: TranslatableTextContent)
-
-    /**
-     * Finds vanilla's flat attack-damage total.
-     *
-     * ⚠️ **The translatable is not always the line's own content.** `ItemStack#appendAttributeModifierTooltip`
-     * (bytecode) builds the `equals` line as
-     * `ScreenTexts.space().append(Text.translatable("attribute.modifier.equals." + operationId, …))`,
-     * i.e. the line's `content` is a **literal space** and the translatable is a **sibling**. A matcher
-     * that only inspects `line.content` therefore never finds it — which is exactly how the first
-     * version of this file failed on a real client while looking correct. One level of siblings is
-     * enough: that is how deep vanilla nests here.
-     */
-    private fun findAttackDamageTotal(lines: List<Text>): TotalLine? {
-        lines.forEachIndexed { index, line ->
-            (line.content as? TranslatableTextContent)?.let {
-                if (isAttackDamageTotal(it)) return TotalLine(index, -1, it)
-            }
-            line.siblings.forEachIndexed { siblingIndex, sibling ->
-                (sibling.content as? TranslatableTextContent)?.let {
-                    if (isAttackDamageTotal(it)) return TotalLine(index, siblingIndex, it)
-                }
-            }
-        }
-        return null
-    }
-
-    /** True for the *flat total* key (`attribute.modifier.equals.0`) of the attack-damage attribute. */
-    private fun isAttackDamageTotal(content: TranslatableTextContent): Boolean {
-        if (content.key != "attribute.modifier.equals.0") return false
-        return namesAttackDamage(content)
-    }
-
-    /** The rendered text of an argument, whether vanilla passed a `String` or a `Text`. */
-    private fun numberOf(argument: Any): String =
-        (argument as? Text)?.string ?: argument.toString()
-
-    /**
-     * Parses a flat number, or `null` when the string is not one.
-     *
-     * Deliberately anchored: a value like `1,000` (thousands separator) must NOT be read as `1`, so
-     * anything that is not entirely a plain number is rejected and the caller falls back to a separate
-     * line.
-     */
-    private fun parseFlatNumber(raw: String): Float? {
-        val trimmed = raw.trim()
-        if (!FLAT_NUMBER.matches(trimmed)) return null
-        return trimmed.toFloatOrNull()
     }
 
     /** Vanilla-style additive line, used only when the total cannot be rewritten. */
     private fun bonusLine(bonus: Float): Text =
         Text.translatable(
             "attribute.modifier.plus.0",
-            formatNumber(bonus),
+            TooltipTotals.format(bonus),
             Text.translatable(ATTACK_DAMAGE_NAME),
         ).formatted(Formatting.DARK_GREEN)
 
@@ -234,9 +187,9 @@ object EnchantDamageToolTipHandler {
      * at the end of the held-item block (before the next `item.modifiers.*` header), else at the very
      * end — in which case it is still better than no number at all.
      *
-     * Sibling-aware like [findAttackDamageTotal]: with the tree walked properly, the item's own total
-     * is recognised too, so the fallback lands directly under `7 攻击伤害` rather than only under the
-     * enchantment block's `+20%` line.
+     * Sibling-aware like [TooltipTotals.findTotalLine]: with the tree walked properly, the item's own
+     * total is recognised too, so the fallback lands directly under `7 攻击伤害` rather than only under
+     * the enchantment block's `+20%` line.
      */
     private fun insertionIndex(lines: List<Text>): Int {
         var lastAttackDamage = -1
@@ -244,11 +197,11 @@ object EnchantDamageToolTipHandler {
         var nextHeader = -1
 
         lines.forEachIndexed { index, line ->
-            for (content in translatableNodes(line)) {
+            for (content in TooltipTotals.nodes(line)) {
                 if (content.key.startsWith("item.modifiers.")) {
                     if (firstHeader < 0) firstHeader = index else if (nextHeader < 0) nextHeader = index
                 }
-                if (namesAttackDamage(content)) {
+                if (TooltipTotals.namesAttribute(content, ATTACK_DAMAGE_NAME)) {
                     lastAttackDamage = index
                 }
             }
@@ -258,25 +211,6 @@ object EnchantDamageToolTipHandler {
             lastAttackDamage >= 0 -> lastAttackDamage + 1
             firstHeader >= 0 -> if (nextHeader >= 0) nextHeader else lines.size
             else -> lines.size
-        }
-    }
-
-    /** A line's own content plus each sibling's — see [findAttackDamageTotal] for why. */
-    private fun translatableNodes(line: Text): List<TranslatableTextContent> {
-        val out = mutableListOf<TranslatableTextContent>()
-        (line.content as? TranslatableTextContent)?.let { out += it }
-        for (sibling in line.siblings) {
-            (sibling.content as? TranslatableTextContent)?.let { out += it }
-        }
-        return out
-    }
-
-    /** True for any modifier line whose attribute argument is attack damage. */
-    private fun namesAttackDamage(content: TranslatableTextContent): Boolean {
-        if (!content.key.startsWith("attribute.modifier.")) return false
-        return content.args.any { argument ->
-            val argumentContent = (argument as? Text)?.content
-            argumentContent is TranslatableTextContent && argumentContent.key == ATTACK_DAMAGE_NAME
         }
     }
 
@@ -314,12 +248,4 @@ object EnchantDamageToolTipHandler {
         }
         return total
     }
-
-    /**
-     * Formats a value with **vanilla's own** `DecimalFormat`, so the digits (rounding, trailing zeros,
-     * locale decimal separator) are exactly what vanilla would have printed for the same number.
-     * `DecimalFormat` is not thread-safe, but it is only touched from the tooltip callback, which runs
-     * on the render thread — the same thread vanilla itself renders tooltips on.
-     */
-    private fun formatNumber(value: Float): String = AttributeModifiersComponent.DECIMAL_FORMAT.format(value)
 }

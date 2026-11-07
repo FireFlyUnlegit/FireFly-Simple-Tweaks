@@ -2,11 +2,11 @@ package dev.firefly.simpletweaks.enchantments.handlers.mythic
 
 import dev.firefly.simpletweaks.compat.FSTLog
 import dev.firefly.simpletweaks.compat.WorldSide
-import dev.firefly.simpletweaks.compat.event.EventPriority
 import dev.firefly.simpletweaks.compat.event.LivingHurtEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.event.TickEvent
 import dev.firefly.simpletweaks.core.Listenable
+import dev.firefly.simpletweaks.util.firingWeapon
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import dev.firefly.simpletweaks.util.runPlayerAttack
 import net.minecraft.entity.LivingEntity
@@ -47,7 +47,7 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
  * | `e.source.immediateSource`                                    | `e.source.source` (Yarn `DamageSource.getSource`, method_5509)           |
  * | `EntityArrow`                                                 | `net.minecraft.entity.projectile.PersistentProjectileEntity` (the 1.21 common base of `ArrowEntity` / `SpectralArrowEntity`) |
  * | `arrow.shootingEntity`                                        | `arrow.owner` (Yarn `ProjectileEntity.getOwner`, method_24921)           |
- * | `shooter.heldItemMainhand` / `shooter.uniqueID`                | `shooter.mainHandStack` / `shooter.uuid`                                |
+ * | `shooter.heldItemMainhand` / `shooter.uniqueID`                | `arrow.firingWeapon(shooter)` / `shooter.uuid` — **not** `mainHandStack` (`build=cleanup27`; see `util/ProjectileUtil.kt`) |
  * | `target.posX/posY/posZ` / `target.height`                     | `target.x/y/z` / `target.height` (`method_17682`)                        |
  * | `target.dimension` (int)                                      | `target.world.registryKey` (`World.getRegistryKey`, method_27983)        |
  * | `world.provider.dimension`                                    | `world.registryKey`                                                     |
@@ -116,14 +116,17 @@ object EnchantStarfallHandler : Listenable {
 
     private val stars = mutableListOf<FallingStar>()
 
-    @SubscribeEvent(priority = EventPriority.NORMAL)
+    @SubscribeEvent(priority = 0)
     fun onArrowHit(e: LivingHurtEvent) {
         val arrow = e.source.source as? PersistentProjectileEntity ?: return
         val shooter = arrow.owner as? PlayerEntity ?: return
         val target = e.entityLiving ?: return
         if (target === shooter) return
 
-        val lvl = getItemSpecificEnchantLevel(shooter.mainHandStack, GeneratedEnchantments.STARFALL)
+        // cleanup27: the bow that actually fired this arrow (vanilla `weapon`), not the main hand —
+        // an off-hand bow used to make this a silent no-op, and switching items mid-flight broke it
+        // too. See util/ProjectileUtil.kt.
+        val lvl = getItemSpecificEnchantLevel(arrow.firingWeapon(shooter), GeneratedEnchantments.STARFALL)
         if (lvl <= 0) return
 
         val count = when {

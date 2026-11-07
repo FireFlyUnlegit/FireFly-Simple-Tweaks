@@ -2,7 +2,6 @@ package dev.firefly.simpletweaks.enchantments.handlers.mystery
 
 import dev.firefly.simpletweaks.compat.FSTLog
 import dev.firefly.simpletweaks.compat.WorldSide
-import dev.firefly.simpletweaks.compat.event.EventPriority
 import dev.firefly.simpletweaks.compat.event.LivingDamageEvent
 import dev.firefly.simpletweaks.compat.event.LivingEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
@@ -39,7 +38,7 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
  * |--------------------------------------------------------------|---------------------------------------------------------------------------|
  * | `net.minecraftforge...LivingDamageEvent`                     | `compat.event.LivingDamageEvent`                                          |
  * | `net.minecraftforge...LivingEvent.LivingUpdateEvent`         | `compat.event.LivingEvent.LivingUpdateEvent`                              |
- * | `net.minecraftforge...EventPriority`                         | `compat.event.EventPriority` (the annotation keeps `priority`)             |
+ * | `net.minecraftforge...EventPriority`                         | `compat.event.EventPriority` (the annotation now carries an int `priority`)             |
  * | `e.invalid`                                                  | same extension name, now `compat.invalid`                                 |
  * | `EntityLivingBase` / `EntityPlayer`                          | `LivingEntity` / `PlayerEntity`                                           |
  * | `source.trueSource`                                          | `source.attacker` (Yarn `method_5529`)                                    |
@@ -132,7 +131,7 @@ object EnchantHeavenlyPunishmentHandler : Listenable {
     private val ATK_SPEED_ID: Identifier =
         Identifier.of("simple_tweaks", "heavenly_punishment_atk_speed")
 
-    @SubscribeEvent(priority = EventPriority.LOWEST)
+    @SubscribeEvent(priority = 100)
     fun onLivingDamage(event: LivingDamageEvent) {
         if (event.invalid) return
 
@@ -165,8 +164,13 @@ object EnchantHeavenlyPunishmentHandler : Listenable {
 
                 spawnLightningVisual(world, target)
                 FSTLog.log("HeavenlyPunishment") {
+                    // `damage` is the amount **after** the `level + 1` multiplier on the line above, i.e. the
+                    // raw damage this hit deals — not what the target can lose. `targetHealth` is here so the
+                    // two can be compared directly: when damage > health the hit is an overkill and the health
+                    // bar can only drop by the remaining health, which reads as "打了 150 只掉几十".
                     "attacker=${attacker.name.string}, target=${target.name.string}, lvl=$level, " +
-                        "damage=${event.amount}, weakUntil=${now + level * 10}, weakAmount=${0.225f * level}, " +
+                        "damage=${event.amount}, targetHealth=${target.health}/${target.maxHealth}, " +
+                        "weakUntil=${now + level * 10}, weakAmount=${0.225f * level}, " +
                         "freezeUntil=${data.getLong(NBT_FREEZE_UNTIL)}, outcome=punished"
                 }
             }

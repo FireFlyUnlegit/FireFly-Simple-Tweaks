@@ -1,0 +1,19 @@
+{
+  "replace": false,
+  "values": [
+    "minecraft:player_attack",
+    "minecraft:mob_attack",
+    "minecraft:mob_attack_no_aggro",
+    "minecraft:fall",
+    "minecraft:fly_into_wall",
+    "minecraft:sting",
+    "minecraft:thorns",
+    "minecraft:arrow",
+    "minecraft:mob_projectile",
+    "minecraft:trident",
+    "minecraft:explosion",
+    "minecraft:player_explosion",
+    "minecraft:bad_respawn_point",
+    "simple_tweaks:element_physical"
+  ]
+}

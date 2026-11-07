@@ -1677,3 +1677,19 @@ LivingEntity#getItemUseTime()        getMaxUseTime(activeItem) - getItemUseTimeL
 修法：`EnchantmentMeta.colorOf(id)`（`@JvmStatic`）——KSP 侧优先、回落旧表——两处消费点（`EnchantmentNameColorMixin` 的 tooltip、`EnchantInfoScreen`）都改走它。KSP 侧存的是 `Formatting` 的**名字字符串**（processor 不能依赖 Minecraft 类），用 `Formatting.byName` 解析回来。
 
 > 教训与 §15.5 同源：**新表建好了不等于接上了。** 这一批两个 bug 都是"生成了但没消费"（颜色）和"消费了但不是客户端真正读的那条路径"（拉弓）。
+
+---
+
+## 16. 路径现状（2026-10-17 追加，**append-only**）
+
+本文件按时间顺序书写，§1–§15 里的路径都是**当时**的值。仓库迁到 `E:` 之后，下列几处已经不对，**以本节为准**：
+
+| 本文件里的旧写法 | 现在 | 出现在 |
+|---|---|---|
+| `cd fabric-1.21.1` / `fabric-1.21.1/build/libs/…` | **仓库根就是工程根**，没有 `fabric-1.21.1/` 这一层；产物是 `build/libs/simple_tweaks-2.1.0.jar`（版本取自 `gradle.properties`） | §1 |
+| `GRADLE_USER_HOME=E:\gradle` | **`E:\.gradle`** | §1、§2 |
+| `E:\gradle\caches\modules-2\…` | **`$env:GRADLE_USER_HOME\caches\modules-2\…`** | §2 |
+| `…\1.12.2\fabric-1.21.1\…` 的 IDEA 运行配置 | 工程根已变，`.idea/runConfigurations/*.xml` 应让 Loom 重新生成 | 各处的坑 |
+
+**权威来源**是 `AGENTS.md` §1（构建命令与环境变量）与 `DEV_GUIDE_1.21.1.md` §2.1 / §2.5（安装）。
+本文件正文**保持原样**（append-only），不要回头改上面的历史段落。

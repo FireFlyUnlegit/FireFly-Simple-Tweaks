@@ -1,0 +1,7 @@
+{
+  "replace": false,
+  "values": [
+    "minecraft:freeze",
+    "simple_tweaks:element_frost"
+  ]
+}

@@ -22,8 +22,22 @@ private const val RESOURCE_PACKAGE = "data/$MOD_ID/enchantment"
 /**
  * Where the vanilla tags this processor owns are written. Note the namespace **and** the shape differ
  * from [RESOURCE_PACKAGE]: tag files live at `data/<namespace>/tags/<registry>/`.
+ *
+ * These three tags (`non_treasure` / `in_enchanting_table` / `tradeable`) are **vanilla** tags that
+ * this mod extends, so their namespace is `minecraft`.
  */
 private const val TAG_PACKAGE = "data/minecraft/tags/enchantment"
+
+/**
+ * Where **this mod's own** enchantment tags go — e.g. `exclusive_set/elements`.
+ *
+ * Deliberately a separate constant from [TAG_PACKAGE]: a mod-owned tag lives in this mod's namespace,
+ * and using the vanilla one here wrote the set to `data/minecraft/tags/enchantment/exclusive_set/…`,
+ * where every `#simple_tweaks:exclusive_set/…` reference resolved to nothing. Vanilla reads a missing
+ * exclusive set as "no exclusivity", so the bug was invisible: the JSON looked right, the enchantments
+ * looked right, and only the *combining* was silently unlimited.
+ */
+private const val MOD_TAG_PACKAGE = "data/$MOD_ID/tags/enchantment"
 
 /** A namespaced id such as `minecraft:generic.max_health`. */
 private val RESOURCE_LOCATION = Regex("[a-z_0-9]+:[a-z_0-9_./-]+")
@@ -62,22 +76,47 @@ private val ID_PATTERN = Regex("[a-z][a-z0-9_]*")
 private const val DERIVE = -1
 
 /**
- * Tier → enchanting-table weight: 1.12.2's `EnchantmentCategories#weight`
- * (`10 - rarity * 2`, floored at 1), which is also what `EnchantItemWeights` spells out for call
- * sites. `@ModEnchantment.weight` defaults to "derive from this table".
+ * Tier → enchanting-table weight. `@ModEnchantment.weight` defaults to "derive from this table".
  *
- * ⚠️ **The single deviation**: the formula yields `0` for UNIQUE, and `0` is rejected below, so UNIQUE
- * is `1`. UNIQUE/MYSTERY are excluded from the enchanting table by category anyway, so the value is
- * descriptive only. `EnchantItemWeights` documents the same curve; if one changes, change both — this
- * is the copy the build actually uses.
+ * ## History, and what the numbers mean now
+ * The original curve was 1.12.2's `EnchantmentCategories#weight` (`10 - rarity * 2`, floored at 1),
+ * i.e. `10/8/6/4/2/1`. The author replaced it with the **rarity-ladder** below so that every one of
+ * this mod's enchantments is roughly one vanilla tier harder to roll than before: vanilla's own
+ * `weight: 10` is `COMMON`, `5` is `UNCOMMON`, `2` is `LEGENDARY`-class. As a side effect the tiers
+ * are now **strictly separated** (each value is unique), where the old curve had a `1/1/1` tail that
+ * made MYTHIC, MYSTERY and UNIQUE indistinguishable by weight.
+ *
+ * | tier | before | now |
+ * |---|---|---|
+ * | COMMON | 10 | **8** |
+ * | UNCOMMON | 8 | **5** |
+ * | RARE | 6 | **3** |
+ * | EPIC | 4 | **2** |
+ * | LEGENDARY | 2 | **1** |
+ * | MYTHIC / MYSTERY / UNIQUE | 1 | **1** |
+ *
+ * Measured against the generated JSONs (all 67 files, not hand-added): the mod's total weight falls
+ * from **320** to **196** — COMMON 7×8=56, UNCOMMON 10×5=50, RARE 14×3=42, EPIC 12×2=24, and the 24
+ * weight-1 files (13 LEGENDARY + 9 MYTHIC + 2 MYSTERY). Against vanilla's 146 that takes the mod's
+ * share of any weighted draw from **69% to 57%**.
+ *
+ * ⚠️ **The single deviation**: the old formula yielded `0` for UNIQUE and `0` is rejected below, so
+ * UNIQUE stays `1`. UNIQUE/MYSTERY are excluded from the enchanting table by category anyway, so the
+ * value is descriptive only. `EnchantItemWeights` spells out the same table for call sites; the
+ * processor compares every explicit `weight = ` against this copy and `warn`s on disagreement, so if
+ * one changes, change both — this is the copy the build actually uses.
+ *
+ * ⚠️ **Weight is not the whole difficulty story.** It only biases *which* eligible enchantment wins a
+ * weighted draw; it cannot stop an enchantment from being drawn, nor change the level it comes out at.
+ * Those are `min_cost` (can it be offered at this power) and `max_cost` (which levels it may reach).
  */
 private val TIER_WEIGHTS = mapOf(
     "UNIQUE" to 1,
-    "COMMON" to 10,
-    "UNCOMMON" to 8,
-    "RARE" to 6,
-    "EPIC" to 4,
-    "LEGENDARY" to 2,
+    "COMMON" to 8,
+    "UNCOMMON" to 5,
+    "RARE" to 3,
+    "EPIC" to 2,
+    "LEGENDARY" to 1,
     "MYTHIC" to 1,
     "MYSTERY" to 1,
 )
@@ -160,6 +199,13 @@ private data class Spec(
     val minCostPerLevel: Int,
     val maxCostBase: Int,
     val maxCostPerLevel: Int,
+    /**
+     * `exclusive_set` as it will be written into the JSON, or `""` for "no key at all".
+     *
+     * Already normalised to the `#namespace:path` form by [ModEnchantmentProcessor.normaliseExclusiveSet],
+     * so the JSON writer never has to guess whether the author typed the `#`.
+     */
+    val exclusiveSet: String,
     val damagePerLevel: Double,
     val attributes: List<AttrSpec>,
     /** Registration position; `Int.MAX_VALUE` means "append last". See `@ModEnchantment.order`. */
@@ -239,7 +285,7 @@ class ModEnchantmentProcessor(
         // key, the HANDLERS entry and the index metadata -- it just leaves the datapack file to the
         // hand-written copy already in `src/main/resources`.
         writeResources(unique.filter { it.jsonEmit })
-        writeTags(metas)
+        writeTags(metas, unique)
         writeKotlin(unique, metas)
         return emptyList()
     }
@@ -453,6 +499,7 @@ class ModEnchantmentProcessor(
             minCostPerLevel = number("minCostPerLevel", 0),
             maxCostBase = number("maxCostBase", 65535),
             maxCostPerLevel = number("maxCostPerLevel", 0),
+            exclusiveSet = normaliseExclusiveSet(text("exclusiveSet"), where, decl),
             damagePerLevel = damagePerLevel,
             attributes = attributes,
             order = number("order", Int.MAX_VALUE),
@@ -469,6 +516,32 @@ class ModEnchantmentProcessor(
             handlerSimpleName = where,
             source = decl.containingFile,
         )
+    }
+
+    /**
+     * Normalises `@ModEnchantment.exclusiveSet` into the `#namespace:path` form the JSON needs.
+     *
+     * Accepts `""`/`null` (no key), `#ns:path` (canonical) and `ns:path` (the `#` is added). Anything
+     * else — an empty namespace, a bare path with no namespace — is an error on the declaration rather
+     * than a silently wrong tag reference: a typo'd `exclusiveSet` would emit a key pointing at a tag
+     * that does not exist, and vanilla treats a missing exclusive tag as "no exclusivity", i.e. the
+     * exclusivity would stop working with **no** build-time or runtime signal.
+     */
+    private fun normaliseExclusiveSet(raw: String?, where: String, decl: KSClassDeclaration): String {
+        if (raw.isNullOrBlank()) return ""
+        val trimmed = raw.trim()
+        val withoutHash = trimmed.removePrefix("#")
+        if (!RESOURCE_LOCATION.matches(withoutHash)) {
+            logger.error(
+                "@ModEnchantment on '$where': `exclusiveSet` must be a namespaced id such as " +
+                    "'#simple_tweaks:exclusive_set/elements' (read: '$trimmed'). A missing namespace " +
+                    "here would point at a tag that does not exist, which vanilla reads as " +
+                    "'no exclusivity'.",
+                decl,
+            )
+            return ""
+        }
+        return "#$withoutHash"
     }
 
     private fun reportDuplicates(specs: List<Spec>): List<Spec> {
@@ -501,7 +574,7 @@ class ModEnchantmentProcessor(
      * reference to `#minecraft:non_treasure`. Replacing either would take the vanilla enchantments out of
      * the enchanting table.
      */
-    private fun writeTags(metas: List<Meta>) {
+    private fun writeTags(metas: List<Meta>, specsForExclusiveSets: List<Spec>) {
         val deps = Dependencies(aggregating = true, *sources(emptyList()))
         val offered = metas
             .filter {
@@ -528,6 +601,58 @@ class ModEnchantmentProcessor(
         }
         codeGenerator.createNewFile(deps, TAG_PACKAGE, "tradeable", "json")
             .bufferedWriter().use { it.write(text) }
+
+        writeExclusiveSets(specsForExclusiveSets)
+    }
+
+    /**
+     * Writes one tag file per `exclusive_set` **owned by this mod**, listing every declaration that
+     * references it.
+     *
+     * ## Why this is generated rather than hand-written
+     * `exclusive_set` names a tag, and vanilla's own sets are tags too (`#minecraft:exclusive_set/damage`).
+     * For a mod-owned set, the membership is nothing but "the enchantments that said they are in it", so
+     * deriving it means a new element cannot be forgotten: adding `nature_conversion` with
+     * `exclusiveSet = "#simple_tweaks:exclusive_set/elements"` puts it in the tag automatically, and a
+     * hand-maintained list is exactly the kind of table `AGENTS.md` §4.10 has been bitten by twice.
+     *
+     * ## Path
+     * `data/<ns>/tags/enchantment/exclusive_set/<name>.json` — note the `tags/` segment. Putting it at
+     * `data/<ns>/exclusive_set/…` would make it a registry entry, which fails to parse (the same
+     * directory mistake that broke startup with `magic_damage`, `DEV_GUIDE` §6 #29).
+     *
+     * ## Scope
+     * Only sets whose namespace is **this mod's** are generated. A declaration may legally point at
+     * `#minecraft:exclusive_set/damage` — vanilla owns that file, and writing it here would either
+     * collide or overwrite vanilla's contents.
+     */
+    private fun writeExclusiveSets(specs: List<Spec>) {
+        val deps = Dependencies(aggregating = true, *sources(specs))
+        val owned = specs
+            .filter { it.exclusiveSet.startsWith("#$MOD_ID:") }
+            .groupBy { it.exclusiveSet.removePrefix("#$MOD_ID:") }
+
+        for ((path, members) in owned) {
+            // `exclusive_set/elements` -> directory `data/simple_tweaks/tags/enchantment/exclusive_set`,
+            // file `elements`. The namespace segment is **this mod's**, not `minecraft` — reusing
+            // `TAG_PACKAGE` here wrote the tag to `data/minecraft/tags/enchantment/exclusive_set/…`,
+            // where the enchantment's `#simple_tweaks:exclusive_set/elements` reference resolves to
+            // nothing and vanilla silently treats the enchantment as having no exclusive set at all.
+            val segments = path.split("/")
+            val directory = (MOD_TAG_PACKAGE + "/" + segments.dropLast(1).joinToString("/")).trimEnd('/')
+            val name = segments.last()
+            val text = buildString {
+                appendLine("{")
+                appendLine("  \"replace\": false,")
+                appendLine("  \"values\": [")
+                appendLine(members.map { it.id }.sorted().joinToString(",\n") { "    \"$MOD_ID:$it\"" })
+                appendLine("  ]")
+                appendLine("}")
+            }
+            codeGenerator.createNewFile(deps, directory, name, "json")
+                .bufferedWriter().use { it.write(text) }
+            logger.info("Exclusive set '#$MOD_ID:$path': ${members.size} member(s) at $directory/$name.json")
+        }
     }
 
     private fun writeTag(deps: Dependencies, name: String, values: List<String>) {
@@ -562,6 +687,12 @@ class ModEnchantmentProcessor(
         appendLine("  \"max_cost\": { \"base\": ${s.maxCostBase}, \"per_level_above_first\": ${s.maxCostPerLevel} },")
         appendLine("  \"max_level\": ${s.maxLevel},")
         appendLine("  \"min_cost\": { \"base\": ${s.minCostBase}, \"per_level_above_first\": ${s.minCostPerLevel} },")
+        // Sorted-key order in vanilla's own files puts `exclusive_set` right after `effects`, which is
+        // where this lands too (jsonEffects ran just above). Omitted entirely when blank, so the 67
+        // pre-existing files stay byte-identical.
+        if (s.exclusiveSet.isNotEmpty()) {
+            appendLine("  \"exclusive_set\": \"${s.exclusiveSet}\",")
+        }
         appendLine("  \"primary_items\": \"${s.primaryItems}\",")
         appendLine("  \"slots\": [${s.slots.joinToString(", ") { "\"${it.lowercase()}\"" }}],")
         appendLine("  \"supported_items\": \"${s.supportedItems}\",")
@@ -675,6 +806,24 @@ class ModEnchantmentProcessor(
         appendLine("    val HANDLER_ORDERS: List<Int> = ${
             if (ordered.isEmpty()) "emptyList()" else "listOf(${ordered.joinToString(", ") { it.order.toString() }})"
         }")
+        appendLine()
+        // Element enchantments are looked up by CONVENTION (`<element>_conversion` / `<element>_protection`)
+        // rather than by a generated 16-entry table, so that adding a ninth element needs no processor
+        // change. The lookup still goes through KEYS, so a name that does not exist answers `null`
+        // instead of throwing — and a typo is therefore a silent "level 0", which is why the map is
+        // also emitted as a plain id set below and checked at startup.
+        appendLine("    /** Every registered enchantment id, for by-convention lookups. */")
+        appendLine("    val IDS: Set<String> = KEYS.mapNotNull { it.value.path }.toSet()")
+        appendLine()
+        appendLine("    /**")
+        appendLine("     * The key for `<element>_conversion` (or `_protection`), or `null` if the generated")
+        appendLine("     * table has no such id. See `util/elements/ElementType`.")
+        appendLine("     */")
+        appendLine("    fun keyOfElement(elementId: String, protective: Boolean): RegistryKey<Enchantment>? {")
+        appendLine("        val id = if (protective) \"\${elementId}_protection\" else \"\${elementId}_conversion\"")
+        appendLine("        if (id !in IDS) return null")
+        appendLine("        return of(id)")
+        appendLine("    }")
         appendLine("}")
     }
 

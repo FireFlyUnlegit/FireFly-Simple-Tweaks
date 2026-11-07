@@ -2,12 +2,12 @@ package dev.firefly.simpletweaks.enchantments.handlers.rare
 
 import dev.firefly.simpletweaks.compat.FSTLog
 import dev.firefly.simpletweaks.compat.WorldSide
-import dev.firefly.simpletweaks.compat.event.EventPriority
 import dev.firefly.simpletweaks.compat.event.LivingHurtEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.event.TickEvent
 import dev.firefly.simpletweaks.core.Listenable
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
+import dev.firefly.simpletweaks.util.firingWeapon
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.player.PlayerEntity
@@ -69,17 +69,19 @@ object EnchantHuntersMarkHandler : Listenable {
 
     private val marks = mutableMapOf<UUID, MarkState>()
 
-    @SubscribeEvent(priority = EventPriority.LOW)
+    @SubscribeEvent(priority = 50)
     fun onHurt(e: LivingHurtEvent) {
         val target = e.entityLiving ?: return
         val attacker = e.source.attacker as? PlayerEntity ?: return
         if (attacker === target) return
 
         val arrow = e.source.source as? PersistentProjectileEntity
-        val isArrowHit = arrow != null && arrow.owner === attacker
-
-        if (isArrowHit) {
-            val lvl = getItemSpecificEnchantLevel(attacker.mainHandStack, GeneratedEnchantments.HUNTERS_MARK)
+        // Condition kept in `if` form (not a boolean) so the non-null `arrow` smart-casts below.
+        if (arrow != null && arrow.owner === attacker) {
+            // cleanup27: the bow that actually fired this arrow (vanilla `weapon`), not the main hand
+            // — an off-hand bow used to make this a silent no-op, and switching items mid-flight
+            // broke it too. See util/ProjectileUtil.kt.
+            val lvl = getItemSpecificEnchantLevel(arrow.firingWeapon(attacker), GeneratedEnchantments.HUNTERS_MARK)
             if (lvl <= 0) return
             applyMark(target, lvl)
             spawnMarkFx(target)

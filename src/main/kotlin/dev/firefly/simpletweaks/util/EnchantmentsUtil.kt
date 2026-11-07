@@ -6,6 +6,7 @@ import net.minecraft.entity.EquipmentSlot
 import net.minecraft.entity.LivingEntity
 import net.minecraft.item.ItemStack
 import net.minecraft.registry.RegistryKey
+import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 
 /**
  * 1.21 port of `util/EnchantmentsUtil.kt`.
@@ -39,6 +40,24 @@ fun getItemSpecificEnchantsLevel(itemStack: ItemStack, keys: List<RegistryKey<En
 /** Total level of [key] across every stack in [itemStacks]. */
 fun getItemsSpecificEnchantLevel(itemStacks: List<ItemStack>, key: RegistryKey<Enchantment>): Int =
     itemStacks.sumOf { getItemSpecificEnchantLevel(it, key) }
+
+/**
+ * Level of the element enchantment for [element] on [itemStack]: `<element>_conversion` when
+ * [protective] is `false`, `<element>_protection` when it is `true`.
+ *
+ * Resolved **by id** through the generated table rather than by a 16-way `when`, so adding a ninth
+ * element needs no edit here. Returns `0` when the generated table has no such id — the correct answer
+ * for a missing enchantment, and also what a naming drift would degenerate to. It must not throw: a
+ * damage handler calling this on the server thread would take the world down.
+ */
+fun getElementSpecificEnchantLevel(
+    itemStack: ItemStack,
+    element: dev.firefly.simpletweaks.util.elements.ElementType,
+    protective: Boolean,
+): Int {
+    val key = GeneratedEnchantments.keyOfElement(element.id, protective) ?: return 0
+    return getItemSpecificEnchantLevel(itemStack, key)
+}
 
 fun hasEnchantment(itemStack: ItemStack, key: RegistryKey<Enchantment>): Boolean =
     getItemSpecificEnchantLevel(itemStack, key) > 0

@@ -3,7 +3,6 @@ package dev.firefly.simpletweaks.enchantments.handlers.common
 import dev.firefly.simpletweaks.compat.FSTLog
 import dev.firefly.simpletweaks.compat.WorldSide
 import dev.firefly.simpletweaks.compat.event.BlockEvent
-import dev.firefly.simpletweaks.compat.event.EventPriority
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.core.Listenable
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
@@ -68,7 +67,7 @@ object EnchantAutoSmeltHandler : Listenable {
     private val SILK_TOUCH: RegistryKey<Enchantment> =
         RegistryKey.of(RegistryKeys.ENCHANTMENT, Identifier.ofVanilla("silk_touch"))
 
-    @SubscribeEvent(priority = EventPriority.LOW)
+    @SubscribeEvent(priority = 50)
     fun onHarvestDrops(e: BlockEvent.HarvestDropsEvent) {
         val player = e.harvester ?: return
         val tool = player.mainHandStack

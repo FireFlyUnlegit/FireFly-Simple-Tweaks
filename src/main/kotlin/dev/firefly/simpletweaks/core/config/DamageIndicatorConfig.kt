@@ -41,6 +41,55 @@ object DamageIndicatorConfig {
     @JvmStatic
     var percentageMode: Boolean = false
 
+    /**
+     * `Min Health Change` — the smallest health delta that still spawns a number (`build=cleanup26`).
+     *
+     * **0.0 (default) = no filtering**, i.e. exactly the behaviour before this option existed. Any
+     * positive value suppresses every damage/heal whose **absolute** change is strictly below it, so
+     * `1.0` hides everything smaller than half a heart (poison ticks, saturation healing, small
+     * chip damage) while true hits still show.
+     *
+     * <p><b>Who reads it:</b> [dev.firefly.simpletweaks.damageindicator.DamageIndicatorHandler], on
+     * the **server**, where the delta is computed by comparing health between ticks. The packet only
+     * carries the final amount, so the client cannot apply this filter. On a dedicated server the
+     * server's `config/simple_tweaks.json` therefore governs; in single player both sides read the
+     * same file.
+     *
+     * <p>Range 0..1000 (enforced on load), step 1 in `stconfig` — the unit is the same as displayed
+     * numbers (1.0 = half a heart).
+     */
+    @JvmStatic
+    var minHealthChange: Double = 0.0
+
+    /**
+     * Split a hit into its **physical** and **elemental** parts as two separate floating numbers.
+     *
+     * Default **false** — the merged single number is the pre-`cleanup32` behaviour and stays the
+     * default so nothing changes for anyone who does not ask for this.
+     *
+     * <p><b>Where the split comes from.</b> The indicator is a per-tick health differ: it only knows
+     * *how much* health was lost, not of what. The breakdown is collected on
+     * `LivingDamageEvent`, which fires once per `LivingEntity#applyDamage` — i.e. exactly once per
+     * damage instance, so a converted hit arrives as one physical instance and one elemental instance
+     * and their amounts are summed separately per entity per tick.
+     *
+     * <p><b>What this changes:</b>
+     * - with the option on, the two components are emitted as their own numbers (physical = the
+     *   indicator's red, elemental = that element's colour, drawn slightly higher and without the second
+     *   health line so the pair stays readable);
+     * - a hit with only one component still produces one number;
+     * - **heals** are never split — they produce no damage event, so they keep going through the health
+     *   differ;
+     * - `minHealthChange` is applied **per component** rather than to the total, so a tiny elemental
+     *   tick can be hidden while the physical part still shows.
+     *
+     * <p><b>Who reads it:</b> [dev.firefly.simpletweaks.damageindicator.DamageIndicatorHandler], on the
+     * **server** (that is where the damage events are). Both numbers travel in the same packet shape, so
+     * turning this on needs no client rebuild — but it does need the server's config.
+     */
+    @JvmStatic
+    var splitElemental: Boolean = false
+
     /** `Show Text Shadow`. */
     @JvmStatic
     var showShadow: Boolean = true

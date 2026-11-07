@@ -1,7 +1,6 @@
 package dev.firefly.simpletweaks.enchantments.handlers.rare
 
 import dev.firefly.simpletweaks.compat.FSTLog
-import dev.firefly.simpletweaks.compat.event.EventPriority
 import dev.firefly.simpletweaks.compat.event.LivingDamageEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.invalid
@@ -23,7 +22,7 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
  * | 1.12.2                                        | 1.21.1                                                          |
  * |-----------------------------------------------|-----------------------------------------------------------------|
  * | `net.minecraftforge...LivingDamageEvent`      | `compat.event.LivingDamageEvent`                                |
- * | `net.minecraftforge...EventPriority`          | `compat.event.EventPriority` (annotation keeps `priority = LOWEST`) |
+ * | `net.minecraftforge...EventPriority`          | `compat.event.EventPriority` (annotation now carries `priority = 100` (LOWEST)) |
  * | `EntityLivingBase`                            | `net.minecraft.entity.LivingEntity`                             |
  * | `e.source.trueSource`                         | `e.source.attacker` (Yarn `DamageSource.getAttacker`, method_5529) |
  * | `attacker.heldItemMainhand`                   | `attacker.mainHandStack` (method_6047)                          |
@@ -44,7 +43,7 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
     order = 15,
 )
 object EnchantAssassinHandler : Listenable {
-    @SubscribeEvent(priority = EventPriority.LOWEST)
+    @SubscribeEvent(priority = 100)
     fun onLivingHurt(e: LivingDamageEvent) {
         if (e.invalid) return
         val attacker = (e.source.attacker as? LivingEntity)?: return

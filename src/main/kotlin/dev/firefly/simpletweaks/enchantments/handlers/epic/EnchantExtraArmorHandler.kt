@@ -64,8 +64,8 @@ import java.util.WeakHashMap
 )
 object EnchantExtraArmorHandler : Listenable {
 
-    private val ARMOR_ID: Identifier = Identifier.of(SimpleTweaks.Companion.MOD_ID, "extra_armor_armor")
-    private val TOUGHNESS_ID: Identifier = Identifier.of(SimpleTweaks.Companion.MOD_ID, "extra_armor_toughness")
+    private val ARMOR_ID: Identifier = Identifier.of(SimpleTweaks.MOD_ID, "extra_armor_armor")
+    private val TOUGHNESS_ID: Identifier = Identifier.of(SimpleTweaks.MOD_ID, "extra_armor_toughness")
 
     private val appliedLevel = WeakHashMap<PlayerEntity, Int>()
 
