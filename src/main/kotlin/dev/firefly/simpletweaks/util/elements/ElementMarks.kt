@@ -106,7 +106,11 @@ object ElementMarks {
         // That is what made a 20 HP mob take 4 hits while the log claimed both halves were dealt.
         // Status effects and attribute changes are not damage calls, so they stay here (they must
         // happen before the target can act).
-        val bonus = damage * reaction.damageBonus
+        // `elemental_resonance` multiplies **reaction** damage only. Mastery is not applied again here
+        // (the caller already folded it into `damage`); this is a separate axis on purpose, so a
+        // reaction build differs from a raw-element build.
+        val resonance = ElementCombat.resonanceMultiplier(attacker)
+        val bonus = damage * reaction.damageBonus * resonance
         if (bonus > 0f && target.isAlive) {
             ElementCombat.enqueueElemental(attacker, target, reaction.trigger, bonus)
         }

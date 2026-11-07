@@ -45,7 +45,7 @@ import java.util.UUID
  * |---|---|---|
  * | [BASE_FRACTION] | `0.10` | level 1 converts a tenth of the hit |
  * | [PER_LEVEL_FRACTION] | `0.05` | +5 points per level above 1 |
- * | [MAX_FRACTION] | `0.50` | never converts more than half, even at level 9 |
+ * | [MAX_FRACTION] | `0.075` | the cap is reachable at level 5; 7.5 % of a hit is the whole slice (`cleanup12`) |
  * | [ELEMENT_SCALE] | `1.00` | the converted part keeps its size |
  * | [BONUS_SCALE] | `0.50` | half of it again is added as bonus |
  *
@@ -83,12 +83,21 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
      * Converted fraction at level 1. Raised from `0.10` because at the old curve the level-1 net gain
      * was `1.05×`, indistinguishable from vanilla's ±0.5 damage roll (reported as "伤害变低").
      */
-    const val BASE_FRACTION = 0.12f
+    /**
+     * Converted share at level 1, and the growth per level.
+     *
+     * Author, `build=cleanup12`: "把元素转化倍率减少到每一级附魔 +1.5%，最高 7.5%". So the curve is
+     * flat `1.5 % × level`, capped at `7.5 %` (i.e. level 5 is already the ceiling). The reason the
+     * old curve (12 % + 6 %/level, cap 50 %) could be that generous was that element damage also
+     * bypassed armour; with the bypass restored the converted share is deliberately a *small* slice
+     * of the hit rather than a second attack.
+     */
+    const val BASE_FRACTION = 0.015f
 
     /** Extra fraction per level above 1. Raised from `0.05` for the same reason as [BASE_FRACTION]. */
-    const val PER_LEVEL_FRACTION = 0.06f
+    const val PER_LEVEL_FRACTION = 0.015f
 
-    const val MAX_FRACTION = 0.50f
+    const val MAX_FRACTION = 0.075f
     const val ELEMENT_SCALE = 1.0f
     const val BONUS_SCALE = 0.5f
 
@@ -111,31 +120,42 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
     /** Hard cap on the mastery bonus (`2.0` = +200%, i.e. ×3). */
     const val MASTERY_CAP = 2.0f
 
+    // ---------------------------------------------------------------- cross-element tuning
+
+    /** `elemental_ward`: all-element damage reduction per level, and its cap (3 levels = 9 %). */
+    const val WARD_PER_LEVEL = 0.03f
+    const val WARD_CAP = 0.09f
+
+    /** `elemental_resonance`: reaction damage bonus per level, and its cap (3 levels = +30 %). */
+    const val RESONANCE_PER_LEVEL = 0.10f
+    const val RESONANCE_CAP = 0.30f
+
+    /** `elemental_penetration`: share of the target's elemental mitigation ignored, per level. */
+    const val PENETRATION_PER_LEVEL = 0.08f
+    const val PENETRATION_CAP = 0.24f
+
     /**
      * The converted fraction of `xx_conversion` at [level]: `BASE + PER_LEVEL × (level - 1)`, capped.
      *
-     * ## The floor that makes conversion never a downgrade
-     * A conversion is **net positive or neutral, by construction**: the re-dealt share is
-     * `ELEMENT_SCALE + BONUS_SCALE = 1.5 ×` the cancelled share, so the target always takes
-     * `(1 − f) + 1.5f = 1 + 0.5f` times the original hit (before mastery and before resistances).
+     * ## Current curve (`build=cleanup12`, author's tuning)
+     * `1.5 % × level`, capped at `7.5 %` — level 5 is the ceiling and the five conversion levels are
+     * `1.5 / 3.0 / 4.5 / 6.0 / 7.5 %`. The author cut it from `12 % + 6 %/level, cap 50 %` in the same
+     * breath as restoring the armour bypass: a *small* slice that ignores armour is a flavour/gimmick,
+     * a 36 % slice that ignores armour was a second attack.
      *
-     * It still *felt* like a downgrade in the field report, for two separate reasons that are both
-     * fixed elsewhere and worth recording here because they are what "damage went down" was:
+     * ## The net-damage question, and why it is no longer a problem
+     * The re-dealt share is `ELEMENT_SCALE + BONUS_SCALE = 1.5 ×` the cancelled share, so the target
+     * takes `(1 − f) + 1.5f = 1 + 0.5f` times the original hit (before mastery and resistances) — with
+     * `f = 0.075` that is a `+3.75 %` net, i.e. conversion is now a *sidegrade with a purpose* rather
+     * than a damage amplifier. Two historical traps that made earlier, larger curves read as a
+     * downgrade are still worth knowing, because both are silent:
      *
-     * 1. **The elemental half was being silently discarded.** `LivingEntity#damage`'s i-frame gate
-     *    (`amount <= lastDamageTaken` while `timeUntilRegen > 10`) swallowed it because the element type
-     *    was not in `#minecraft:bypasses_cooldown`. The original hit had already set
-     *    `lastDamageTaken = original`, and `1.5 × f × original` at the reachable levels (0.30 at V after
-     *    the level cap) is smaller than `original`, so it was dropped every time — leaving only the
-     *    `1 − f` part. Fixed by the tag; see [damageElemental].
-     * 2. **The floor of the curve.** At level 1 (`f = 0.10`) the net is `1.05×`, which is inside the
-     *    noise of vanilla's ±0.5 damage roll and reads as "no change or worse". `PER_LEVEL` was raised
-     *    from `0.05` to `0.06` and `BASE` from `0.10` to `0.12` so even level 1 is a visible `+6%`, and
-     *    V is `f = 0.36` → `+18%` net before mastery.
-     *
-     * ⚠️ `MAX_FRACTION = 0.50` remains the hard cap: even at level 9 the original hit keeps half its
-     * physical identity, which matters because the point of conversion is *changing the element*, not
-     * erasing the physical part.
+     * 1. **The elemental half can be discarded by the i-frame gate** unless the element type is in
+     *    `#minecraft:bypasses_cooldown` (it is; see [damageElemental]).
+     * 2. **A curve whose level-1 value is inside vanilla's ±0.5 damage roll reads as "no change"** —
+     *    at `f = 0.015` the elemental share is deliberately below that noise on a 10-damage hit, which
+     *    is fine now that the point of the enchantment is *element identity* (marks, reactions,
+     *    protections), not raw damage.
      */
     fun conversionFraction(level: Int): Float {
         if (level <= 0) return 0f
@@ -652,25 +672,74 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
         if (e.invalid) return
         val element = ElementType.of(e.source)
 
-        // A player's own `xx_protection` and a mob's own element resistance are independent sources that
-        // happen to act on the same number; they are combined multiplicatively rather than added, so
-        // neither can drive the total past 100 % by itself.
+        // A player's own `xx_protection`, `elemental_ward`, a mob's own element resistance and the
+        // attacker's `elemental_penetration` are independent sources that happen to act on the same
+        // number. Mitigations are combined **multiplicatively** (neither can drive the total past
+        // 100 % by itself); penetration is then applied as a multiplier on the combined mitigation, so
+        // it can never turn an 80 % protection into a negative one.
         val level = protectionLevel(e.entityLiving, element)
         val enchantReduction =
             if (level > 0) (PROTECTION_PER_LEVEL * level).coerceAtMost(PROTECTION_CAP) else 0f
+        val wardReduction = wardReduction(e.entityLiving)
         val mob = e.entityLiving as? MobEntity
         val mobReduction = if (mob != null) MobElements.resistanceFor(mob, element) else 0f
+        val penetration = penetrationOf(e.source.attacker as? LivingEntity)
 
-        if (enchantReduction <= 0f && mobReduction <= 0f) return
+        val mitigated = 1.0f - (1.0f - enchantReduction) * (1.0f - mobReduction) * (1.0f - wardReduction)
+        val effective = (mitigated * (1.0f - penetration)).coerceIn(0f, 0.95f)
+
+        if (effective <= 0f) return
 
         val before = e.amount
-        e.amount = (e.amount * (1.0f - enchantReduction) * (1.0f - mobReduction)).coerceAtLeast(0f)
+        e.amount = (e.amount * (1.0f - effective)).coerceAtLeast(0f)
 
         FSTLog.log("Element") {
-            "protected=${element.id}, lvl=$level, enchantReduction=${"%.2f".format(enchantReduction)}, " +
+            "protected=${element.id}, lvl=$level, " +
+                "enchantReduction=${"%.2f".format(enchantReduction)}, " +
+                "ward=${"%.2f".format(wardReduction)}, " +
                 "mobResistance=${"%.2f".format(mobReduction)}, " +
+                "penetration=${"%.2f".format(penetration)}, " +
                 "amount=${"%.2f".format(before)}->${"%.2f".format(e.amount)}, outcome=reduced"
         }
+    }
+
+    // ---------------------------------------------------------------- cross-element helpers
+
+    /**
+     * `elemental_ward` level on [entity]'s four armour slots (max 3, so the reduction is capped at
+     * `WARD_CAP` = 9 %). Deliberately **not** per element: that is what `xx_protection` is for.
+     */
+    fun wardLevel(entity: LivingEntity): Int {
+        var best = 0
+        for (slot in ARMOR_SLOTS) {
+            val lvl = getItemSpecificEnchantLevel(entity.getEquippedStack(slot), GeneratedEnchantments.ELEMENTAL_WARD)
+            if (lvl > best) best = lvl
+        }
+        return best
+    }
+
+    /** `elemental_ward` reduction, capped. */
+    fun wardReduction(entity: LivingEntity): Float {
+        val lvl = wardLevel(entity)
+        return if (lvl <= 0) 0f else (WARD_PER_LEVEL * lvl).coerceAtMost(WARD_CAP)
+    }
+
+    /** `elemental_resonance` level from [attacker]'s main hand (reaction damage only). */
+    fun resonanceOf(attacker: LivingEntity?): Int =
+        if (attacker == null) 0
+        else getItemSpecificEnchantLevel(attacker.mainHandStack, GeneratedEnchantments.ELEMENTAL_RESONANCE)
+
+    /** Reaction damage multiplier from `elemental_resonance`, capped. */
+    fun resonanceMultiplier(attacker: LivingEntity?): Float {
+        val lvl = resonanceOf(attacker)
+        return 1.0f + if (lvl <= 0) 0f else (RESONANCE_PER_LEVEL * lvl).coerceAtMost(RESONANCE_CAP)
+    }
+
+    /** `elemental_penetration` level from [attacker]'s main hand. */
+    fun penetrationOf(attacker: LivingEntity?): Float {
+        if (attacker == null) return 0f
+        val lvl = getItemSpecificEnchantLevel(attacker.mainHandStack, GeneratedEnchantments.ELEMENTAL_PENETRATION)
+        return if (lvl <= 0) 0f else (PENETRATION_PER_LEVEL * lvl).coerceAtMost(PENETRATION_CAP)
     }
 
     // ---------------------------------------------------------------- helpers

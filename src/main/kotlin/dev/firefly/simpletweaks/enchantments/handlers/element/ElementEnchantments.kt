@@ -65,6 +65,7 @@ object ElementEnchantments {
         PhysicalProtection, FireProtection, FrostProtection, LightningProtection,
         WaterProtection, NatureProtection, DarkProtection, LightProtection,
         ElementalMastery,
+        ElementalWard, ElementalResonance, ElementalPenetration,
     )
 }
 
@@ -364,3 +365,84 @@ object LightProtection : Listenable
     slots = [EnchantSlot.MAINHAND],
 )
 object ElementalMastery : Listenable
+
+/*
+ * ---------------------------------------------------------------- cross-element support
+ *
+ * Three declarations that are element-related but not tied to one `ElementType`. Like every other
+ * declaration in this file they carry **no listener**: `ElementCombat` reads them by id, so the
+ * "which element is this?" rule still lives in exactly one place.
+ *
+ * They exist because `build=cleanup12` cut the conversion share to `1.5 % × level` (cap `7.5 %`): with
+ * that small a slice the eight conversions alone leave the element system with nothing to build a
+ * character around, and these three give the axis its own defensive and offensive levers.
+ */
+
+/**
+ * `elemental_ward` — reduces **every** element's damage, not one.
+ *
+ * Deliberately weak per level (3 %, three levels = 9 %) and **multiplicative** with the per-element
+ * `xx_protection` (which is 6 %/level up to 80 %). A ward that added on top of a dedicated protection
+ * would simply make the dedicated ones pointless; multiplying keeps "specialise or generalise" a real
+ * choice.
+ */
+@ModEnchantment(
+    id = "elemental_ward",
+    category = EnchantCategory.RARE,
+    type = EnchantType.ARMOR,
+    maxLevel = 3,
+    weight = EnchantItemWeights.RARE,
+    anvilCost = 10,
+    minCostBase = 6,
+    minCostPerLevel = 8,
+    supportedItems = EnchantSupportedItemTags.ARMOR,
+    slots = [EnchantSlot.ARMOR],
+)
+object ElementalWard : Listenable
+
+/**
+ * `elemental_resonance` — multiplies the damage of **reactions** (melt / conduct / overload / …).
+ *
+ * +10 % per level, three levels = +30 %. Read in `ElementMarks.apply`, i.e. only reaction damage is
+ * affected — it does not touch the conversion's own elemental hit or the raw swing, which is what
+ * makes it a different axis from `elemental_mastery` (which scales the elemental output).
+ */
+@ModEnchantment(
+    id = "elemental_resonance",
+    category = EnchantCategory.LEGENDARY,
+    type = EnchantType.SWORD,
+    maxLevel = 3,
+    // No flat `minecraft:damage`: reactions only. Same reasoning as `elemental_mastery`.
+    damagePerLevel = 0.0,
+    weight = EnchantItemWeights.LEGENDARY,
+    anvilCost = 12,
+    minCostBase = 26,
+    minCostPerLevel = 10,
+    supportedItems = EnchantSupportedItemTags.SWORD,
+    slots = [EnchantSlot.MAINHAND],
+)
+object ElementalResonance : Listenable
+
+/**
+ * `elemental_penetration` — the offensive mirror of a protection: it **reduces the target's**
+ * elemental mitigation (per-element protection, a mob's own element resistance, and `elemental_ward`)
+ * by 8 % per level, up to 24 %.
+ *
+ * Applied as a multiplier on the *combined* mitigation rather than by subtracting flat points, so it
+ * can never turn an 80 % protection into a negative one.
+ */
+@ModEnchantment(
+    id = "elemental_penetration",
+    category = EnchantCategory.EPIC,
+    type = EnchantType.SWORD,
+    maxLevel = 3,
+    // No flat `minecraft:damage`: mitigation only.
+    damagePerLevel = 0.0,
+    weight = EnchantItemWeights.EPIC,
+    anvilCost = 10,
+    minCostBase = 22,
+    minCostPerLevel = 9,
+    supportedItems = EnchantSupportedItemTags.SWORD,
+    slots = [EnchantSlot.MAINHAND],
+)
+object ElementalPenetration : Listenable

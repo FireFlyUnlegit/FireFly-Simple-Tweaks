@@ -259,5 +259,11 @@
   "gui.simple_tweaks.item_group.leggings": "护腿",
   "gui.simple_tweaks.item_group.boots": "靴子",
   "gui.simple_tweaks.item_group.shield": "盾牌",
-  "gui.simple_tweaks.item_group.elytra": "鞘翅"
+  "gui.simple_tweaks.item_group.elytra": "鞘翅",
+  "enchantment.simple_tweaks.elemental_ward": "元素壁垒",
+  "enchantment.simple_tweaks.elemental_ward.desc": "受到的任意元素伤害降低 3%%/级（三件上限 9%%），与单元素保护相乘叠加。",
+  "enchantment.simple_tweaks.elemental_resonance": "元素共鸣",
+  "enchantment.simple_tweaks.elemental_resonance.desc": "元素反应伤害提高 10%%/级（上限 +30%%），不影响转化本身的元素伤害。",
+  "enchantment.simple_tweaks.elemental_penetration": "元素穿透",
+  "enchantment.simple_tweaks.elemental_penetration.desc": "无视目标 8%%/级（上限 24%%）的元素减伤：单元素保护、怪物元素抗性与元素壁垒。"
 }

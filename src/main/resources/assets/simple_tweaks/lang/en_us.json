@@ -259,5 +259,11 @@
   "gui.simple_tweaks.item_group.leggings": "Leggings",
   "gui.simple_tweaks.item_group.boots": "Boots",
   "gui.simple_tweaks.item_group.shield": "Shields",
-  "gui.simple_tweaks.item_group.elytra": "Elytra"
+  "gui.simple_tweaks.item_group.elytra": "Elytra",
+  "enchantment.simple_tweaks.elemental_ward": "Elemental Ward",
+  "enchantment.simple_tweaks.elemental_ward.desc": "Reduces all elemental damage taken by 3%% per level (max 9%%), multiplying with single-element protection.",
+  "enchantment.simple_tweaks.elemental_resonance": "Elemental Resonance",
+  "enchantment.simple_tweaks.elemental_resonance.desc": "Increases reaction damage by 10%% per level (max +30%%). Does not affect the conversion's own elemental hit.",
+  "enchantment.simple_tweaks.elemental_penetration": "Elemental Penetration",
+  "enchantment.simple_tweaks.elemental_penetration.desc": "Ignores 8%% per level (max 24%%) of the target's elemental mitigation: protections, mob resistance and Elemental Ward."
 }
