@@ -38,8 +38,9 @@ import java.util.WeakHashMap
  * vanilla's, so vanilla gear progression (and its cost curve) is untouched.
  *
  * ## The two halves
- * 1. **On spawn**, after vanilla's enchant, roll a per-slot chance and add at most **one** mod
- *    enchantment. The mob keeps it for life — that is the "stronger mobs" half.
+ * 1. **On spawn**, after vanilla's enchant, roll a per-slot chance and spend the mob's **level budget**
+ *    (`1 + level/10` total enchantment levels, `v2.2.1`) on mod enchantments. The mob keeps them for
+ *    life — that is the "stronger mobs" half.
  * 2. **On death**, strip every `simple_tweaks:*` enchantment from the equipped stacks *before* vanilla
  *    drops them. Equipment still drops (so the player is still rewarded with the item and its **vanilla**
  *    enchantments), but the mod's enchantments cannot be farmed off mobs.
@@ -104,7 +105,28 @@ object MobEnchantments {
      */
     const val DIFFICULTY_FOR_FULL_CHANCE = 2.0f
 
-    /** Ceiling on how many mod enchantments one item can receive (`1 + (level-1)/4`). */
+    /**
+     * Mob levels per **one point of total mod-enchantment level** on that mob's gear.
+     *
+     * `build=cleanup2` (`v2.2.1`): the author reported the granted enchantment levels were far too high.
+     * The old rule was per **item** — `1 + (level-1)/4` enchantments, each rolled at
+     * `1 + random(maxLevel)` — so a level-9 zombie in full armour could carry up to 3 enchantments per
+     * item on five items, several of them level 4-5. The rule is now per **mob** and in *levels*:
+     *
+     * ```
+     * total mod-enchantment levels = 1 + floor(mobLevel / 10)
+     * ```
+     *
+     * Level 1-9 → 1, 10-19 → 2, 20-29 → 3, … That budget is spent across the mob's whole loadout
+     * (see [modEnchantmentLevelsOn]), so two level-20 mobs have the same total power even if one of them
+     * rolled its enchants onto a sword instead of a helmet.
+     */
+    const val LEVELS_PER_ENCHANT_LEVEL = 10
+
+    /** Floor of the budget: even a level-1 mob that rolls the gear chance gets one level's worth. */
+    private const val MIN_TOTAL_ENCHANT_LEVELS = 1
+
+    /** Ceiling on how many mod enchantments one item can receive. */
     private const val MAX_ENCHANTS_PER_ITEM = 3
 
     /**
@@ -189,11 +211,11 @@ object MobEnchantments {
 
     /**
      * Called from `MobEntity#enchantEquipment`'s RETURN, i.e. **after** vanilla has finished with this
-     * slot. Adds at most one mod enchantment.
+     * slot. Spends what is left of this mob's level budget on this slot's item.
      *
      * Returning early is the common path and deliberately costs almost nothing: the empty-stack test and
      * the already-has-one test are single component reads, and the probability roll happens before the
-     * 56-entry candidate scan.
+     * candidate scan.
      */
     fun tryApplyAtSpawn(
         mob: MobEntity,
@@ -235,15 +257,28 @@ object MobEnchantments {
             return
         }
 
-        // How many mod enchantments this item gets. **More than one from level 5 upwards**, because a
-        // single roll per item made every high-level mob read the same: one bow enchant on a skeleton, one
-        // sword enchant on a zombie, and nothing on a mob whose main hand is empty.
+        // How much "enchantment power" this mob is still allowed to receive. The budget is a property of
+        // the **mob**, not of the slot, so it has to be measured against what the other slots already got;
+        // `enchantEquipment` runs once per slot, in no particular order relative to this one.
         //
-        // `1 + (level-1)/4`, capped at [MAX_ENCHANTS_PER_ITEM]: level 1-4 → 1, 5-8 → 2, 9+ → 3.
+        // `1 + level/10` total levels (see [LEVELS_PER_ENCHANT_LEVEL]). Level 1-9 → 1, 10-19 → 2, 20-29 → 3,
+        // so a sword hit by one of them is a normal fight again instead of a five-item wall of level-5
+        // enchantments — which is the tuning the author asked for after playing `v2.2.0`.
         val mobLevel = (mob as? LevelledMob)?.mobLevel ?: 1
-        val wanted = (1 + (mobLevel - 1) / 4).coerceAtMost(MAX_ENCHANTS_PER_ITEM)
+        val budget = MIN_TOTAL_ENCHANT_LEVELS + mobLevel.coerceAtLeast(1) / LEVELS_PER_ENCHANT_LEVEL
+        val used = modEnchantmentLevelsOn(mob, pool)
+        val room = budget - used
+        if (room <= 0) {
+            // Debug-gated but present on purpose: "no enchantment" and "the budget was already spent"
+            // look identical in play, and only one of them is a tuning decision (`AGENTS.md` §4.4).
+            FSTLog.log("MobEnchant") {
+                "mob=${mob.type.name.string}, slot=$slot, level=$mobLevel, " +
+                    "budget=$budget, used=$used, outcome=mob-enchant-budget-spent"
+            }
+            return
+        }
 
-        val applied = applyEnchantments(mob, slot, stack, pool, random, wanted)
+        val applied = applyEnchantments(stack, pool, random, room)
         if (applied == 0) return
 
         // Re-equip so the enchantment's own effects (attributes, location-based effects) are applied and
@@ -251,14 +286,40 @@ object MobEnchantments {
         mob.equipStack(slot, stack)
 
         FSTLog.log("MobEnchant") {
-            "mob=${mob.type.name.string}, slot=$slot, applied=$applied (wanted=$wanted, level=$mobLevel), " +
+            "mob=${mob.type.name.string}, slot=$slot, applied=$applied levels " +
+                "(budget=$budget, usedBefore=$used, level=$mobLevel), " +
                 "chance=${"%.2f".format(chance)}, difficulty=${"%.2f".format(effectiveDifficulty)}, " +
                 "outcome=mob-enchanted"
         }
     }
 
     /**
-     * Applies up to [wanted] distinct mod enchantments to [stack], returning how many were added.
+     * Total mod-enchantment **levels** currently on [mob]'s equipment.
+     *
+     * Six component reads, and the enchantment loop only runs for stacks that actually have enchantments;
+     * this is only ever called on the spawn path, from [tryApplyAtSpawn].
+     */
+    private fun modEnchantmentLevelsOn(mob: MobEntity, pool: Pool): Int {
+        var total = 0
+        for (slot in EQUIPMENT_SLOTS) {
+            val stack = mob.getEquippedStack(slot)
+            if (stack.isEmpty) continue
+            val current = stack.get(DataComponentTypes.ENCHANTMENTS) ?: continue
+            if (current.isEmpty) continue
+            for (entry in current.enchantments) {
+                if (entry in pool.members) total += current.getLevel(entry)
+            }
+        }
+        return total
+    }
+
+    /**
+     * Spends up to [room] **levels** on mod enchantments for [stack], returning how many were added.
+     *
+     * Level distribution: each enchantment takes `1 + random(min(room, maxLevel) - 1)` levels, i.e. one
+     * level at minimum and never more than the enchantment allows or the budget has left. A mob with a
+     * large budget therefore tends to roll one high-level enchantment rather than many level-1 ones,
+     * which keeps its gear readable ("that zombie has a sharp sword") instead of a soup of trivial buffs.
      *
      * ⚠️ Built explicitly instead of calling `ItemStack#addEnchantment`. That helper goes through
      * `EnchantmentHelper#apply`, which **returns early when the component is absent** — and mob gear that
@@ -266,22 +327,24 @@ object MobEnchantments {
      * nothing. This is the same silent no-op recorded in `EnchantmentScreenHandlerMixin`.
      */
     private fun applyEnchantments(
-        mob: MobEntity,
-        slot: EquipmentSlot,
         stack: ItemStack,
         pool: Pool,
         random: Random,
-        wanted: Int,
+        room: Int,
     ): Int {
         val type = DataComponentTypes.ENCHANTMENTS
         var applied = 0
-        for (attempt in 0 until wanted) {
+        var remaining = room
+        for (attempt in 0 until MAX_ENCHANTS_PER_ITEM) {
+            if (remaining <= 0) break
             val index = pick(stack, pool, random)
             if (index < 0) break
-            val level = 1 + random.nextInt(pool.maxLevels[index])
+            val spendable = minOf(remaining, pool.maxLevels[index])
+            val level = 1 + random.nextInt(spendable)
             val builder = ItemEnchantmentsComponent.Builder(EnchantmentHelper.getEnchantments(stack))
             builder.add(pool.entries[index], level)
             stack.set(type, builder.build())
+            remaining -= level
             applied++
         }
         return applied

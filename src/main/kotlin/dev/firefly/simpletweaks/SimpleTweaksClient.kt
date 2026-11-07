@@ -100,8 +100,10 @@ class SimpleTweaksClient : ClientModInitializer {
                 "+ per-element damage numbers (optional physical/elemental split) + kill_aura / " +
                 "infinite_power / starfall / celestial ring + every command under /simple_tweaks " +
                 "(alias /fst) + damage numbers report the health actually removed " +
+                "+ every mob gets a level, not only the armed ones " +
+                "+ mob enchantments are budgeted by level (1 + level/10 total levels) " +
                 "+ debug logs off by default " +
-                "(v2.2.0, build=cleanup1)",
+                "(v2.2.1, build=cleanup2)",
             SimpleTweaks.NAME,
         )
     }
