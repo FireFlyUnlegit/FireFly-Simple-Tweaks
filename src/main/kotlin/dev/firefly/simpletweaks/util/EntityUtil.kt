@@ -1,6 +1,7 @@
 package dev.firefly.simpletweaks.util
 
 import net.minecraft.entity.Entity
+import net.minecraft.entity.LivingEntity
 import net.minecraft.util.math.Vec3d
 import kotlin.math.sqrt
 
@@ -31,3 +32,5 @@ var Entity.fireTime: Int
     set(value) {
         this.fireTicks = value
     }
+val LivingEntity.lossHealth: Float
+    get() = this.maxHealth - this.health
