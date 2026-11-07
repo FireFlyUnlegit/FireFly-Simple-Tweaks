@@ -5,6 +5,7 @@ import dev.firefly.simpletweaks.compat.event.LivingDamageEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.invalid
 import dev.firefly.simpletweaks.core.Listenable
+import dev.firefly.simpletweaks.util.combatStack
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import net.minecraft.entity.LivingEntity
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
@@ -47,7 +48,7 @@ object EnchantHealerHandler : Listenable{
     fun onLivingHurt(e: LivingDamageEvent) {
         if (e.invalid) return
         val lvl = getItemSpecificEnchantLevel((((e.source.attacker as? LivingEntity) ?:return)
-            .mainHandStack),
+            .combatStack(e.source)),
             GeneratedEnchantments.HEALER)
         if (lvl > 0)
         {
