@@ -9,6 +9,7 @@ import dev.firefly.simpletweaks.core.Listenable
 import dev.firefly.simpletweaks.util.damagesource.isAuxiliaryDamage
 import dev.firefly.simpletweaks.util.firingWeapon
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
+import dev.firefly.simpletweaks.util.elements.ElementAuras
 import dev.firefly.simpletweaks.util.elements.ElementMarks
 import dev.firefly.simpletweaks.util.elements.ElementType
 import dev.firefly.simpletweaks.util.runPlayerAttack
@@ -331,7 +332,10 @@ object EnchantStarfallHandler : Listenable {
                     allowCrit = false,
                 )
                 // The impact leaves a fire mark, so a follow-up frost / water hit can `vanish` / `steam`.
-                ElementMarks.recordAndReact(owner, entity, ElementType.FIRE, dmg)
+                ElementMarks.recordAndReact(
+                    owner, entity, ElementType.FIRE, dmg,
+                    units = ElementAuras.STRONG, forceAttach = true,
+                )
             } else {
                 entity.damage(entity.damageSources.create(ElementType.FIRE.damageType), dmg)
             }

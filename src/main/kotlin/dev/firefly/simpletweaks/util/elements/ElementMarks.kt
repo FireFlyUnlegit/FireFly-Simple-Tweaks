@@ -11,152 +11,217 @@ import net.minecraft.entity.effect.StatusEffects
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.particle.ParticleTypes
 import net.minecraft.server.world.ServerWorld
-import java.util.UUID
 import net.minecraft.util.Identifier
+import java.util.UUID
 import java.util.WeakHashMap
 
 /**
- * Per-entity element marks and the reaction engine.
+ * What one hit did to the aura / reaction system.
  *
- * ## State discipline (this is the part that has burned this repo before)
- * Marks live in a [WeakHashMap] keyed by the entity **object**, not in any data component and not in
- * the entity's NBT. Consequences, all deliberate:
+ * Returned rather than applied, because the caller ([ElementCombat]) is the only place allowed to
+ * touch `e.amount` and the only place that owns "deal element damage, credit the attacker, log one
+ * line" — see the note on re-entrancy in [apply].
+ */
+data class ReactionOutcome(
+    /** Reaction key that fired, or `null`. */
+    val key: String? = null,
+    /** Multiplier the caller must apply to the triggering hit (1.0 = untouched). 增幅 reactions only. */
+    val amplify: Float = 1f,
+    /** Flat damage already queued as element damage by this call (for the log line). */
+    val flatDamage: Float = 0f,
+)
+
+/**
+ * Per-entity elemental auras and the reaction engine.
  *
- * - **Nothing is persisted.** A mark cannot survive a relog, a chunk unload or a server restart, so
- *   there is no stale-mark bug of the `heavenly_punishment` kind ("the duration is gone but the
- *   modifier is still in the save").
- * - **Nothing needs syncing.** A mark is invisible to the player (it only shows as the reaction
- *   trigger) and is only ever read on the server thread, in the same event that writes it, so there is
- *   no client half to keep in step — see `AGENTS.md` §4.11 for the failures that come from skipping
- *   that question.
- * - **[WeakHashMap] entries vanish with the entity.** A dead-and-removed zombie cannot leave a mark
- *   behind pointing at a new entity, because the key IS the object.
+ * ## State discipline (the part that has burned this repo before)
+ * Auras live in [ElementAuras], keyed by the entity **object**: nothing is persisted, nothing is synced,
+ * and an aura can never outlive the entity. Everything is read lazily by "the next hit" — there is no
+ * tick handler for auras, so an aura costs nothing per tick and cannot drift.
  *
- * ## Timing
- * A mark lasts [MARK_TICKS] ticks of *real time*, checked lazily on the next hit (there is no tick
- * handler): if the next hit arrives later than that, the mark is treated as absent. A lazy check costs
- * nothing per tick and cannot drift, because the only consumer is "the next hit".
+ * ## Attachment ICD
+ * A hit only attaches an aura if [AttachmentIcd] allows it (2.5 s window + every 3rd hit). A hit that is
+ * throttled therefore **cannot** react either — it never applied its element. A few sources bypass the
+ * ICD on purpose (`forceAttach`): the poison tick (a DoT has no "attack class"), and anything the mod
+ * itself re-deals, which was already funded by the hit that created it.
  *
- * ## Why the reaction damage is dealt by [ElementCombat.onLivingHurt]'s caller
- * The engine returns the reaction that fired instead of applying it, so the one place that already
- * owns "deal element damage, credit the attacker, log one line" stays the only place that does it.
+ * ## Reaction resolution
+ * 1. read the aura; if it is empty or the throttled hit cannot attach, nothing happens (the hit's own
+ *    damage is untouched);
+ * 2. if `(aura, trigger)` is in [ElementReactions], consume `triggerUnits × dampening` aura units, then
+ *    apply the reaction (amplify / flat damage / quicken / status effects);
+ * 3. leftover aura stays (先手不残留是被吃掉的部分), the trigger never lingers (后手不残留), so no
+ *    reaction can feed itself;
+ * 4. otherwise attach the trigger's aura.
  */
 object ElementMarks {
 
-    /** How long a mark survives without a follow-up hit. 200 ticks = 10 s. */
-    const val MARK_TICKS = 200
+    /** Kept for the two call sites that still describe the lifetime in a log line. */
+    const val MARK_TICKS = ElementAuras.WEAK_TICKS
 
-    /** One mark: which element, and the tick it expires at. */
-    private class Mark(val element: ElementType, val expireAt: Long)
-
-    private val marks = WeakHashMap<LivingEntity, Mark>()
+    // ------------------------------------------------------------------ public API
 
     /**
-     * Records [element] as the target's mark, **after** checking for a reaction against the mark that
-     * was already there.
+     * Applies [element] to [target] and resolves a reaction against whatever aura was already there.
      *
-     * @return the reaction that fired and was consumed, or `null`
+     * @param units aura units this hit carries ([ElementAuras.WEAK] / [STRONG] / [ULTRA])
+     * @param damage the triggering hit's damage, after mastery; only amplifying reactions look at it
+     * @param forceAttach bypass the attachment ICD (DoT ticks and the mod's own re-dealt damage)
      */
     fun recordAndReact(
-        attacker: PlayerEntity,
+        attacker: PlayerEntity?,
         target: LivingEntity,
         element: ElementType,
         damage: Float,
-    ): String? {
+        units: Float = ElementAuras.WEAK,
+        forceAttach: Boolean = false,
+    ): ReactionOutcome {
+        if (!target.isAlive) return ReactionOutcome()
         val now = target.world.time
-        val previous = marks[target]
 
-        var reactionName: String? = null
-        if (previous != null && previous.expireAt > now) {
-            val reaction = ElementReactions.of(previous.element, element)
+        // 激化 state first: it is a buff on the target, not an aura, and it applies to nature/lightning
+        // hits whether or not this particular hit was allowed to attach.
+        var flat = 0f
+        val quickened = QUICKENED[target]
+        if (quickened != null && quickened <= now) QUICKENED.remove(target)
+        val isQuickened = QUICKENED[target]?.let { it > now } == true
+
+        if (!forceAttach && !AttachmentIcd.allows(target, attacker)) {
+            FSTLog.log("Element") {
+                "outcome=no-aura-throttled, element=${element.id}, aura=${ElementAuras.describe(target)}"
+            }
+            return ReactionOutcome()
+        }
+
+        val aura = ElementAuras.peek(target)
+        var outcome = ReactionOutcome()
+
+        if (aura != null && aura.first != element) {
+            val (auraElement, auraUnits) = aura
+            val reaction = ElementReactions.of(auraElement, element)
             if (reaction != null) {
-                apply(attacker, target, reaction, damage)
-                reactionName = reaction.key
+                val dampening = ElementReactions.dampening(auraElement, element)
+                val cost = units * dampening
+                val consumed = ElementAuras.consume(target, cost)
+
+                outcome = apply(attacker, target, reaction, damage, auraUnits, consumed, dampening)
+
+                FSTLog.log("Element") {
+                    "reaction=${reaction.key}, aura=${auraElement.id}:${"%.2f".format(auraUnits)}, " +
+                        "trigger=${element.id}:${"%.2f".format(units)}, dampening=${"%.2f".format(dampening)}, " +
+                        "consumed=${"%.2f".format(consumed)}, left=${ElementAuras.describe(target)}, " +
+                        "amplify=${"%.2f".format(outcome.amplify)}, flat=${"%.2f".format(outcome.flatDamage)}, " +
+                        "outcome=reacted"
+                }
+                // 后手不残留: the trigger element does not stay behind after a reaction.
+                return outcome
             }
         }
 
-        // A reaction consumes the old mark; either way the new hit leaves its own.
-        marks[target] = Mark(element, now + MARK_TICKS)
-        return reactionName
+        // No reaction: this hit becomes the new aura (same element refreshes, different replaces).
+        ElementAuras.attach(target, element, units)
+        if (isQuickened && (element == ElementType.NATURE || element == ElementType.LIGHTNING)) {
+            flat = quickenBonus(attacker, target, reactionKey = null)
+            if (flat > 0f && attacker != null) {
+                ElementCombat.enqueueElemental(attacker, target, element, flat)
+            }
+            outcome = ReactionOutcome(key = null, flatDamage = flat)
+        }
+        return outcome
     }
 
-    /** Records [element] without checking for a reaction (used by non-converted hits). */
-    fun record(attacker: PlayerEntity, target: LivingEntity, element: ElementType, damage: Float) {
-        recordAndReact(attacker, target, element, damage)
-    }
+    /** Convenience wrapper for the two call sites that only want the reaction name. */
+    fun record(
+        attacker: PlayerEntity?,
+        target: LivingEntity,
+        element: ElementType,
+        damage: Float,
+        units: Float = ElementAuras.WEAK,
+    ): ReactionOutcome = recordAndReact(attacker, target, element, damage, units)
 
     /**
-     * Sets [element] as the target's mark **without** looking for a reaction.
+     * Sets [element] as the target's aura **without** looking for a reaction.
      *
      * For damage that repeats on a timer — today only the poison tick. A reaction per tick made one
-     * poisoned target add 50 % of the tick damage every second (plus a floating label), i.e. the same
-     * "伤害爆高" the on-hit guard fixes from the enchantment side. The mark itself is still refreshed,
-     * so a poisoned target hit by fire still triggers `burn` — from the player's own swing, once.
+     * poisoned target add 50 % of the tick damage every second, i.e. the same "伤害爆高" the on-hit
+     * guard fixes from the enchantment side; the aura itself is still refreshed so a poisoned target hit
+     * by fire triggers `burn` from the player's own swing, once.
      */
-    fun markOnly(target: LivingEntity, element: ElementType) {
-        marks[target] = Mark(element, target.world.time + MARK_TICKS)
+    fun markOnly(target: LivingEntity, element: ElementType, units: Float = ElementAuras.WEAK) {
+        if (!target.isAlive) return
+        ElementAuras.attach(target, element, units)
     }
+
+    // ------------------------------------------------------------------ reaction application
 
     /**
      * Applies one fired reaction.
      *
-     * Every field of [ElementReaction] is optional, and each is applied only when non-zero — that is
-     * what lets "bloom" be a pure crowd-control reaction with no damage at all.
+     * ⚠️ **Nothing here calls `LivingEntity#damage`.** This runs inside `LivingHurtEvent`, and a nested
+     * damage call re-enters `EventSeams.hurt`, overwrites its ThreadLocal cache and makes the outer
+     * `@ModifyVariable` re-fire a fresh event — which silently discards every mutation this handler made
+     * to `e.amount`. The measured symptom was a 20 HP mob taking four hits while the log claimed both
+     * shares landed. Damage is therefore **queued** ([ElementCombat.enqueueElemental]) and flushed from
+     * the world tick. Status effects and attribute writes are not damage calls and stay inline.
      */
-    private fun apply(attacker: PlayerEntity, target: LivingEntity, reaction: ElementReaction, damage: Float) {
-        // Percentage of the triggering hit, dealt as this reaction's trigger element so resistances
-        // see it. Scaled by `damage` on purpose: a flat bonus would decide a wooden-sword fight and be
-        // noise against a Sharpness V netherite sword.
-        //
-        // `damage` already carries the attacker's mastery multiplier (ElementCombat passes
-        // `original * mastery`), so a reaction inherits mastery exactly once — through the hit that
-        // triggered it — and does NOT apply the multiplier a second time here.
-        //
-        // ⚠️ The bonus is **queued**, not dealt here. This runs inside `LivingHurtEvent` (from
-        // `ElementCombat.onLivingHurt`), and any `LivingEntity#damage` call made from inside that event
-        // re-enters `EventSeams.hurt`, overwrites its ThreadLocal cache and makes the outer
-        // `@ModifyVariable` re-fire a fresh event — discarding the conversion's own `e.amount` change.
-        // That is what made a 20 HP mob take 4 hits while the log claimed both halves were dealt.
-        // Status effects and attribute changes are not damage calls, so they stay here (they must
-        // happen before the target can act).
-        // `elemental_resonance` multiplies **reaction** damage only. Mastery is not applied again here
-        // (the caller already folded it into `damage`); this is a separate axis on purpose, so a
-        // reaction build differs from a raw-element build.
-        val resonance = ElementCombat.resonanceMultiplier(attacker)
-        val bonus = damage * reaction.damageBonus * resonance
-        if (bonus > 0f && target.isAlive) {
-            ElementCombat.enqueueElemental(attacker, target, reaction.trigger, bonus)
+    private fun apply(
+        attacker: PlayerEntity?,
+        target: LivingEntity,
+        reaction: ElementReaction,
+        damage: Float,
+        auraUnits: Float,
+        consumed: Float,
+        dampening: Float,
+    ): ReactionOutcome {
+        val resonance = attacker?.let { ElementCombat.resonanceMultiplier(it) } ?: 1f
+
+        // 增幅: hand the multiplier back to the caller, which owns `e.amount`.
+        val amplify = reaction.amplify
+
+        // 剧变: its own flat hit, scaled by attacker level + mastery (never by the weapon).
+        var flat = 0f
+        if (reaction.transformativeCoeff > 0f) {
+            flat = transformativeDamage(attacker, reaction.transformativeCoeff) * resonance
+            if (flat > 0f && attacker != null) {
+                ElementCombat.enqueueElemental(attacker, target, reaction.trigger, flat)
+            }
         }
 
-        // On-screen confirmation of the reaction. Author: "触发某种元素反应能不能生成一些文字来提示一下?"
-        //
-        // Sent as an **action bar** message (`sendMessage(text, true)`) to the attacker and to every
-        // player within 16 blocks, because a reaction is a group-visible event and the vanilla action
-        // bar is the one HUD slot that costs no extra packet or screen space. Throttled per player so a
-        // rapid combo cannot turn the bar into a flipbook.
-        noticeReaction(attacker, target, reaction, bonus)
+        // 激化: no damage now; it puts the target into the quickened state.
+        if (reaction.quicken) {
+            QUICKENED[target] = target.world.time + reaction.quickenTicks
+            FSTLog.log("Element") {
+                "reaction=quicken, target=${target.type.name.string}, ticks=${reaction.quickenTicks}, " +
+                    "outcome=quickened"
+            }
+        }
+
+        // The reaction's own on-screen line (floating label above the target).
+        val labelled = if (amplify > 1f) {
+            // 增幅 shows the damage the multiplier added, so the label stays in the same units as
+            // every other reaction line: `融化 (-12.50)` = "this reaction added 12.5".
+            damage * (amplify - 1f)
+        } else {
+            flat
+        }
+        noticeReaction(attacker, target, reaction, labelled)
 
         if (reaction.armorShredFraction > 0f && reaction.duration > 0) {
             armourShred(target, reaction.armorShredFraction, reaction.duration)
         }
-
         if (reaction.freezeTicks > 0) {
-            // Vanilla powder-snow counter. Clamped by the game itself; setting it is the documented way.
             target.frozenTicks = target.frozenTicks.coerceAtLeast(reaction.freezeTicks)
         }
-
         if (reaction.slowTicks > 0) {
             target.addStatusEffect(
                 StatusEffectInstance(StatusEffects.SLOWNESS, reaction.slowTicks, reaction.slownessAmplifier),
                 attacker,
             )
         }
-
         if (reaction.blindTicks > 0) {
             target.addStatusEffect(StatusEffectInstance(StatusEffects.BLINDNESS, reaction.blindTicks), attacker)
         }
-
-        if (reaction.healAttacker > 0f && damage > 0f && attacker.isAlive) {
+        if (reaction.healAttacker > 0f && damage > 0f && attacker != null && attacker.isAlive) {
             attacker.heal(damage * reaction.healAttacker)
         }
 
@@ -164,68 +229,102 @@ object ElementMarks {
 
         FSTLog.log("Element") {
             "reaction=${reaction.key}, mark=${reaction.mark.id}, trigger=${reaction.trigger.id}, " +
-                "target=${target.type.name.string}, damage=${"%.2f".format(damage)}, " +
-                "bonusPct=${"%.0f".format(reaction.damageBonus * 100)}%, " +
-                "bonus=${"%.2f".format(bonus)}, " +
-                "shredPct=${"%.0f".format(reaction.armorShredFraction * 100)}%, " +
-                "heal=${"%.2f".format(damage * reaction.healAttacker)}, " +
-                "outcome=reacted"
+                "target=${target.type.name.string}, hitDamage=${"%.2f".format(damage)}, " +
+                "auraUnits=${"%.2f".format(auraUnits)}, consumed=${"%.2f".format(consumed)}, " +
+                "dampening=${"%.2f".format(dampening)}, amplify=${"%.2f".format(amplify)}, " +
+                "flat=${"%.2f".format(flat)}, resonance=${"%.2f".format(resonance)}, " +
+                "outcome=${if (amplify > 1f) "amplified" else "transformative"}"
         }
+        return ReactionOutcome(reaction.key, amplify.coerceAtLeast(1f), flat)
     }
+
+    /**
+     * 剧变 reaction damage: `base + level × perLevel`, times the reaction's coefficient and the attacker's
+     * mastery.
+     *
+     * Deliberately **independent of the weapon**: a transformative reaction is a floor that a weak
+     * weapon can lean on and a strong weapon cannot multiply. Mastery counts here at a lower rate than
+     * on elemental damage (`ElementCombat.MASTERY_PER_LEVEL` is 10 %; this uses 8 %), so the two enchant
+     * builds stay distinct.
+     */
+    private fun transformativeDamage(attacker: PlayerEntity?, coeff: Float): Float {
+        val level = attacker?.experienceLevel ?: 0
+        val base = TRANSFORMATIVE_BASE + level * TRANSFORMATIVE_PER_LEVEL
+        val mastery = attacker?.let { ElementCombat.masteryLevel(it.mainHandStack) } ?: 0
+        return base * coeff * (1f + TRANSFORMATIVE_MASTERY_PER_LEVEL * mastery)
+    }
+
+    /** Flat damage a nature/lightning hit gains while the target is 激化 (quicken) state. */
+    private fun quickenBonus(attacker: PlayerEntity?, target: LivingEntity, reactionKey: String?): Float {
+        val level = attacker?.experienceLevel ?: 0
+        val base = QUICKEN_BASE + level * QUICKEN_PER_LEVEL
+        val mastery = attacker?.let { ElementCombat.masteryLevel(it.mainHandStack) } ?: 0
+        FSTLog.log("Element") {
+            "reaction=quicken-bonus, target=${target.type.name.string}, " +
+                "base=${"%.2f".format(base)}, trigger=${reactionKey ?: "none"}, outcome=quickened-hit"
+        }
+        return base * (1f + TRANSFORMATIVE_MASTERY_PER_LEVEL * mastery)
+    }
+
+    // ------------------------------------------------------------------ constants
+
+    /** Base of a transformative reaction at player level 0. */
+    const val TRANSFORMATIVE_BASE = 4.0f
+
+    /** Added per player experience level. */
+    const val TRANSFORMATIVE_PER_LEVEL = 0.55f
+
+    /** Mastery contribution to transformative damage (lower than the 10 %/level elemental one). */
+    const val TRANSFORMATIVE_MASTERY_PER_LEVEL = 0.08f
+
+    /** 激化 (quicken) flat bonus per triggering hit. */
+    const val QUICKEN_BASE = 2.5f
+    const val QUICKEN_PER_LEVEL = 0.35f
+
+    /** Target → tick at which its quickened state expires. */
+    private val QUICKENED = WeakHashMap<LivingEntity, Long>()
+
+    /** True while the target is in the 激化 state (used by the damage log and by `/fst`). */
+    fun isQuickened(entity: LivingEntity): Boolean =
+        QUICKENED[entity]?.let { it > entity.world.time } == true
+
+    // ------------------------------------------------------------------ armour shred
 
     /**
      * Temporary `generic.armor` reduction on [target], by **[fraction] of its current armour**.
      *
-     * Percentage rather than a flat number because armour is a scale: `-4` is 40% of an iron chestplate
-     * and 10% of a netherite set. A fraction keeps the shred feeling identical at every tier.
+     * Percentage rather than a flat number because armour is a scale. Uses **temporary** modifiers, never
+     * persistent ones: the reduction is released by a timer in memory, and a persistent modifier whose
+     * timer died with the process is exactly the "permanent residue" bug `AGENTS.md` §4.2 records.
      *
-     * Uses **temporary** modifiers (`addTemporaryModifier`), never persistent ones: the reduction is
-     * released by a timer in memory, and a persistent modifier whose timer died with the process is
-     * exactly the "permanent residue" bug `AGENTS.md` §4.2 records from `heavenly_punishment`.
-     *
-     * The id is **fixed** (`element_shred`) on purpose, and the previous shred is removed first: the
-     * modifier list is additive, so a per-source id would let two reactions stack into a larger shred
-     * than either was tuned for. A new reaction *replaces* the running one. `expireShreds` removes it
-     * by the same id.
+     * The id is **fixed** (`element_shred`) on purpose: the modifier list is additive, so a per-source id
+     * would let two reactions stack into a larger shred than either was tuned for. A new reaction
+     * *replaces* the running one.
      */
     private fun armourShred(target: LivingEntity, fraction: Float, duration: Int) {
         val instance: EntityAttributeInstance =
             target.getAttributeInstance(EntityAttributes.GENERIC_ARMOR) ?: return
 
         val id = Identifier.of("simple_tweaks", "element_shred")
-        // Strip the old one *before* reading, so a second reaction shreds the target's real armour
-        // rather than a value that already includes the previous shred.
         instance.removeModifier(id)
 
-        // Read the armour this target actually has (base + armour modifiers + effects), which is what
-        // the damage formula will use.
         val current = instance.value
         if (current <= 0.0) return
         val amount = (current * fraction).coerceAtLeast(0.0)
         if (amount <= 0.0) return
 
         instance.addTemporaryModifier(
-            EntityAttributeModifier(
-                id,
-                -amount,
-                EntityAttributeModifier.Operation.ADD_VALUE,
-            )
+            EntityAttributeModifier(id, -amount, EntityAttributeModifier.Operation.ADD_VALUE)
         )
         SHREDS[target] = ShredState(expireAt = target.world.time + duration)
 
-        // `AGENTS.md` §4.9 rule 2: log the **landed** value, not the requested one. `getValue()` can be
-        // clamped (armour is clamped at 0 by its attribute's own `clamp`), so "I asked for -12" and
-        // "armour actually dropped by 12" are different facts and only the second one is observable.
         val landed = instance.value
-        val requestedDrop = amount
         val actualDrop = current - landed
-
         FSTLog.log("Element") {
             "outcome=armor-shred, target=${target.type.name.string}, " +
                 "armor=${"%.2f".format(current)}->${"%.2f".format(landed)}, " +
-                "requested=${"%.2f".format(requestedDrop)}, landed=${"%.2f".format(actualDrop)}, " +
-                (if (actualDrop < requestedDrop - 0.01) "clamped=true, " else "") +
-                "ticks=$duration"
+                "requested=${"%.2f".format(amount)}, landed=${"%.2f".format(actualDrop)}, " +
+                (if (actualDrop < amount - 0.01) "clamped=true, " else "") + "ticks=$duration"
         }
     }
 
@@ -234,10 +333,7 @@ object ElementMarks {
 
     private val SHREDS = WeakHashMap<LivingEntity, ShredState>()
 
-    /**
-     * Removes every expired armour shred. Called from the per-entity tick seam
-     * (`EntityTickMixin` → `LivingEvent.LivingUpdateEvent`) by `ElementShredTicker`.
-     */
+    /** Removes every expired armour shred (called from the per-entity tick seam). */
     fun expireShreds(entity: LivingEntity) {
         val state = SHREDS[entity] ?: return
         if (entity.world.time < state.expireAt) return
@@ -246,46 +342,38 @@ object ElementMarks {
         instance.removeModifier(Identifier.of("simple_tweaks", "element_shred"))
     }
 
-    /** A small particle burst in the trigger element's colour — purely client-visible feedback. */
+    // ------------------------------------------------------------------ feedback
+
+    /** A small particle burst in the trigger element's colour — purely visual. */
     private fun spawnBurst(target: LivingEntity, element: ElementType) {
         val world = target.world as? ServerWorld ?: return
         world.spawnParticles(
             element.particle(),
             target.x, target.getBodyY(0.5), target.z,
-            12,
-            0.4, 0.4, 0.4,
-            0.05,
+            12, 0.4, 0.4, 0.4, 0.05,
         )
     }
 
-    /**
-     * Shows `「感电」 +28.3` in the action bar when a reaction fires.
-     *
-     * Receivers are the attacker plus everyone within 16 blocks (a reaction is a shared, visible
-     * event), and the text is throttled **per player** so two players triggering at once cannot starve
-     * each other. Uses the vanilla action bar, so nothing extra is registered or synced: `sendMessage`
-     * with `overlay = true` is an ordinary `GameMessageS2CPacket`.
-     */
     private val lastNotice = java.util.concurrent.ConcurrentHashMap<UUID, Long>()
 
+    /**
+     * Floating label above the target: `感电 (-28.30)` / `融化 (-12.50)`.
+     *
+     * Sent as a `ROLE_LABEL` damage-indicator packet (`build=cleanup18`), so it rises and fades with the
+     * damage numbers of the same hit instead of appearing on the action bar at the bottom of the screen.
+     * Throttled per target, because a label is spawned per hit rather than per player.
+     */
     private fun noticeReaction(
-        attacker: PlayerEntity,
+        attacker: PlayerEntity?,
         target: LivingEntity,
         reaction: ElementReaction,
-        bonus: Float,
+        amount: Float,
     ) {
         val world = target.world as? ServerWorld ?: return
         val now = world.time
 
-        // ⚠️ The `last != null` test is load-bearing. The first version defaulted the missing entry to
-        // `Long.MIN_VALUE`, and `now - Long.MIN_VALUE` **overflows** into a negative number, so
-        // `now - last < cooldown` was true for every player forever and **every** notice was swallowed —
-        // the reported "触发反应没有文字提示".
-        //
-        // `build=cleanup18`: the notice is now a **floating label** next to the hit (same rise/fade as the
-        // damage numbers), not an action-bar line at the bottom of the screen (author: "这个感电不应该也
-        // 属于伤害飘字吗"). Throttled per target, because a label is spawned per hit rather than per
-        // player.
+        // ⚠️ The `last != null` test is load-bearing: defaulting to `Long.MIN_VALUE` made
+        // `now - last` overflow negative, so every notice was swallowed.
         val last = lastNotice[target.uuid]
         if (last != null && now - last < NOTICE_COOLDOWN_TICKS) return
         lastNotice[target.uuid] = now
@@ -294,30 +382,22 @@ object ElementMarks {
             target,
             "reaction.simple_tweaks.${reaction.key}",
             reaction.trigger.ordinal,
-            bonus,
+            amount,
         )
-
         FSTLog.log("Element") {
-            "attacker=${attacker.name.string}, target=${target.type.name.string}, " +
-                "reaction=${reaction.key}, trigger=${reaction.trigger.id}, " +
-                "bonus=${"%.2f".format(bonus)}, outcome=reaction-labelled"
+            "attacker=${attacker?.name?.string ?: "none"}, target=${target.type.name.string}, " +
+                "reaction=${reaction.key}, shown=${"%.2f".format(amount)}, outcome=reaction-labelled"
         }
     }
 
-    /** Minimum gap between two reaction notices for the same player, in ticks. */
+    /** Minimum gap between two reaction labels on the same target, in ticks. */
     private const val NOTICE_COOLDOWN_TICKS = 10L
 
-    /** For diagnostics and the checklist: does [entity] currently carry a live mark? */
-    fun markOf(entity: LivingEntity): ElementType? {
-        val mark = marks[entity] ?: return null
-        return if (mark.expireAt > entity.world.time) mark.element else null
-    }
+    /** Element of the live aura, or `null` (kept for diagnostics). */
+    fun markOf(entity: LivingEntity): ElementType? = ElementAuras.elementOf(entity)
 }
 
-/**
- * The particle each element's reaction shows. Vanilla particle types only — this mod registers one
- * custom particle already (`celestial_ring`) and adding eight more for feedback is not worth it.
- */
+/** Particle for each element, used by the reaction burst. */
 fun ElementType.particle(): net.minecraft.particle.ParticleEffect = when (this) {
     ElementType.PHYSICAL -> ParticleTypes.CRIT
     ElementType.FIRE -> ParticleTypes.FLAME
@@ -325,27 +405,21 @@ fun ElementType.particle(): net.minecraft.particle.ParticleEffect = when (this) 
     ElementType.LIGHTNING -> ParticleTypes.ELECTRIC_SPARK
     ElementType.WATER -> ParticleTypes.SPLASH
     ElementType.NATURE -> ParticleTypes.HAPPY_VILLAGER
-    ElementType.DARK -> ParticleTypes.SOUL
+    ElementType.DARK -> ParticleTypes.SQUID_INK
     ElementType.LIGHT -> ParticleTypes.END_ROD
 }
 
 /**
- * Releases expired armour shreds from the per-entity tick seam.
+ * Releases expired armour shreds once per entity tick.
  *
- * A `LivingEntity` has no "run this after N ticks" API and the modifier is on an *attribute*, so the
- * only way to undo it without a scheduled task is to notice on a tick. This object is registered from
- * `SimpleTweaks.onInitialize` **before** the enchantment handlers, and it does almost nothing: one map
- * lookup per entity per tick, and only entities that were actually shredded are ever in that map.
- *
- * ⚠️ Do **not** turn this into an unconditional `removeModifier` every tick — that would allocate a
- * new `Identifier` per entity per tick (thousands of allocations per second) and would also delete a
- * player's *other* armour modifiers that happen to share the id prefix. Both mistakes have cost this
- * repo before in other handlers.
+ * A tiny separate listener rather than a world-tick sweep: the entity that carries the shred is exactly
+ * the entity whose tick can release it, and the map is keyed by that entity.
  */
 object ElementShredTicker : dev.firefly.simpletweaks.core.Listenable {
 
     @dev.firefly.simpletweaks.compat.event.SubscribeEvent
     fun onLivingUpdate(e: dev.firefly.simpletweaks.compat.event.LivingEvent.LivingUpdateEvent) {
+        if (e.entityLiving.world.isClient) return
         ElementMarks.expireShreds(e.entityLiving)
     }
 }

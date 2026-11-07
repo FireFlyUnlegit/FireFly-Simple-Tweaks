@@ -433,7 +433,16 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
 
             val before = e.amount
             e.amount *= mastery
-            ElementMarks.record(attacker, target, incoming, e.amount)
+            // 增幅 reaction: `melt`-style multipliers are applied to the *hit*, which is why they
+            // come back from `record` instead of being dealt as extra damage.
+            val outcome = ElementMarks.record(attacker, target, incoming, e.amount)
+            if (outcome.amplify > 1f) {
+                e.amount *= outcome.amplify
+                FSTLog.log("Element") {
+                    "element=${incoming.id}, reaction=${outcome.key}, " +
+                        "amplify=${outcome.amplify}, amount=${before}->${e.amount}, outcome=amplified"
+                }
+            }
             if (mastery != 1.0f) {
                 FSTLog.log("Element") {
                     "element=${incoming.id}, mastery=${"%.2f".format(mastery)}, " +
@@ -452,7 +461,14 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
             // and mastery still applies to it.
             val before = e.amount
             e.amount *= mastery
-            ElementMarks.record(attacker, target, element, e.amount)
+            val outcome = ElementMarks.record(attacker, target, element, e.amount)
+            if (outcome.amplify > 1f) {
+                e.amount *= outcome.amplify
+                FSTLog.log("Element") {
+                    "element=${element.id}, reaction=${outcome.key}, " +
+                        "amplify=${outcome.amplify}, amount=${before}->${e.amount}, outcome=amplified"
+                }
+            }
             FSTLog.log("Element") {
                 "element=${element.id}, mastery=${"%.2f".format(mastery)}, " +
                     "amount=${"%.2f".format(before)}->${"%.2f".format(e.amount)}, " +
@@ -535,7 +551,15 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
 
         // 3) Record the mark / resolve the reaction now: the reaction's own damage is also queued, and
         //    the mark must be this hit's element regardless of what the reaction does.
-        val reacted = ElementMarks.recordAndReact(attacker, target, element, original * mastery)
+        // A conversion rider is a **strong** application (2 units): the reference's "skill-grade"
+        // application, which survives a weak trigger instead of being eaten by it.
+        val reacted = ElementMarks.recordAndReact(
+            attacker, target, element, original * mastery, units = ElementAuras.STRONG,
+        )
+        if (reacted.amplify > 1f) {
+            // 增幅: the multiplier lands on the physical share of this very swing.
+            e.amount *= reacted.amplify
+        }
 
         // `FSTLog`, i.e. **off unless `-Dsimpletweaks.debug=true`** (or `SIMPLETWEAKS_DEBUG=1`).
         // This was unconditional for one build while the "damage is lower" report was being chased —
@@ -552,7 +576,7 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
                 "incoming=${incoming.id}, " +
                 "original=${"%.2f".format(original)}, kept=${"%.2f".format(e.amount)}, " +
                 "planned_elemental=${"%.2f".format(reDealt)}, landed=pending, " +
-                "reaction=${reacted ?: "none"}, " +
+                "reaction=${reacted.key ?: "none"}, " +
                 "prev_total=${LAST_HIT[target.uuid]?.let { "%.2f".format(it) } ?: "n/a"}, " +
                 "outcome=converted"
         }
