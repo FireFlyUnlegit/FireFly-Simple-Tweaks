@@ -4,6 +4,7 @@ import dev.firefly.simpletweaks.util.ShotWeapon;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.projectile.PersistentProjectileEntity;
+import net.minecraft.nbt.NbtCompound;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -44,5 +45,21 @@ public abstract class ProjectileShotWeaponMixin {
             return;
         }
         ShotWeapon.INSTANCE.record(self, player.getMainHandStack());
+    }
+
+    /**
+     * Persists the snapshot into the projectile's own NBT, so an arrow saved mid-flight keeps the weapon
+     * it was fired with. Without this the memory map is lost on chunk save and the arrow falls back to
+     * the shooter's **current** hand — the original bug, one reload later.
+     */
+    @Inject(method = "writeCustomDataToNbt", at = @At("TAIL"))
+    private void simpletweaks$writeShotWeapon(NbtCompound nbt, CallbackInfo ci) {
+        ShotWeapon.INSTANCE.writeTo((PersistentProjectileEntity) (Object) this, nbt);
+    }
+
+    /** Restores the snapshot written by the injection above. */
+    @Inject(method = "readCustomDataFromNbt", at = @At("TAIL"))
+    private void simpletweaks$readShotWeapon(NbtCompound nbt, CallbackInfo ci) {
+        ShotWeapon.INSTANCE.readFrom((PersistentProjectileEntity) (Object) this, nbt);
     }
 }

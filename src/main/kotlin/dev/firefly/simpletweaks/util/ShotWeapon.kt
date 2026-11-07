@@ -7,6 +7,8 @@ import net.minecraft.entity.damage.DamageSource
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.entity.projectile.PersistentProjectileEntity
 import net.minecraft.item.ItemStack
+import net.minecraft.nbt.NbtCompound
+import net.minecraft.nbt.NbtOps
 import java.util.WeakHashMap
 
 /**
@@ -55,6 +57,40 @@ object ShotWeapon {
         FSTLog.log("ShotWeapon") {
             "outcome=recorded, entity=${projectile.type.name.string}, item=${weapon.item}, " +
                 "enchants=${weapon.get(net.minecraft.component.DataComponentTypes.ENCHANTMENTS)?.enchantments?.size ?: 0}"
+        }
+    }
+
+    // ------------------------------------------------------------------ entity NBT
+
+    /** Entity-NBT key: the snapshot is written next to the arrow's own data, so it survives a save. */
+    const val NBT_KEY = "simple_tweaks:shot_weapon"
+
+    /**
+     * Writes the snapshot into the projectile's **own** NBT.
+     *
+     * Called from `PersistentProjectileEntity#writeCustomDataToNbt` (see
+     * `ProjectileShotWeaponMixin`). This is what makes the snapshot survive a chunk save with the arrow
+     * still in flight — the memory map alone would lose it, and the arrow would fall back to "whatever is
+     * in the shooter's hand now", i.e. exactly the bug this class exists to prevent.
+     */
+    fun writeTo(projectile: Entity, nbt: NbtCompound) {
+        val snapshot = snapshotOf(projectile) ?: return
+        val encoded = ItemStack.UNCOUNTED_CODEC.encodeStart(NbtOps.INSTANCE, snapshot).result().orElse(null)
+        if (encoded != null) {
+            nbt.put(NBT_KEY, encoded)
+        }
+    }
+
+    /** Reads the snapshot back out of the projectile's NBT; called from `readCustomDataFromNbt`. */
+    fun readFrom(projectile: Entity, nbt: NbtCompound) {
+        if (!nbt.contains(NBT_KEY)) return
+        val element = nbt.get(NBT_KEY) ?: return
+        val decoded = ItemStack.UNCOUNTED_CODEC.parse(NbtOps.INSTANCE, element).result().orElse(null)
+        if (decoded == null || decoded.isEmpty) return
+        SNAPSHOTS[projectile] = decoded
+
+        FSTLog.log("ShotWeapon") {
+            "outcome=restored-from-nbt, entity=${projectile.type.name.string}, item=${decoded.item}"
         }
     }
 
