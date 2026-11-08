@@ -78,5 +78,14 @@ object MobEnhancementConfig {
      * Read by `MobLevels.baseDifficulty` (every mob's spawn-time difficulty) and by
      * `/fst difficulty check`.
      */
+    /** Level-up chance in percent when the mob hits a player (0 = off). */
+    @JvmStatic var levelUpOnHitPlayer: Int = 3
+
+    /** Level-up chance in percent when the mob kills something (0 = off). */
+    @JvmStatic var levelUpOnKill: Int = 10
+
+    /** Level-up chance in percent when a player damages it and it survives. */
+    @JvmStatic var levelUpWhenHurt: Int = 1
+
     var difficultyModifier: Float = 0f
 }

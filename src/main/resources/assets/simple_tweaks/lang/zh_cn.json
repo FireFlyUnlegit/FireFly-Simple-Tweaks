@@ -346,5 +346,8 @@
   "enchantment.simple_tweaks.quake.desc": "命中正在使用物品的目标时打断其动作（拉弓/举盾/喝药/吃食物）；若目标是玩家，该物品还会进入 1 秒冷却",
   "enchantment.simple_tweaks.elemental_supremacy": "万法归元",
   "enchantment.simple_tweaks.elemental_supremacy.desc": "① 你最高的一系元素亲和同时对全部八种元素生效（取最大值，不叠加）。② 万法归元自身构成独立减伤区：4.5%%/全身等级（四件满级 20 级 = 90%%），与亲和分别结算后相乘（满配 98%%，不会到 100%%）。③ 每次攻击额外附带 5%% 伤害的元素转化（不削减原伤害），次数 = 全身等级÷10（满配 2 次），随机元素并可能触发反应。④ 你受到的每次元素反应都会被记住，条数上限 = 全身等级÷2（上限 10）；下一次攻击全部奉还，每条以本次伤害的 40%% 为基底。⑤ 附着 ICD 与反应 ICD 按 1−等级总和÷20 缩短：满配（20 级）时两者都塌缩到 1 tick",
-  "element.simple_tweaks.dark": "暗蚀"
+  "element.simple_tweaks.dark": "暗蚀",
+  "gui.simple_tweaks.config.mobEnhancement.levelUpOnHitPlayer": "攻击玩家时升级概率（%）",
+  "gui.simple_tweaks.config.mobEnhancement.levelUpOnKill": "击杀生物时升级概率（%）",
+  "gui.simple_tweaks.config.mobEnhancement.levelUpWhenHurt": "被玩家打中时升级概率（%）"
 }

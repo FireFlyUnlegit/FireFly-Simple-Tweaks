@@ -273,6 +273,33 @@ class SimpleTweaksConfigScreen(private val parent: Screen?) :
                 boolRow("mobEnhancement.elementsEnabled", { MobEnhancementConfig.elementsEnabled }) {
                     MobEnhancementConfig.elementsEnabled = it
                 }
+                numRow(
+                    "mobEnhancement.levelUpOnHitPlayer",
+                    { MobEnhancementConfig.levelUpOnHitPlayer.toDouble() },
+                    { MobEnhancementConfig.levelUpOnHitPlayer = it.toInt() },
+                    step = 1.0,
+                    min = ConfigBounds.LEVEL_UP_PERCENT.first.toDouble(),
+                    max = ConfigBounds.LEVEL_UP_PERCENT.last.toDouble(),
+                    fmt = { Text.literal(it.toInt().toString()) },
+                )
+                numRow(
+                    "mobEnhancement.levelUpOnKill",
+                    { MobEnhancementConfig.levelUpOnKill.toDouble() },
+                    { MobEnhancementConfig.levelUpOnKill = it.toInt() },
+                    step = 1.0,
+                    min = ConfigBounds.LEVEL_UP_PERCENT.first.toDouble(),
+                    max = ConfigBounds.LEVEL_UP_PERCENT.last.toDouble(),
+                    fmt = { Text.literal(it.toInt().toString()) },
+                )
+                numRow(
+                    "mobEnhancement.levelUpWhenHurt",
+                    { MobEnhancementConfig.levelUpWhenHurt.toDouble() },
+                    { MobEnhancementConfig.levelUpWhenHurt = it.toInt() },
+                    step = 1.0,
+                    min = ConfigBounds.LEVEL_UP_PERCENT.first.toDouble(),
+                    max = ConfigBounds.LEVEL_UP_PERCENT.last.toDouble(),
+                    fmt = { Text.literal(it.toInt().toString()) },
+                )
             }
 
             else -> {

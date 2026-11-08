@@ -44,6 +44,9 @@ object ConfigBounds {
     /** Anvil cost ceiling; `Int.MAX_VALUE` means "no limit". */
     val ANVIL_COST = 1..Int.MAX_VALUE
 
+    /** Level-up chance in percent, for the three mob level-up triggers. */
+    val LEVEL_UP_PERCENT = 0..100
+
     /** Persistent `/fst difficulty modify` value (see `MobEnhancementConfig.difficultyModifier`). */
     val DIFFICULTY_MODIFIER = -1000.0..10_000.0
 }

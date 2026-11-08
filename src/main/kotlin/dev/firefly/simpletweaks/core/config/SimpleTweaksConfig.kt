@@ -112,6 +112,13 @@ object SimpleTweaksConfig {
         MobEnhancementConfig.enchantmentsEnabled = s.bool("enchantmentsEnabled", true)
         MobEnhancementConfig.levelsEnabled = s.bool("levelsEnabled", true)
         MobEnhancementConfig.elementsEnabled = s.bool("elementsEnabled", true)
+        // Level-up chances, in percent (0..100), so the screen can show them as plain integers.
+        MobEnhancementConfig.levelUpOnHitPlayer = s.int("levelUpOnHitPlayer", 3)
+            .coerceIn(ConfigBounds.LEVEL_UP_PERCENT)
+        MobEnhancementConfig.levelUpOnKill = s.int("levelUpOnKill", 10)
+            .coerceIn(ConfigBounds.LEVEL_UP_PERCENT)
+        MobEnhancementConfig.levelUpWhenHurt = s.int("levelUpWhenHurt", 1)
+            .coerceIn(ConfigBounds.LEVEL_UP_PERCENT)
         // cleanup27: persistent difficulty bonus (`/fst difficulty modify`). Bounded so a typo cannot
         // turn every spawn into a level-5000 mob.
         MobEnhancementConfig.difficultyModifier = s.dbl("difficultyModifier", 0.0)
@@ -176,6 +183,9 @@ object SimpleTweaksConfig {
             addProperty("enchantmentsEnabled", MobEnhancementConfig.enchantmentsEnabled)
             addProperty("levelsEnabled", MobEnhancementConfig.levelsEnabled)
             addProperty("elementsEnabled", MobEnhancementConfig.elementsEnabled)
+        addProperty("levelUpOnHitPlayer", MobEnhancementConfig.levelUpOnHitPlayer)
+        addProperty("levelUpOnKill", MobEnhancementConfig.levelUpOnKill)
+        addProperty("levelUpWhenHurt", MobEnhancementConfig.levelUpWhenHurt)
             addProperty("difficultyModifier", MobEnhancementConfig.difficultyModifier)
         }
         val indicator = JsonObject().apply {
