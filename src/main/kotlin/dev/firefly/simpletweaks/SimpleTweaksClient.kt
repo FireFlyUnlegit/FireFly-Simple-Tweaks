@@ -35,8 +35,8 @@ private var damagePacketLogged = false
  * Count of `PacketMobLevel` receives already logged.
  *
  * `START_TRACKING` fires once per player per mob, so this is only bounded because the probe stops after
- * [MOB_LEVEL_PACKETS_LOGGED]. It exists to answer one question from the log ‚Ä?"did the level ever reach
- * the client?" ‚Ä?which is the difference between a sync bug and a rendering bug (`build=cleanup47`).
+ * [MOB_LEVEL_PACKETS_LOGGED]. It exists to answer one question from the log ‚Äî"did the level ever reach
+ * the client?" ‚Äîwhich is the difference between a sync bug and a rendering bug (`build=cleanup47`).
  */
 private var mobLevelPacketsLogged = 0
 
@@ -96,7 +96,7 @@ class SimpleTweaksClient : ClientModInitializer {
         // 2 KB line is no easier to read than a 300-byte one. Reset it again at the next minor version.
         // ‚ö†Ô∏è The enchantment count is **read from the generated table**, never typed as a literal.
         // It was a hard-coded `85` for three batches and went stale the moment three element
-        // enchantments were added (`build=cleanup12`) ‚Ä?the log then claimed 85 while `/fst
+        // enchantments were added (`build=cleanup12`) ‚Äîthe log then claimed 85 while `/fst
         // enchantinfo` listed 88, which reads as "the lang/metadata was not updated either". A count
         // that cannot drift is a count nobody has to remember to bump.
         val enchantmentCount = dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments.KEYS.size
@@ -117,7 +117,7 @@ class SimpleTweaksClient : ClientModInitializer {
                 "+ element damage is no longer exempt from the i-frame gate (only combo cancels it) " +
                 "+ reaction names as floating labels with their damage, 18 reactions, " +
                 "+ split damage display now emits one number per element, fanned out and staggered " +
-                "(v2.2.6, build=cleanup66)",
+                "(v2.2.6, build=cleanup67)",
             SimpleTweaks.NAME,
             enchantmentCount,
         )
@@ -128,7 +128,7 @@ class SimpleTweaksClient : ClientModInitializer {
      *
      * <p>This is 1.12.2's payload-less `PacketOpenEnchantInfo` generalised to two screens, and it exists
      * for the same reason 1.12.2 had it: the command lives on the server, so opening a client-only
-     * screen needs a message. The port's detour through client commands is gone ‚Ä?a shared command root
+     * screen needs a message. The port's detour through client commands is gone ‚Äîa shared command root
      * cannot work in Fabric, because a client-registered name is resolved before the server's tree and
      * swallows the server's children (see core/ScreenCommands.kt).
      *
@@ -197,16 +197,16 @@ class SimpleTweaksClient : ClientModInitializer {
     }
 
     /**
-     * Client half of [PacketResetAttackCooldown] ‚Ä?spend *this* client's attack charge.
+     * Client half of [PacketResetAttackCooldown] ‚Äîspend *this* client's attack charge.
      *
      * <p>`runPlayerAttack(..., simulateCooldown = true)` spends the charge on the server, but the HUD
      * attack indicator and vanilla's local hit prediction read the **client's** own `lastAttackedTicks`
      * (`InGameHud` -> `ClientPlayerEntity#getAttackCooldownProgress`), which vanilla only resets from the
      * client's own attack path. Without this the indicator keeps showing a full swing while the server
-     * has already spent it ‚Ä?see that packet's KDoc for the bytecode.
+     * has already spent it ‚Äîsee that packet's KDoc for the bytecode.
      *
      * <p>The probe logs both ends of the transition, so "the packet arrived" and "the charge actually
-     * moved" are distinguishable (`chargeAfter` ‚â?0.04 for a 1.6 attack speed, not 0.0: a zero charge
+     * moved" are distinguishable (`chargeAfter` ‚âà0.04 for a 1.6 attack speed, not 0.0: a zero charge
      * is unreachable through this formula, vanilla's `+0.5F` base time is part of it).
      */
     private fun registerAttackCooldownReceiver() {
@@ -229,7 +229,7 @@ class SimpleTweaksClient : ClientModInitializer {
      * 1.12.2 did this inside the packet's nested `IMessageHandler.onMessage`, and had to hop threads
      * with `Minecraft.getMinecraft().addScheduledTask { ... }` because Forge ran the handler on the
      * Netty thread. Fabric already invokes `ClientPlayNetworking` receivers on the client thread, so
-     * the hop is redundant ‚Ä?it is kept anyway via `context.client().execute { }` so the port stays
+     * the hop is redundant ‚Äîit is kept anyway via `context.client().execute { }` so the port stays
      * diffable against the original and any future move off the client thread stays safe.
      */
     private fun registerDamageIndicatorReceiver() {

@@ -39,13 +39,17 @@ import kotlin.math.max
  * ## Stats, per level above 1
  * | attribute | operation | amount |
  * |---|---|---|
- * | `generic.max_health` | `ADD_MULTIPLIED_BASE` | `+0.10` (+10 %) |
- * | `generic.attack_damage` | `ADD_MULTIPLIED_BASE` | `+0.08` (+8 %) |
- * | `generic.armor` | `ADD_VALUE` | `+1.0` |
+ * | `generic.max_health` | `ADD_MULTIPLIED_BASE` | `+0.20` (+20 %) |
+ * | `generic.attack_damage` | `ADD_MULTIPLIED_BASE` | `+0.15` (+15 %) |
+ * | `generic.armor` | `ADD_VALUE` | `+0.4` |
+ * | `generic.knockback_resistance` | `ADD_VALUE` | `+0.03`, capped at `0.95` |
  *
- * At level 10 that is **+90 % health, +72 % attack damage, +9 armour**; the growth above that is linear
- * and unbounded, and armour's own damage-reduction curve softens the high end (vanilla caps armour's
- * effect well before the numbers get silly).
+ * At level 10 that is **+180 % health, +135 % attack damage, +3.6 armour, +27 % knockback
+ * resistance**; the growth is linear and unbounded (except for the knockback cap), and armour's own
+ * damage-reduction curve softens the high end (vanilla caps armour's effect well before the numbers
+ * get silly). The numbers are [HEALTH_PER_LEVEL] / [ATTACK_PER_LEVEL] / [ARMOR_PER_LEVEL] /
+ * [KNOCKBACK_PER_LEVEL] — the table above is a restatement of those constants, so change the constants
+ * and the table together.
  *
  * ## Why `addPersistentModifier`
  * The buff **is** part of this entity's permanent state: it is decided once at spawn and must survive a
@@ -58,14 +62,32 @@ import kotlin.math.max
  */
 object MobLevels {
 
-    /** `+10 %` max health per level above 1. */
+    /** `+20 %` max health per level above 1. */
     const val HEALTH_PER_LEVEL = 0.2
 
-    /** `+8 %` attack damage per level above 1. */
+    /** `+15 %` attack damage per level above 1. */
     const val ATTACK_PER_LEVEL = 0.15
 
-    /** `+1` armour per level above 1. */
+    /** `+0.4` armour per level above 1. */
     const val ARMOR_PER_LEVEL = 0.4
+
+    /**
+     * `+0.03` knockback resistance per level above 1, **capped at [KNOCKBACK_CAP]**.
+     *
+     * Knockback resistance is a plain fraction in `0..1`: `LivingEntity#takeKnockback` multiplies the
+     * applied velocity by `1 - resistance`, so `1.0` would make a mob literally unmovable. `0.95` is
+     * the deliberate ceiling — a high-level mob shrugs off almost every push, but a critical-hit
+     * knockback still budges it, which keeps "shove it into the lava" a viable answer.
+     *
+     * ⚠️ The vanilla attribute `generic.knockback_resistance` is a `ClampedEntityAttribute` with a
+     * **hard max of `1.0`** (see `AGENTS.md` §4.9). `0.95` sits inside that clamp, so this write needs
+     * no headroom trick — unlike `absorptionAmount`, which silently discards everything above
+     * `generic.max_absorption`.
+     */
+    const val KNOCKBACK_PER_LEVEL = 0.03
+
+    /** Ceiling for the knockback resistance this system grants. See [KNOCKBACK_PER_LEVEL]. */
+    const val KNOCKBACK_CAP = 0.95
 
     /**
      * `clampedLocalDifficulty` per level above 1.
@@ -123,7 +145,9 @@ object MobLevels {
 
     /** How far away a player still counts as "the one this mob is scaling against", in blocks. */
     /**
-     * How far away a player can be and still count for [effectiveDifficulty].
+     * How far away a player can be and still count for [effectiveDifficulty] — and, since
+     * `build=cleanup67`, also the radius [MobLevelProgression] uses to decide which player's gear the
+     * mid-fight level cap should follow. Public for that reason; keep one number for both.
      *
      * **128**, not 64, and that is a bug fix (`build=cleanup24`). Vanilla's natural spawner only keeps
      * mobs away from players within `SpawnHelper`'s `24.0` minimum (`javap` on 1.21.1: `ldc2_w 576.0` =
@@ -135,7 +159,7 @@ object MobLevels {
      * 128 is also the outer limit a hostile mob will path towards a player from, so it matches "the
      * player this mob is going to meet" rather than an arbitrary radius.
      */
-    private const val PLAYER_SCAN_RANGE = 128.0
+    const val PLAYER_SCAN_RANGE = 128.0
 
     /** Slots whose enchantments count toward [playerPower]. Off-hand is skipped: it is usually a torch. */
     private val PLAYER_POWER_SLOTS = arrayOf(
@@ -162,6 +186,7 @@ object MobLevels {
     private val HEALTH_ID = Identifier.of("simple_tweaks", "mob_level_health")
     private val ATTACK_ID = Identifier.of("simple_tweaks", "mob_level_attack")
     private val ARMOR_ID = Identifier.of("simple_tweaks", "mob_level_armor")
+    private val KNOCKBACK_ID = Identifier.of("simple_tweaks", "mob_level_knockback")
 
     /**
      * The difficulty the level is actually computed from: how far the **world** has aged, plus how strong
@@ -380,7 +405,20 @@ object MobLevels {
         }
     }
 
-    private fun apply(mob: MobEntity, level: Int) {
+    /**
+     * Writes [level]'s stat modifiers onto [mob] and heals it to the **new** maximum.
+     *
+     * Public because the mid-fight level-up path ([MobLevelProgression]) has to re-run exactly this
+     * logic: a levelled-up mob must gain the same stats a mob that spawned at that level would have.
+     * Every modifier is `removeModifier(id)` + `addPersistentModifier(...)` with a **fixed** id, so a
+     * second call for the same level is an overwrite, not a stack — that is what makes "level up by 1"
+     * safe to express as "call [apply] again with the new level".
+     *
+     * ⚠️ It **full-heals**: the heal exists because a fresh mob sits at the old maximum, and a mob that
+     * just levelled up is meant to feel like it renewed itself. The heal is therefore part of the
+     * feature, not a side effect people should "fix" without asking.
+     */
+    fun apply(mob: MobEntity, level: Int) {
         val steps = (level - 1).toDouble()
 
         // `ADD_MULTIPLIED_BASE` multiplies the *base* value, so the bonus is a stable +N % of the mob's
@@ -412,6 +450,22 @@ object MobLevels {
                     EntityAttributeModifier.Operation.ADD_VALUE,
                 )
             )
+        }
+
+        // Knockback resistance is an `ADD_VALUE` fraction, so it needs its own `coerceAtMost` — the
+        // operation has no cap of its own beyond the attribute's `0..1` clamp, and 1.0 would make the
+        // mob immovable. See [KNOCKBACK_CAP].
+        mob.getAttributeInstance(EntityAttributes.GENERIC_KNOCKBACK_RESISTANCE)?.let { instance ->
+            instance.removeModifier(KNOCKBACK_ID)
+            val resistance = (steps * KNOCKBACK_PER_LEVEL).coerceIn(0.0, KNOCKBACK_CAP)
+            if (resistance > 0.0) {
+                instance.addPersistentModifier(
+                    EntityAttributeModifier(
+                        KNOCKBACK_ID, resistance,
+                        EntityAttributeModifier.Operation.ADD_VALUE,
+                    )
+                )
+            }
         }
 
         // A mob whose max health just went up would otherwise spawn at the OLD maximum (a level-10 zombie

@@ -1,0 +1,11 @@
+feat(mobs): 怪物战斗中升级 + 等级击退抗性
+
+- MobLevels.apply 改 public，新增 generic.knockback_resistance 修饰符
+  (0.03/级，上限 0.95，id simple_tweaks:mob_level_knockback)；PLAYER_SCAN_RANGE 公开复用
+- 新增 util/mobs/MobLevelProgression：三个独立触发器(打中玩家 3% / 击杀 10% / 被玩家打 1%)，
+  每次最多升 1 级；上限 = 生成公式给出的等级 × 1.5，钳 10..100；升级走 MobLevels.apply
+- EnchantmentManager.initHandlers 单独注册 MobLevelProgression(不计入附魔处理器数量)
+- MobEnhancementConfig：三个升级概率字段移出 difficultyModifier 的 KDoc，补 "谁读它" 表
+- MobLevels 顶部属性表按常量改写(0.2/0.15/0.4)，并补击退抗性一行
+- 修复 SimpleTweaksClient.kt 的 8 处非法 UTF-8(— ×7、≈ ×1 被截成 "?")
+- build=cleanup67

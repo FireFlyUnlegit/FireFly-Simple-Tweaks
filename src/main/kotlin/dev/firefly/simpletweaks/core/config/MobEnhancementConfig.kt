@@ -12,7 +12,8 @@ package dev.firefly.simpletweaks.core.config
  * |---|---|
  * | [enabled] | `util/mobs/MobLevels`, `util/mobs/MobEnchantments`, `EntityDisplayNameMixin` — master switch |
  * | [enchantmentsEnabled] | `util/mobs/MobEnchantments#tryApplyAtSpawn` — gates the gear enchanting only |
- * | [levelsEnabled] | `util/mobs/MobLevels#ensureLevel` (spawn) and `EntityDisplayNameMixin` (name tag) |
+ * | [levelsEnabled] | `util/mobs/MobLevels#ensureLevel` (spawn), `util/mobs/MobLevelProgression` (mid-fight level-up) and `EntityDisplayNameMixin` (name tag) |
+ * | [levelUpOnHitPlayer] / [levelUpOnKill] / [levelUpWhenHurt] | `util/mobs/MobLevelProgression` only — three independent trigger chances in percent |
  *
  * ⚠️ **[enabled] does NOT gate the drop-side stripping.** `MobEnchantments#stripAll` runs
  * unconditionally, and that is deliberate: a world that was played with the feature on can still hold
@@ -68,6 +69,21 @@ object MobEnhancementConfig {
     var elementsEnabled: Boolean = true
 
     /**
+     * Level-up chance **in percent** when the mob lands a hit on a player (`/stconfig` page 5, 0-100).
+     *
+     * Read by `MobLevelProgression#onMobHitsPlayer`. `0` disables this trigger without touching the
+     * other two — the three are separate knobs on purpose, because "mobs that fight back grow" and
+     * "mobs that farm kills grow" are different designs.
+     */
+    @JvmStatic var levelUpOnHitPlayer: Int = 3
+
+    /** Level-up chance **in percent** when the mob kills any living entity (0 = off). */
+    @JvmStatic var levelUpOnKill: Int = 10
+
+    /** Level-up chance **in percent** when a player hurts the mob and it survives (0 = off). */
+    @JvmStatic var levelUpWhenHurt: Int = 1
+
+    /**
      * A **persistent** difficulty bonus, added on top of everything else (`/fst difficulty modify`).
      *
      * `v2.2.4 build=cleanup27`. Distinct from `MobLevels.difficultyOffset`, which is deliberately
@@ -78,14 +94,5 @@ object MobEnhancementConfig {
      * Read by `MobLevels.baseDifficulty` (every mob's spawn-time difficulty) and by
      * `/fst difficulty check`.
      */
-    /** Level-up chance in percent when the mob hits a player (0 = off). */
-    @JvmStatic var levelUpOnHitPlayer: Int = 3
-
-    /** Level-up chance in percent when the mob kills something (0 = off). */
-    @JvmStatic var levelUpOnKill: Int = 10
-
-    /** Level-up chance in percent when a player damages it and it survives. */
-    @JvmStatic var levelUpWhenHurt: Int = 1
-
     var difficultyModifier: Float = 0f
 }
