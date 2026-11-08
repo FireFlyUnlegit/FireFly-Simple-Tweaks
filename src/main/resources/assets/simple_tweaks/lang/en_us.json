@@ -347,7 +347,7 @@
   "enchantment.simple_tweaks.elemental_supremacy": "Elemental Supremacy",
   "enchantment.simple_tweaks.elemental_supremacy.desc": "(1) Your highest elemental affinity defends against all eight elements (maximum, never summed). (2) Its own mitigation zone: 4.5%% per total level (90%% at 20 levels), applied separately from the affinity (98%% total, never 100%%). (3) Every hit carries an extra 5%% of its damage as an elemental conversion (the hit itself is not reduced), once per 10 total levels (2 at a full set), random element, can start a reaction. (4) Every reaction that hits you is remembered, capacity = total level / 2 (max 10); your next hit replays all of them, each at 40%% of that hit. (5) Attachment and reaction ICDs are shortened by 1 - total level / 20: at a full set (20 levels) both collapse to a single tick",
   "element.simple_tweaks.dark": "Dark",
-  "gui.simple_tweaks.config.mobEnhancement.levelUpOnHitPlayer": "Level-up chance when hitting a player (%)",
-  "gui.simple_tweaks.config.mobEnhancement.levelUpOnKill": "Level-up chance on kill (%)",
-  "gui.simple_tweaks.config.mobEnhancement.levelUpWhenHurt": "Level-up chance when hurt by a player (%)"
+  "gui.simple_tweaks.config.mobEnhancement.levelUpOnHitPlayer": "Level-up chance when hitting a player (%%)",
+  "gui.simple_tweaks.config.mobEnhancement.levelUpOnKill": "Level-up chance on kill (%%)",
+  "gui.simple_tweaks.config.mobEnhancement.levelUpWhenHurt": "Level-up chance when hurt by a player (%%)"
 }

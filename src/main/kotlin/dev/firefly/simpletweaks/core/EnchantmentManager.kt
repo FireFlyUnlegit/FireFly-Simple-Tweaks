@@ -161,7 +161,6 @@ object EnchantmentManager {
         val silent = ElementEnchantments.ALL.toSet()
         val busBound = declared.filter { it.second !in silent }
         val skipped = declared.size - busBound.size
-        val all = (handlerList + busBound).sortedBy { it.first }.map { it.second }
         all.forEach { it.registerEvents() }
         SimpleTweaks.LOGGER.info(
             "Registered {} enchantment handler(s) ({} hand-listed + {} @ModEnchantment, " +
