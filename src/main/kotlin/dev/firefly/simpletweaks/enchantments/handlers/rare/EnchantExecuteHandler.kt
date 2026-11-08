@@ -29,6 +29,19 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
  * | `attacker.heldItemMainhand`                   | `attacker.mainHandStack` (method_6047)                          |
  * | `target.maxHealth` / `target.health` / `target.absorptionAmount` | unchanged (method_6063 / method_6032 / method_6067) |
  * | `EnchantExecute` (Enchantment object)         | `GeneratedEnchantments.EXECUTE` (RegistryKey)                      |
+ *
+ * ## Why the bonus is capped against the hit (`build=cleanup70`)
+ * The formula is `2 % × level × missing health`, i.e. it reads the **target's health pool**, which
+ * nothing in the mod controls. On a vanilla zombie that is a rounding error; on a target whose max
+ * health has been inflated by a mod, an attribute command or a boss bar it becomes an arbitrarily large
+ * number — measured in the author's session: a 1,000,000 HP target produced individual hits of
+ * 494,731 / 312,750, because the bonus is added to `e.amount` **before** the crit / combo / true-damage
+ * multipliers run, so every later multiplier also scaled the *health pool*.
+ *
+ * The fix keeps the finisher fantasy and makes it independent of how big the bar is: the bonus may
+ * never exceed [FINISHER_HIT_MULTIPLIER] × the swing that triggered it. For every normal mob nothing
+ * changes (`2 % × level × missing health` is far below `2 × hit`), while a 1M HP target can no longer
+ * turn one swing into a 500k hit.
  */
 @ModEnchantment(
     id = "execute",
@@ -44,6 +57,26 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
     order = 16,
 )
 object EnchantExecuteHandler : Listenable {
+
+    /** How many times the triggering hit the bonus may add. `2` = the swing can at most triple. */
+    const val FINISHER_HIT_MULTIPLIER = 2f
+
+    /** Floor for the cap, so a tiny hit against a hurt target still gets a usable bonus. */
+    const val FINISHER_MIN_CAP = 4f
+
+    /**
+     * The execute bonus for [hit] damage against [missingHealth], at enchantment [level].
+     *
+     * Public and pure so the cap is testable without an entity: a game test has no player, and this is
+     * the exact arithmetic that produced the 1M-HP nuke.
+     */
+    fun executeBonus(hit: Float, missingHealth: Float, level: Int): Float {
+        if (level <= 0 || hit <= 0f || missingHealth <= 0f) return 0f
+        val raw = missingHealth * 0.02f * level
+        val cap = maxOf(hit * FINISHER_HIT_MULTIPLIER, FINISHER_MIN_CAP)
+        return raw.coerceAtMost(cap)
+    }
+
     @SubscribeEvent
     fun onLivingHurt(e: LivingHurtEvent) {
 
@@ -56,13 +89,16 @@ object EnchantExecuteHandler : Listenable {
         val target = e.entityLiving
         val lvl = getItemSpecificEnchantLevel(attacker.combatStack(e.source), GeneratedEnchantments.EXECUTE)
         if (lvl > 0) {
-            val lostHealth = ((target.maxHealth + target.absorptionAmount) - (target.health+ target.absorptionAmount)) * 0.02f * lvl
+            val missing = ((target.maxHealth + target.absorptionAmount) -
+                (target.health + target.absorptionAmount)).coerceAtLeast(0f)
             val damageBefore = e.amount
+            val lostHealth = executeBonus(damageBefore, missing, lvl)
             e.amount += lostHealth
             FSTLog.log("Execute") {
                 "attacker=${attacker.name.string}, target=${target.name.string}, lvl=$lvl, " +
-                    "health=${target.health}/${target.maxHealth}, lostHealth=$lostHealth, " +
-                    "damage=$damageBefore->${e.amount}"
+                    "health=${target.health}/${target.maxHealth}, missing=$missing, " +
+                    "bonus=$lostHealth, damage=$damageBefore->${e.amount}, " +
+                    "outcome=${if (lostHealth < missing * 0.02f * lvl) "finisher-capped" else "finisher"}"
             }
         }
     }

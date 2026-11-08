@@ -433,6 +433,39 @@ public class SimpleTweaksGameTests implements FabricGameTest {
         context.complete();
     }
 
+    /**
+     * 处决 (`execute`) must not turn an inflated health pool into free damage.
+     *
+     * <p>The formula reads the **target's** missing health, so a 1,000,000 HP target made one level-5
+     * swing add up to 100,000 — and because that number is added to `e.amount` before the crit / combo /
+     * true-damage multipliers, they multiplied the health pool too (the author measured 494,731 in one
+     * hit). The cap is `2 × hit`, which for vanilla mobs is never reached, so nothing changes there.
+     */
+    @GameTest(templateName = FabricGameTest.EMPTY_STRUCTURE)
+    public void executeBonusIsBoundedByTheHit(TestContext context) {
+        var execute = dev.firefly.simpletweaks.enchantments.handlers.rare.EnchantExecuteHandler.INSTANCE;
+        float vanillaMob = execute.executeBonus(20.0F, 10.0F, 5);
+        float smallHit = execute.executeBonus(6.0F, 10.0F, 5);
+        float hugePool = execute.executeBonus(100.0F, 990_000.0F, 5);
+        float cap = 2.0F * 100.0F;
+        float noLevel = execute.executeBonus(100.0F, 990_000.0F, 0);
+        float fullHealth = execute.executeBonus(100.0F, 0.0F, 5);
+
+        LOGGER.info("[FST-GameTest] execute bonus: vanilla(20 hit, 10 missing, lvl5)={} (expect 1.0), "
+                        + "huge(100 hit, 990000 missing, lvl5)={} (expect cap {}), lvl0={}, full={}",
+                vanillaMob, hugePool, cap, noLevel, fullHealth);
+
+        context.assertTrue(Math.abs(vanillaMob - 1.0F) < 0.001F,
+                "a normal mob must keep 2% x level x missing health, got " + vanillaMob);
+        context.assertTrue(Math.abs(smallHit - Math.min(1.0F, Math.max(6.0F * 2.0F, 4.0F))) < 0.001F,
+                "tiny hit: expected the uncapped value, got " + smallHit);
+        context.assertTrue(Math.abs(hugePool - cap) < 0.001F,
+                "an inflated health pool must clamp to " + cap + ", got " + hugePool);
+        context.assertTrue(noLevel == 0.0F, "level 0 must add nothing, got " + noLevel);
+        context.assertTrue(fullHealth == 0.0F, "an undamaged target must add nothing, got " + fullHealth);
+        context.complete();
+    }
+
     private static void assertReduction(TestContext context, float damage, float armor, float expected) {
         float actual = ArmorCurve.INSTANCE.reductionFor(armor, damage);
         LOGGER.info("[FST-GameTest] damage {} armor {} -> reduction {} (expected {})",
