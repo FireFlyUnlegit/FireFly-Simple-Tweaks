@@ -206,7 +206,10 @@ object EnchantCommand {
                     }
             )
             .then(
-                CommandManager.argument("offset", FloatArgumentType.floatArg(0f, 100f))
+                CommandManager.argument(
+                "offset",
+                FloatArgumentType.floatArg(0f, ConfigBounds.DIFFICULTY_MODIFIER.endInclusive.toFloat()),
+            )
                     .executes { ctx ->
                         MobLevels.difficultyOffset =
                             FloatArgumentType.getFloat(ctx, "offset")
@@ -224,7 +227,16 @@ object EnchantCommand {
                     // `modify <delta>` **adds** to the persistent modifier; negative values are legal, so
                     // the same node both raises and lowers it.
                     .then(
-                        CommandManager.argument("delta", FloatArgumentType.floatArg(-100f, 100f))
+                        // The per-call delta used to be clamped to +-100 while the stored value allows the full
+        // `ConfigBounds.DIFFICULTY_MODIFIER` range, so a large value could only be reached a hundred at a
+        // time. The argument now spans the same bounds as the store (`build=cleanup65`).
+        CommandManager.argument(
+            "delta",
+            FloatArgumentType.floatArg(
+                ConfigBounds.DIFFICULTY_MODIFIER.start.toFloat(),
+                ConfigBounds.DIFFICULTY_MODIFIER.endInclusive.toFloat(),
+            ),
+        )
                             .executes { ctx ->
                                 val delta = FloatArgumentType.getFloat(ctx, "delta")
                                 MobEnhancementConfig.difficultyModifier =
