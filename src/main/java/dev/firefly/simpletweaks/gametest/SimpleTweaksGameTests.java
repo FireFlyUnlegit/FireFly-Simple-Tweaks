@@ -62,8 +62,8 @@ public class SimpleTweaksGameTests implements FabricGameTest {
         int keys = GeneratedEnchantments.INSTANCE.getKEYS().size();
         int categories = GeneratedEnchantments.INSTANCE.getCATEGORY().size();
         LOGGER.info("[FST-GameTest] generated table: keys={}, categories={}", keys, categories);
-        context.assertEquals(113, keys, "GeneratedEnchantments.KEYS should list all 113 enchantments");
-        context.assertEquals(113, categories, "GeneratedEnchantments.CATEGORY should cover every id");
+        context.assertEquals(123, keys, "GeneratedEnchantments.KEYS should list all 123 enchantments");
+        context.assertEquals(123, categories, "GeneratedEnchantments.CATEGORY should cover every id");
         context.complete();
     }
 
@@ -316,11 +316,26 @@ public class SimpleTweaksGameTests implements FabricGameTest {
         boolean axeEnchantable = new net.minecraft.item.ItemStack(net.minecraft.item.Items.IRON_AXE)
                 .isEnchantable();
 
+        // `build=cleanup72` added three mod-owned item tags (hoe / pickaxe / shield). A missing or empty
+        // tag is silent — the enchantment simply never appears — so each new one is asserted by name.
+        boolean bountifulOnHoe = accepts(registry, "bountiful", net.minecraft.item.Items.IRON_HOE);
+        boolean gleanerOnPickaxe = accepts(registry, "gleaner", net.minecraft.item.Items.IRON_PICKAXE);
+        boolean bashOnShield = accepts(registry, "shield_bash", net.minecraft.item.Items.SHIELD);
+        boolean featherOnBoots = accepts(registry, "feather_fall", net.minecraft.item.Items.IRON_BOOTS);
+        boolean hamstringOnSword = accepts(registry, "hamstring", net.minecraft.item.Items.IRON_SWORD);
+        boolean hamstringOnAxe = accepts(registry, "hamstring", net.minecraft.item.Items.IRON_AXE);
+        boolean deftOnMace = accepts(registry, "deft", net.minecraft.item.Items.MACE);
+
         LOGGER.info("[FST-GameTest] item tags: checked={}, problems={}, gale_elytra->elytra={}, "
                         + "shield_breaker->iron_axe={}, elytra.itemEnchantability={}, "
                         + "elytra.isEnchantable={}, iron_axe.isEnchantable={}",
                 checked, problems, galeOnElytra, breakerOnAxe, elytraEnchantability,
                 elytraEnchantable, axeEnchantable);
+        LOGGER.info("[FST-GameTest] new tags: bountiful->hoe={}, gleaner->pickaxe={}, "
+                        + "shield_bash->shield={}, feather_fall->boots={}, hamstring->sword={}, "
+                        + "hamstring->axe={}, deft->mace={}",
+                bountifulOnHoe, gleanerOnPickaxe, bashOnShield, featherOnBoots,
+                hamstringOnSword, hamstringOnAxe, deftOnMace);
 
         context.assertTrue(problems.isEmpty(),
                 "enchantments that can never be applied because their item tag is empty: " + problems);
@@ -330,6 +345,13 @@ public class SimpleTweaksGameTests implements FabricGameTest {
         // no enchantment at all could be offered for it. `ItemEnchantabilityMixin` raises it to 15.
         context.assertTrue(elytraEnchantable,
                 "minecraft:elytra must be enchantable at a table (ItemEnchantabilityMixin)");
+        context.assertTrue(bountifulOnHoe, "bountiful must be acceptable on an iron hoe");
+        context.assertTrue(gleanerOnPickaxe, "gleaner must be acceptable on an iron pickaxe");
+        context.assertTrue(bashOnShield, "shield_bash must be acceptable on a shield");
+        context.assertTrue(featherOnBoots, "feather_fall must be acceptable on iron boots");
+        context.assertTrue(hamstringOnSword && hamstringOnAxe,
+                "hamstring must be acceptable on both a sword and an axe");
+        context.assertTrue(deftOnMace, "deft must be acceptable on a mace (#minecraft:enchantable/weapon)");
         context.complete();
     }
 
@@ -465,6 +487,19 @@ public class SimpleTweaksGameTests implements FabricGameTest {
         context.assertTrue(noLevel == 0.0F, "level 0 must add nothing, got " + noLevel);
         context.assertTrue(fullHealth == 0.0F, "an undamaged target must add nothing, got " + fullHealth);
         context.complete();
+    }
+
+    /**
+     * Does the enchantment registered as [path] accept [item]?
+     *
+     * <p>An empty `primary_items` tag is invisible at runtime (the enchantment just never shows up), so
+     * the callers above name the item each newly-added tag is supposed to cover.
+     */
+    private static boolean accepts(
+            net.minecraft.registry.Registry<net.minecraft.enchantment.Enchantment> registry,
+            String path, net.minecraft.item.Item item) {
+        var entry = enchantmentByPath(registry, path);
+        return entry != null && entry.value().isPrimaryItem(new net.minecraft.item.ItemStack(item));
     }
 
     private static void assertReduction(TestContext context, float damage, float armor, float expected) {

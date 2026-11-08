@@ -73,6 +73,25 @@ const val FOOT_ARMOR    = "#minecraft:enchantable/foot_armor"
 const val MINING        = "#minecraft:enchantable/mining"
 const val MINING_LOOT   = "#minecraft:enchantable/mining_loot"
 
+/**
+ * Hoes **only** (`#minecraft:hoes`), and pickaxes **only**, via mod-owned tags.
+ *
+ * 1.21.1 has no `enchantable/hoe` / `enchantable/pickaxe` (same gap as [AXE]): the vanilla item tags are
+ * `#minecraft:hoes` / `#minecraft:pickaxes`, and the only *enchantable* tags that contain them are the
+ * wide `mining` (everything) and `sharp_weapon` (swords + axes). Restricting `bountiful` / `gleaner` to
+ * one tool each is the design, so they get a two-line mod tag instead of a wide vanilla one.
+ */
+const val HOE           = "#simple_tweaks:hoe_enchantable"
+const val PICKAXE       = "#simple_tweaks:pickaxe_enchantable"
+
+/**
+ * Shields **only**.
+ *
+ * There is **no** vanilla `#minecraft:shields` item tag (verified against the 1.21.1 jar: the file does
+ * not exist), and `enchantable/durability` is every durable item. Same reasoning as [ELYTRA].
+ */
+const val SHIELD        = "#simple_tweaks:shield_enchantable"
+
 // universal
 /** Anything with durability — the widest commonly used tag. */
 const val DURABILITY    = "#minecraft:enchantable/durability"
