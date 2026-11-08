@@ -574,6 +574,53 @@ public class SimpleTweaksGameTests implements FabricGameTest {
         context.complete();
     }
 
+    /**
+     * 万法归元's counter table: the element that answers each incoming element.
+     *
+     * <p>0.5 units of the *countering* element are attached onto the attacker, vs the 1.0 unit an active
+     * hit applies. The table must stay derived from the 克制链 (water beats fire, fire beats frost, frost
+     * beats water, fire burns nature, lightning conducts on water, light and dark annihilate); a counter
+     * that does not actually react would make the whole mechanic invisible.
+     */
+    @GameTest(templateName = FabricGameTest.EMPTY_STRUCTURE)
+    public void supremacyCounterAnswersEachElement(TestContext context) {
+        var reactions = dev.firefly.simpletweaks.util.elements.ElementReactions.INSTANCE;
+        var fire = dev.firefly.simpletweaks.util.elements.ElementType.FIRE;
+        var frost = dev.firefly.simpletweaks.util.elements.ElementType.FROST;
+        var water = dev.firefly.simpletweaks.util.elements.ElementType.WATER;
+        var nature = dev.firefly.simpletweaks.util.elements.ElementType.NATURE;
+        var lightning = dev.firefly.simpletweaks.util.elements.ElementType.LIGHTNING;
+        var light = dev.firefly.simpletweaks.util.elements.ElementType.LIGHT;
+        var dark = dev.firefly.simpletweaks.util.elements.ElementType.DARK;
+        var physical = dev.firefly.simpletweaks.util.elements.ElementType.PHYSICAL;
+
+        LOGGER.info("[FST-GameTest] supremacy counter: fire->{}, frost->{}, water->{}, nature->{}, "
+                        + "lightning->{}, light->{}, dark->{}, physical->{}",
+                reactions.counterOf(fire), reactions.counterOf(frost), reactions.counterOf(water),
+                reactions.counterOf(nature), reactions.counterOf(lightning), reactions.counterOf(light),
+                reactions.counterOf(dark), reactions.counterOf(physical));
+
+        context.assertEquals(water, reactions.counterOf(fire), "fire is answered by water");
+        context.assertEquals(fire, reactions.counterOf(frost), "frost is answered by fire");
+        context.assertEquals(frost, reactions.counterOf(water), "water is answered by frost");
+        context.assertEquals(fire, reactions.counterOf(nature), "nature is answered by fire");
+        context.assertEquals(water, reactions.counterOf(lightning), "lightning is answered by water");
+        context.assertEquals(dark, reactions.counterOf(light), "light is answered by dark");
+        context.assertEquals(light, reactions.counterOf(dark), "dark is answered by light");
+        // `assertEquals(null, …)` NPEs inside the vanilla helper (it calls `expected.equals`), so the
+        // "no counter" case is an assertTrue.
+        context.assertTrue(reactions.counterOf(physical) == null, "physical has no counter");
+
+        // Every non-null answer must actually react against the element it answers.
+        for (var incoming : new Object[] {fire, frost, water, nature, lightning, light, dark}) {
+            var e = (dev.firefly.simpletweaks.util.elements.ElementType) incoming;
+            var answer = reactions.counterOf(e);
+            context.assertTrue(answer != null && reactions.of(e, answer) != null,
+                    "counter " + answer + " must form a reaction on a " + e + " aura");
+        }
+        context.complete();
+    }
+
     private static void assertReduction(TestContext context, float damage, float armor, float expected) {
         float actual = ArmorCurve.INSTANCE.reductionFor(armor, damage);
         LOGGER.info("[FST-GameTest] damage {} armor {} -> reduction {} (expected {})",

@@ -210,4 +210,34 @@ object ElementReactions {
     }
 
     private val COUNTERS_NATURE = setOf(WATER, FIRE, FROST, LIGHTNING)
+
+    /**
+     * 相对元素 — the element the 克制链 treats as the answer to [element], or `null` for [PHYSICAL].
+     *
+     * Used by `elemental_supremacy`'s counter (`build=cleanup82`): when the wearer is hit by an elemental
+     * attack, the armour attaches **this** element onto the attacker, i.e. it answers fire with water.
+     * Deliberately derived from the same chain [dampening] encodes, so "what counters what" still has one
+     * definition in this file:
+     *
+     * | incoming | answer | why |
+     * |---|---|---|
+     * | fire | water | 水克火 |
+     * | frost | fire | 火克冰 |
+     * | water | frost | 冰克水 |
+     * | nature | fire | 燃烧 (`NATURE` aura + `FIRE` trigger) |
+     * | lightning | water | 感电 (`WATER` aura + `LIGHTNING` trigger) |
+     * | light ↔ dark | dark ↔ light | 湮灭, the mutual pair |
+     *
+     * `PHYSICAL` has no answer: 万法's counter is explicitly about elemental damage.
+     */
+    fun counterOf(element: ElementType): ElementType? = when (element) {
+        FIRE -> WATER
+        FROST -> FIRE
+        WATER -> FROST
+        NATURE -> FIRE
+        LIGHTNING -> WATER
+        LIGHT -> DARK
+        DARK -> LIGHT
+        PHYSICAL -> null
+    }
 }

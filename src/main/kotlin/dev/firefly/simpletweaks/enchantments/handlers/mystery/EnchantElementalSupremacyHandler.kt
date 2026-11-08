@@ -12,6 +12,7 @@ import dev.firefly.simpletweaks.util.elements.ElementMarks
 import dev.firefly.simpletweaks.util.elements.ElementReactions
 import dev.firefly.simpletweaks.util.elements.ElementType
 import dev.firefly.simpletweaks.util.elements.ReactionMemory
+import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.player.PlayerEntity
 
 /**
@@ -73,6 +74,70 @@ object EnchantElementalSupremacyHandler : Listenable {
 
     /** Total enchantment levels needed per extra rider (floor). */
     private const val RIDER_LEVELS_EACH = 10
+
+    /**
+     * Aura units the **counter** attaches onto an attacker, versus the 1.0 the active hit applies.
+     *
+     * Half of an active application on purpose: the counter is free (it costs the wearer nothing but
+     * being hit), so it must not out-value the attack the player chose to make. At `0.5` two counters
+     * equal one active attachment, which is exactly the "setting up next hit" role the author described.
+     */
+    private const val COUNTER_UNITS = 0.5f
+
+    /**
+     * 反伤/反击 — being hit by an element answers with the element that **counters** it, attached onto
+     * the attacker.
+     *
+     * ## Why this direction is separate from the attack branch
+     * The attack branch fires when the wearer is the *attacker*; this one fires when the wearer is the
+     * *victim*. They are two halves of one identity ("elemental superiority cuts both ways") and both need
+     * `wearsSupremacy` on their own side, so they are two listeners on the same event rather than one
+     * listener with a mode flag — each has its own guards and neither can accidentally run the other's
+     * body.
+     *
+     * ## The two deliberate exclusions
+     * 1. **The other side's 万法** (`wearsSupremacy(attacker)`) — otherwise two wearers trading hits would
+     *    keep answering each other's answers, and the winner would be whoever's aura happened to survive
+     *    the exchange. Author's rule: the counter is for *normal* elemental attacks.
+     * 2. **Physical damage** — `counterOf` returns `null`, so a sword swing does nothing; 万法's counter is
+     *    about the element system.
+     *
+     * ## Why it attaches instead of dealing damage
+     * "反伤" here is a **setup**, not a second damage source: the attack already went through the normal
+     * pipeline (the armour's 4.5 %/level mitigation included), and a damage rider on top would be a
+     * stealth DPS increase nobody asked for. Attaching 0.5 units means the attacker now carries an aura
+     * that *their own* element is weak to — the wearer's next hit reacts with it.
+     *
+     * No `wouldBeDiscardedByIFrames` gate: attaching an aura deals no damage, so a gated swing cannot be
+     * "paid for" twice — the counter is the price of touching the armour at all.
+     */
+    @SubscribeEvent
+    fun onLivingHurtTaken(e: LivingHurtEvent) {
+        val victim = e.entityLiving as? PlayerEntity ?: return
+        if (!ElementCombat.wearsSupremacy(victim)) return
+
+        val attacker = e.source.attacker as? LivingEntity ?: return
+        if (attacker === victim) return
+
+        val element = ElementType.of(e.source)
+        val counter = ElementReactions.counterOf(element) ?: return
+
+        if (ElementCombat.wearsSupremacy(attacker)) {
+            FSTLog.log("Supremacy") {
+                "element=${element.id}, attacker=${attacker.type.name.string}, " +
+                    "outcome=counter-skipped-attacker-has-supremacy"
+            }
+            return
+        }
+
+        ElementAuras.attach(attacker, counter, COUNTER_UNITS)
+
+        FSTLog.log("Supremacy") {
+            "element=${element.id}, counter=${counter.id}, attacker=${attacker.type.name.string}, " +
+                "units=$COUNTER_UNITS, damage=${"%.2f".format(e.amount)}, " +
+                "aura=${ElementAuras.describe(attacker)}, outcome=countered"
+        }
+    }
 
     @SubscribeEvent
     fun onLivingHurt(e: LivingHurtEvent) {
