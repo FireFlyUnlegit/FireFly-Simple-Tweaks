@@ -95,6 +95,15 @@ object GeneralConfig {
      * damage overlay, the hurt sound, the hand swing and the attack animation (all separate paths)
      * untouched.
      */
+    /**
+     * Draw the player's health as **one bar** (heart [====] 18/20) instead of vanilla's ten hearts.
+     *
+     * Client-only and on by default; turning it off restores vanilla hearts exactly (the HUD mixin then
+     * returns without cancelling InGameHud#renderHealthBar). See client/hud/BarHealthHud.
+     */
+    @JvmStatic
+    var barHealthHud: Boolean = true
+
     @JvmStatic
     var noHurtCam: Boolean = false
 

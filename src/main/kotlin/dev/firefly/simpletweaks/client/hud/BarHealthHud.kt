@@ -1,60 +1,88 @@
 package dev.firefly.simpletweaks.client.hud
 
-import net.minecraft.client.font.TextRenderer
+import net.minecraft.client.MinecraftClient
 import net.minecraft.client.gui.DrawContext
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.util.Identifier
 import net.minecraft.util.math.MathHelper
 
 /**
- * Replaces vanilla's row of ten hearts with **one bar**: `♥ [████████░░] 18/20`.
+ * Replaces vanilla's row of ten hearts with **one bar**: `♥ [████ 19/20 ████]`.
  *
  * ## Why replace instead of appending
- * Vanilla draws ten separate 8×9 heart sprites per row, so its health block is ~90 px wide and one row
- * tall for a normal player, two once absorption is present. A bar carries the same information in ~80 px
- * and stays readable when a modded player has 40+ max health (vanilla would need three rows of hearts for
- * that). The mixin that calls this **cancels** `InGameHud#renderHealthBar`; nothing else in the HUD is
- * touched (armour, hunger, air, XP, mount health all keep their vanilla renderers).
+ * Vanilla draws ten 8×9 heart sprites per row, so a modded player with 40+ max health needs three rows. A
+ * bar carries the same information in one row and stays readable at any scale. The mixin that calls this
+ * **cancels** `InGameHud#renderHealthBar`; nothing else in the HUD is touched (armour, hunger, air, XP and
+ * mount health keep their vanilla renderers). [dev.firefly.simpletweaks.core.config.GeneralConfig.barHealthHud]
+ * turns it off, in which case the mixin does not cancel and vanilla hearts are drawn untouched.
  *
- * ## Layout (all sizes in GUI pixels)
+ * ## Layout (GUI pixels)
  * ```
- * x        x+9            x+9+BAR_WIDTH
- * ♥        ████████████   18/20
+ * x     x+11              x+11+BAR_WIDTH
+ * ♥     [███  19/20  ███]
  * ```
- * The heart is the real vanilla sprite (`hud/heart/full`), so it matches the resource-pack style of
- * everything else on screen; the value is the first `<int>/<int>` the player can read at a glance.
+ * The heart is the real vanilla sprite (`hud/heart/full`), so it matches the rest of the screen. The value
+ * is drawn **inside** the bar, centred — outside, the block grew to ~130 px and could collide with the
+ * hotbar edge at large GUI scales (`build=cleanup86`).
  *
- * ## Numbers that are deliberately *not* one-to-one with vanilla
+ * ## Red, not a green→red gradient
+ * Author's call: green-at-full reads as "stamina" in every other game. State is still readable without
+ * colour, because the fill is proportional and the exact number is printed inside the bar.
+ *
+ * ## Instant fill + a trailing ghost (why there is no "delay")
+ * The **fill and the number are the real health, drawn on the same frame** — vanilla's own animation field
+ * (`renderHealthValue`) lives inside the method we cancel, so nothing delays the reading. What animates is
+ * a separate **ghost** slice that starts at the old value and catches up over ~0.5 s. That gives the
+ * "damage landed" motion (`build=cleanup86`'s 衔接 request) without making the bar lag behind the
+ * number — the exact failure the author reported as "血条更新还有延迟" when it *was* the fill that lerped.
+ *
+ * ## Vanilla features deliberately not reproduced
  * | aspect | vanilla hearts | this bar |
  * |---|---|---|
- * | colour | texture swaps (poisoned / withered / frozen) | a single green→red gradient by ratio |
- * | absorption | a second row of yellow hearts | a gold overlay on the same bar |
- * | blinking | half-second flash on damage | the whole fill flashes (same 20-tick window) |
- *
- * Keeping vanilla's status-effect textures would mean reproducing five heart variants; the gradient
- * answers the same question ("how much am I missing?") with one number and one colour.
+ * | colour | texture swaps (poisoned / withered / frozen / hardcore) | one red fill |
+ * | absorption | a second row of yellow hearts | a gold overlay on the same bar + `+N` under it |
+ * | blinking | half-second white flash | the whole fill flashes white |
  */
 object BarHealthHud {
 
-    /** Width of the bar itself, excluding the icon and the value text. */
-    private const val BAR_WIDTH = 72
+    /** Width of the bar, icon excluded. Fits `4096/4096` plus padding at GUI scale 2. */
+    private const val BAR_WIDTH = 86
 
-    /** Height of the bar; 5 px keeps it inside the 9 px heart row. */
-    private const val BAR_HEIGHT = 5
+    /** 9 px matches the heart sprite, so the row stays aligned with vanilla widgets. */
+    private const val BAR_HEIGHT = 9
 
-    /** Gap between the icon and the bar, and between the bar and the value. */
+    /** Gap between the icon and the bar. */
     private const val GAP = 2
 
     private val HEART_FULL = Identifier.ofVanilla("hud/heart/full")
     private val HEART_CONTAINER = Identifier.ofVanilla("hud/heart/container")
-    /** Vanilla's own damage-blink window, so the bar flashes on the same beat the hearts used to. */
+
+    /** Vanilla's damage-flash window, so the bar flashes on the same beat the hearts used to. */
     private const val BLINK_TICKS = 20
 
+    /** Ghost catch-up: share of the gap per frame, with a floor so a small chip still moves. */
+    private const val GHOST_LERP = 0.2f
+    private const val GHOST_MIN_STEP = 0.25f
+
+    /** Frames the ghost is held at the old value after a hit, so the damage is *visible* before it fades. */
+    private const val GHOST_HOLD_FRAMES = 6
+
+    private val BAR_BG = 0xCC000000.toInt()
+    private val FILL = 0xFFB02B2B.toInt()
+    private val FILL_FLASH = 0xFFFFFFFF.toInt()
+    private val GHOST = 0xAAFF7B54.toInt()
+    private val ABSORB = 0xFFFFD54F.toInt()
+    private val TEXT = 0xFFFFFFFF.toInt()
+
+    /** Trailing ghost value; `NaN` until the first frame (or after [reset]). */
+    private var ghost = Float.NaN
+    private var holdFrames = 0
+
     /**
-     * Draws the whole block at ([x], [y]) — the exact coordinates vanilla passed to its heart renderer.
+     * Draws the block at ([x], [y]) — the exact coordinates vanilla passed to its heart renderer.
      *
-     * @param health vanilla passes the **displayed** value (it animates towards the real one)
-     * @param lastHealth the value before this hit, used for the flash
+     * @param health the value vanilla would have animated; it is the **real** health here
+     * @param lastHealth the value before this hit
      */
     fun render(
         context: DrawContext,
@@ -67,79 +95,85 @@ object BarHealthHud {
         absorption: Int,
         blinking: Boolean,
     ) {
-        val textRenderer: TextRenderer = net.minecraft.client.MinecraftClient.getInstance().textRenderer
+        val textRenderer = MinecraftClient.getInstance().textRenderer
         val max = maxHealth.coerceAtLeast(1f)
-        val ratio = (health / max).coerceIn(0f, 1f)
-        val absorbing = absorption > 0
+        val current = health.toFloat().coerceIn(0f, max)
+
+        // --- ghost bookkeeping ----------------------------------------------------------------
+        if (ghost.isNaN()) ghost = current
+        if (current < ghost) {
+            // Damage: hold the old value briefly, then let it drain. This is the only animated part.
+            if (holdFrames < GHOST_HOLD_FRAMES) {
+                holdFrames++
+            } else {
+                val gap = ghost - current
+                val step = maxOf(gap * GHOST_LERP, GHOST_MIN_STEP)
+                ghost = maxOf(ghost - step, current)
+            }
+        } else {
+            // Healing (or a full bar): no trailing anything.
+            ghost = current
+            holdFrames = 0
+        }
 
         // --- icon -------------------------------------------------------------------------------
-        context.drawGuiTexture(if (absorbing) HEART_FULL else HEART_CONTAINER, x, y, 9, 9)
-        if (!absorbing) {
-            // The container is the empty heart outline; drawing the full heart on top of it fills it, so
-            // a wounded player still sees a readable icon without reproducing the half-heart variants.
-            context.drawGuiTexture(HEART_FULL, x, y, 9, 9)
-        }
+        context.drawGuiTexture(HEART_CONTAINER, x, y, 9, 9)
+        context.drawGuiTexture(HEART_FULL, x, y, 9, 9)
 
         // --- bar --------------------------------------------------------------------------------
         val barX = x + 9 + GAP
-        val barY = y + (9 - BAR_HEIGHT) / 2
+        val barY = y
+        context.fill(barX, barY, barX + BAR_WIDTH, barY + BAR_HEIGHT, BAR_BG)
 
-        // Background: black at 60 % alpha, matching the vanilla container's darkness closely enough.
-        context.fill(barX, barY, barX + BAR_WIDTH, barY + BAR_HEIGHT, 0x99000000.toInt())
+        val realRatio = (current / max).coerceIn(0f, 1f)
+        val ghostRatio = (ghost / max).coerceIn(0f, 1f)
+        val filled = MathHelper.ceil(BAR_WIDTH * realRatio).toInt()
+        val ghostEnd = MathHelper.ceil(BAR_WIDTH * ghostRatio).toInt()
 
-        val filled = MathHelper.ceil(BAR_WIDTH * ratio).toInt()
+        // Ghost first, so the real fill always wins where they overlap.
+        if (ghostEnd > filled) {
+            context.fill(barX + filled, barY, barX + ghostEnd, barY + BAR_HEIGHT, GHOST)
+        }
+
+        val flash = blinking && player.hurtTime > BLINK_TICKS / 2
         if (filled > 0) {
-            // Flash when the health just dropped, on the same 20-tick window vanilla uses.
-            val flash = blinking && player.hurtTime > BLINK_TICKS / 2
-            context.fill(barX, barY, barX + filled, barY + BAR_HEIGHT, healthColor(ratio, flash))
+            context.fill(barX, barY, barX + filled, barY + BAR_HEIGHT, if (flash) FILL_FLASH else FILL)
         }
 
-        // Absorption is a gold overlay over the health fill: it is spent *after* the red hearts, so it
-        // must be visible on top rather than replacing the health colour.
-        if (absorbing) {
+        // Absorption: gold overlay on the top edge, plus the amount under the bar.
+        if (absorption > 0) {
             val absorbRatio = (absorption / max).coerceIn(0f, 1f)
-            val absorbWidth = MathHelper.ceil(BAR_WIDTH * minOf(1f, ratio + absorbRatio)).toInt()
-            context.fill(barX, barY, barX + absorbWidth, barY + 1, 0xFFFFD54F.toInt())
+            val absorbEnd = MathHelper.ceil(BAR_WIDTH * minOf(1f, realRatio + absorbRatio)).toInt()
+            context.fill(barX, barY, barX + absorbEnd, barY + 2, ABSORB)
         }
 
-        // --- value ------------------------------------------------------------------------------
-        val value = "${MathHelper.ceil(health.toFloat())}/${MathHelper.ceil(max)}"
+        // --- value, inside the bar and centred ----------------------------------------------------
+        val value = "${MathHelper.ceil(current)}/${MathHelper.ceil(max)}"
         context.drawText(
             textRenderer,
             value,
-            barX + BAR_WIDTH + GAP,
-            y + 1,
-            0xFFFFFFFF.toInt(),
+            barX + (BAR_WIDTH - textRenderer.getWidth(value)) / 2,
+            barY + 1,
+            TEXT,
             true,
         )
 
-        // --- absorption amount -------------------------------------------------------------------
-        if (absorbing) {
-            // Gold number under the health value, so the two resources never collide.
+        if (absorption > 0) {
+            val absorbText = "+${MathHelper.ceil(absorption.toFloat())}"
             context.drawText(
                 textRenderer,
-                "+${MathHelper.ceil(absorption.toFloat())}",
-                barX + BAR_WIDTH + GAP,
-                y + 10,
-                0xFFFFD54F.toInt(),
+                absorbText,
+                barX + (BAR_WIDTH - textRenderer.getWidth(absorbText)) / 2,
+                barY + BAR_HEIGHT + 1,
+                ABSORB,
                 true,
             )
         }
     }
 
-    /**
-     * Green → yellow → red by missing health, with a white flash on damage.
-     *
-     * The three stops are hand-picked rather than interpolated through HSV: a bar that is *always* some
-     * shade of yellow is unreadable, and vanilla's own palette (green hearts, red poison) is what players
-     * already associate with "healthy" and "hurting".
-     */
-    private fun healthColor(ratio: Float, flash: Boolean): Int {
-        if (flash) return 0xFFFFFFFF.toInt()
-        return when {
-            ratio > 0.6f -> 0xFF35C759.toInt()
-            ratio > 0.3f -> 0xFFE8B923.toInt()
-            else -> 0xFFD64541.toInt()
-        }
+    /** Reset the ghost on world change, so a new life does not inherit the previous trail. */
+    fun reset() {
+        ghost = Float.NaN
+        holdFrames = 0
     }
 }

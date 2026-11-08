@@ -53,6 +53,11 @@ public abstract class InGameHudHealthMixin {
             boolean blinking,
             CallbackInfo ci
     ) {
+        // The toggle lives in `/stconfig` (general page). Returning without cancelling leaves vanilla's
+        // hearts to draw exactly as they would without this mod — no partial state to clean up.
+        if (!dev.firefly.simpletweaks.core.config.GeneralConfig.getBarHealthHud()) {
+            return;
+        }
         BarHealthHud.INSTANCE.render(
                 context, player, x, y, maxHealth, lastHealth, health, absorption, blinking);
         ci.cancel();

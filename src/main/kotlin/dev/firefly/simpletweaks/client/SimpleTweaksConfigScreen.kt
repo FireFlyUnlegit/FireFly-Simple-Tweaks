@@ -192,6 +192,9 @@ class SimpleTweaksConfigScreen(private val parent: Screen?) :
                 boolRow("noHurtCam", { GeneralConfig.noHurtCam }) {
                     GeneralConfig.noHurtCam = it
                 }
+                boolRow("barHealthHud", { GeneralConfig.barHealthHud }) {
+                    GeneralConfig.barHealthHud = it
+                }
             }
 
             1 -> {

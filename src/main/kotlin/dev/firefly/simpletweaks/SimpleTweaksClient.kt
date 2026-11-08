@@ -124,7 +124,7 @@ class SimpleTweaksClient : ClientModInitializer {
                 "+ element damage is no longer exempt from the i-frame gate (only combo cancels it) " +
                 "+ reaction names as floating labels with their damage, 18 reactions, " +
                 "+ split damage display now emits one number per element, fanned out and staggered " +
-                "(v2.2.7, build=cleanup85)",
+                "(v2.2.7, build=cleanup86)",
             SimpleTweaks.NAME,
             enchantmentCount,
         )
@@ -200,6 +200,9 @@ class SimpleTweaksClient : ClientModInitializer {
             ClientManaPoolCache.clear()
             // Entity ids are reused across sessions; a stale level would tag the wrong mob.
             MobLevelSync.clear()
+            // The health bar's damage ghost must not survive into the next world (a new player starts
+            // full, and a trail from the previous session would draw as phantom damage).
+            dev.firefly.simpletweaks.client.hud.BarHealthHud.reset()
         }
     }
 

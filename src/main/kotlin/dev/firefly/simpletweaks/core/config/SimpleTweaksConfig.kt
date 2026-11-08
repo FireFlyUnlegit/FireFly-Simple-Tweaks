@@ -98,6 +98,8 @@ object SimpleTweaksConfig {
         GeneralConfig.autoSprintOmniSprint = s.bool("autoSprintOmniSprint", false)
         // New in cleanup21, not a 1.12.2 option — hence a `false` default rather than a ported one.
         GeneralConfig.noHurtCam = s.bool("noHurtCam", false)
+        // New in cleanup86: the bar-shaped health HUD is on by default (it is the whole feature).
+        GeneralConfig.barHealthHud = s.bool("barHealthHud", true)
     }
 
     /**
@@ -177,6 +179,7 @@ object SimpleTweaksConfig {
             addProperty("autoSprintEnabled", GeneralConfig.autoSprintEnabled)
             addProperty("autoSprintOmniSprint", GeneralConfig.autoSprintOmniSprint)
             addProperty("noHurtCam", GeneralConfig.noHurtCam)
+            addProperty("barHealthHud", GeneralConfig.barHealthHud)
         }
         val mobEnhancement = JsonObject().apply {
             addProperty("enabled", MobEnhancementConfig.enabled)
