@@ -85,15 +85,16 @@ object BarHealthHud {
             holdFrames = 0
         }
 
-        val barX = x + HudBar.ICON
+        // The bar's own left edge is the HUD anchor; the icon hangs outside it (author, cleanup91).
+        val barX = x
+        val iconX = x - HudBar.ICON
 
         // --- armour first, so it is underneath the bars it shares rows with -------------------------
-        if (player.armor > 0) {
-            ArmorHud.render(context, player, x, y - (if (absorption > 0) 20 else 10))
-        }
+        // Always drawn (even at 0 armour): see ArmorHud's KDoc.
+        ArmorHud.render(context, player, x - HudBar.ICON, y - (if (absorption > 0) 20 else 10))
 
         // --- health --------------------------------------------------------------------------------
-        HudBar.icon(context, HudBar.HEART_CONTAINER, HudBar.HEART_FULL, x, y)
+        HudBar.icon(context, HudBar.HEART_CONTAINER, HudBar.HEART_FULL, iconX, y)
         HudBar.frame(context, barX, y, HudBar.WIDTH, HudBar.HEIGHT)
 
         val innerW = HudBar.WIDTH - 2
@@ -112,7 +113,7 @@ object BarHealthHud {
         // --- absorption: same bar, one row up, gold ------------------------------------------------
         if (absorption > 0) {
             val absorbY = y - 10
-            HudBar.icon(context, HudBar.HEART_CONTAINER, HudBar.HEART_ABSORBING, x, absorbY)
+            HudBar.icon(context, HudBar.HEART_CONTAINER, HudBar.HEART_ABSORBING, iconX, absorbY)
             HudBar.frame(context, barX, absorbY, HudBar.WIDTH, HudBar.HEIGHT)
             HudBar.fill(
                 context, barX, absorbY, HudBar.WIDTH, HudBar.HEIGHT,

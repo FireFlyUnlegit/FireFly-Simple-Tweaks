@@ -35,13 +35,14 @@ object HungerHud {
      */
     fun renderRightAligned(context: DrawContext, player: PlayerEntity, rightEdge: Int, y: Int) {
         val food = player.hungerManager.foodLevel
-        val barX = rightEdge - HudBar.BLOCK          // bar starts here, icon occupies the last 9 px
+        // The bar's own right edge is the anchor; the icon hangs outside it (author, cleanup91).
+        val barX = rightEdge - HudBar.WIDTH
         HudBar.frame(context, barX, y, HudBar.WIDTH, HudBar.HEIGHT)
         HudBar.fill(
             context, barX, y, HudBar.WIDTH, HudBar.HEIGHT,
             (food / REFERENCE).coerceIn(0f, 1f), FILL_TOP, FILL_BOTTOM,
         )
         HudBar.text(context, MathHelper.ceil(food.toFloat()).toString(), barX, y, HudBar.WIDTH, TEXT)
-        HudBar.icon(context, HudBar.FOOD_EMPTY, HudBar.FOOD_FULL, barX + HudBar.WIDTH, y)
+        HudBar.icon(context, HudBar.FOOD_EMPTY, HudBar.FOOD_FULL, rightEdge, y)
     }
 }

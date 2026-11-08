@@ -31,9 +31,12 @@ object ArmorHud {
     private const val REFERENCE = 20f
 
     fun render(context: DrawContext, player: PlayerEntity, x: Int, y: Int) {
+        // **Always** drawn, even at 0 armour: an empty bar with `0` is self-explanatory, while a bar that
+        // silently disappears is indistinguishable from "the feature is broken" (author: 没有 armor,
+        // `build=cleanup91`). The number, not the presence of the widget, carries the state.
         val armor = player.armor
-        if (armor <= 0) return
 
+        // [icon] hangs outside: the caller passes the icon column, the bar starts right after it.
         val barX = x + HudBar.ICON
         HudBar.icon(context, HudBar.ARMOR_EMPTY, HudBar.ARMOR_FULL, x, y)
         HudBar.frame(context, barX, y, HudBar.WIDTH, HudBar.HEIGHT)
