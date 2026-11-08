@@ -39,9 +39,9 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
  * multipliers run, so every later multiplier also scaled the *health pool*.
  *
  * The fix keeps the finisher fantasy and makes it independent of how big the bar is: the bonus may
- * never exceed [FINISHER_HIT_MULTIPLIER] × the swing that triggered it. For every normal mob nothing
- * changes (`2 % × level × missing health` is far below `2 × hit`), while a 1M HP target can no longer
- * turn one swing into a 500k hit.
+ * never exceed [FINISHER_HIT_MULTIPLIER] × the swing that triggered it (`1.25` since it is a RARE
+ * enchantment — see that constant). For every normal mob nothing changes (`2 % × level × missing health`
+ * is far below `1.25 × hit`), while a 1M HP target can no longer turn one swing into a 500k hit.
  */
 @ModEnchantment(
     id = "execute",
@@ -58,8 +58,15 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 )
 object EnchantExecuteHandler : Listenable {
 
-    /** How many times the triggering hit the bonus may add. `2` = the swing can at most triple. */
-    const val FINISHER_HIT_MULTIPLIER = 2f
+    /**
+     * How many times the triggering hit the bonus may add.
+     *
+     * **1.25**, not 2: 处决 is a RARE enchantment, so its finisher bonus should read as "a bit more than
+     * the swing", not as "double the swing against anything with a big bar". At 1.25 the cap only ever
+     * binds on inflated health pools; on vanilla mobs the raw formula (`2 % × level × missing health`) is
+     * already below it, so nothing changes there.
+     */
+    const val FINISHER_HIT_MULTIPLIER = 1.25f
 
     /** Floor for the cap, so a tiny hit against a hurt target still gets a usable bonus. */
     const val FINISHER_MIN_CAP = 4f

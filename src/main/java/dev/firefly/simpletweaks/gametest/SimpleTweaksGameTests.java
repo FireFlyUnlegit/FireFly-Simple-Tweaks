@@ -439,7 +439,8 @@ public class SimpleTweaksGameTests implements FabricGameTest {
      * <p>The formula reads the **target's** missing health, so a 1,000,000 HP target made one level-5
      * swing add up to 100,000 — and because that number is added to `e.amount` before the crit / combo /
      * true-damage multipliers, they multiplied the health pool too (the author measured 494,731 in one
-     * hit). The cap is `2 × hit`, which for vanilla mobs is never reached, so nothing changes there.
+     * hit). The cap is `1.25 × hit` (RARE tier), which for vanilla mobs is never reached, so nothing
+     * changes there.
      */
     @GameTest(templateName = FabricGameTest.EMPTY_STRUCTURE)
     public void executeBonusIsBoundedByTheHit(TestContext context) {
@@ -447,7 +448,7 @@ public class SimpleTweaksGameTests implements FabricGameTest {
         float vanillaMob = execute.executeBonus(20.0F, 10.0F, 5);
         float smallHit = execute.executeBonus(6.0F, 10.0F, 5);
         float hugePool = execute.executeBonus(100.0F, 990_000.0F, 5);
-        float cap = 2.0F * 100.0F;
+        float cap = 1.25F * 100.0F;
         float noLevel = execute.executeBonus(100.0F, 990_000.0F, 0);
         float fullHealth = execute.executeBonus(100.0F, 0.0F, 5);
 
@@ -457,7 +458,7 @@ public class SimpleTweaksGameTests implements FabricGameTest {
 
         context.assertTrue(Math.abs(vanillaMob - 1.0F) < 0.001F,
                 "a normal mob must keep 2% x level x missing health, got " + vanillaMob);
-        context.assertTrue(Math.abs(smallHit - Math.min(1.0F, Math.max(6.0F * 2.0F, 4.0F))) < 0.001F,
+        context.assertTrue(Math.abs(smallHit - Math.min(1.0F, Math.max(6.0F * 1.25F, 4.0F))) < 0.001F,
                 "tiny hit: expected the uncapped value, got " + smallHit);
         context.assertTrue(Math.abs(hugePool - cap) < 0.001F,
                 "an inflated health pool must clamp to " + cap + ", got " + hugePool);
