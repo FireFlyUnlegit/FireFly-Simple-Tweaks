@@ -85,6 +85,17 @@ object EnchantElementalSupremacyHandler : Listenable {
     private const val COUNTER_UNITS = 0.5f
 
     /**
+     * Share of the **incoming** hit dealt back to the attacker, per total level (`build=cleanup83`).
+     *
+     * At a full set (20 levels) that is `80 %` of the damage received — the counter is a real hit, not
+     * just an aura application. It is paid out **as the countering element** and through
+     * `enqueueElemental`, i.e. as auxiliary damage: it can start a reaction and it bypasses armour
+     * (all `element_*` types do), but it cannot re-enter the on-hit stack and cannot loop back into
+     * another counter.
+     */
+    private const val COUNTER_SHARE_PER_LEVEL = 0.04f
+
+    /**
      * 反伤/反击 — being hit by an element answers with the element that **counters** it, attached onto
      * the attacker.
      *
@@ -132,9 +143,19 @@ object EnchantElementalSupremacyHandler : Listenable {
 
         ElementAuras.attach(attacker, counter, COUNTER_UNITS)
 
+        // The counter is also a hit: 4 % of the damage received, per total level, paid back as the
+        // countering element. Queued (never `damage()` inline) so it cannot re-enter this handler —
+        // a counter must never answer itself.
+        val totalLevel = ReactionMemory.totalLevel(victim)
+        val reflected = e.amount * COUNTER_SHARE_PER_LEVEL * totalLevel
+        if (reflected > 0f && reflected.isFinite()) {
+            ElementCombat.enqueueElemental(victim, attacker, counter, reflected)
+        }
+
         FSTLog.log("Supremacy") {
             "element=${element.id}, counter=${counter.id}, attacker=${attacker.type.name.string}, " +
-                "units=$COUNTER_UNITS, damage=${"%.2f".format(e.amount)}, " +
+                "units=$COUNTER_UNITS, damage=${"%.2f".format(e.amount)}, totalLevel=$totalLevel, " +
+                "reflected=${"%.2f".format(reflected)}, " +
                 "aura=${ElementAuras.describe(attacker)}, outcome=countered"
         }
     }

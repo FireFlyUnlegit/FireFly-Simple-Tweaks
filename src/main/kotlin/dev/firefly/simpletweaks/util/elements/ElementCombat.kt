@@ -466,7 +466,7 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
             }
 
             val before = e.amount
-            e.amount *= mastery
+            e.amount *= mastery
             // Same gate as the conversion branch: a swing vanilla is about to discard must not leave a mark
             // or start a reaction, because the reaction's rider lifts the gate and would land alone.
             if (wouldBeDiscardedByIFrames(target, e.source, e.amount)) {
@@ -502,7 +502,7 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
             // but it must still count as that element or the enchantment would disable its own reactions,
             // and mastery still applies to it.
             val before = e.amount
-            e.amount *= mastery
+            e.amount *= mastery
             // Same gate as the conversion branch: a swing vanilla is about to discard must not leave a mark
             // or start a reaction, because the reaction's rider lifts the gate and would land alone.
             if (wouldBeDiscardedByIFrames(target, e.source, e.amount)) {
@@ -655,19 +655,26 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
      * [onWorldTick] and the note in `onLivingHurt` for the event-cache corruption that causes.
      */
     fun enqueueElemental(attacker: LivingEntity, target: LivingEntity, element: ElementType, amount: Float) {
+        // `resonance_core` and any future "elemental damage amplifier" answer here instead of being
+        // imported into the engine: `ElementDamageSeam` is a no-op when nothing is registered.
+        val finalAmount = ElementDamageSeam.modify(attacker, target, element, amount)
+
         // ⚠️ A non-finite amount must never be queued. `NaN` health is not recoverable in-game: the
         // entity can never be killed (`health <= 0` is false forever) and every later `health + x`
         // stays `NaN`. `build=cleanup11` was that report ("打不死怪物 / lag on 0hp"): a handler
         // multiplied its own re-dealt damage until it overflowed to `Infinity` and then `NaN`.
-        if (amount <= 0f || !amount.isFinite()) {
+        //
+        // The message distinguishes "the caller asked for something invalid" from "a seam modifier
+        // produced it", otherwise a bug in an amplifier would look like a bug in the caller.
+        if (finalAmount <= 0f || !finalAmount.isFinite()) {
             FSTLog.log("Element") {
-                "element=${element.id}, refused_amount=$amount, " +
+                "element=${element.id}, requested=$amount, after_seam=$finalAmount, " +
                     "target=${target.type.name.string}, outcome=element-amount-not-finite"
             }
             return
         }
         PENDING.computeIfAbsent(target.world) { java.util.ArrayDeque() }.add(
-            PendingElement(attacker, target, element, amount, amount, target.health),
+            PendingElement(attacker, target, element, finalAmount, finalAmount, target.health),
         )
     }
 
@@ -888,11 +895,11 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
      * event fires at the HEAD of `LivingEntity#damage`, before the gate, so a rider queued here can land while
      * the swing it belongs to is thrown away — that is the "elemental damage ignores i-frames" bug this guard
      * exists to prevent (`build=cleanup61`, second time it bit).
-     */
-    fun wouldBeDiscardedByIFrames(
-        target: LivingEntity,
-        source: net.minecraft.entity.damage.DamageSource,
-        amount: Float,
+     */
+    fun wouldBeDiscardedByIFrames(
+        target: LivingEntity,
+        source: net.minecraft.entity.damage.DamageSource,
+        amount: Float,
     ): Boolean {
         if (target.timeUntilRegen <= 10) return false
         if (source.isIn(DamageTypeTags.BYPASSES_COOLDOWN)) return false

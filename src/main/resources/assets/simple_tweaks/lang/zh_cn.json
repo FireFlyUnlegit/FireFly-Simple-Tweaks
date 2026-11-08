@@ -378,5 +378,7 @@
   "enchantment.simple_tweaks.multitude.desc": "你触发的元素反应有 15%% + 10%%/级 的概率复制到 6+2×等级 格内的其它所有敌人：每个目标都吃到触发元素与这次反应本身的伤害",
   "enchantment.simple_tweaks.karma": "因果",
   "enchantment.simple_tweaks.karma.desc": "你每次攻击命中（不含元素转化、反应、毒等附带伤害）都会重置因果池：数值 = 该次伤害的 20%%+10%%×有效等级。池子存在 ⌊5+有效等级⌋ 秒，按 1:1 抵消你受到的伤害（护甲减免前的数值），最多抵消 ⌊有效等级⌋ 次，用尽或超时即消失。四件护甲各 IV = maxLevel 16，有效等级 = 四件等级之和÷4",
+  "enchantment.simple_tweaks.resonance_core": "共鸣核心",
+  "enchantment.simple_tweaks.resonance_core.desc": "你触发的每次元素反应都会在目标身上叠 1 层「共鸣」（上限 2+等级，III = 5 层，10 秒）。每层让你对该目标的元素伤害 +4%%（5 层 = +20%%）；层数满时，下一次元素伤害必定暴击（×2）并消耗全部层数",
   "gui.simple_tweaks.devour.stacks": "已吞噬：%1$s 层（伤害 +%2$s%%）"
 }

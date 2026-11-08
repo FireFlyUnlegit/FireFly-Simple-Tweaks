@@ -62,8 +62,8 @@ public class SimpleTweaksGameTests implements FabricGameTest {
         int keys = GeneratedEnchantments.INSTANCE.getKEYS().size();
         int categories = GeneratedEnchantments.INSTANCE.getCATEGORY().size();
         LOGGER.info("[FST-GameTest] generated table: keys={}, categories={}", keys, categories);
-        context.assertEquals(126, keys, "GeneratedEnchantments.KEYS should list all 126 enchantments");
-        context.assertEquals(126, categories, "GeneratedEnchantments.CATEGORY should cover every id");
+        context.assertEquals(127, keys, "GeneratedEnchantments.KEYS should list all 127 enchantments");
+        context.assertEquals(127, categories, "GeneratedEnchantments.CATEGORY should cover every id");
         context.complete();
     }
 
@@ -618,6 +618,39 @@ public class SimpleTweaksGameTests implements FabricGameTest {
             context.assertTrue(answer != null && reactions.of(e, answer) != null,
                     "counter " + answer + " must form a reaction on a " + e + " aura");
         }
+        context.complete();
+    }
+
+    /**
+     * 共鸣核心's stack maths: `2 + level` stacks, `+4 %` per stack, `×2` at the cap.
+     *
+     * <p>Pure functions only — the amplification itself lives behind `ElementDamageSeam` and needs a
+     * player, which a game test has none of. What this pins is the part that would silently drift: the
+     * cap scaling with level and the multiplier at the cap.
+     */
+    @GameTest(templateName = FabricGameTest.EMPTY_STRUCTURE)
+    public void resonanceCoreScalesWithLevel(TestContext context) {
+        var core = dev.firefly.simpletweaks.enchantments.handlers.mystery.EnchantResonanceCoreHandler.INSTANCE;
+        int capI = core.capFor(1);
+        int capIII = core.capFor(3);
+        float at0 = core.multiplierFor(0);
+        float at5 = core.multiplierFor(5);
+        float overflow = core.multiplierFor(9);
+        float critAtCap = at5 * dev.firefly.simpletweaks.enchantments.handlers.mystery
+                .EnchantResonanceCoreHandler.CRIT_MULTIPLIER;
+
+        LOGGER.info("[FST-GameTest] resonance core: cap(I)={}, cap(III)={}, mult(0)={}, mult(5)={}, "
+                        + "mult(9 clamped)={}, crit total at cap={}",
+                capI, capIII, at0, at5, overflow, critAtCap);
+
+        context.assertEquals(3, capI, "level I caps at 3 stacks");
+        context.assertEquals(5, capIII, "level III caps at 5 stacks");
+        context.assertTrue(Math.abs(at0 - 1.0F) < 0.001F, "no stacks must be x1, got " + at0);
+        context.assertTrue(Math.abs(at5 - 1.2F) < 0.001F, "5 stacks must be x1.2, got " + at5);
+        context.assertTrue(Math.abs(overflow - at5) < 0.001F,
+                "stacks above the cap must clamp to the capped multiplier, got " + overflow);
+        context.assertTrue(Math.abs(critAtCap - 2.4F) < 0.001F,
+                "the guaranteed crit at full stacks is x2.4 total, got " + critAtCap);
         context.complete();
     }
 
