@@ -351,7 +351,8 @@ public class SimpleTweaksGameTests implements FabricGameTest {
         return null;
     }
 
-    private static void assertReduction(TestContext context, float damage, float armor, float expected) {        float actual = ArmorCurve.INSTANCE.reductionFor(armor, damage);
+    private static void assertReduction(TestContext context, float damage, float armor, float expected) {
+        float actual = ArmorCurve.INSTANCE.reductionFor(armor, damage);
         LOGGER.info("[FST-GameTest] damage {} armor {} -> reduction {} (expected {})",
                 damage, armor, actual, expected);
         context.assertTrue(Math.abs(actual - expected) < 0.001f,
