@@ -372,8 +372,6 @@
   "enchantment.simple_tweaks.first_strike": "猎首",
   "enchantment.simple_tweaks.first_strike.desc": "对仍处于满血的目标，第一次命中额外 +12%%/级 伤害",
   "gui.simple_tweaks.prismatic.folded": "棱彩祝福：+%1$s%% × %2$s 项属性（按住 Shift 展开）",
-  "enchantment.simple_tweaks.myriad_blades": "千刃",
-  "enchantment.simple_tweaks.myriad_blades.desc": "命中时有 20%% + 10%%/级 的概率唤出两道残影，各造成该次命中 25%% 的物理伤害。残影不会再触发任何其它 on-hit 附魔",
   "enchantment.simple_tweaks.devour": "吞噬",
   "enchantment.simple_tweaks.devour.desc": "每次击杀为该武器积 1 层：每层 +2%% 最终伤害，上限 5×等级 层（III = 15 层，+30%%）。死亡会掉一半层数。层数存在武器上，不在玩家身上",
   "enchantment.simple_tweaks.multitude": "众生",

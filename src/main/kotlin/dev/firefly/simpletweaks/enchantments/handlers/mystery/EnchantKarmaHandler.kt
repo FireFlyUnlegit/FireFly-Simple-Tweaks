@@ -58,6 +58,12 @@ import java.util.WeakHashMap
  * *incoming damage before mitigation*: 100 banked points absorb 100 points of a hit that armour would
  * otherwise have reduced to 20. That is deliberate — 因果 is about the blow itself.
  *
+ * ## Only a real swing fills the pool (`build=cleanup79`)
+ * The fill branch ignores **auxiliary** damage. Riders (conversion, reaction, DoT, arcs) are credited to
+ * the player too, and they are much smaller than a swing — without the guard they overwrote the pool a
+ * few milliseconds after the swing that created it, which is why the first test round looked like "the
+ * effect does nothing" while the log showed 606 fills and 33 absorbs.
+ *
  * ## Why the pool lives in a `WeakHashMap` and not on the item
  * It is transient combat state (seconds), so it must not be serialised: a relog would otherwise restore a
  * shield from a fight that ended yesterday. `WeakHashMap` is keyed by the player entity, so it cannot leak
@@ -142,7 +148,15 @@ object EnchantKarmaHandler : Listenable {
         val attacker = e.attacker
 
         // ---- (a) fill: this player landed a hit, which *resets* the pool -------------------------
-        if (attacker is PlayerEntity && attacker !== e.entityLiving) {
+        //
+        // ⚠️ `isAuxiliaryDamage()` guard is load-bearing (`build=cleanup79`). Without it **every**
+        // damage instance this player is credited with reset the pool — elemental conversion riders,
+        // reaction damage, venom DoT ticks, chain arcs — and those are usually far smaller than a swing.
+        // The measured log was 606 `pool-set` lines against 33 `absorbed`: a 106 hit banked 63.6, then
+        // the same swing's 5.30 and 0.75 riders immediately replaced it with 3.18 and 0.45. The pool
+        // was being destroyed by the player's own maths, which is exactly why "因果效果不明显".
+        // "每次攻击都会重置" means every *attack*, not every damage event.
+        if (attacker is PlayerEntity && attacker !== e.entityLiving && !e.source.isAuxiliaryDamage()) {
             val effective = effectiveLevelOf(equippedLevel(attacker))
             if (effective > 0f) {
                 val share = POOL_SHARE_BASE + POOL_SHARE_PER_LEVEL * effective
