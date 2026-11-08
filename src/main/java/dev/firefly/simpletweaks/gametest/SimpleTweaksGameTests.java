@@ -351,6 +351,57 @@ public class SimpleTweaksGameTests implements FabricGameTest {
         return null;
     }
 
+    /**
+     * 剧变 (transformative) reaction damage must not depend on the target's max health.
+     *
+     * <p>The formula is {@code (4 + 0.55 × attacker XP level) × coefficient × mastery × resonance},
+     * i.e. it is driven by the **attacker's** progression — never by what it is hitting. That is easy to
+     * misread in play, because a mod that levels mobs raises max health and the reaction numbers at the
+     * same time (the player's level usually grows alongside), so "the number got bigger on the big mob"
+     * looks like a health term. This test pins the invariant: two zombies, 20 vs 200 max health, same
+     * reaction, identical flat damage.
+     *
+     * <p>Uses {@code attacker = null} deliberately: then level 0 and mastery 0, so the expected value is
+     * exactly {@code 4 × 1.25 = 5.0} for {@code conduct} and nothing can hide behind a player's stats.
+     */
+    @GameTest(templateName = FabricGameTest.EMPTY_STRUCTURE)
+    public void transformativeReactionDamageIgnoresTargetMaxHealth(TestContext context) {
+        ZombieEntity small = context.spawnMob(EntityType.ZOMBIE, 1, 1, 1);
+        ZombieEntity big = context.spawnMob(EntityType.ZOMBIE, 3, 1, 1);
+        big.getAttributeInstance(net.minecraft.entity.attribute.EntityAttributes.GENERIC_MAX_HEALTH)
+                .setBaseValue(200.0);
+        big.setHealth(200.0F);
+
+        float smallFlat = conductFlat(small);
+        float bigFlat = conductFlat(big);
+        float expected = dev.firefly.simpletweaks.util.elements.ElementMarks.TRANSFORMATIVE_BASE * 1.25F;
+
+        LOGGER.info("[FST-GameTest] transformative flat: 20HP target={}, 200HP target={}, expected={} "
+                        + "(attacker=null, conduct coeff 1.25)",
+                smallFlat, bigFlat, expected);
+
+        context.assertTrue(Math.abs(smallFlat - bigFlat) < 0.001F,
+                "transformative damage must be independent of target max health, got "
+                        + smallFlat + " vs " + bigFlat);
+        context.assertTrue(Math.abs(smallFlat - expected) < 0.001F,
+                "expected " + expected + " for conduct at attacker level 0, got " + smallFlat);
+        context.complete();
+    }
+
+    /** Marks a lightning aura and triggers {@code conduct} (mark LIGHTNING + trigger WATER, coeff 1.25). */
+    private static float conductFlat(ZombieEntity target) {
+        dev.firefly.simpletweaks.util.elements.ElementMarks.INSTANCE
+                .markOnly(target, dev.firefly.simpletweaks.util.elements.ElementType.LIGHTNING,
+                        dev.firefly.simpletweaks.util.elements.ElementAuras.WEAK);
+        return dev.firefly.simpletweaks.util.elements.ElementMarks.INSTANCE
+                .recordAndReact(null, target, dev.firefly.simpletweaks.util.elements.ElementType.WATER,
+                        10.0F,
+                        dev.firefly.simpletweaks.util.elements.ElementAuras.WEAK,
+                        true,
+                        null)
+                .getFlatDamage();
+    }
+
     private static void assertReduction(TestContext context, float damage, float armor, float expected) {
         float actual = ArmorCurve.INSTANCE.reductionFor(armor, damage);
         LOGGER.info("[FST-GameTest] damage {} armor {} -> reduction {} (expected {})",
