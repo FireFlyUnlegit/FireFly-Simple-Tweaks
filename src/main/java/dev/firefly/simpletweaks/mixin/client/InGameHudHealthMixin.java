@@ -66,7 +66,8 @@ public abstract class InGameHudHealthMixin {
             return;
         }
         BarHealthHud.INSTANCE.render(
-                context, player, x, y, maxHealth, realHealth, absorption, blinking);
+                context, player, x, y - dev.firefly.simpletweaks.client.hud.HudBar.LIFT,
+                maxHealth, realHealth, absorption, blinking);
         ci.cancel();
     }
 }

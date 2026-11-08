@@ -41,6 +41,8 @@
   "client": [
     "AnvilScreenMixin",
     "EnchantmentNameColorMixin",
+    "client.InGameHudArmorMixin",
+    "client.InGameHudFoodMixin",
     "client.InGameHudHealthMixin",
     "client.LivingEntityRenderNameMixin",
     "InputSlowDownMixin",
