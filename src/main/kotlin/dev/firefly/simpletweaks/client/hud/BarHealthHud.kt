@@ -16,37 +16,58 @@ import net.minecraft.util.math.MathHelper
  * mount health keep their vanilla renderers). [dev.firefly.simpletweaks.core.config.GeneralConfig.barHealthHud]
  * turns it off, in which case the mixin does not cancel and vanilla hearts are drawn untouched.
  *
- * ## Layout (GUI pixels)
+ * ## The two health arguments, and why the first one is "real"
+ * `InGameHud#renderStatusBars` passes (bytecode, 1.21.1):
+ *
  * ```
- * x     x+11              x+11+BAR_WIDTH
- * ♥     [███  19/20  ███]
+ * 362: aload_0/aload_1/aload_2   → this, context, player
+ * 365: iload 8   → x
+ * 367: iload 10  → y
+ * 369: iload 14  → lines
+ * 371: iload 16  → regeneratingHeartIndex
+ * 373: fload 11  → maxHealth
+ * 375: iload_3   → ceil(player.getHealth())      ← **real health**
+ * 376: iload 7   → this.renderHealthValue        ← **animated display value**
+ * 378: iload 12  → absorption
+ * 380: iload 4   → blinking
  * ```
- * The heart is the real vanilla sprite (`hud/heart/full`), so it matches the rest of the screen. The value
- * is drawn **inside** the bar, centred — outside, the block grew to ~130 px and could collide with the
- * hotbar edge at large GUI scales (`build=cleanup86`).
+ *
+ * The parameter that *looks* like "health" (the second int) is vanilla's animated `renderHealthValue`,
+ * which lerps toward the real value over ~1 s. Reading it made the bar lag behind the number for exactly
+ * that long — the reported "持续变化血量之后要等一会才看到更新" (`build=cleanup87`). The real value is the
+ * parameter vanilla calls `lastHealth`; the animated one is only useful as the ghost's start point, which
+ * would be *below* the real value on healing, so this file ignores it entirely.
+ *
+ * ## Layout (GUI pixels), anchored exactly like vanilla's hearts
+ * ```
+ * x                             x+80   x+91
+ * [██████  19/20  ██████]        ♥
+ * ```
+ * The **bar** starts at the HUD anchor `x`, not the icon: vanilla gives the heart row
+ * `windowCenter - 91`, and a bar that began 11 px later would no longer line up with the armour row above
+ * it or the hunger row beside it (`build=cleanup87`, author: "条子跟最左端对齐"). The heart icon then
+ * closes the block on the right, which also makes the whole widget **exactly 91 px wide** — the same
+ * footprint vanilla reserved — so nothing else on the HUD shifts.
+ *
+ * The value is **inside** the bar, centred; the absorption amount is inside too, right-aligned. Nothing is
+ * ever drawn below the bar, because the row under the hearts is the **XP bar and its level digits** (the
+ * reported "血条被经验条数字遮挡").
  *
  * ## Red, not a green→red gradient
- * Author's call: green-at-full reads as "stamina" in every other game. State is still readable without
- * colour, because the fill is proportional and the exact number is printed inside the bar.
- *
- * ## Instant fill + a trailing ghost (why there is no "delay")
- * The **fill and the number are the real health, drawn on the same frame** — vanilla's own animation field
- * (`renderHealthValue`) lives inside the method we cancel, so nothing delays the reading. What animates is
- * a separate **ghost** slice that starts at the old value and catches up over ~0.5 s. That gives the
- * "damage landed" motion (`build=cleanup86`'s 衔接 request) without making the bar lag behind the
- * number — the exact failure the author reported as "血条更新还有延迟" when it *was* the fill that lerped.
+ * Author's call: green-at-full reads as "stamina" in every other game. State is readable without colour
+ * anyway, since the fill is proportional and the exact number is printed inside the bar.
  *
  * ## Vanilla features deliberately not reproduced
  * | aspect | vanilla hearts | this bar |
  * |---|---|---|
  * | colour | texture swaps (poisoned / withered / frozen / hardcore) | one red fill |
- * | absorption | a second row of yellow hearts | a gold overlay on the same bar + `+N` under it |
+ * | absorption | a second row of yellow hearts | a gold overlay on the same bar + `+N` inside it |
  * | blinking | half-second white flash | the whole fill flashes white |
  */
 object BarHealthHud {
 
-    /** Width of the bar, icon excluded. Fits `4096/4096` plus padding at GUI scale 2. */
-    private const val BAR_WIDTH = 86
+    /** Width of the bar. `80 + 2 + 9 = 91`, the exact footprint vanilla reserves for the heart row. */
+    private const val BAR_WIDTH = 80
 
     /** 9 px matches the heart sprite, so the row stays aligned with vanilla widgets. */
     private const val BAR_HEIGHT = 9
@@ -81,8 +102,7 @@ object BarHealthHud {
     /**
      * Draws the block at ([x], [y]) — the exact coordinates vanilla passed to its heart renderer.
      *
-     * @param health the value vanilla would have animated; it is the **real** health here
-     * @param lastHealth the value before this hit
+     * @param health the **real** health (`ceil(player.getHealth())`, vanilla's `lastHealth` argument)
      */
     fun render(
         context: DrawContext,
@@ -90,7 +110,6 @@ object BarHealthHud {
         x: Int,
         y: Int,
         maxHealth: Float,
-        lastHealth: Int,
         health: Int,
         absorption: Int,
         blinking: Boolean,
@@ -116,12 +135,8 @@ object BarHealthHud {
             holdFrames = 0
         }
 
-        // --- icon -------------------------------------------------------------------------------
-        context.drawGuiTexture(HEART_CONTAINER, x, y, 9, 9)
-        context.drawGuiTexture(HEART_FULL, x, y, 9, 9)
-
-        // --- bar --------------------------------------------------------------------------------
-        val barX = x + 9 + GAP
+        // --- bar, starting at the HUD anchor so it lines up with the armour / hunger rows ----------
+        val barX = x
         val barY = y
         context.fill(barX, barY, barX + BAR_WIDTH, barY + BAR_HEIGHT, BAR_BG)
 
@@ -140,14 +155,14 @@ object BarHealthHud {
             context.fill(barX, barY, barX + filled, barY + BAR_HEIGHT, if (flash) FILL_FLASH else FILL)
         }
 
-        // Absorption: gold overlay on the top edge, plus the amount under the bar.
+        // Absorption: gold overlay on the top edge; the number itself goes inside the bar on the right.
         if (absorption > 0) {
             val absorbRatio = (absorption / max).coerceIn(0f, 1f)
             val absorbEnd = MathHelper.ceil(BAR_WIDTH * minOf(1f, realRatio + absorbRatio)).toInt()
             context.fill(barX, barY, barX + absorbEnd, barY + 2, ABSORB)
         }
 
-        // --- value, inside the bar and centred ----------------------------------------------------
+        // --- values, both inside the bar -----------------------------------------------------------
         val value = "${MathHelper.ceil(current)}/${MathHelper.ceil(max)}"
         context.drawText(
             textRenderer,
@@ -163,12 +178,17 @@ object BarHealthHud {
             context.drawText(
                 textRenderer,
                 absorbText,
-                barX + (BAR_WIDTH - textRenderer.getWidth(absorbText)) / 2,
-                barY + BAR_HEIGHT + 1,
+                barX + BAR_WIDTH - 2 - textRenderer.getWidth(absorbText),
+                barY + 1,
                 ABSORB,
                 true,
             )
         }
+
+        // --- icon on the right, closing the 91 px block -------------------------------------------
+        val iconX = barX + BAR_WIDTH + GAP
+        context.drawGuiTexture(HEART_CONTAINER, iconX, y, 9, 9)
+        context.drawGuiTexture(HEART_FULL, iconX, y, 9, 9)
     }
 
     /** Reset the ghost on world change, so a new life does not inherit the previous trail. */

@@ -12,24 +12,31 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 /**
  * Replaces vanilla's ten-heart row with {@link BarHealthHud}'s single bar.
  *
+ * <h2>The two health parameters are NOT what their names suggest</h2>
+ * Bytecode of `renderStatusBars` (1.21.1) passes, in order:
+ *
+ * <pre>
+ *   iload 8  → x          iload 10 → y         iload 14 → lines
+ *   iload 16 → regeneratingHeartIndex           fload 11 → maxHealth
+ *   iload_3  → ceil(player.getHealth())   ← REAL health
+ *   iload 7  → this.renderHealthValue     ← animated display value (~1 s lerp)
+ *   iload 12 → absorption                       iload 4  → blinking
+ * </pre>
+ *
+ * The descriptor's eighth int is named `lastHealth` and the ninth `health` in Yarn, but the ninth is the
+ * animated value: feeding it to a progress bar makes the bar trail the number for up to a second, which is
+ * the reported "血量不变之后才看到血条更新" (`build=cleanup87`). This mixin therefore forwards the **eighth**
+ * int as the real health and drops the animated one.
+ *
  * <h2>Why HEAD + cancel rather than a redirect</h2>
- * {@code renderHealthBar} draws the container, both rows of hearts, the absorption row, the blink flash
- * and the mount-health fallback in one body. There is no single call to redirect that would remove all
- * of it, and leaving any one piece in place produces a hybrid (bar **and** five leftover hearts) that
- * looks broken. Cancelling at HEAD and drawing the whole block ourselves is the only shape where "one
- * bar" is literally true.
+ * `renderHealthBar` draws the container, both rows of hearts, the absorption row, the blink flash and the
+ * mount-health fallback in one body; there is no single call to redirect that would remove all of it, and
+ * leaving any piece produces a hybrid (bar **and** leftover hearts) that looks broken.
  *
  * <h2>Override audit (`AGENTS.md` §4.3)</h2>
- * The target is {@code InGameHud}'s own {@code private renderHealthBar(DrawContext, PlayerEntity, int,
- * int, int, int, float, int, int, int, boolean)} — verified in the 1.21.1 named jar; it is private, so
- * no subclass can override or shadow it, and {@code InGameHud} has no subclasses in the game. The only
- * other caller of the heart sprites is {@code renderMountHealth}, which is a different method and is
- * deliberately left alone (a ridden mob keeps its vanilla hearts).
- *
- * <h2>Why the signature is spelled out in full</h2>
- * {@code renderHealthBar} has no other overload, but Mixin matches on the descriptor — spelling it out
- * means a shape change in a future version fails at **build** time instead of silently doing nothing at
- * runtime (the failure mode this project has hit twice, `AGENTS.md` §4.3).
+ * The target is `InGameHud`'s own private method — no subclass can override or shadow it, and `InGameHud`
+ * has no subclasses in game. `renderMountHealth` is a different method and is deliberately left alone (a
+ * ridden mob keeps its vanilla hearts).
  */
 @Mixin(InGameHud.class)
 public abstract class InGameHudHealthMixin {
@@ -47,8 +54,8 @@ public abstract class InGameHudHealthMixin {
             int lines,
             int regeneratingHeartIndex,
             float maxHealth,
-            int lastHealth,
-            int health,
+            int realHealth,
+            int animatedHealth,
             int absorption,
             boolean blinking,
             CallbackInfo ci
@@ -59,7 +66,7 @@ public abstract class InGameHudHealthMixin {
             return;
         }
         BarHealthHud.INSTANCE.render(
-                context, player, x, y, maxHealth, lastHealth, health, absorption, blinking);
+                context, player, x, y, maxHealth, realHealth, absorption, blinking);
         ci.cancel();
     }
 }
