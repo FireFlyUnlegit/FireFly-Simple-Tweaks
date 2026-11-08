@@ -402,6 +402,37 @@ public class SimpleTweaksGameTests implements FabricGameTest {
                 .getFlatDamage();
     }
 
+    /**
+     * The reaction level clamp: 剧变 / 激化 read the attacker's **capped** XP level.
+     *
+     * <p>Uncapped, `experienceLevel` is a mob-farm currency: 200 levels would put one 感电 at ~143 before
+     * mastery/resonance/sovereignty, and every `element_*` damage type bypasses armour, so it also erased
+     * the only defence a high-health target had. See {@code ElementMarks.REACTION_LEVEL_CAP}.
+     */
+    @GameTest(templateName = FabricGameTest.EMPTY_STRUCTURE)
+    public void reactionLevelIsCapped(TestContext context) {
+        var marks = dev.firefly.simpletweaks.util.elements.ElementMarks.INSTANCE;
+        int cap = dev.firefly.simpletweaks.util.elements.ElementMarks.REACTION_LEVEL_CAP;
+        int low = marks.cappedReactionLevel(5);
+        int atCap = marks.cappedReactionLevel(cap);
+        int farmed = marks.cappedReactionLevel(200);
+        int negative = marks.cappedReactionLevel(-3);
+        float maxBase = dev.firefly.simpletweaks.util.elements.ElementMarks.TRANSFORMATIVE_BASE
+                + cap * dev.firefly.simpletweaks.util.elements.ElementMarks.TRANSFORMATIVE_PER_LEVEL;
+
+        LOGGER.info("[FST-GameTest] reaction level cap={}: capped(5)={}, capped({})={}, capped(200)={}, "
+                        + "capped(-3)={}, max transformative base={}",
+                cap, low, cap, atCap, farmed, negative, maxBase);
+
+        context.assertEquals(5, low, "a level under the cap must pass through unchanged");
+        context.assertEquals(cap, atCap, "the cap itself must pass through unchanged");
+        context.assertEquals(cap, farmed, "a farmed level must clamp to the cap");
+        context.assertEquals(0, negative, "a negative level must clamp to 0");
+        context.assertTrue(maxBase < 25.0F,
+                "capped transformative base must stay below 25, was " + maxBase);
+        context.complete();
+    }
+
     private static void assertReduction(TestContext context, float damage, float armor, float expected) {
         float actual = ArmorCurve.INSTANCE.reductionFor(armor, damage);
         LOGGER.info("[FST-GameTest] damage {} armor {} -> reduction {} (expected {})",

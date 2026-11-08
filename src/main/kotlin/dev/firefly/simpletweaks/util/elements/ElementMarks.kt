@@ -307,6 +307,9 @@ object ElementMarks {
      * weapon can lean on and a strong weapon cannot multiply. Mastery counts here at a lower rate than
      * on elemental damage (`ElementCombat.MASTERY_PER_LEVEL` is 10 %; this uses 8 %), so the two enchant
      * builds stay distinct.
+     *
+     * The level is **capped** at [REACTION_LEVEL_CAP]. See that constant for why an uncapped
+     * `experienceLevel` was a farmable exploit rather than a progression curve.
      */
     /**
      * `elemental_catalyst` level from [attacker]'s chestplate — the build choice that shortens the
@@ -332,7 +335,7 @@ object ElementMarks {
         else getItemSpecificEnchantLevel(attacker.chestplate, GeneratedEnchantments.ELEMENTAL_CATALYST)
 
     private fun transformativeDamage(attacker: PlayerEntity?, coeff: Float): Float {
-        val level = attacker?.experienceLevel ?: 0
+        val level = reactionLevel(attacker)
         val base = TRANSFORMATIVE_BASE + level * TRANSFORMATIVE_PER_LEVEL
         val mastery = attacker?.let { ElementCombat.masteryLevel(it.mainHandStack) } ?: 0
         return base * coeff * (1f + TRANSFORMATIVE_MASTERY_PER_LEVEL * mastery)
@@ -340,7 +343,7 @@ object ElementMarks {
 
     /** Flat damage a nature/lightning hit gains while the target is 激化 (quicken) state. */
     private fun quickenBonus(attacker: PlayerEntity?, target: LivingEntity, reactionKey: String?): Float {
-        val level = attacker?.experienceLevel ?: 0
+        val level = reactionLevel(attacker)
         val base = QUICKEN_BASE + level * QUICKEN_PER_LEVEL
         val mastery = attacker?.let { ElementCombat.masteryLevel(it.mainHandStack) } ?: 0
         FSTLog.log("Element") {
@@ -355,8 +358,49 @@ object ElementMarks {
     /** Base of a transformative reaction at player level 0. */
     const val TRANSFORMATIVE_BASE = 4.0f
 
-    /** Added per player experience level. */
+    /** Added per player experience level, up to [REACTION_LEVEL_CAP]. */
     const val TRANSFORMATIVE_PER_LEVEL = 0.55f
+
+    /**
+     * The experience level both reaction formulas are allowed to see.
+     *
+     * ## Why a cap and not `attacker.experienceLevel` directly
+     * Vanilla XP **level** is not a progression stat, it is a **farmable currency**: a mob farm (or any
+     * spawner) takes it from 0 to 100+ without the player fighting anything that matters. With the
+     * uncapped formula that turned a 剧变 reaction into the strongest damage source in the mod, and
+     * because every `element_*` damage type is in `#minecraft:bypasses_armor`, those numbers also ignored
+     * the one defence a tanky target has. Two further consequences made it worse:
+     *
+     * 1. **It ran away with itself.** `4 + 0.55 × level` is linear and unbounded: at level 200 a single
+     *    感电 is `114 × 1.25 ≈ 143` before mastery / resonance / sovereignty multipliers, and the ICD that
+     *    throttles it collapses from 20 ticks to 1 with `elemental_supremacy`.
+     * 2. **It was volatile in the wrong direction.** Dying drops the player to ~0 levels, so the same
+     *    weapon hit for wildly different amounts before and after a death — a balance signal the player
+     *    cannot read, and one that rewards AFK farming instead of fighting.
+     *
+     * `30` is where vanilla progression is "finished" for most players (full diamond/lapis table use is
+     * ~level 30), so the curve still rewards levelling through normal play and then stops. Everything
+     * past this point has to come from the enchantment build ([TRANSFORMATIVE_MASTERY_PER_LEVEL],
+     * `elemental_resonance`, `elemental_sovereign`), which is gear the player chose.
+     *
+     * ⚠️ One constant drives **both** 剧变 and 激化: they are the same family ("flat damage from the
+     * attacker's level") and giving them separate caps would silently make one of them the farm target.
+     */
+    const val REACTION_LEVEL_CAP = 30
+
+    /**
+     * The experience level reactions are allowed to read: [experienceLevel] clamped to
+     * `0..`[REACTION_LEVEL_CAP].
+     *
+     * Public and parameterised (rather than taking a `PlayerEntity`) so the clamp is testable without a
+     * player — a game test has no player, and this rule is exactly the one that must not silently
+     * regress.
+     */
+    fun cappedReactionLevel(experienceLevel: Int): Int = experienceLevel.coerceIn(0, REACTION_LEVEL_CAP)
+
+    /** [cappedReactionLevel] of [attacker], or 0 when the reaction had no attacker. */
+    private fun reactionLevel(attacker: PlayerEntity?): Int =
+        cappedReactionLevel(attacker?.experienceLevel ?: 0)
 
     /** Mastery contribution to transformative damage (lower than the 10 %/level elemental one). */
     const val TRANSFORMATIVE_MASTERY_PER_LEVEL = 0.08f
