@@ -100,8 +100,11 @@ object ElementMarks {
         // `elemental_catalyst` shortens the attachment window: 2.5 s -> 2.0 / 1.5 / 1.0 s at I / II / III.
         // It is applied here rather than inside `AttachmentIcd` because the counter is engine state and the
         // window is a per-attacker build choice; mixing them would make the ICD impossible to reason about.
-        val icdWindow = AttachmentIcd.WINDOW_TICKS - 10L * catalystLevel(attacker)
-        if (!forceAttach && !AttachmentIcd.allows(target, attacker, icdWindow.coerceAtLeast(20L))) {
+        val icdWindow = ElementCombat.hasteWindow(
+            (AttachmentIcd.WINDOW_TICKS - 10L * catalystLevel(attacker)).coerceAtLeast(20L),
+            attacker,
+        )
+        if (!forceAttach && !AttachmentIcd.allows(target, attacker, icdWindow)) {
             FSTLog.log("Element") {
                 "outcome=no-aura-throttled, element=${element.id}, aura=${ElementAuras.describe(target)}"
             }
@@ -230,7 +233,8 @@ object ElementMarks {
         if (reaction.transformativeCoeff > 0f) {
             val now = target.world.time
             val last = TRANSFORMATIVE_AT[target]
-            if (last != null && now - last < TRANSFORMATIVE_ICD_TICKS) {
+            // `elemental_supremacy` at full investment collapses this window to a single tick.
+        if (last != null && now - last < ElementCombat.hasteWindow(TRANSFORMATIVE_ICD_TICKS, attacker)) {
                 FSTLog.log("Element") {
                     "reaction=${reaction.key}, target=${target.type.name.string}, " +
                         "sinceLast=${now - last}, outcome=transformative-icd"

@@ -959,6 +959,30 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
      * (`1 − (1 − affinity) × (1 − zone)`). With a maxed affinity that lands at 98 %, which the engine's
      * final clamp reduces to the **95 %** ceiling every elemental hit is subject to.
      */
+    /**
+     * How much `elemental_supremacy` shortens every ICD, as a multiplier on the window (`1.0` = no change).
+     *
+     * Scales with the **total level across the four slots**: at 20 levels (level V on all four pieces) the
+     * factor reaches 0, i.e. every gate collapses to a single tick. Half investment (10 levels) halves the
+     * windows. This is the enchantment's capstone: at full investment the wearer's own attachments and
+     * reactions are essentially unthrottled.
+     */
+    fun supremacyHaste(entity: LivingEntity): Float {
+        if (!wearsSupremacy(entity)) return 1f
+        val total = ARMOR_SLOTS.sumOf {
+            getItemSpecificEnchantLevel(entity.getEquippedStack(it), GeneratedEnchantments.ELEMENTAL_SUPREMACY)
+        }
+        return (1f - total / 20f).coerceIn(0f, 1f)
+    }
+
+    /** Shortens one ICD window by [supremacyHaste]; never below one tick. */
+    fun hasteWindow(windowTicks: Long, entity: LivingEntity?): Long {
+        if (entity == null) return windowTicks
+        val factor = supremacyHaste(entity)
+        if (factor >= 1f) return windowTicks
+        return (windowTicks * factor).toLong().coerceAtLeast(1L)
+    }
+
     fun supremacyReduction(entity: LivingEntity): Float {
         if (!wearsSupremacy(entity)) return 0f
         val total = ARMOR_SLOTS.sumOf {
