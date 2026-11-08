@@ -97,13 +97,16 @@ object EnchantElementalSupremacyHandler : Listenable {
     private const val COUNTER_SHARE_PER_LEVEL = 0.04f
 
     /**
-     * 禁疗 ticks the counter applies per total level: `10` ticks = 0.5 s, so a full 20-level set silences
-     * the attacker's healing for **10 s**.
+     * 禁疗 ticks the counter applies per total level: `1` tick, i.e. **1 second at a full 20-level set**.
      *
-     * Tied to the same total level as [COUNTER_SHARE_PER_LEVEL] on purpose — "more investment" should
-     * mean a harder answer *and* a longer silence, not two unrelated curves.
+     * Author's calibration (`build=cleanup85`): the silence is a tempo denial, not a lockout — one second
+     * at full investment is enough to deny a regeneration tick or a gulped potion in the same beat, while
+     * 10 s (the first draft) made healing unusable for the whole fight.
+     *
+     * Tied to the same total level as [COUNTER_SHARE_PER_LEVEL] on purpose — "more investment" means a
+     * harder answer *and* a longer silence, not two unrelated curves.
      */
-    private const val HEAL_LOCK_TICKS_PER_LEVEL = 10L
+    private const val HEAL_LOCK_TICKS_PER_LEVEL = 1L
 
     /**
      * 反伤/反击 — being hit by an element answers with the element that **counters** it, attached onto
