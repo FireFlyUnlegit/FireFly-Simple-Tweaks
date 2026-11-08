@@ -28,6 +28,7 @@ import net.minecraft.registry.RegistryKeys
 import net.minecraft.registry.entry.RegistryEntry
 import net.minecraft.server.command.CommandManager
 import net.minecraft.server.command.ServerCommandSource
+import net.minecraft.util.Formatting
 import net.minecraft.text.Text
 
 /**
@@ -96,6 +97,7 @@ object EnchantCommand {
     private const val KEY_REMOVED = "commands.simple_tweaks.enchant.removed"
     private const val KEY_BAD_SLOT = "commands.simple_tweaks.enchant.bad_slot"
     private const val KEY_NO_ITEM = "commands.simple_tweaks.enchant.no_item"
+    private const val KEY_UNSUPPORTED = "commands.simple_tweaks.enchant.unsupported_item"
     private const val KEY_DIFFICULTY = "commands.simple_tweaks.difficulty"
 
     /**
@@ -332,12 +334,26 @@ object EnchantCommand {
 
         var inspected = 0
         var changed = 0
+        var unsupported = 0
         for (entity in targets) {
             if (entity !is LivingEntity) continue
             for (equipmentSlot in slots) {
                 val stack = entity.getEquippedStack(equipmentSlot)
                 if (stack.isEmpty) continue
                 inspected++
+                // `build=cleanup78`: **a chat hint when the enchantment is not supported by this item.**
+                //
+                // The write itself is deliberate and stays unconditional — this command is the debug /
+                // tuning path and "the enchantment is applied regardless of whether the item could
+                // normally carry it" is its documented behaviour (`EnchantmentHelper#set` does not check
+                // `supported_items`). What is *not* acceptable is the silence: when `karma` was still
+                // main-hand-only and got installed with `... karma 4 armor`, four armour pieces carried a
+                // level, no handler ever matched, and the session produced zero log lines — i.e. "the
+                // feature is broken" and "it was applied where it cannot act" looked identical.
+                // So: write first, then tell the player.
+                if (level > 0 && !entry.value().isSupportedItem(stack)) {
+                    unsupported++
+                }
                 if (write(stack, entry, level)) changed++
             }
         }
@@ -351,9 +367,19 @@ object EnchantCommand {
             },
             true,
         )
+        // Yellow feedback, not a red error: the command did exactly what it was asked to. This is a hint
+        // that the item may not be one the enchantment can act on — see the loop above for why silence
+        // here costs a whole test round. `broadcastToOps = false` keeps it to the caller.
+        if (unsupported > 0) {
+            source.sendFeedback(
+                { Text.translatable(KEY_UNSUPPORTED, id, unsupported, slot).formatted(Formatting.YELLOW) },
+                false,
+            )
+        }
         FSTLog.log("EnchantCommand") {
             "targets=${targets.size}, enchantment=$id, level=$level, slot=$slot, " +
-                "changed=$changed, inspected=$inspected, outcome=${if (level <= 0) "removed" else "set"}"
+                "changed=$changed, inspected=$inspected, unsupported=$unsupported, " +
+                "outcome=${if (level <= 0) "removed" else "set"}"
         }
         return changed
     }

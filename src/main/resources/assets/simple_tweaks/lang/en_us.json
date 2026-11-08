@@ -4,6 +4,7 @@
   "commands.simple_tweaks.enchant.no_item": "No item found in the selected slot(s) -- nothing to enchant",
   "commands.simple_tweaks.enchant.removed": "%s removed from %s item(s) (slot: %s)",
   "commands.simple_tweaks.enchant.set": "%s set to level %s on %s item(s) (slot: %s)",
+  "commands.simple_tweaks.enchant.unsupported_item": "Warning: %s is not supported by %s of those item(s) (slot: %s) - the enchantment was written but will do nothing",
   "commands.simple_tweaks.enchant.usage": "Usage: /simple_tweaks enchant <targets> <enchantment> <level> [slot] -- level 0 removes; slot defaults to mainhand (alias: /fst)",
   "commands.simple_tweaks.usage": "Usage: /simple_tweaks <enchant|stconfig|enchantinfo> (alias: /fst)",
   "death.attack.celestial_particle": "%1$s was purified by the holy light",
@@ -378,6 +379,6 @@
   "enchantment.simple_tweaks.multitude": "Multitude",
   "enchantment.simple_tweaks.multitude.desc": "A reaction you trigger has a 15%% + 10%%-per-level chance to be replicated onto every other enemy within 6 + 2 x level blocks: they all receive the trigger element and the reaction's own damage",
   "enchantment.simple_tweaks.karma": "Karma",
-  "enchantment.simple_tweaks.karma.desc": "Each hit you land resets a pool worth 20%% + 10%%-per-level of that hit. The pool lasts 5 + level seconds and cancels incoming damage 1:1, for at most level hits",
+  "enchantment.simple_tweaks.karma.desc": "Each hit you land resets a pool worth 20%% + 10%% x effective level of that hit. The pool lasts 5 + effective level seconds and cancels incoming damage 1:1, for at most effective level hits. maxLevel 16 = four pieces at IV; effective level = total / 4",
   "gui.simple_tweaks.devour.stacks": "Devoured: %1$s stacks (+%2$s%% damage)"
 }

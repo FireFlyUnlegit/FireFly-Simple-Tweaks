@@ -542,6 +542,38 @@ public class SimpleTweaksGameTests implements FabricGameTest {
         context.complete();
     }
 
+    /**
+     * 因果's level maths: `max_level = 16` means **four pieces at IV**, not one item at 16.
+     *
+     * <p>The equipped level is the sum across the four armour slots, clamped to 16, and every formula
+     * uses `sum / 4`. So a perfect set (4 × 4) and a single forced-16 item both resolve to effective 4 —
+     * otherwise one `/fst enchant … karma 16 armor` would hand out three times the designed strength.
+     */
+    @GameTest(templateName = FabricGameTest.EMPTY_STRUCTURE)
+    public void karmaLevelMapsAFullSetToTheDesignCeiling(TestContext context) {
+        var karma = dev.firefly.simpletweaks.enchantments.handlers.mystery.EnchantKarmaHandler.INSTANCE;
+        int none = karma.equippedLevelOf(0);
+        int one = karma.equippedLevelOf(4);
+        int fullSet = karma.equippedLevelOf(4 * 4);
+        int forced = karma.equippedLevelOf(64);
+        float fullEffective = karma.effectiveLevelOf(fullSet);
+        float shareAtFull = 0.20F + 0.10F * fullEffective;
+
+        LOGGER.info("[FST-GameTest] karma levels: none={}, onePiece(4)={}, fullSet(4x4)={}, forced(64)={}, "
+                        + "effectiveAtFull={}, poolShare={}",
+                none, one, fullSet, forced, fullEffective, shareAtFull);
+
+        context.assertEquals(0, none, "no armour must mean level 0");
+        context.assertEquals(4, one, "one IV piece is level 4");
+        context.assertEquals(16, fullSet, "four IV pieces must sum to the declared max of 16");
+        context.assertEquals(16, forced, "an out-of-range sum must clamp to 16");
+        context.assertTrue(Math.abs(fullEffective - 4.0F) < 0.001F,
+                "a full set must resolve to effective level 4, got " + fullEffective);
+        context.assertTrue(Math.abs(shareAtFull - 0.60F) < 0.001F,
+                "the designed pool share at a full set is 60%, got " + shareAtFull);
+        context.complete();
+    }
+
     private static void assertReduction(TestContext context, float damage, float armor, float expected) {
         float actual = ArmorCurve.INSTANCE.reductionFor(armor, damage);
         LOGGER.info("[FST-GameTest] damage {} armor {} -> reduction {} (expected {})",

@@ -17,47 +17,73 @@ import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 import dev.firefly.simpletweaks.util.combatStack
 import dev.firefly.simpletweaks.util.damagesource.isAuxiliaryDamage
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
+import net.minecraft.entity.EquipmentSlot
 import net.minecraft.entity.player.PlayerEntity
 import java.util.WeakHashMap
 
 /**
  * 因果 — the damage you deal is banked, and the bank pays for the damage you take.
  *
- * ## The loop (author's spec, `build=cleanup77`)
+ * ## The loop (author's spec)
  * 1. **Every attack you land resets the pool** to `damage × (20 % + 10 % × level)` — it does not
  *    accumulate, so the pool is "what your last swing was worth", not an ever-growing shield.
  * 2. The pool **expires after `5 + level` seconds**.
  * 3. It can absorb **at most `level` incoming hits** (fewer if it runs out of value first).
  * 4. Absorption is **1:1** on the damage number.
  *
- * At IV: `60 %` of your swing, `9 s` life, up to `4` hits. A big swing therefore buys a real but
- * short-lived shield — and standing still after a hit wastes it.
+ * At effective level IV: `60 %` of your swing, `9 s` life, up to `4` hits.
+ *
+ * ## Why `maxLevel = 16` — "one full set" (`build=cleanup78`)
+ * The enchantment is per-piece, so the ceiling the numbers are designed against is **four pieces at IV**
+ * = 16. Declaring 16 as the enchantment's own `max_level` means a perfect set is *exactly* a max-level
+ * enchantment instead of four items pretending to be level 4, and `/fst enchant <target> karma 16 armor`
+ * is the natural "give me a full set" command.
+ *
+ * The **equipped level is the sum** across the four pieces, clamped to [MAX_LEVEL], and every formula
+ * uses `sum / `[PIECES] — i.e. the *effective* level is still `0..4`. Two consequences worth stating:
+ *
+ * - Four pieces at IV (`4 × 4 = 16`) gives effective `4` — the designed maximum.
+ * - One piece forced to 16 also gives effective `4`, not 16. Deliberate: otherwise a single command
+ *   would hand out `0.20 + 0.10 × 16 = 180 %` of a swing and 16 free hits, which is 3× the design.
+ *
+ * ## Why an **armour** enchantment at all
+ * The first version was `MAINHAND`-only. In the author's test session it was installed with
+ * `/fst enchant @s karma 4 armor`, i.e. on the four armour pieces — so neither branch ever matched the
+ * main hand and the enchantment produced **zero log lines and zero effect**. That is a usability trap,
+ * not a maths error: "the damage I take is absorbed" reads as protection, and protection belongs on
+ * armour.
  *
  * ## Why 1:1 is applied to `LivingHurtEvent.amount`
  * That event is **pre-armour** (`EntityDamageMixin` at the head of `Entity#damage`), so the pool cancels
  * *incoming damage before mitigation*: 100 banked points absorb 100 points of a hit that armour would
- * otherwise have reduced to 20. That is deliberate — "因果" is about the blow itself, and the alternative
- * (post-mitigation at `LivingDamageEvent`) would make the pool 5× stronger against armoured targets for
- * no design reason. The KDoc on [POOL_SHARE_PER_LEVEL] records the choice.
+ * otherwise have reduced to 20. That is deliberate — 因果 is about the blow itself.
  *
  * ## Why the pool lives in a `WeakHashMap` and not on the item
  * It is transient combat state (seconds), so it must not be serialised: a relog would otherwise restore a
  * shield from a fight that ended yesterday. `WeakHashMap` is keyed by the player entity, so it cannot leak
- * (`AGENTS.md` §4.11's family of bugs), and `Clone`/`logout` clear it explicitly for the cases a `WeakHashMap`
- * alone would keep alive for a moment too long (the discarded entity object).
+ * (`AGENTS.md` §4.11's family of bugs), and `Clone`/logout clear it explicitly.
  */
 @ModEnchantment(
     id = "karma",
     category = EnchantCategory.MYSTERY,
-    type = EnchantType.WEAPON,
-    maxLevel = 4,
+    type = EnchantType.ARMOR,
+    maxLevel = 16,
     weight = EnchantItemWeights.MYSTERY,
     anvilCost = 18,
     minCostBase = 50,
-    supportedItems = EnchantSupportedItemTags.WEAPON,
-    slots = [EnchantSlot.MAINHAND],
+    supportedItems = EnchantSupportedItemTags.ARMOR,
+    slots = [EnchantSlot.ARMOR],
 )
 object EnchantKarmaHandler : Listenable {
+
+    /** `4 pieces × 4 levels`: the ceiling the numbers are designed against. */
+    const val MAX_LEVEL = 16
+
+    /** Armour pieces the equipped level is summed over. */
+    const val PIECES = 4
+
+    /** The effective (per-piece) level range, i.e. `MAX_LEVEL / PIECES`. */
+    const val MAX_EFFECTIVE_LEVEL = MAX_LEVEL / PIECES
 
     /** Pool share of a swing before the per-level part. IV = 60 %. */
     const val POOL_SHARE_BASE = 0.20f
@@ -69,6 +95,14 @@ object EnchantKarmaHandler : Listenable {
 
     /** Ticks per second, for the lifetime conversion. */
     private const val TICKS_PER_SECOND = 20L
+
+    /** The four slots the level is read from. */
+    private val ARMOR_SLOTS = arrayOf(
+        EquipmentSlot.HEAD,
+        EquipmentSlot.CHEST,
+        EquipmentSlot.LEGS,
+        EquipmentSlot.FEET,
+    )
 
     /** The banked damage and the two ways it can run out. */
     private class Pool(
@@ -82,6 +116,25 @@ object EnchantKarmaHandler : Listenable {
 
     private val POOLS = WeakHashMap<PlayerEntity, Pool>()
 
+    /**
+     * Equipped level, **summed** over the four armour pieces and clamped to [MAX_LEVEL].
+     *
+     * Public and taking the sum rather than the player so the clamp is testable: a game test has no
+     * player, and "16 means a full set, not one item" is exactly the rule that must not silently change.
+     */
+    fun equippedLevelOf(sumOfPieces: Int): Int = sumOfPieces.coerceIn(0, MAX_LEVEL)
+
+    /** The effective per-piece level used by every formula: `0..`[MAX_EFFECTIVE_LEVEL]. */
+    fun effectiveLevelOf(level: Int): Float = level.toFloat() / PIECES
+
+    private fun equippedLevel(player: PlayerEntity): Int {
+        var sum = 0
+        for (slot in ARMOR_SLOTS) {
+            sum += getItemSpecificEnchantLevel(player.getEquippedStack(slot), GeneratedEnchantments.KARMA)
+        }
+        return equippedLevelOf(sum)
+    }
+
     @SubscribeEvent
     fun onLivingHurt(e: LivingHurtEvent) {
         if (e.invalid) return
@@ -90,22 +143,20 @@ object EnchantKarmaHandler : Listenable {
 
         // ---- (a) fill: this player landed a hit, which *resets* the pool -------------------------
         if (attacker is PlayerEntity && attacker !== e.entityLiving) {
-            val level = getItemSpecificEnchantLevel(
-                attacker.combatStack(e.source),
-                GeneratedEnchantments.KARMA,
-            )
-            if (level > 0) {
-                val share = POOL_SHARE_BASE + POOL_SHARE_PER_LEVEL * level
+            val effective = effectiveLevelOf(equippedLevel(attacker))
+            if (effective > 0f) {
+                val share = POOL_SHARE_BASE + POOL_SHARE_PER_LEVEL * effective
                 val banked = e.amount * share
-                val lifetime = (LIFETIME_BASE_SECONDS + LIFETIME_PER_LEVEL_SECONDS * level).toLong()
+                val lifetime = (LIFETIME_BASE_SECONDS + LIFETIME_PER_LEVEL_SECONDS * effective).toInt()
                 POOLS[attacker] = Pool(
                     amount = banked,
                     expiresAt = attacker.world.time + lifetime * TICKS_PER_SECOND,
-                    hitsLeft = level,
+                    hitsLeft = effective.toInt().coerceAtLeast(1),
                 )
                 FSTLog.log("Karma") {
-                    "player=${attacker.name.string}, lvl=$level, hit=${e.amount}, " +
-                        "banked=$banked, lifetimeSeconds=$lifetime, hits=$level, outcome=pool-set"
+                    "player=${attacker.name.string}, effective=${"%.2f".format(effective)}, " +
+                        "hit=${"%.2f".format(e.amount)}, banked=${"%.2f".format(banked)}, " +
+                        "lifetimeSeconds=$lifetime, hits=${effective.toInt()}, outcome=pool-set"
                 }
             }
         }
@@ -113,16 +164,18 @@ object EnchantKarmaHandler : Listenable {
         // ---- (b) spend: this player is the one being hurt ----------------------------------------
         val victim = e.entityLiving as? PlayerEntity ?: return
         if (victim === attacker) return
-        val level = getItemSpecificEnchantLevel(victim.mainHandStack, GeneratedEnchantments.KARMA)
-        if (level <= 0) return
+        val effective = effectiveLevelOf(equippedLevel(victim))
+        if (effective <= 0f) return
         val pool = POOLS[victim] ?: return
 
         val now = victim.world.time
         if (now > pool.expiresAt || pool.hitsLeft <= 0 || pool.amount <= 0f) {
             POOLS.remove(victim)
             FSTLog.log("Karma") {
-                "player=${victim.name.string}, age=${now - pool.expiresAt}, hits=${pool.hitsLeft}, " +
-                    "left=${pool.amount}, outcome=pool-expired"
+                "player=${victim.name.string}, effective=${"%.2f".format(effective)}, " +
+                    "expiredBy=${now - pool.expiresAt}, " +
+                    "hitsLeft=${pool.hitsLeft}, poolLeft=${"%.2f".format(pool.amount)}, " +
+                    "outcome=pool-void"
             }
             return
         }
@@ -134,9 +187,10 @@ object EnchantKarmaHandler : Listenable {
         pool.hitsLeft -= 1
 
         FSTLog.log("Karma") {
-            "player=${victim.name.string}, lvl=$level, damage=$before->${e.amount}, " +
-                "absorbed=$absorbed, poolLeft=${pool.amount}, hitsLeft=${pool.hitsLeft}, " +
-                "outcome=absorbed"
+            "player=${victim.name.string}, effective=${"%.2f".format(effective)}, " +
+                "damage=$before->${e.amount}, " +
+                "absorbed=${"%.2f".format(absorbed)}, poolLeft=${"%.2f".format(pool.amount)}, " +
+                "hitsLeft=${pool.hitsLeft}, outcome=absorbed"
         }
 
         if (pool.amount <= 0f || pool.hitsLeft <= 0) POOLS.remove(victim)
@@ -155,7 +209,7 @@ object EnchantKarmaHandler : Listenable {
         POOLS.remove(e.player)
     }
 
-    /** Remaining pool for [player]; exposed for the diagnostics command and the game test. */
+    /** Remaining pool for [player]; exposed for diagnostics and the game test. */
     @JvmStatic
     fun pooledOf(player: PlayerEntity): Float = POOLS[player]?.amount ?: 0f
 }

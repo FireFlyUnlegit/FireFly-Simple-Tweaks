@@ -4,6 +4,7 @@
   "commands.simple_tweaks.enchant.no_item": "所选槽位里没有物品，没有可附魔的目标",
   "commands.simple_tweaks.enchant.removed": "已从 %s 件物品上移除 %s（槽位：%s）",
   "commands.simple_tweaks.enchant.set": "已将 %s 设为 %s 级，作用于 %s 件物品（槽位：%s）",
+  "commands.simple_tweaks.enchant.unsupported_item": "注意：%s 不适用于其中 %s 件物品（槽位：%s）—— 已写入，但它不会生效",
   "commands.simple_tweaks.enchant.usage": "用法：/simple_tweaks enchant <目标> <附魔> <等级> [槽位] —— 等级填 0 即移除，槽位默认 mainhand（简写：/fst）",
   "commands.simple_tweaks.usage": "用法：/simple_tweaks <enchant|stconfig|enchantinfo>（简写：/fst）",
   "death.attack.celestial_particle": "%1$s 被圣光净化了",
@@ -378,6 +379,6 @@
   "enchantment.simple_tweaks.multitude": "众生",
   "enchantment.simple_tweaks.multitude.desc": "你触发的元素反应有 15%% + 10%%/级 的概率复制到 6+2×等级 格内的其它所有敌人：每个目标都吃到触发元素与这次反应本身的伤害",
   "enchantment.simple_tweaks.karma": "因果",
-  "enchantment.simple_tweaks.karma.desc": "你每次命中都会重置一个因果池，数值 = 该次伤害的 20%%+10%%/级；池子持续 5+等级 秒，按 1:1 抵消你受到的伤害，最多抵消等级 次",
+  "enchantment.simple_tweaks.karma.desc": "你每次命中都会重置一个因果池，数值 = 该次伤害的 20%%+10%%×有效等级；池子持续 5+有效等级 秒，按 1:1 抵消你受到的伤害，最多抵消有效等级 次。四件护甲各 IV = maxLevel 16，有效等级 = 等级总和÷4",
   "gui.simple_tweaks.devour.stacks": "已吞噬：%1$s 层（伤害 +%2$s%%）"
 }
