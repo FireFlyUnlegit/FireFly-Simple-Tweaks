@@ -16,8 +16,22 @@ object EnchantSupportedItemTags {
 const val SWORD         = "#minecraft:enchantable/sword"
 const val SHARP_WEAPON  = "#minecraft:enchantable/sharp_weapon"
 const val WEAPON        = "#minecraft:enchantable/weapon"
-const val AXE           = "#minecraft:enchantable/axe"
-const val SMASHING      = "#minecraft:enchantable/smashing"
+
+/**
+ * Axes **only**.
+ *
+ * ⚠️ **There is no `#minecraft:enchantable/axe`.** 1.21.1 ships exactly 19 `enchantable` tags and axes
+ * are reachable only through `#minecraft:enchantable/sharp_weapon` (shared with swords) or
+ * `#minecraft:enchantable/mining` (shared with pickaxes/shovels/hoes/shears). Declaring the nonexistent
+ * name is silent: the tag resolves to an **empty list**, `isPrimaryItem` answers `false` for every
+ * stack, and the enchantment can never be applied to anything — that is how
+ * `shield_breaker` shipped inert (`build=cleanup68`).
+ *
+ * So this is a **mod-owned** tag (`data/simple_tweaks/tags/item/axe_enchantable.json`) whose only entry
+ * is `#minecraft:axes`. Using `sharp_weapon` directly would also put axe-only enchantments on swords,
+ * which is a different design.
+ */
+const val AXE           = "#simple_tweaks:axe_enchantable"
 const val FIRE_ASPECT   = "#minecraft:enchantable/fire_aspect"
 
 /**
@@ -61,8 +75,8 @@ const val MINING_LOOT   = "#minecraft:enchantable/mining_loot"
 
 // universal
 /** Anything with durability — the widest commonly used tag. */
-const val DURABILITY    = "#minecraft:enchantable/durability"
-
+const val DURABILITY    = "#minecraft:enchantable/durability"
+
 /**
  * Elytra **only**.
  *

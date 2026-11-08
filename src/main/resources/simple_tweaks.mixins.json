@@ -16,6 +16,7 @@
     "EntityDisplayNameMixin",
     "EntityFallDamageMixin",
     "EntityTickMixin",
+    "ItemEnchantabilityMixin",
     "LivingEntityApplyDamageMixin",
     "LivingEntityDeathMixin",
     "LivingEntityHealMixin",

@@ -36,7 +36,7 @@ import net.minecraft.item.AxeItem
     maxLevel = 3,
     anvilCost = 6,
     minCostBase = 20,
-    supportedItems = "#minecraft:enchantable/axe",
+    supportedItems = EnchantSupportedItemTags.AXE,
     slots = [EnchantSlot.MAINHAND],
 )
 object EnchantShieldBreakerHandler : Listenable {

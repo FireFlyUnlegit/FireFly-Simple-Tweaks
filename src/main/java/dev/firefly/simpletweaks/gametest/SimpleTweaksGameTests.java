@@ -12,6 +12,9 @@ import net.minecraft.test.TestContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Game tests: a real server, real entities, the real damage pipeline.
  *
@@ -253,8 +256,102 @@ public class SimpleTweaksGameTests implements FabricGameTest {
         context.complete();
     }
 
-    private static void assertReduction(TestContext context, float damage, float armor, float expected) {
-        float actual = ArmorCurve.INSTANCE.reductionFor(armor, damage);
+    /**
+     * Every enchantment must be applicable to <b>at least one</b> item.
+     *
+     * <p>An enchantment whose {@code primary_items} / {@code supported_items} points at a tag that does
+     * not exist is <b>inert and silent</b>: the tag resolves to an empty list, {@code isPrimaryItem}
+     * answers {@code false} for every stack in the game, and the enchantment can never be put on
+     * anything — no error, no log, no crash. This is the {@code build=cleanup68} bug
+     * ({@code shield_breaker} declared {@code #minecraft:enchantable/axe}, and 1.21.1 has no such tag;
+     * vanilla's is {@code #minecraft:axes} plus {@code #minecraft:enchantable/sharp_weapon}).
+     *
+     * <p>Tag <em>contents</em> cannot be checked without the registry, which is why this lives here and
+     * not in {@code runTest}: the generated JSON is only a string until a server loads it.
+     */
+    @GameTest(templateName = FabricGameTest.EMPTY_STRUCTURE)
+    public void everyEnchantmentAcceptsAtLeastOneItem(TestContext context) {
+        var registry = context.getWorld().getRegistryManager()
+                .get(net.minecraft.registry.RegistryKeys.ENCHANTMENT);
+        List<String> problems = new ArrayList<>();
+        int checked = 0;
+
+        for (var key : GeneratedEnchantments.INSTANCE.getKEYS()) {
+            var entry = registry.getEntry(key).orElse(null);
+            if (entry == null) {
+                problems.add(key.getValue() + "=not-registered");
+                continue;
+            }
+            var definition = entry.value().definition();
+            // `supportedItems()` is a plain `RegistryEntryList` in 1.21.1; only `primaryItems()` is
+            // wrapped in an `Optional` (absent = "fall back to supported_items").
+            // `-1` means "the JSON did not declare one", which is also unusable — the generator always
+            // emits both, so an absent one is a bug rather than a "no restriction" feature.
+            int primary = definition.primaryItems().map(net.minecraft.registry.entry.RegistryEntryList::size).orElse(-1);
+            int supported = definition.supportedItems().size();
+            checked++;
+            if (primary == 0) {
+                problems.add(key.getValue() + "=primary-items-empty");
+            } else if (primary < 0) {
+                problems.add(key.getValue() + "=primary-items-absent");
+            } else if (supported == 0) {
+                problems.add(key.getValue() + "=supported-items-empty");
+            } else if (supported < 0) {
+                problems.add(key.getValue() + "=supported-items-absent");
+            }
+        }
+
+        // The two enchantments this guard was written for, checked by name so a future "empty tag"
+        // regression in them is named explicitly instead of arriving as a bare count.
+        var gale = enchantmentByPath(registry, "gale_elytra");
+        var breaker = enchantmentByPath(registry, "shield_breaker");
+        boolean galeOnElytra = gale != null
+                && gale.value().isPrimaryItem(new net.minecraft.item.ItemStack(net.minecraft.item.Items.ELYTRA));
+        boolean breakerOnAxe = breaker != null
+                && breaker.value().isPrimaryItem(new net.minecraft.item.ItemStack(net.minecraft.item.Items.IRON_AXE));
+        int elytraEnchantability = new net.minecraft.item.ItemStack(net.minecraft.item.Items.ELYTRA)
+                .getItem().getEnchantability();
+        boolean elytraEnchantable = new net.minecraft.item.ItemStack(net.minecraft.item.Items.ELYTRA)
+                .isEnchantable();
+        boolean axeEnchantable = new net.minecraft.item.ItemStack(net.minecraft.item.Items.IRON_AXE)
+                .isEnchantable();
+
+        LOGGER.info("[FST-GameTest] item tags: checked={}, problems={}, gale_elytra->elytra={}, "
+                        + "shield_breaker->iron_axe={}, elytra.itemEnchantability={}, "
+                        + "elytra.isEnchantable={}, iron_axe.isEnchantable={}",
+                checked, problems, galeOnElytra, breakerOnAxe, elytraEnchantability,
+                elytraEnchantable, axeEnchantable);
+
+        context.assertTrue(problems.isEmpty(),
+                "enchantments that can never be applied because their item tag is empty: " + problems);
+        context.assertTrue(galeOnElytra, "gale_elytra must be acceptable on minecraft:elytra");
+        context.assertTrue(breakerOnAxe, "shield_breaker must be acceptable on minecraft:iron_axe");
+        // The table gates on `getEnchantability() > 0`; vanilla returns 0 for the elytra, which is why
+        // no enchantment at all could be offered for it. `ItemEnchantabilityMixin` raises it to 15.
+        context.assertTrue(elytraEnchantable,
+                "minecraft:elytra must be enchantable at a table (ItemEnchantabilityMixin)");
+        context.complete();
+    }
+
+    /**
+     * Looks an enchantment up by its id path, e.g. {@code "gale_elytra"}.
+     *
+     * <p>Goes through {@link GeneratedEnchantments#getKEYS()} rather than a generated per-id property so
+     * this file does not have to know the Kotlin property names — and so a rename in KSP breaks the
+     * string check loudly instead of the Java getter at compile time.
+     */
+    private static net.minecraft.registry.entry.RegistryEntry.Reference<net.minecraft.enchantment.Enchantment>
+            enchantmentByPath(net.minecraft.registry.Registry<net.minecraft.enchantment.Enchantment> registry,
+                              String path) {
+        for (var key : GeneratedEnchantments.INSTANCE.getKEYS()) {
+            if (key.getValue().getPath().equals(path)) {
+                return registry.getEntry(key).orElse(null);
+            }
+        }
+        return null;
+    }
+
+    private static void assertReduction(TestContext context, float damage, float armor, float expected) {        float actual = ArmorCurve.INSTANCE.reductionFor(armor, damage);
         LOGGER.info("[FST-GameTest] damage {} armor {} -> reduction {} (expected {})",
                 damage, armor, actual, expected);
         context.assertTrue(Math.abs(actual - expected) < 0.001f,
