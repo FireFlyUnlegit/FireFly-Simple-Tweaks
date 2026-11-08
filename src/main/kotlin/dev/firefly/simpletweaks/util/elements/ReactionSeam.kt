@@ -22,9 +22,18 @@ object ReactionSeam {
      * @param attacker the player credited with the reaction, or `null` when it came from the environment.
      * @param target the entity whose aura was consumed.
      * @param element the **trigger** element (the one that arrived), not the aura that was already there.
+     * @param outcome what the reaction resolved to (`amplify` multiplier and any flat damage). Threaded
+     *   through so a listener can **copy the numbers** rather than re-derive them — `multitude` replicates
+     *   the same reaction on nearby enemies, and re-deriving it would either need a second copy of the
+     *   formula or would silently produce different damage (`build=cleanup77`).
      */
     fun interface Listener {
-        fun onReaction(attacker: LivingEntity?, target: LivingEntity, element: ElementType)
+        fun onReaction(
+            attacker: LivingEntity?,
+            target: LivingEntity,
+            element: ElementType,
+            outcome: ReactionOutcome,
+        )
     }
 
     private val listeners = ArrayList<Listener>(2)
@@ -33,11 +42,16 @@ object ReactionSeam {
         if (listeners.none { it === listener }) listeners += listener
     }
 
-    fun fire(attacker: LivingEntity?, target: LivingEntity, element: ElementType) {
+    fun fire(
+        attacker: LivingEntity?,
+        target: LivingEntity,
+        element: ElementType,
+        outcome: ReactionOutcome = ReactionOutcome(),
+    ) {
         if (listeners.isEmpty()) return
         for (listener in listeners) {
             try {
-                listener.onReaction(attacker, target, element)
+                listener.onReaction(attacker, target, element, outcome)
             } catch (t: Throwable) {
                 // A listener must never be able to break the damage that triggered it.
                 dev.firefly.simpletweaks.compat.FSTLog.log("ReactionSeam") {

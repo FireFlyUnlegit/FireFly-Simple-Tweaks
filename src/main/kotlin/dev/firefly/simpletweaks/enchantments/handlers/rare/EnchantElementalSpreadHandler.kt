@@ -41,7 +41,7 @@ object EnchantElementalSpreadHandler : Listenable {
     private const val UNITS_PER_LEVEL = 0.5f
 
     override fun init() {
-        ReactionSeam.register { attacker, target, element -> spread(attacker, target, element) }
+        ReactionSeam.register { attacker, target, element, _ -> spread(attacker, target, element) }
     }
 
     private fun spread(attacker: LivingEntity?, target: LivingEntity, element: ElementType) {

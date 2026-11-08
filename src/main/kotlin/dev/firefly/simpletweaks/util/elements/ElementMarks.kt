@@ -146,7 +146,7 @@ object ElementMarks {
                 // `elemental_supremacy`: remember what hit the wearer, so their next swing can replay it.
                 ReactionMemory.recordIfWearing(target, reaction.key)
 
-                ReactionSeam.fire(attacker, target, element)
+                ReactionSeam.fire(attacker, target, element, outcome)
 
                 FSTLog.log("Element") {
                     "reaction=${reaction.key}, aura=${auraElement.id}:${"%.2f".format(auraUnits)}, " +

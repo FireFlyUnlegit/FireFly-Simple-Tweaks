@@ -62,8 +62,8 @@ public class SimpleTweaksGameTests implements FabricGameTest {
         int keys = GeneratedEnchantments.INSTANCE.getKEYS().size();
         int categories = GeneratedEnchantments.INSTANCE.getCATEGORY().size();
         LOGGER.info("[FST-GameTest] generated table: keys={}, categories={}", keys, categories);
-        context.assertEquals(123, keys, "GeneratedEnchantments.KEYS should list all 123 enchantments");
-        context.assertEquals(123, categories, "GeneratedEnchantments.CATEGORY should cover every id");
+        context.assertEquals(127, keys, "GeneratedEnchantments.KEYS should list all 127 enchantments");
+        context.assertEquals(127, categories, "GeneratedEnchantments.CATEGORY should cover every id");
         context.complete();
     }
 
@@ -504,6 +504,42 @@ public class SimpleTweaksGameTests implements FabricGameTest {
             String path, net.minecraft.item.Item item) {
         var entry = enchantmentByPath(registry, path);
         return entry != null && entry.value().isPrimaryItem(new net.minecraft.item.ItemStack(item));
+    }
+
+    /**
+     * 吞噬's stacks must live in the item's `CUSTOM_DATA` and survive a component round-trip.
+     *
+     * <p>`devour` is the only enchantment whose progression is stored on the stack (`build=cleanup77`).
+     * If the NBT key or the component handling were wrong, the bonus would silently stay at 0 forever —
+     * and the tooltip line would stay hidden, so nothing would look broken. This test writes the same
+     * component the handler writes and reads it back through the handler's own accessor.
+     */
+    @GameTest(templateName = FabricGameTest.EMPTY_STRUCTURE)
+    public void devourStacksRoundTripThroughItemNbt(TestContext context) {
+        var stack = new net.minecraft.item.ItemStack(net.minecraft.item.Items.IRON_SWORD);
+        var handler = dev.firefly.simpletweaks.enchantments.handlers.mythic.EnchantDevourHandler.INSTANCE;
+
+        int empty = handler.stacksOf(stack);
+        var compound = new net.minecraft.nbt.NbtCompound();
+        compound.putInt(dev.firefly.simpletweaks.enchantments.handlers.mythic.EnchantDevourHandler.KEY, 12);
+        stack.set(net.minecraft.component.DataComponentTypes.CUSTOM_DATA,
+                net.minecraft.component.type.NbtComponent.of(compound));
+        int stored = handler.stacksOf(stack);
+
+        // A second, unrelated custom-data field must not disturb the read (other mods write there too).
+        compound.putInt("othermod:flag", 7);
+        stack.set(net.minecraft.component.DataComponentTypes.CUSTOM_DATA,
+                net.minecraft.component.type.NbtComponent.of(compound));
+        int afterOtherKey = handler.stacksOf(stack);
+
+        LOGGER.info("[FST-GameTest] devour stacks: empty={}, stored(12)={}, after-foreign-key={}, "
+                        + "bonus at 12 stacks={}",
+                empty, stored, afterOtherKey, 12 * 0.02F);
+
+        context.assertEquals(0, empty, "a fresh weapon must have no stacks");
+        context.assertEquals(12, stored, "stacks must survive the CUSTOM_DATA round-trip");
+        context.assertEquals(12, afterOtherKey, "an unrelated NBT key must not disturb the count");
+        context.complete();
     }
 
     private static void assertReduction(TestContext context, float damage, float armor, float expected) {

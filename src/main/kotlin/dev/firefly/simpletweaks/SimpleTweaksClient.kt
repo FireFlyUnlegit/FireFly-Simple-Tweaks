@@ -12,6 +12,7 @@ import dev.firefly.simpletweaks.util.mobs.MobLevelSync
 import dev.firefly.simpletweaks.network.packets.PacketOpenModScreen
 import dev.firefly.simpletweaks.client.InfinitePowerLaserClient
 import dev.firefly.simpletweaks.client.particle.CelestialRingParticles
+import dev.firefly.simpletweaks.client.tooltips.DevourTooltipHandler
 import dev.firefly.simpletweaks.client.tooltips.EnchantAttributeToolTipHandler
 import dev.firefly.simpletweaks.client.tooltips.EnchantDamageToolTipHandler
 import dev.firefly.simpletweaks.client.tooltips.ManaPoolToolTipHandler
@@ -86,6 +87,8 @@ class SimpleTweaksClient : ClientModInitializer {
         // prismatic_blessing's 17 attribute lines are rendered by whatever mirrors enchantment
         // attributes into the stack's tooltip; fold them into one line unless Shift is held.
         PrismaticTooltipFolder.register()
+        // devour keeps its stacks in the item's CUSTOM_DATA, which nothing else displays.
+        DevourTooltipHandler.register()
         registerCelestialReceivers()
         registerAttackCooldownReceiver()
         InfinitePowerLaserClient.register()
@@ -121,7 +124,7 @@ class SimpleTweaksClient : ClientModInitializer {
                 "+ element damage is no longer exempt from the i-frame gate (only combo cancels it) " +
                 "+ reaction names as floating labels with their damage, 18 reactions, " +
                 "+ split damage display now emits one number per element, fanned out and staggered " +
-                "(v2.2.6, build=cleanup76)",
+                "(v2.2.6, build=cleanup77)",
             SimpleTweaks.NAME,
             enchantmentCount,
         )

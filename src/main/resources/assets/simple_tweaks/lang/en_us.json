@@ -370,5 +370,14 @@
   "enchantment.simple_tweaks.riposte.desc": "After being hit in melee, your next hit within 3 s deals +15%%-per-level damage, then the charge is spent",
   "enchantment.simple_tweaks.first_strike": "First Strike",
   "enchantment.simple_tweaks.first_strike.desc": "The first hit on a target that is still at full health deals +12%%-per-level damage",
-  "gui.simple_tweaks.prismatic.folded": "Prismatic Blessing: +%1$s%% x %2$s attributes (hold Shift to expand)"
+  "gui.simple_tweaks.prismatic.folded": "Prismatic Blessing: +%1$s%% x %2$s attributes (hold Shift to expand)",
+  "enchantment.simple_tweaks.myriad_blades": "Myriad Blades",
+  "enchantment.simple_tweaks.myriad_blades.desc": "A hit has a 20%% + 10%%-per-level chance to spawn two phantom strikes, each dealing 25%% of that hit as physical damage. Phantoms never trigger any other on-hit effect",
+  "enchantment.simple_tweaks.devour": "Devour",
+  "enchantment.simple_tweaks.devour.desc": "Every kill feeds the weapon by one stack: +2%% final damage per stack, up to 5 x level stacks (III = 15 stacks, +30%%). Dying halves them. The stacks stay on the weapon, not on the player",
+  "enchantment.simple_tweaks.multitude": "Multitude",
+  "enchantment.simple_tweaks.multitude.desc": "A reaction you trigger has a 15%% + 10%%-per-level chance to be replicated onto every other enemy within 6 + 2 x level blocks: they all receive the trigger element and the reaction's own damage",
+  "enchantment.simple_tweaks.karma": "Karma",
+  "enchantment.simple_tweaks.karma.desc": "Each hit you land resets a pool worth 20%% + 10%%-per-level of that hit. The pool lasts 5 + level seconds and cancels incoming damage 1:1, for at most level hits",
+  "gui.simple_tweaks.devour.stacks": "Devoured: %1$s stacks (+%2$s%% damage)"
 }
