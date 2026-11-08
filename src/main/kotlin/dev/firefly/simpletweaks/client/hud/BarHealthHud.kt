@@ -5,22 +5,27 @@ import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.util.math.MathHelper
 
 /**
- * The player's health as **one framed bar**, with absorption as a second gold bar **above** it.
+ * Draws **all four HUD bars in one place**, from the health bar's own render pass.
  *
- * ## What this owns
- * Only the drawing. `InGameHudHealthMixin` decides whether to replace vanilla's ten hearts at all (the
- * `/stconfig` toggle); this object draws the replacement.
+ * ## Why everything hangs off `renderHealthBar`
+ * The mixins that cancel `renderArmor` / `renderFood` are one conflict away from not running: a modpack
+ * that also targets those methods (InventoryHUD+ does exactly that in the author's client) can cancel at
+ * HEAD first, in which case anything drawn **inside** them never appears. The health bar's own pass is the
+ * one seam this mod genuinely owns — it was already replaced in `build=cleanup85` and it demonstrably
+ * runs — so armour and hunger are drawn here too. The other two mixins are reduced to "cancel the vanilla
+ * icons, draw nothing", which makes them **optional**: if they are pre-empted, the player sees vanilla
+ * icons *plus* our bars instead of empty space (the reported "没发现护甲值显示").
  *
- * ## The two health arguments of `renderHealthBar`
- * `InGameHud#renderStatusBars` passes `ceil(player.getHealth())` as the parameter Yarn names `lastHealth`
- * and its own **animated** `renderHealthValue` as the one named `health` (bytecode verified, `build=cleanup87`).
- * Reading the latter made the bar trail the number for about a second — the reported "血量不变之后才看到
- * 血条更新". This file only ever receives the real value.
+ * ## Rows (baseline = the `y` vanilla passes to the health bar)
+ * | row | content |
+ * |---|---|
+ * | `y - 20` | armour, **only when absorption also occupies `y - 10`** |
+ * | `y - 10` | absorption (gold), else armour |
+ * | `y` | health |
  *
- * ## Absorption lives in the row above (`build=cleanup89`)
- * It used to be a gold strip on the health bar's top edge, which collided with the bar's own highlight and
- * made the number unreadable. It is now a **second bar one row up, drawn exactly like the health bar** in
- * gold — the author's request — with its own absorbing-heart icon and the amount inside it.
+ * Hunger sits on the health row, right-aligned, with its icon on the **right** of the bar
+ * (`build=cleanup90`): the block is anchored to vanilla's right edge (`width / 2 + 91`), so an icon on the
+ * left would point away from the screen edge the player's eye uses.
  */
 object BarHealthHud {
 
@@ -49,7 +54,7 @@ object BarHealthHud {
     private var holdFrames = 0
 
     /**
-     * Draws the health bar at ([x], [y]) and, when the player has absorption, a gold bar one row above.
+     * Draws the whole HUD block at ([x], [y]) — the coordinates vanilla passed for the heart row.
      *
      * @param health the **real** health (`ceil(player.getHealth())`, vanilla's `lastHealth` argument)
      */
@@ -80,9 +85,15 @@ object BarHealthHud {
             holdFrames = 0
         }
 
-        // --- icon + health bar ---------------------------------------------------------------------
         val barX = x + HudBar.ICON
-        context.drawGuiTexture(HudBar.HEART_FULL, x, y, 9, 9)
+
+        // --- armour first, so it is underneath the bars it shares rows with -------------------------
+        if (player.armor > 0) {
+            ArmorHud.render(context, player, x, y - (if (absorption > 0) 20 else 10))
+        }
+
+        // --- health --------------------------------------------------------------------------------
+        HudBar.icon(context, HudBar.HEART_CONTAINER, HudBar.HEART_FULL, x, y)
         HudBar.frame(context, barX, y, HudBar.WIDTH, HudBar.HEIGHT)
 
         val innerW = HudBar.WIDTH - 2
@@ -90,7 +101,6 @@ object BarHealthHud {
         val filledPx = MathHelper.ceil(innerW * realRatio).toInt()
         val ghostPx = MathHelper.ceil(innerW * (ghost / max).coerceIn(0f, 1f)).toInt()
 
-        // Ghost slice between the real fill and the trail; drawn first so the fill wins on overlap.
         if (ghostPx > filledPx) {
             context.fill(barX + 1 + filledPx, y + 1, barX + 1 + ghostPx, y + HudBar.HEIGHT - 1, GHOST)
         }
@@ -102,7 +112,7 @@ object BarHealthHud {
         // --- absorption: same bar, one row up, gold ------------------------------------------------
         if (absorption > 0) {
             val absorbY = y - 10
-            context.drawGuiTexture(HudBar.HEART_ABSORBING, x, absorbY, 9, 9)
+            HudBar.icon(context, HudBar.HEART_CONTAINER, HudBar.HEART_ABSORBING, x, absorbY)
             HudBar.frame(context, barX, absorbY, HudBar.WIDTH, HudBar.HEIGHT)
             HudBar.fill(
                 context, barX, absorbY, HudBar.WIDTH, HudBar.HEIGHT,
@@ -113,6 +123,10 @@ object BarHealthHud {
                 barX, absorbY, HudBar.WIDTH, ABSORB_TEXT,
             )
         }
+
+        // --- hunger: mirrored to the right edge, icon on the right ---------------------------------
+        val rightEdge = context.getScaledWindowWidth() / 2 + 91
+        HungerHud.renderRightAligned(context, player, rightEdge, y)
     }
 
     /** Reset the ghost on world change, so a new life does not inherit the previous trail. */

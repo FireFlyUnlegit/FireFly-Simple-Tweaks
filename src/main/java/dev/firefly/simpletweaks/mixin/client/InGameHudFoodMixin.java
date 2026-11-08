@@ -1,6 +1,5 @@
 package dev.firefly.simpletweaks.mixin.client;
 
-import dev.firefly.simpletweaks.client.hud.HungerHud;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.hud.InGameHud;
 import net.minecraft.entity.player.PlayerEntity;
@@ -10,19 +9,11 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
- * Replaces vanilla's row of food icons with {@link HungerHud}'s bar, mirrored to the right.
+ * Suppresses vanilla's food icons; **the hunger bar itself is drawn by {@code BarHealthHud}**.
  *
- * <h2>Why the coordinates are recomputed</h2>
- * `renderFood(DrawContext, PlayerEntity, int, int)` receives two ints whose order is not visible from its
- * descriptor, and the caller passes locals rather than named values. Recomputing from the HUD block is
- * unambiguous: the block is centred and 182 px wide (`width / 2 + 91` is its right edge), and the food row
- * is the same row as the hearts. Our widget is 89 px, so it is anchored by that **right** edge to keep the
- * food reading where vanilla put it.
- *
- * <h2>Why cancel the head</h2>
- * `renderFood` draws the container, the ten food sprites and the hunger-effect overlay (the greenish
- * variant) in one body. Cancelling at HEAD removes all of it; redirecting draws would leave the overlay
- * behind as a second, half-drawn row.
+ * See {@code InGameHudArmorMixin} for why this is a suppressor only: a mod that injects into
+ * {@code renderFood} first would swallow anything drawn here, and the hunger bar disappearing is worse than
+ * a duplicated icon row.
  */
 @Mixin(InGameHud.class)
 public abstract class InGameHudFoodMixin {
@@ -32,7 +23,7 @@ public abstract class InGameHudFoodMixin {
                     + "Lnet/minecraft/entity/player/PlayerEntity;II)V";
 
     @Inject(method = RENDER_FOOD, at = @At("HEAD"), cancellable = true)
-    private void simpletweaks$barHunger(
+    private void simpletweaks$hideVanillaFood(
             DrawContext context,
             PlayerEntity player,
             int y,
@@ -42,12 +33,6 @@ public abstract class InGameHudFoodMixin {
         if (!dev.firefly.simpletweaks.core.config.GeneralConfig.getBarHealthHud()) {
             return;
         }
-
-        final int healthRowY = context.getScaledWindowHeight() - 39 - dev.firefly.simpletweaks.client.hud.HudBar.LIFT;
-        final int rightEdge = context.getScaledWindowWidth() / 2 + 91;
-        final int blockX = rightEdge - dev.firefly.simpletweaks.client.hud.HudBar.BLOCK;
-
-        HungerHud.INSTANCE.render(context, player, blockX, healthRowY);
         ci.cancel();
     }
 }

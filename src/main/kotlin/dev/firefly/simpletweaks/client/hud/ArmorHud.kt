@@ -5,19 +5,20 @@ import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.util.math.MathHelper
 
 /**
- * Armour as **one framed bar**, with armour **toughness** as a thin line along its bottom edge.
+ * Armour as **one framed bar**, with armour **toughness** as a thin cyan line along its bottom edge.
  *
  * ## Why toughness is a line and not a second bar
  * Vanilla draws toughness as small pips *above* the armour icons — a second visual language for a number
- * that only matters against strong hits. Here the two live in one widget: the bar is the armour value
- * (`min(armor, 20) / 20`, i.e. full at vanilla's damage-reduction wall of 20), the cyan line at its bottom
- * is `min(toughness, 20) / 20`, and the number printed inside is the armour value. One row, both numbers,
- * no extra vertical space — the HUD is already dense at 10 px rows.
+ * that only matters against strong hits. Here both live in one widget: the bar is the armour value
+ * (`min(armor, 20) / 20`, i.e. full at vanilla's damage-reduction wall of 20), the line is
+ * `min(toughness, 20) / 20`, and the number printed inside is the armour value.
  *
  * ## The 20 cap
- * Armour above 20 keeps reducing damage in vanilla (the curve continues), but a bar that never fills past
- * 20 % of its width for a 100-armour set would read as broken. The bar therefore saturates at 20 and the
- * **number** carries the truth; that is also why the value is printed rather than inferred from the fill.
+ * Armour above 20 keeps reducing damage in vanilla, but a bar that never fills past 20 % of its width for a
+ * 100-armour set reads as broken. The bar saturates at 20 and the **number** carries the truth — which is
+ * also why the value is printed rather than inferred from the fill.
+ *
+ * Drawn from the health bar's pass, not from a `renderArmor` injection; see [BarHealthHud] for why.
  */
 object ArmorHud {
 
@@ -34,15 +35,16 @@ object ArmorHud {
         if (armor <= 0) return
 
         val barX = x + HudBar.ICON
-        context.drawGuiTexture(HudBar.ARMOR_FULL, x, y, 9, 9)
+        HudBar.icon(context, HudBar.ARMOR_EMPTY, HudBar.ARMOR_FULL, x, y)
         HudBar.frame(context, barX, y, HudBar.WIDTH, HudBar.HEIGHT)
         HudBar.fill(
             context, barX, y, HudBar.WIDTH, HudBar.HEIGHT,
             (armor / REFERENCE).coerceIn(0f, 1f), FILL_TOP, FILL_BOTTOM,
         )
 
-        // Toughness: a 1 px line along the bottom of the inner track, same scale as armour.
-        val toughness = player.getAttributeValue(net.minecraft.entity.attribute.EntityAttributes.GENERIC_ARMOR_TOUGHNESS)
+        val toughness = player.getAttributeValue(
+            net.minecraft.entity.attribute.EntityAttributes.GENERIC_ARMOR_TOUGHNESS
+        )
         if (toughness > 0.0) {
             val innerW = HudBar.WIDTH - 2
             val px = MathHelper.ceil(innerW * (toughness / REFERENCE).coerceIn(0.0, 1.0)).toInt()
