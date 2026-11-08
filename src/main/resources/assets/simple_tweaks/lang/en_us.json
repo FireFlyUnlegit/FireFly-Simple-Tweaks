@@ -377,6 +377,6 @@
   "enchantment.simple_tweaks.multitude": "Multitude",
   "enchantment.simple_tweaks.multitude.desc": "A reaction you trigger has a 15%% + 10%%-per-level chance to be replicated onto every other enemy within 6 + 2 x level blocks: they all receive the trigger element and the reaction's own damage",
   "enchantment.simple_tweaks.karma": "Karma",
-  "enchantment.simple_tweaks.karma.desc": "Each hit you land resets a pool worth 20%% + 10%% x effective level of that hit. The pool lasts 5 + effective level seconds and cancels incoming damage 1:1, for at most effective level hits. maxLevel 16 = four pieces at IV; effective level = total / 4",
+  "enchantment.simple_tweaks.karma.desc": "Each attack you land (elemental riders, reactions and damage-over-time ticks do not count) resets the karma pool to 20%% + 10%% x effective level of that hit. The pool lasts floor(5 + effective level) seconds and cancels incoming damage 1:1 (before armour reduction) for at most floor(effective level) hits, then it is spent. maxLevel 16 = four pieces at IV; effective level = sum of all four / 4",
   "gui.simple_tweaks.devour.stacks": "Devoured: %1$s stacks (+%2$s%% damage)"
 }
