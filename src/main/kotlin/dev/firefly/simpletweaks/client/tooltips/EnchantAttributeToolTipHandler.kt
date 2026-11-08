@@ -3,6 +3,7 @@ package dev.firefly.simpletweaks.client.tooltips
 import dev.firefly.simpletweaks.SimpleTweaks
 import dev.firefly.simpletweaks.compat.FSTLog
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
+import dev.firefly.simpletweaks.enchantments.handlers.common.EnchantDeftHandler
 import dev.firefly.simpletweaks.enchantments.handlers.legendary.EnchantComboHandler
 import dev.firefly.simpletweaks.enchantments.handlers.mythic.infinitepower.FlightHandler
 import net.fabricmc.fabric.api.client.item.v1.ItemTooltipCallback
@@ -146,6 +147,19 @@ object EnchantAttributeToolTipHandler {
                     EntityAttributes.GENERIC_ATTACK_SPEED,
                     EntityAttributeModifier.Operation.ADD_VALUE,
                     FlightHandler.attackSpeedBonus(level),
+                )
+            )
+        },
+        // `build=cleanup74`: 巧手 (deft) applies `ADD_MULTIPLIED_BASE` every tick from
+        // `EnchantDeftHandler`, so the attack-speed total never included it and the tooltip read the
+        // bare weapon speed while the player really swung 24 % faster at III. The operation here **must**
+        // match the handler's, or the fold would compute a different number than the game applies.
+        CodeDrivenBonus(GeneratedEnchantments.DEFT) { level ->
+            listOf(
+                Contribution(
+                    EntityAttributes.GENERIC_ATTACK_SPEED,
+                    EntityAttributeModifier.Operation.ADD_MULTIPLIED_BASE,
+                    (EnchantDeftHandler.ATTACK_SPEED_PER_LEVEL * level).toDouble(),
                 )
             )
         },
