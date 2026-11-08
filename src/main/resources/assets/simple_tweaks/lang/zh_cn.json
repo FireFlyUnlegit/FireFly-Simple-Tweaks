@@ -185,7 +185,7 @@
   "enchantment.simple_tweaks.delayed_recovery.desc": "受到伤害后，部分伤害将在接下来几秒内以治疗形式返还。死亡会取消所有待回复。",
   "enchantment.simple_tweaks.double_crit.desc": "暴击时有几率造成额外大量伤害，等级越高触发几率和伤害越高。",
   "enchantment.simple_tweaks.double_strike.desc": "每次攻击都有概率触发另一次打击。",
-  "enchantment.simple_tweaks.echo_shield.desc": "每次受到的伤害都会被减免一部分，减免的部分存入回响储值。当储值不小于本次伤害时，完全免疫该次伤害，并将全部储值原路返还给攻击者。死亡时储值清空。（返还的伤害沿用命中你的那个元素）",
+  "enchantment.simple_tweaks.echo_shield.desc": "每次受到的伤害减免 3%%×等级（等级总和上限 20 → 最高 60%%），减免的部分存入回响储值。当储值不小于本次伤害时，完全免疫该次伤害，并将全部储值原路返还给攻击者。被格挡的攻击者在接下来 等级 tick（最多 5 tick＝0.25 秒）内无法被治疗。死亡时储值清空。（返还的伤害沿用命中你的那个元素，且无视护甲）",
   "enchantment.simple_tweaks.echo_shot.desc": "箭矢命中后会在目标身上再次回响，造成额外伤害。等级越高，回响伤害越高、延迟越短。",
   "enchantment.simple_tweaks.effect_bonus.desc": "根据目标身上药水效果的数量提升伤害，等级越高倍率越高。",
   "enchantment.simple_tweaks.elemental_mastery.desc": "元素转化的伤害 +10%%/级；元素反应（剧变）的伤害 +8%%/级",

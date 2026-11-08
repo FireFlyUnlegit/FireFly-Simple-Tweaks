@@ -27,10 +27,18 @@ object DevourTooltipHandler {
             if (stack.isEmpty) return@register
             val stacks = EnchantDevourHandler.stacksOf(stack)
             if (stacks <= 0) return@register
+            // The percentage is formatted to a string on purpose: passing the `Float` straight into
+            // `translatable` renders `Float.toString`, i.e. `30.0` (and `24.000002` for counts where the
+            // float maths does not land exactly) instead of `30`. Numbers in a tooltip are text.
+            val percent = EnchantDevourHandler.BONUS_PER_STACK * 100f * stacks
             lines.add(
-                Text.translatable(LINE_KEY, stacks, EnchantDevourHandler.BONUS_PER_STACK * 100f * stacks)
+                Text.translatable(LINE_KEY, stacks, formatPercent(percent))
                     .formatted(Formatting.DARK_PURPLE),
             )
         }
     }
+
+    /** `2`, `30`, `7.5` — never `30.0` / `24.000002`. */
+    private fun formatPercent(value: Float): String =
+        "%.1f".format(value).removeSuffix(".0")
 }

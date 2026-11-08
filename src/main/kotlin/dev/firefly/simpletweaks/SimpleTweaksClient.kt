@@ -124,7 +124,7 @@ class SimpleTweaksClient : ClientModInitializer {
                 "+ element damage is no longer exempt from the i-frame gate (only combo cancels it) " +
                 "+ reaction names as floating labels with their damage, 18 reactions, " +
                 "+ split damage display now emits one number per element, fanned out and staggered " +
-                "(v2.2.6, build=cleanup79)",
+                "(v2.2.6, build=cleanup80)",
             SimpleTweaks.NAME,
             enchantmentCount,
         )
