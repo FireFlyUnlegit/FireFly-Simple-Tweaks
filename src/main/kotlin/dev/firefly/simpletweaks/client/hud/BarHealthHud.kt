@@ -7,7 +7,7 @@ import net.minecraft.util.Identifier
 import net.minecraft.util.math.MathHelper
 
 /**
- * Replaces vanilla's row of ten hearts with **one bar**: `♥ [████ 19/20 ████]`.
+ * Replaces vanilla's row of ten hearts with **one framed bar**: `♥ [████ 19/20 ████]`.
  *
  * ## Why replace instead of appending
  * Vanilla draws ten 8×9 heart sprites per row, so a modded player with 40+ max health needs three rows. A
@@ -20,60 +20,49 @@ import net.minecraft.util.math.MathHelper
  * `InGameHud#renderStatusBars` passes (bytecode, 1.21.1):
  *
  * ```
- * 362: aload_0/aload_1/aload_2   → this, context, player
- * 365: iload 8   → x
- * 367: iload 10  → y
- * 369: iload 14  → lines
- * 371: iload 16  → regeneratingHeartIndex
- * 373: fload 11  → maxHealth
- * 375: iload_3   → ceil(player.getHealth())      ← **real health**
- * 376: iload 7   → this.renderHealthValue        ← **animated display value**
- * 378: iload 12  → absorption
- * 380: iload 4   → blinking
+ * iload 8  → x        iload 10 → y          iload 14 → lines     iload 16 → regeneratingHeartIndex
+ * fload 11 → maxHealth
+ * iload_3  → ceil(player.getHealth())      ← **real health**
+ * iload 7  → this.renderHealthValue        ← **animated display value** (~1 s lerp)
+ * iload 12 → absorption                     iload 4  → blinking
  * ```
  *
- * The parameter that *looks* like "health" (the second int) is vanilla's animated `renderHealthValue`,
- * which lerps toward the real value over ~1 s. Reading it made the bar lag behind the number for exactly
- * that long — the reported "持续变化血量之后要等一会才看到更新" (`build=cleanup87`). The real value is the
- * parameter vanilla calls `lastHealth`; the animated one is only useful as the ghost's start point, which
- * would be *below* the real value on healing, so this file ignores it entirely.
+ * The parameter that *looks* like "health" (the second int) is vanilla's animated `renderHealthValue`;
+ * reading it made the bar trail the number for about a second — the reported "血量不变之后才看到血条更新"
+ * (`build=cleanup87`). The real value is the parameter vanilla calls `lastHealth`, and this file uses only
+ * that one.
  *
- * ## Layout (GUI pixels), anchored exactly like vanilla's hearts
+ * ## Layout (GUI pixels)
  * ```
- * x                             x+80   x+91
- * [██████  19/20  ██████]        ♥
+ * x  x+9                x+89
+ * ♥  [████  19/20  ████]
  * ```
- * The **bar** starts at the HUD anchor `x`, not the icon: vanilla gives the heart row
- * `windowCenter - 91`, and a bar that began 11 px later would no longer line up with the armour row above
- * it or the hunger row beside it (`build=cleanup87`, author: "条子跟最左端对齐"). The heart icon then
- * closes the block on the right, which also makes the whole widget **exactly 91 px wide** — the same
- * footprint vanilla reserved — so nothing else on the HUD shifts.
+ * The **icon is on the left**, the bar starts immediately after it (no gap), and the value sits **inside**
+ * the bar, centred; absorption is a gold top edge plus `+N` right-aligned inside. The block is 89 px wide,
+ * inside the 91 px vanilla reserves for the heart row, so the armour row above and the hunger row beside
+ * stay aligned. Nothing is ever drawn below the bar — that row is the **XP bar and its level digits**
+ * ("血条被经验条数字遮挡", `build=cleanup87`).
  *
- * The value is **inside** the bar, centred; the absorption amount is inside too, right-aligned. Nothing is
- * ever drawn below the bar, because the row under the hearts is the **XP bar and its level digits** (the
- * reported "血条被经验条数字遮挡").
- *
- * ## Red, not a green→red gradient
- * Author's call: green-at-full reads as "stamina" in every other game. State is readable without colour
- * anyway, since the fill is proportional and the exact number is printed inside the bar.
+ * ## Why it is framed rather than a flat rectangle
+ * A single `fill` of solid red read as "纸糊的" in the author's screenshot: no edge, no depth, and it
+ * merged with the dark HUD backdrop. This draws a 1 px black border with **clipped corners**, a dark inner
+ * track, a vertical gradient for the fill, and a 1 px highlight along the top — the same vocabulary vanilla
+ * uses for the hotbar and the XP bar, so it sits in the HUD instead of on top of it.
  *
  * ## Vanilla features deliberately not reproduced
  * | aspect | vanilla hearts | this bar |
  * |---|---|---|
- * | colour | texture swaps (poisoned / withered / frozen / hardcore) | one red fill |
- * | absorption | a second row of yellow hearts | a gold overlay on the same bar + `+N` inside it |
+ * | colour | texture swaps (poisoned / withered / frozen / hardcore) | one red gradient |
+ * | absorption | a second row of yellow hearts | a gold top edge on the same bar + `+N` inside |
  * | blinking | half-second white flash | the whole fill flashes white |
  */
 object BarHealthHud {
 
-    /** Width of the bar. `80 + 2 + 9 = 91`, the exact footprint vanilla reserves for the heart row. */
+    /** Bar width; `9 (icon) + 80 = 89`, inside vanilla's 91 px heart-row footprint. */
     private const val BAR_WIDTH = 80
 
     /** 9 px matches the heart sprite, so the row stays aligned with vanilla widgets. */
     private const val BAR_HEIGHT = 9
-
-    /** Gap between the icon and the bar. */
-    private const val GAP = 2
 
     private val HEART_FULL = Identifier.ofVanilla("hud/heart/full")
     private val HEART_CONTAINER = Identifier.ofVanilla("hud/heart/container")
@@ -88,10 +77,19 @@ object BarHealthHud {
     /** Frames the ghost is held at the old value after a hit, so the damage is *visible* before it fades. */
     private const val GHOST_HOLD_FRAMES = 6
 
-    private val BAR_BG = 0xCC000000.toInt()
-    private val FILL = 0xFFB02B2B.toInt()
+    // Frame / track
+    private val BORDER = 0xFF000000.toInt()
+    private val TRACK = 0xFF2B2B2B.toInt()
+
+    // Fill gradient (top → bottom) and the flash colour.
+    private val FILL_TOP = 0xFFE0524A.toInt()
+    private val FILL_BOTTOM = 0xFF8E1B1B.toInt()
     private val FILL_FLASH = 0xFFFFFFFF.toInt()
-    private val GHOST = 0xAAFF7B54.toInt()
+
+    /** 1 px light line along the top of the fill: the cheapest way to read as "solid", not "painted". */
+    private val HIGHLIGHT = 0x66FFFFFF
+
+    private val GHOST = 0x99FF8A65.toInt()
     private val ABSORB = 0xFFFFD54F.toInt()
     private val TEXT = 0xFFFFFFFF.toInt()
 
@@ -130,39 +128,45 @@ object BarHealthHud {
                 ghost = maxOf(ghost - step, current)
             }
         } else {
-            // Healing (or a full bar): no trailing anything.
             ghost = current
             holdFrames = 0
         }
 
-        // --- bar, starting at the HUD anchor so it lines up with the armour / hunger rows ----------
-        val barX = x
+        // --- icon on the left ---------------------------------------------------------------------
+        context.drawGuiTexture(HEART_CONTAINER, x, y, 9, 9)
+        context.drawGuiTexture(HEART_FULL, x, y, 9, 9)
+
+        // --- bar ----------------------------------------------------------------------------------
+        val barX = x + 9
         val barY = y
-        context.fill(barX, barY, barX + BAR_WIDTH, barY + BAR_HEIGHT, BAR_BG)
+        drawFrame(context, barX, barY, BAR_WIDTH, BAR_HEIGHT)
 
         val realRatio = (current / max).coerceIn(0f, 1f)
         val ghostRatio = (ghost / max).coerceIn(0f, 1f)
-        val filled = MathHelper.ceil(BAR_WIDTH * realRatio).toInt()
-        val ghostEnd = MathHelper.ceil(BAR_WIDTH * ghostRatio).toInt()
+        val innerX = barX + 1
+        val innerY = barY + 1
+        val innerW = BAR_WIDTH - 2
+        val innerH = BAR_HEIGHT - 2
+
+        val filled = MathHelper.ceil(innerW * realRatio).toInt()
+        val ghostEnd = MathHelper.ceil(innerW * ghostRatio).toInt()
 
         // Ghost first, so the real fill always wins where they overlap.
         if (ghostEnd > filled) {
-            context.fill(barX + filled, barY, barX + ghostEnd, barY + BAR_HEIGHT, GHOST)
+            context.fill(innerX + filled, innerY, innerX + ghostEnd, innerY + innerH, GHOST)
         }
 
         val flash = blinking && player.hurtTime > BLINK_TICKS / 2
-        if (filled > 0) {
-            context.fill(barX, barY, barX + filled, barY + BAR_HEIGHT, if (flash) FILL_FLASH else FILL)
-        }
+        if (filled > 0) drawFill(context, innerX, innerY, filled, innerH, flash)
 
-        // Absorption: gold overlay on the top edge; the number itself goes inside the bar on the right.
+        // Absorption: gold top edge over the fill.
         if (absorption > 0) {
             val absorbRatio = (absorption / max).coerceIn(0f, 1f)
-            val absorbEnd = MathHelper.ceil(BAR_WIDTH * minOf(1f, realRatio + absorbRatio)).toInt()
-            context.fill(barX, barY, barX + absorbEnd, barY + 2, ABSORB)
+            val absorbEnd = MathHelper.ceil(innerW * minOf(1f, realRatio + absorbRatio)).toInt()
+            context.fill(innerX, innerY, innerX + absorbEnd, innerY + 1, ABSORB)
         }
 
-        // --- values, both inside the bar -----------------------------------------------------------
+        // --- values, both inside the bar ------------------------------------------------------------
         val value = "${MathHelper.ceil(current)}/${MathHelper.ceil(max)}"
         context.drawText(
             textRenderer,
@@ -184,11 +188,43 @@ object BarHealthHud {
                 true,
             )
         }
+    }
 
-        // --- icon on the right, closing the 91 px block -------------------------------------------
-        val iconX = barX + BAR_WIDTH + GAP
-        context.drawGuiTexture(HEART_CONTAINER, iconX, y, 9, 9)
-        context.drawGuiTexture(HEART_FULL, iconX, y, 9, 9)
+    /**
+     * 1 px black outline with **clipped corners**, plus the dark inner track.
+     *
+     * The corners are left unpainted instead of being filled: a 9 px tall bar with square corners reads as
+     * a debug overlay, while a 1 px notch at each corner is what makes it look like a HUD element.
+     */
+    private fun drawFrame(context: DrawContext, x: Int, y: Int, w: Int, h: Int) {
+        context.fill(x + 1, y, x + w - 1, y + 1, BORDER)          // top
+        context.fill(x + 1, y + h - 1, x + w - 1, y + h, BORDER)  // bottom
+        context.fill(x, y + 1, x + 1, y + h - 1, BORDER)          // left
+        context.fill(x + w - 1, y + 1, x + w, y + h - 1, BORDER)  // right
+        context.fill(x + 1, y + 1, x + w - 1, y + h - 1, TRACK)   // inner track
+    }
+
+    /** Vertical gradient fill for [width] px of the inner track, with a 1 px top highlight. */
+    private fun drawFill(context: DrawContext, x: Int, y: Int, width: Int, height: Int, flash: Boolean) {
+        if (flash) {
+            context.fill(x, y, x + width, y + height, FILL_FLASH)
+            return
+        }
+        for (row in 0 until height) {
+            val t = if (height <= 1) 0f else row.toFloat() / (height - 1)
+            context.fill(x, y + row, x + width, y + row + 1, lerpColor(FILL_TOP, FILL_BOTTOM, t))
+        }
+        context.fill(x, y, x + width, y + 1, HIGHLIGHT)
+    }
+
+    /** Straight ARGB lerp per channel; `t` is 0 at [a] and 1 at [b]. */
+    private fun lerpColor(a: Int, b: Int, t: Float): Int {
+        fun mix(shift: Int): Int {
+            val ca = (a ushr shift) and 0xFF
+            val cb = (b ushr shift) and 0xFF
+            return (ca + ((cb - ca) * t).toInt()).coerceIn(0, 255)
+        }
+        return (mix(24) shl 24) or (mix(16) shl 16) or (mix(8) shl 8) or mix(0)
     }
 
     /** Reset the ghost on world change, so a new life does not inherit the previous trail. */
