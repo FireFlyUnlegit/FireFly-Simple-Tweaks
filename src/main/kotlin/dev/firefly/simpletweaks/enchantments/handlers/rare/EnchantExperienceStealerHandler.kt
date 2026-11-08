@@ -20,7 +20,6 @@ import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantSupportedItemTags
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
-import org.spongepowered.tools.obfuscation.SupportedOptions
 
 /**
  * 1.21 port of `enchantments/handlers/rare/EnchantExperienceStealerHandler.kt`.
@@ -39,6 +38,30 @@ import org.spongepowered.tools.obfuscation.SupportedOptions
  * Non-obvious mapping worth calling out: 1.21 renamed the two XP fields. `experienceLevel` (int) is
  * still the level and `totalExperience` still exists, but the float that 1.12.2 called `experience`
  * is now `experienceProgress` — hence the rename on the drain branch below.
+ *
+ * ## Every kind of damage counts (`build=cleanup73`)
+ * Every other on-hit handler starts with `if (e.source.isAuxiliaryDamage()) return`, because the mod's
+ * own follow-up damage (elemental conversion, reaction riders, poison tick, chain arcs, shield bash) is
+ * **player-attributed**: letting it re-enter the on-hit stack re-fires the entire handler list and the
+ * damage multiplies (`build=cleanup22`'s "伤害爆高").
+ *
+ * This handler deliberately does **not** take that guard. XP is not damage, so re-entering here cannot
+ * feed back into the pipeline — and the author's requirement is "steal for *all* damage", not only for
+ * the physical swing. The consequence, spelled out so it is not mistaken for a bug later:
+ *
+ * | source of damage | counted before | counted now |
+ * |---|---|---|
+ * | sword swing | yes | yes |
+ * | elemental conversion rider | **no** | yes |
+ * | reaction (conduct / overload / …) | **no** | yes |
+ * | venom DoT tick | **no** | yes |
+ * | chain arc / holy light / shield bash | **no** | yes |
+ * | shield reflection (`reflection`) | **no** | yes |
+ *
+ * Still not counted: damage with **no player attacker** (fire, fall, mob-on-mob). The XP is computed
+ * from `e.amount`, i.e. the value about to be applied *before* armour, so a rider that the i-frame gate
+ * later discards can still pay out — the same inaccuracy direct hits have always had, and it errs in
+ * the player's favour by a small amount rather than silently dropping an entire damage class.
  */
 @ModEnchantment(
     id = "experience_stealer",
@@ -59,17 +82,17 @@ object EnchantExperienceStealerHandler : Listenable {
 
     @SubscribeEvent
     fun onLivingHurt(e: LivingHurtEvent) {
-
-        // `build=cleanup22`: the mod's own follow-up damage (poison tick, chain arc, holy light, shield
-        // reflection) is player-attributed, so without this guard each of them counts as a new hit and
-        // re-fires the whole on-hit stack — one poisoned target multiplied the damage every second.
-        if (e.source.isAuxiliaryDamage()) return
+        // ⚠️ **No `isAuxiliaryDamage()` guard here, on purpose** — see the class KDoc. XP is not damage,
+        // so counting the mod's own riders cannot re-enter the pipeline, and "all damage" is the point.
         if (e.invalid) return
         val atk = e.attacker ?: return
         val lvl = getItemSpecificEnchantLevel(atk.combatStack(e.source), GeneratedEnchantments.EXPERIENCE_STEALER)
         if (lvl <= 0) return
 
         val raw = e.amount * 0.1f * lvl
+        // Logged so "the rider also paid out" is observable rather than inferred: `aux=false` is a real
+        // swing, `aux=true` is conversion / reaction / DoT / reflection damage.
+        val auxiliary = e.source.isAuxiliaryDamage()
         if (atk is PlayerEntity) {
             val acc = (pendingXp[atk] ?: 0f) + raw
             val whole = acc.toInt()
@@ -78,7 +101,7 @@ object EnchantExperienceStealerHandler : Listenable {
                 pendingXp[atk] = acc - whole
                 FSTLog.log("ExperienceStealer") {
                     "attacker=${atk.name.string}, target=${e.entityLiving.name.string}, lvl=$lvl, " +
-                        "raw=$raw, gained=$whole, pending=${acc - whole}"
+                        "aux=$auxiliary, raw=$raw, gained=$whole, pending=${acc - whole}"
                 }
             } else {
                 pendingXp[atk] = acc
@@ -91,7 +114,7 @@ object EnchantExperienceStealerHandler : Listenable {
             tgt.experienceProgress = (tgt.experienceProgress - drain).coerceAtLeast(0f)
             FSTLog.log("ExperienceStealer") {
                 "attacker=${atk.name.string}, target=${tgt.name.string}, lvl=$lvl, " +
-                    "raw=$raw, drained=$drain, targetProgress=${tgt.experienceProgress}"
+                    "aux=$auxiliary, raw=$raw, drained=$drain, targetProgress=${tgt.experienceProgress}"
             }
         }
     }
