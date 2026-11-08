@@ -120,18 +120,6 @@ object MobLevels {
      */
     private const val LOCAL_DIFFICULTY_FLOOR = 1.2f
 
-    /** Armour points that count as one unit of player power. `20` = a full netherite set. */
-    private const val ARMOR_REFERENCE = 20.0
-
-    /** Health above the vanilla `20` that counts as one unit of player power. */
-    private const val HEALTH_REFERENCE = 20.0
-
-    /** Attack damage that counts as one unit of player power (a base sword is `~7`). */
-    private const val ATTACK_REFERENCE = 10.0
-
-    /** Enchantment levels across the player's whole loadout that count as one unit of player power. */
-    private const val ENCHANT_LEVELS_REFERENCE = 40.0
-
     /**
      * Difficulty added per unit of **player power** (see [playerPower]).
      *
@@ -160,15 +148,6 @@ object MobLevels {
      * player this mob is going to meet" rather than an arbitrary radius.
      */
     const val PLAYER_SCAN_RANGE = 128.0
-
-    /** Slots whose enchantments count toward [playerPower]. Off-hand is skipped: it is usually a torch. */
-    private val PLAYER_POWER_SLOTS = arrayOf(
-        EquipmentSlot.MAINHAND,
-        EquipmentSlot.HEAD,
-        EquipmentSlot.CHEST,
-        EquipmentSlot.LEGS,
-        EquipmentSlot.FEET,
-    )
 
     /**
      * Session-only difficulty offset, added to every mob's effective difficulty.
@@ -259,52 +238,17 @@ object MobLevels {
     }
 
     /**
-     * How strong [player] is, in units of "one full netherite set".
+     * How strong [player] is, in units of "one fully geared vanilla player".
      *
-     * ```
-     * power = armor / 20                                  (0..1 vanilla, more with modded armour)
-     *       + max(0, maxHealth - 20) / 20                 (0..1 at 40 HP, more with health enchantments)
-     *       + attackDamage / 10                           (~0.7 for a bare iron sword, ~2 with mod damage)
-     *       + enchantmentLevels / 40                      (~1 when the player is fully enchanted)
-     * ```
+     * The definition moved to [dev.firefly.simpletweaks.util.PlayerPower] (`build=cleanup76`) because the
+     * **reaction damage** curve now reads the same number: one player-strength definition for both the
+     * mob difficulty curve and 剧变 / 激化. This method stays as the internal name `MobLevels` uses, so
+     * the difficulty formula below reads unchanged.
      *
-     * Deliberately **uncapped**: the point of the whole term is that a player who keeps upgrading keeps
-     * meeting tougher mobs. Each axis is normalised to roughly `1.0` at "fully geared for vanilla", so the
-     * number stays meaningful instead of being dominated by whichever stat has the largest numbers.
-     *
-     * ⚠️ Called once per mob spawn / first load, never per tick. It reads six equipment stacks and their
-     * enchantment components; the loop only runs on the spawn path.
+     * ⚠️ Called once per mob spawn / first load, never per tick.
      */
-    private fun playerPower(player: PlayerEntity): Float {
-        val armor = (player.armor / ARMOR_REFERENCE).coerceAtLeast(0.0)
-        val health = ((player.maxHealth - 20.0f) / HEALTH_REFERENCE).coerceAtLeast(0.0)
-        val attack = (
-            player.getAttributeValue(EntityAttributes.GENERIC_ATTACK_DAMAGE) / ATTACK_REFERENCE
-            ).coerceAtLeast(0.0)
-        val enchants = gearEnchantmentLevels(player) / ENCHANT_LEVELS_REFERENCE
-        return (armor + health + attack + enchants).toFloat()
-    }
-
-    /**
-     * Total enchantment levels on [player]'s hands and armour.
-     *
-     * Sums **levels**, not enchantment count: `Protection IV` on four pieces is `16` and should count for
-     * more than four level-1 rolls. Vanilla's own mob-gear formula ignores enchantments entirely, which is
-     * another way the modded player runs away from the curve.
-     */
-    private fun gearEnchantmentLevels(player: PlayerEntity): Double {
-        var total = 0
-        for (slot in PLAYER_POWER_SLOTS) {
-            val stack = player.getEquippedStack(slot)
-            if (stack.isEmpty) continue
-            val component = stack.get(DataComponentTypes.ENCHANTMENTS) ?: continue
-            if (component.isEmpty) continue
-            for (entry in component.enchantments) {
-                total += component.getLevel(entry)
-            }
-        }
-        return total.toDouble()
-    }
+    private fun playerPower(player: PlayerEntity): Float =
+        dev.firefly.simpletweaks.util.PlayerPower.of(player).toFloat()
 
     /**
      * Nearest player within [PLAYER_SCAN_RANGE], or `null`.

@@ -21,12 +21,13 @@ import dev.firefly.simpletweaks.util.elements.ElementType.WATER
  * | family | 中文 | how the damage is produced | scales with |
  * |---|---|---|---|
  * | [amplify] | 增幅反应 | multiplies **this hit** | the hit's own damage, crit and all |
- * | [transformativeCoeff] | 剧变反应 | a **separate**, flat hit | attacker level + mastery only, never crits |
+ * | [transformativeCoeff] | 剧变反应 | a **separate**, flat hit | attacker gear power + mastery only, never crits |
  *
  * So `melt` (frost aura, fire trigger) is `amplify = 2.0`: the sword swing itself is doubled, exactly
  * like 融化. `conduct` is a transformative coefficient: it deals its own number, which does **not**
- * grow when the player finds a better sword — only when they level up or stack mastery. That is what
- * keeps a transformative reaction from being a second copy of the weapon.
+ * grow when the player finds a better sword *by copying the sword's damage* — it grows with
+ * `PlayerPower` (armour / health / weapon damage / enchantment levels, the same number the mob
+ * difficulty curve uses), so upgrading gear raises it steadily instead of doubling it per weapon tier.
  *
  * ## What else a reaction may do
  * Effects are unchanged from the previous revision and all remain **relative** (fractions of the hit or

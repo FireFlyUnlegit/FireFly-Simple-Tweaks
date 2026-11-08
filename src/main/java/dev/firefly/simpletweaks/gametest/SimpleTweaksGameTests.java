@@ -425,33 +425,37 @@ public class SimpleTweaksGameTests implements FabricGameTest {
     }
 
     /**
-     * The reaction level clamp: 剧变 / 激化 read the attacker's **capped** XP level.
+     * The reaction scaling: 剧变 / 激化 read **gear power**, not the player's experience level.
      *
-     * <p>Uncapped, `experienceLevel` is a mob-farm currency: 200 levels would put one 感电 at ~143 before
-     * mastery/resonance/sovereignty, and every `element_*` damage type bypasses armour, so it also erased
-     * the only defence a high-health target had. See {@code ElementMarks.REACTION_LEVEL_CAP}.
+     * <p>The old driver was `experienceLevel`, a farmable currency: a mob farm took it to 100+, and one
+     * 感电 then hit for ~143 before mastery/resonance. Gear power (the same number the mob difficulty curve
+     * uses) cannot be farmed and is deliberately **uncapped** — the clamp was the guard against farming,
+     * not against gear.
+     *
+     * <p>The pure function is tested directly because a game test has no `PlayerEntity`; the numbers below
+     * are the documented band (`×5`: naked ≈ 0.5, iron ≈ 6.5, endgame ≈ 26.5).
      */
     @GameTest(templateName = FabricGameTest.EMPTY_STRUCTURE)
-    public void reactionLevelIsCapped(TestContext context) {
+    public void reactionPowerScalesFromGearNotExperience(TestContext context) {
         var marks = dev.firefly.simpletweaks.util.elements.ElementMarks.INSTANCE;
-        int cap = dev.firefly.simpletweaks.util.elements.ElementMarks.REACTION_LEVEL_CAP;
-        int low = marks.cappedReactionLevel(5);
-        int atCap = marks.cappedReactionLevel(cap);
-        int farmed = marks.cappedReactionLevel(200);
-        int negative = marks.cappedReactionLevel(-3);
-        float maxBase = dev.firefly.simpletweaks.util.elements.ElementMarks.TRANSFORMATIVE_BASE
-                + cap * dev.firefly.simpletweaks.util.elements.ElementMarks.TRANSFORMATIVE_PER_LEVEL;
+        float scale = dev.firefly.simpletweaks.util.elements.ElementMarks.REACTION_POWER_SCALE;
+        float naked = marks.reactionPowerFrom(0.1);
+        float iron = marks.reactionPowerFrom(1.3);
+        float endgame = marks.reactionPowerFrom(5.3);
+        float capped = marks.reactionPowerFrom(50.0);
+        float base = dev.firefly.simpletweaks.util.elements.ElementMarks.TRANSFORMATIVE_BASE;
+        float perPower = dev.firefly.simpletweaks.util.elements.ElementMarks.TRANSFORMATIVE_PER_POWER;
 
-        LOGGER.info("[FST-GameTest] reaction level cap={}: capped(5)={}, capped({})={}, capped(200)={}, "
-                        + "capped(-3)={}, max transformative base={}",
-                cap, low, cap, atCap, farmed, negative, maxBase);
+        LOGGER.info("[FST-GameTest] reaction power x{}: naked(0.1)={}, iron(1.3)={}, endgame(5.3)={}, "
+                        + "x50={}, base at endgame={}",
+                scale, naked, iron, endgame, capped, base + endgame * perPower);
 
-        context.assertEquals(5, low, "a level under the cap must pass through unchanged");
-        context.assertEquals(cap, atCap, "the cap itself must pass through unchanged");
-        context.assertEquals(cap, farmed, "a farmed level must clamp to the cap");
-        context.assertEquals(0, negative, "a negative level must clamp to 0");
-        context.assertTrue(maxBase < 25.0F,
-                "capped transformative base must stay below 25, was " + maxBase);
+        context.assertTrue(Math.abs(naked - 0.5F) < 0.001F, "naked power should be ~0.5, got " + naked);
+        context.assertTrue(Math.abs(iron - 6.5F) < 0.001F, "iron power should be ~6.5, got " + iron);
+        context.assertTrue(Math.abs(endgame - 26.5F) < 0.001F, "endgame power should be ~26.5, got " + endgame);
+        // Deliberately uncapped: a heavier build must keep scaling, exactly like the difficulty curve.
+        context.assertTrue(Math.abs(capped - 250.0F) < 0.001F,
+                "gear power must not be clamped, got " + capped);
         context.complete();
     }
 

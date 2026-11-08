@@ -308,8 +308,8 @@ object ElementMarks {
      * on elemental damage (`ElementCombat.MASTERY_PER_LEVEL` is 10 %; this uses 8 %), so the two enchant
      * builds stay distinct.
      *
-     * The level is **capped** at [REACTION_LEVEL_CAP]. See that constant for why an uncapped
-     * `experienceLevel` was a farmable exploit rather than a progression curve.
+     * The driver is **gear power**, not the experience level — see [REACTION_POWER_SCALE] for why the
+     * XP-based version was replaced (`build=cleanup76`).
      */
     /**
      * `elemental_catalyst` level from [attacker]'s chestplate — the build choice that shortens the
@@ -335,19 +335,19 @@ object ElementMarks {
         else getItemSpecificEnchantLevel(attacker.chestplate, GeneratedEnchantments.ELEMENTAL_CATALYST)
 
     private fun transformativeDamage(attacker: PlayerEntity?, coeff: Float): Float {
-        val level = reactionLevel(attacker)
-        val base = TRANSFORMATIVE_BASE + level * TRANSFORMATIVE_PER_LEVEL
+        val power = reactionPower(attacker)
+        val base = TRANSFORMATIVE_BASE + power * TRANSFORMATIVE_PER_POWER
         val mastery = attacker?.let { ElementCombat.masteryLevel(it.mainHandStack) } ?: 0
         return base * coeff * (1f + TRANSFORMATIVE_MASTERY_PER_LEVEL * mastery)
     }
 
     /** Flat damage a nature/lightning hit gains while the target is 激化 (quicken) state. */
     private fun quickenBonus(attacker: PlayerEntity?, target: LivingEntity, reactionKey: String?): Float {
-        val level = reactionLevel(attacker)
-        val base = QUICKEN_BASE + level * QUICKEN_PER_LEVEL
+        val power = reactionPower(attacker)
+        val base = QUICKEN_BASE + power * QUICKEN_PER_POWER
         val mastery = attacker?.let { ElementCombat.masteryLevel(it.mainHandStack) } ?: 0
         FSTLog.log("Element") {
-            "reaction=quicken-bonus, target=${target.type.name.string}, " +
+            "reaction=quicken-bonus, target=${target.type.name.string}, power=${"%.2f".format(power)}, " +
                 "base=${"%.2f".format(base)}, trigger=${reactionKey ?: "none"}, outcome=quickened-hit"
         }
         return base * (1f + TRANSFORMATIVE_MASTERY_PER_LEVEL * mastery)
@@ -355,59 +355,59 @@ object ElementMarks {
 
     // ------------------------------------------------------------------ constants
 
-    /** Base of a transformative reaction at player level 0. */
+    /** Base of a transformative reaction at zero reaction power. */
     const val TRANSFORMATIVE_BASE = 4.0f
 
-    /** Added per player experience level, up to [REACTION_LEVEL_CAP]. */
-    const val TRANSFORMATIVE_PER_LEVEL = 0.55f
+    /** Added per point of **reaction power** (see [reactionPower]). */
+    const val TRANSFORMATIVE_PER_POWER = 0.55f
 
     /**
-     * The experience level both reaction formulas are allowed to see.
+     * Converts [dev.firefly.simpletweaks.util.PlayerPower] into "reaction power", the number the two
+     * reaction formulas scale from.
      *
-     * ## Why a cap and not `attacker.experienceLevel` directly
-     * Vanilla XP **level** is not a progression stat, it is a **farmable currency**: a mob farm (or any
-     * spawner) takes it from 0 to 100+ without the player fighting anything that matters. With the
-     * uncapped formula that turned a 剧变 reaction into the strongest damage source in the mod, and
-     * because every `element_*` damage type is in `#minecraft:bypasses_armor`, those numbers also ignored
-     * the one defence a tanky target has. Two further consequences made it worse:
+     * ## Why gear power and not the experience level
+     * The driver used to be `player.experienceLevel`, which is a **farmable currency**: a mob farm takes
+     * it from 0 to 100+ without the player fighting anything, so reaction damage tracked AFK time rather
+     * than progress. It was also volatile in the wrong direction — dying drops the level to ~0, so the
+     * same sword hit for wildly different amounts before and after a death.
      *
-     * 1. **It ran away with itself.** `4 + 0.55 × level` is linear and unbounded: at level 200 a single
-     *    感电 is `114 × 1.25 ≈ 143` before mastery / resonance / sovereignty multipliers, and the ICD that
-     *    throttles it collapses from 20 ticks to 1 with `elemental_supremacy`.
-     * 2. **It was volatile in the wrong direction.** Dying drops the player to ~0 levels, so the same
-     *    weapon hit for wildly different amounts before and after a death — a balance signal the player
-     *    cannot read, and one that rewards AFK farming instead of fighting.
+     * [dev.firefly.simpletweaks.util.PlayerPower] is the **same number the difficulty curve uses** for
+     * mob scaling (armour / health / attack damage / enchantment levels), so reactions and mobs now track
+     * one progression: upgrading gear raises both. Nothing about it can be farmed — you either wear the
+     * gear or you do not.
      *
-     * `30` is where vanilla progression is "finished" for most players (full diamond/lapis table use is
-     * ~level 30), so the curve still rewards levelling through normal play and then stops. Everything
-     * past this point has to come from the enchantment build ([TRANSFORMATIVE_MASTERY_PER_LEVEL],
-     * `elemental_resonance`, `elemental_sovereign`), which is gear the player chose.
+     * ## Why ×5 and not ×1
+     * `PlayerPower` is normalised so a fully geared vanilla player is `≈1`; the old XP curve produced
+     * `4 + 0.55 × 30 ≈ 20.5` for a finished build. `×5` maps the whole progression onto that band
+     * (naked `0.1 → 0.5`, iron `1.3 → 6.5`, endgame `5.3 → 26.5`) so the change is a **rebase, not a
+     * rebalance**: the numbers a mid-game player sees hardly move.
      *
-     * ⚠️ One constant drives **both** 剧变 and 激化: they are the same family ("flat damage from the
-     * attacker's level") and giving them separate caps would silently make one of them the farm target.
+     * ## Deliberately **no clamp**
+     * Gear power is uncapped, exactly like the difficulty curve it comes from, and the author's call is to
+     * leave it that way: a build that keeps growing should keep hitting harder. The runaway case the old
+     * cap guarded against (an AFK farm) no longer exists, and the multiplicative exploit (`execute`'s
+     * health-pool nuke) was fixed separately in `build=cleanup70`.
      */
-    const val REACTION_LEVEL_CAP = 30
+    const val REACTION_POWER_SCALE = 5f
 
     /**
-     * The experience level reactions are allowed to read: [experienceLevel] clamped to
-     * `0..`[REACTION_LEVEL_CAP].
+     * Reaction power for [attacker]: `PlayerPower × `[REACTION_POWER_SCALE], or `0` without an attacker.
      *
-     * Public and parameterised (rather than taking a `PlayerEntity`) so the clamp is testable without a
-     * player — a game test has no player, and this rule is exactly the one that must not silently
-     * regress.
+     * Split out as a pure function of the gear-power value so it is testable without a `PlayerEntity`
+     * (a game test has no player), which matters because this scaling must not silently regress.
      */
-    fun cappedReactionLevel(experienceLevel: Int): Int = experienceLevel.coerceIn(0, REACTION_LEVEL_CAP)
+    fun reactionPowerFrom(gearPower: Double): Float = (gearPower * REACTION_POWER_SCALE).toFloat()
 
-    /** [cappedReactionLevel] of [attacker], or 0 when the reaction had no attacker. */
-    private fun reactionLevel(attacker: PlayerEntity?): Int =
-        cappedReactionLevel(attacker?.experienceLevel ?: 0)
+    private fun reactionPower(attacker: PlayerEntity?): Float =
+        if (attacker == null) 0f
+        else reactionPowerFrom(dev.firefly.simpletweaks.util.PlayerPower.of(attacker))
 
     /** Mastery contribution to transformative damage (lower than the 10 %/level elemental one). */
     const val TRANSFORMATIVE_MASTERY_PER_LEVEL = 0.08f
 
     /** 激化 (quicken) flat bonus per triggering hit. */
     const val QUICKEN_BASE = 2.5f
-    const val QUICKEN_PER_LEVEL = 0.35f
+    const val QUICKEN_PER_POWER = 0.35f
 
     /**
      * Minimum gap between two **transformative** reaction hits on the same target, in ticks (1 s).
