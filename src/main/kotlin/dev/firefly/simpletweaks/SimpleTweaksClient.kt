@@ -15,6 +15,7 @@ import dev.firefly.simpletweaks.client.particle.CelestialRingParticles
 import dev.firefly.simpletweaks.client.tooltips.EnchantAttributeToolTipHandler
 import dev.firefly.simpletweaks.client.tooltips.EnchantDamageToolTipHandler
 import dev.firefly.simpletweaks.client.tooltips.ManaPoolToolTipHandler
+import dev.firefly.simpletweaks.client.tooltips.PrismaticTooltipFolder
 import dev.firefly.simpletweaks.core.config.DamageIndicatorConfig
 import dev.firefly.simpletweaks.core.registerEvents
 import dev.firefly.simpletweaks.damageindicator.DamageIndicatorManager
@@ -82,6 +83,9 @@ class SimpleTweaksClient : ClientModInitializer {
         // reads only the item's own `ATTRIBUTE_MODIFIERS` component. Without this, `combo 10` still
         // reads `1.6 攻击速度`.
         EnchantAttributeToolTipHandler.register()
+        // prismatic_blessing's 17 attribute lines are rendered by whatever mirrors enchantment
+        // attributes into the stack's tooltip; fold them into one line unless Shift is held.
+        PrismaticTooltipFolder.register()
         registerCelestialReceivers()
         registerAttackCooldownReceiver()
         InfinitePowerLaserClient.register()
@@ -117,7 +121,7 @@ class SimpleTweaksClient : ClientModInitializer {
                 "+ element damage is no longer exempt from the i-frame gate (only combo cancels it) " +
                 "+ reaction names as floating labels with their damage, 18 reactions, " +
                 "+ split damage display now emits one number per element, fanned out and staggered " +
-                "(v2.2.6, build=cleanup74)",
+                "(v2.2.6, build=cleanup75)",
             SimpleTweaks.NAME,
             enchantmentCount,
         )

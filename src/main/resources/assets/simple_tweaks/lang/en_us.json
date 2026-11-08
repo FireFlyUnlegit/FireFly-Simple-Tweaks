@@ -369,5 +369,6 @@
   "enchantment.simple_tweaks.riposte": "Riposte",
   "enchantment.simple_tweaks.riposte.desc": "After being hit in melee, your next hit within 3 s deals +15%%-per-level damage, then the charge is spent",
   "enchantment.simple_tweaks.first_strike": "First Strike",
-  "enchantment.simple_tweaks.first_strike.desc": "The first hit on a target that is still at full health deals +12%%-per-level damage"
+  "enchantment.simple_tweaks.first_strike.desc": "The first hit on a target that is still at full health deals +12%%-per-level damage",
+  "gui.simple_tweaks.prismatic.folded": "Prismatic Blessing: +%1$s%% x %2$s attributes (hold Shift to expand)"
 }
