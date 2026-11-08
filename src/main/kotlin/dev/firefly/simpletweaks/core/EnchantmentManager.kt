@@ -9,6 +9,7 @@ import dev.firefly.simpletweaks.enchantments.handlers.mythic.infinitepower.Fligh
 import dev.firefly.simpletweaks.enchantments.handlers.mythic.infinitepower.ForgeHandler
 import dev.firefly.simpletweaks.enchantments.handlers.mythic.infinitepower.SoulBindHandler
 import dev.firefly.simpletweaks.enchantments.handlers.mythic.infinitepower.ToolHandler
+import dev.firefly.simpletweaks.util.HealLock
 import dev.firefly.simpletweaks.util.mobs.MobLevelProgression
 import net.minecraft.enchantment.Enchantment
 import net.minecraft.registry.RegistryKey
@@ -168,6 +169,8 @@ object EnchantmentManager {
         // the "Registered N enchantment handler(s)" line below with something that is not an
         // enchantment. It lives here because this is the one place that owns event-bus registration.
         MobLevelProgression.registerEvents()
+        // 禁疗's single implementation: used by echo_shield and elemental_supremacy (cleanup84).
+        HealLock.registerEvents()
         SimpleTweaks.LOGGER.info(
             "Registered {} enchantment handler(s) ({} hand-listed + {} @ModEnchantment, " +
                 "{} static declaration(s) kept off the bus)",

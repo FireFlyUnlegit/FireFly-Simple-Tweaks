@@ -15,6 +15,7 @@ import dev.firefly.simpletweaks.compat.invalid
 import dev.firefly.simpletweaks.compat.target
 import dev.firefly.simpletweaks.core.Listenable
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
+import dev.firefly.simpletweaks.util.HealLock
 import dev.firefly.simpletweaks.util.getArmorEnchantLevel
 import dev.firefly.simpletweaks.util.damagesource.ModDamageTypes
 import dev.firefly.simpletweaks.util.damagesource.damageElemental
@@ -64,7 +65,8 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
  *
  * ⚠️ Two forced mappings:
  *
- * 1. **The `st_echo_no_heal_until` per-entity NBT tag becomes a `WeakHashMap<LivingEntity, Long>`.**
+ * 1. **The `st_echo_no_heal_until` per-entity NBT tag became a `WeakHashMap<LivingEntity, Long>`, and
+ *    since `build=cleanup84` it is `util/HealLock` outright** (万法归元's counter needs the same rule).
  *    1.12.2 kept the "no heal until world tick N" deadline in Forge's per-entity persistent NBT
  *    (`Entity.getEntityData()`), which 1.21 has no equivalent for on an arbitrary entity. A
  *    weak-keyed map is the closest structural analogue: the value is attached to the entity's
@@ -112,7 +114,6 @@ object EnchantEchoShieldHandler : Listenable {
 
     // 1.12.2 stored this deadline in Forge's per-entity persistent NBT under
     // "st_echo_no_heal_until"; see the class KDoc for why it is a weak-keyed map here.
-    private val noHealUntil = WeakHashMap<LivingEntity, Long>()
 
     @SubscribeEvent(priority = 100)
     fun onHurt(e: LivingHurtEvent) {
@@ -237,38 +238,15 @@ object EnchantEchoShieldHandler : Listenable {
         }
     }
 
-    @SubscribeEvent
-    fun onHeal(e: LivingHealEvent) {
-        val entity = e.entityLiving ?: return
-        if (WorldSide.isClient(entity.world)) return
-        val until = noHealUntil[entity] ?: 0L
-        if (until > 0L && entity.world.time < until) {
-            e.isCanceled = true
-            FSTLog.log("EchoShield") {
-                "entity=${entity.name.string}, until=$until, now=${entity.world.time}, " +
-                    "amount=${e.amount}, outcome=heal-blocked"
-            }
-        }
-    }
-
-    @SubscribeEvent
-    fun onLivingUpdate(e: LivingEvent.LivingUpdateEvent) {
-        val entity = e.entityLiving ?: return
-        if (WorldSide.isClient(entity.world)) return
-        val until = noHealUntil[entity] ?: 0L
-        if (until <= 0L) return
-        if (entity.world.time > until) {
-            noHealUntil.remove(entity)
-        }
-    }
-
+    /**
+     * Locks the attacker's healing for `level` ticks — the 1.12.2 duration, unchanged.
+     *
+     * The mechanism lives in [dev.firefly.simpletweaks.util.HealLock] since `build=cleanup84`:
+     * `elemental_supremacy`'s counter needs the same "cannot be healed until tick N" rule, and a second
+     * copy of the cancel + expiry pair would be two places to disagree about what 禁疗 means.
+     */
     private fun markNoHeal(entity: LivingEntity, lvl: Int) {
-        val now = entity.world.time
-        val until = now + lvl
-        val prev = noHealUntil[entity] ?: 0L
-        if (until > prev) {
-            noHealUntil[entity] = until
-        }
+        HealLock.lock(entity, lvl.toLong())
     }
 
     @SubscribeEvent

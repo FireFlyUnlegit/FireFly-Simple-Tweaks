@@ -6,6 +6,7 @@ import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.core.Listenable
 import dev.firefly.simpletweaks.enchantments.annotations.*
 import dev.firefly.simpletweaks.util.combatStack
+import dev.firefly.simpletweaks.util.HealLock
 import dev.firefly.simpletweaks.util.elements.ElementAuras
 import dev.firefly.simpletweaks.util.elements.ElementCombat
 import dev.firefly.simpletweaks.util.elements.ElementMarks
@@ -96,6 +97,15 @@ object EnchantElementalSupremacyHandler : Listenable {
     private const val COUNTER_SHARE_PER_LEVEL = 0.04f
 
     /**
+     * 禁疗 ticks the counter applies per total level: `10` ticks = 0.5 s, so a full 20-level set silences
+     * the attacker's healing for **10 s**.
+     *
+     * Tied to the same total level as [COUNTER_SHARE_PER_LEVEL] on purpose — "more investment" should
+     * mean a harder answer *and* a longer silence, not two unrelated curves.
+     */
+    private const val HEAL_LOCK_TICKS_PER_LEVEL = 10L
+
+    /**
      * 反伤/反击 — being hit by an element answers with the element that **counters** it, attached onto
      * the attacker.
      *
@@ -152,10 +162,16 @@ object EnchantElementalSupremacyHandler : Listenable {
             ElementCombat.enqueueElemental(victim, attacker, counter, reflected)
         }
 
+        // The counter also 禁疗s: `totalLevel × 10` ticks (0.5 s per level, 10 s at a 20-level set). The
+        // timeline is deliberately proportional to the same total level the reflection uses, so "more
+        // investment" means both a harder answer and a longer silence instead of two unrelated numbers.
+        val lockTicks = totalLevel * HEAL_LOCK_TICKS_PER_LEVEL
+        HealLock.lock(attacker, lockTicks)
+
         FSTLog.log("Supremacy") {
             "element=${element.id}, counter=${counter.id}, attacker=${attacker.type.name.string}, " +
                 "units=$COUNTER_UNITS, damage=${"%.2f".format(e.amount)}, totalLevel=$totalLevel, " +
-                "reflected=${"%.2f".format(reflected)}, " +
+                "reflected=${"%.2f".format(reflected)}, healLockTicks=$lockTicks, " +
                 "aura=${ElementAuras.describe(attacker)}, outcome=countered"
         }
     }
