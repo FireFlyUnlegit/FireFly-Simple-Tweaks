@@ -10,28 +10,22 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
- * Replaces vanilla's ten-heart row with {@link BarHealthHud}'s single bar.
+ * Suppresses vanilla's ten-heart row; **the bars are drawn by {@code BarsHud}** at the tail of
+ * `renderMainHud`.
  *
- * <h2>The two health parameters are NOT what their names suggest</h2>
- * Bytecode of `renderStatusBars` (1.21.1) passes, in order:
+ * <h2>Why this mixin no longer draws</h2>
+ * It used to draw both the health and (later) the armour and hunger bars from inside `renderHealthBar`.
+ * That pass does not run in **creative or spectator** mode, so the whole bar HUD vanished there — the
+ * reported "护甲值也是有的时候才会显示" (`build=cleanup93`). Drawing moved to a seam that runs in every game
+ * mode; this injection is now a pure suppressor, which also means it does nothing harmful if another mod
+ * pre-empts it.
  *
- * <pre>
- *   iload 8  → x          iload 10 → y         iload 14 → lines
- *   iload 16 → regeneratingHeartIndex           fload 11 → maxHealth
- *   iload_3  → ceil(player.getHealth())   ← REAL health
- *   iload 7  → this.renderHealthValue     ← animated display value (~1 s lerp)
- *   iload 12 → absorption                       iload 4  → blinking
- * </pre>
- *
- * The descriptor's eighth int is named `lastHealth` and the ninth `health` in Yarn, but the ninth is the
- * animated value: feeding it to a progress bar makes the bar trail the number for up to a second, which is
- * the reported "血量不变之后才看到血条更新" (`build=cleanup87`). This mixin therefore forwards the **eighth**
- * int as the real health and drops the animated one.
- *
- * <h2>Why HEAD + cancel rather than a redirect</h2>
- * `renderHealthBar` draws the container, both rows of hearts, the absorption row, the blink flash and the
- * mount-health fallback in one body; there is no single call to redirect that would remove all of it, and
- * leaving any piece produces a hybrid (bar **and** leftover hearts) that looks broken.
+ * <h2>The two health arguments are NOT what their names suggest</h2>
+ * Bytecode of `renderStatusBars` (1.21.1) passes `ceil(player.getHealth())` as the parameter Yarn names
+ * `lastHealth`, and the **animated** `renderHealthValue` as the one named `health`. Reading the latter made
+ * the bar trail the number for about a second — the reported "血量不变之后才看到血条更新" (`build=cleanup87`).
+ * Since the drawing moved, this file no longer reads either argument; the trap stays documented because the
+ * next person to extend this seam will meet it.
  *
  * <h2>Override audit (`AGENTS.md` §4.3)</h2>
  * The target is `InGameHud`'s own private method — no subclass can override or shadow it, and `InGameHud`
@@ -46,7 +40,7 @@ public abstract class InGameHudHealthMixin {
                     + "Lnet/minecraft/entity/player/PlayerEntity;IIIIFIIIZ)V";
 
     @Inject(method = RENDER_HEALTH_BAR, at = @At("HEAD"), cancellable = true)
-    private void simpletweaks$barHealth(
+    private void simpletweaks$hideVanillaHearts(
             DrawContext context,
             PlayerEntity player,
             int x,
@@ -60,13 +54,9 @@ public abstract class InGameHudHealthMixin {
             boolean blinking,
             CallbackInfo ci
     ) {
-        // The toggle lives in `/stconfig` (general page). Returning without cancelling leaves vanilla's
-        // hearts to draw exactly as they would without this mod — no partial state to clean up.
         if (!dev.firefly.simpletweaks.core.config.GeneralConfig.getBarHealthHud()) {
             return;
         }
-        BarHealthHud.INSTANCE.render(
-                context, player, x, y, maxHealth, realHealth, absorption, blinking);
         ci.cancel();
     }
 }
