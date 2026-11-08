@@ -125,8 +125,9 @@ object BarHealthHud {
             )
         }
 
-        // --- hunger: mirrored to the right edge, icon on the right ---------------------------------
+        // --- right column: toughness above hunger, both mirrored, icons outside ---------------------
         val rightEdge = context.getScaledWindowWidth() / 2 + 91
+        ToughnessHud.renderRightAligned(context, player, rightEdge, y - 10)
         HungerHud.renderRightAligned(context, player, rightEdge, y)
     }
 
