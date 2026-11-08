@@ -8,6 +8,7 @@ import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.invalid
 import dev.firefly.simpletweaks.core.Listenable
 import dev.firefly.simpletweaks.core.config.MobEnhancementConfig
+import dev.firefly.simpletweaks.util.damagesource.isAuxiliaryDamage
 import net.minecraft.entity.mob.MobEntity
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.server.world.ServerWorld
@@ -71,6 +72,10 @@ object MobLevelProgression : Listenable {
     @SubscribeEvent
     fun onLivingHurt(e: LivingHurtEvent) {
         if (e.invalid) return
+        // One swing must produce at most one roll. Element riders, poison ticks, chain arcs and
+        // reflections all re-enter `damage()` with the attacker still creditable, so without this a
+        // single elemental sword swing would roll the 3 % three or four times.
+        if (e.source.isAuxiliaryDamage()) return
         val attacker = e.attacker
         val target = e.entityLiving
 
@@ -97,6 +102,8 @@ object MobLevelProgression : Listenable {
     @SubscribeEvent
     fun onLivingDeath(e: LivingDeathEvent) {
         if (e.invalid) return
+        // Same rule as [onLivingHurt]: only a real kill counts, not a DoT tick that finished the job.
+        if (e.source.isAuxiliaryDamage()) return
         val killer = e.source.attacker as? MobEntity ?: return
         if (killer === e.entityLiving) return
         roll(killer, MobEnhancementConfig.levelUpOnKill, "kill")
