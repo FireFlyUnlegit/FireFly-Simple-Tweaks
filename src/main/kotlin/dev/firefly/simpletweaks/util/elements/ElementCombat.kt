@@ -805,10 +805,14 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
     fun onLivingDamage(e: LivingDamageEvent) {
         if (e.invalid) return
         val element = ElementType.of(e.source)
+        // Read before the element check: `elemental_supremacy` is the one source that also answers a hit
+        // no element claims (`build=cleanup99`).
+        val supremacyReduction = supremacyReduction(e.entityLiving)
 
-        // Only elemental damage has a mitigation row: a hit no element claims has no `xx_protection`,
-        // no mob resistance and no ward to apply it to.
-        if (element == null) return
+        if (element == null) {
+            reduceNonElemental(e, supremacyReduction)
+            return
+        }
 
         // `build=cleanup21`: venom and reflection sit in `#minecraft:bypasses_enchantments` on purpose
         // (the author's "无视抗性"). Now that venom counts as `nature` and reflection mirrors an element,
@@ -836,11 +840,9 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
         val penetration = penetrationOf(e.source.attacker as? LivingEntity, e.source)
 
         // `elemental_supremacy` is its **own** mitigation source, not a change to the affinity cap: the chain is
-        // multiplicative, so an extra factor can never drive the total to 100 % (and the final clamp is 0.95).
-        // This is what gives the enchantment "height" as well as "breadth" — four maxed fire pieces already cap
-        // the affinity at 80 %, and supremacy then removes a further slice of what is left.
-        val supremacyReduction = supremacyReduction(e.entityLiving)
-
+        // multiplicative, so an extra factor can never drive the total to 100 %. This is what gives the
+        // enchantment "height" as well as "breadth" — four maxed fire pieces already cap the affinity at 80 %,
+        // and supremacy then removes a further slice of what is left.
         val mitigated = 1.0f - (1.0f - enchantReduction) * (1.0f - mobReduction) *
             (1.0f - wardReduction) * (1.0f - supremacyReduction)
         // No 0.95 ceiling: every source above is a factor strictly below 1, so the product can never reach 1
@@ -862,6 +864,36 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
                 "mobResistance=${"%.2f".format(mobReduction)}, " +
                 "penetration=${"%.2f".format(penetration)}, " +
                 "amount=${"%.2f".format(before)}->${"%.2f".format(e.amount)}, outcome=reduced"
+        }
+    }
+
+    /**
+     * The one mitigation row a hit **no element claims** can still meet: `elemental_supremacy`.
+     *
+     * A plain swing has no `xx_protection` (there is no element to pick), no mob resistance and no ward,
+     * so the elemental chain above would be an all-zero multiply. Supremacy is deliberately different: it
+     * is the enchantment's whole promise — "all methods return to one" — so it is the only source that
+     * also covers the non-elemental half, using the same 4.5 %/level, 90 % cap zone it applies to elements.
+     *
+     * `#minecraft:bypasses_enchantments` is still honoured (`true_damage`, `venom`, `reflection`), for the
+     * same reason as in [onLivingDamage].
+     */
+    private fun reduceNonElemental(e: LivingDamageEvent, supremacyReduction: Float) {
+        if (supremacyReduction <= 0f) return
+        if (e.source.isIn(DamageTypeTags.BYPASSES_ENCHANTMENTS)) {
+            FSTLog.log("Element") {
+                "protected=none, supremacy=${"%.2f".format(supremacyReduction)}, " +
+                    "amount=${"%.2f".format(e.amount)}, " +
+                    "outcome=reduction-skipped-bypasses-enchantments"
+            }
+            return
+        }
+        val before = e.amount
+        e.amount = (e.amount * (1.0f - supremacyReduction)).coerceAtLeast(0f)
+        FSTLog.log("Element") {
+            "protected=none, supremacy=${"%.2f".format(supremacyReduction)}, " +
+                "amount=${"%.2f".format(before)}->${"%.2f".format(e.amount)}, " +
+                "outcome=reduced-non-elemental"
         }
     }
 

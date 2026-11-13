@@ -93,6 +93,8 @@
   "enchantment.simple_tweaks.void_protection": "虚空保护",
   "enchantment.simple_tweaks.water_conversion": "流水转化",
   "enchantment.simple_tweaks.water_protection": "流水亲和",
+  "gui.simple_tweaks.blessing.moon": "月",
+  "gui.simple_tweaks.blessing.star": "星",
   "gui.simple_tweaks.category.common": "普通",
   "gui.simple_tweaks.category.epic": "史诗",
   "gui.simple_tweaks.category.legendary": "传说",
@@ -340,7 +342,7 @@
   "enchantment.simple_tweaks.quake": "震心",
   "enchantment.simple_tweaks.quake.desc": "命中正在使用物品的目标时打断其动作（拉弓/举盾/喝药/吃食物）；若目标是玩家，该物品还会进入 1 秒冷却",
   "enchantment.simple_tweaks.elemental_supremacy": "万法归元",
-  "enchantment.simple_tweaks.elemental_supremacy.desc": "① 你最高的一系元素亲和同时对全部七种元素生效（取最大值，不叠加）。② 万法归元自身构成独立减伤区：4.5%%/全身等级（四件满级 20 级 = 90%%），与亲和分别结算后相乘（满配 98%%，不会到 100%%）。③ 每次攻击额外附带 5%% 伤害的元素转化（不削减原伤害），次数 = 全身等级÷10（满配 2 次），随机元素并可能触发反应。④ 你受到的每次元素反应都会被记住，条数上限 = 全身等级÷2（上限 10）；下一次攻击全部奉还，每条以本次伤害的 40%% 为基底。⑤ 附着 ICD 与反应 ICD 按 1−等级总和÷20 缩短：满配（20 级）时两者都塌缩到 1 tick。⑥ 反击：每次受到元素伤害，自动把该元素换成能克制它的元素，并以 0.5 单位附着到攻击者身上（主动攻击是 1 单位），同时反射该次伤害的 4%%×全身等级（满配 80%%），并让攻击者在 全身等级 tick（满配 20 tick＝1 秒）内无法被治疗 —— 对方也穿万法时不触发",
+  "enchantment.simple_tweaks.elemental_supremacy.desc": "① 你最高的一系元素亲和同时对全部七种元素生效（取最大值，不叠加）。② 万法归元自身构成独立减伤区：4.5%%/全身等级（四件满级 20 级 = 90%%），与亲和分别结算后相乘（满配 98%%，不会到 100%%）；这一区对不含元素的伤害（普通挥砍等）同样生效，真伤/毒液/反射除外。③ 每次攻击额外附带 5%% 伤害的元素转化（不削减原伤害），次数 = 全身等级÷10（满配 2 次），随机元素并可能触发反应。④ 你受到的每次元素反应都会被记住，条数上限 = 全身等级÷2（上限 10）；下一次攻击全部奉还，每条以本次伤害的 40%% 为基底。⑤ 附着 ICD 与反应 ICD 按 1−等级总和÷20 缩短：满配（20 级）时两者都塌缩到 1 tick。⑥ 反击：每次受到元素伤害，自动把该元素换成能克制它的元素，并以 0.5 单位附着到攻击者身上（主动攻击是 1 单位），同时反射该次伤害的 4%%×全身等级（满配 80%%），并让攻击者在 全身等级 tick（满配 20 tick＝1 秒）内无法被治疗 —— 对方也穿万法时不触发",
   "element.simple_tweaks.dark": "暗蚀",
   "gui.simple_tweaks.config.mobEnhancement.levelUpOnHitPlayer": "攻击玩家时升级概率（%%）",
   "gui.simple_tweaks.config.mobEnhancement.levelUpOnKill": "击杀生物时升级概率（%%）",
@@ -375,8 +377,8 @@
   "enchantment.simple_tweaks.resonance_core": "共鸣核心",
   "enchantment.simple_tweaks.resonance_core.desc": "你触发的每次元素反应都会在目标身上叠 1 层「共鸣」（上限 2+等级，III = 5 层，10 秒）。每层让你对该目标的元素伤害 +4%%（5 层 = +20%%）；层数满时，下一次元素伤害必定暴击（×2）并消耗全部层数",
   "enchantment.simple_tweaks.moon_blessing": "月之祝福",
-  "enchantment.simple_tweaks.moon_blessing.desc": "你的水系反应（蒸发 / 感电 / 绽放 / 净化）会月曜化：其中 20%%+10%%×等级（III = 50%%）的部分改以「月曜伤害」结算 —— 无视护甲、可暴击（15%%+10%%×等级，×1.5），并叠 1 层「月华」（上限 5 层，10 秒），每层再 +5%% 月曜伤害。其他元素之间的反应不触发",
+  "enchantment.simple_tweaks.moon_blessing.desc": "你的水系反应（蒸发 / 感电 / 绽放 / 净化）会月曜化：其中 20%%+10%%×等级（III = 50%%）的部分改以「月曜伤害」结算 —— 无视护甲、可暴击（15%%+10%%×等级，×1.5），并叠 1 层「月华」（上限 5 层，10 秒），每层再 +5%% 月曜伤害。其他元素之间的反应不触发。触发时反应飘字改为「月××」",
   "enchantment.simple_tweaks.star_blessing": "星之祝福",
-  "enchantment.simple_tweaks.star_blessing.desc": "你的冰系反应（融化 / 汽化 / 过载 / 亏蚀 / 冻结 / 碎裂）会星曜化：其中 15%%+10%%×等级（III = 45%%）的部分改以「星曜伤害」结算 —— 必定暴击（×1.5），并对 4 格内的其他敌人溅射其中 50%%。其他元素之间的反应不触发",
+  "enchantment.simple_tweaks.star_blessing.desc": "你的冰系反应（融化 / 汽化 / 过载 / 亏蚀 / 冻结 / 碎裂）会星曜化：其中 15%%+10%%×等级（III = 45%%）的部分改以「星曜伤害」结算 —— 必定暴击（×1.5），并对 4 格内的其他敌人溅射其中 50%%。其他元素之间的反应不触发。触发时反应飘字改为「星××」",
   "gui.simple_tweaks.devour.stacks": "已吞噬：%1$s 层（伤害 +%2$s%%）"
 }

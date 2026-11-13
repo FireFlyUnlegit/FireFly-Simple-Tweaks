@@ -32,6 +32,15 @@ data class ReactionOutcome(
     val amplify: Float = 1f,
     /** Flat damage already queued as element damage by this call (for the log line). */
     val flatDamage: Float = 0f,
+    /** Damage the floating reaction label should show (`0` = name only). */
+    val labelAmount: Float = 0f,
+    /**
+     * Namespace a listener installed for this label: `"moon"` / `"star"`.
+     *
+     * 月/星祝福 rewrite the reaction they trigger ("星过载", not "过载"), and a listener can only speak
+     * through this object — the label is emitted after the seam for exactly that reason.
+     */
+    var labelPrefix: String? = null,
 )
 
 /**
@@ -137,6 +146,7 @@ object ElementMarks {
                         key = outcome.key,
                         amplify = outcome.amplify * bonus,
                         flatDamage = outcome.flatDamage * bonus,
+                        labelAmount = outcome.labelAmount * bonus,
                     )
                 }
 
@@ -147,6 +157,11 @@ object ElementMarks {
                 ReactionMemory.recordIfWearing(target, reaction.key)
 
                 ReactionSeam.fire(attacker, target, element, outcome)
+
+                // The label is emitted **after** the seam, not inside `apply`: 月/星祝福 rewrite the name
+                // through `outcome.labelPrefix`, and emitting earlier made the rewrite impossible
+                // (`build=cleanup99`).
+                noticeReaction(attacker, target, reaction, outcome.labelAmount, outcome.labelPrefix)
 
                 FSTLog.log("Element") {
                     "reaction=${reaction.key}, aura=${auraElement.id}:${"%.2f".format(auraUnits)}, " +
@@ -257,7 +272,9 @@ object ElementMarks {
             }
         }
 
-        // The reaction's own on-screen line (floating label above the target).
+        // The reaction's own on-screen line (floating label above the target) is **not** emitted here:
+        // it is handed back as [ReactionOutcome.labelAmount] so that the caller can emit it after
+        // `ReactionSeam`, where a listener may still rename it.
         val labelled = if (amplify > 1f) {
             // 增幅 shows the damage the multiplier added, so the label stays in the same units as
             // every other reaction line: `融化 (-12.50)` = "this reaction added 12.5".
@@ -265,7 +282,6 @@ object ElementMarks {
         } else {
             flat
         }
-        noticeReaction(attacker, target, reaction, labelled)
 
         if (reaction.armorShredFraction > 0f && reaction.duration > 0) {
             armourShred(target, reaction.armorShredFraction, reaction.duration)
@@ -296,7 +312,7 @@ object ElementMarks {
                 "flat=${"%.2f".format(flat)}, resonance=${"%.2f".format(resonance)}, " +
                 "outcome=${if (amplify > 1f) "amplified" else "transformative"}"
         }
-        return ReactionOutcome(reaction.key, amplify.coerceAtLeast(1f), flat)
+        return ReactionOutcome(reaction.key, amplify.coerceAtLeast(1f), flat, labelled)
     }
 
     /**
@@ -506,6 +522,7 @@ object ElementMarks {
         target: LivingEntity,
         reaction: ElementReaction,
         amount: Float,
+        prefix: String? = null,
     ) {
         val world = target.world as? ServerWorld ?: return
         val now = world.time
@@ -516,15 +533,17 @@ object ElementMarks {
         if (last != null && now - last < NOTICE_COOLDOWN_TICKS) return
         lastNotice[target.uuid] = now
 
+        val key = "reaction.simple_tweaks.${reaction.key}"
         dev.firefly.simpletweaks.damageindicator.DamageIndicatorHandler.broadcastLabel(
             target,
-            "reaction.simple_tweaks.${reaction.key}",
+            if (prefix == null) key else "$prefix:$key",
             reaction.trigger.ordinal,
             amount,
         )
         FSTLog.log("Element") {
             "attacker=${attacker?.name?.string ?: "none"}, target=${target.type.name.string}, " +
-                "reaction=${reaction.key}, shown=${"%.2f".format(amount)}, outcome=reaction-labelled"
+                "reaction=${reaction.key}, label=${prefix ?: "-"}, shown=${"%.2f".format(amount)}, " +
+                "outcome=reaction-labelled"
         }
     }
 

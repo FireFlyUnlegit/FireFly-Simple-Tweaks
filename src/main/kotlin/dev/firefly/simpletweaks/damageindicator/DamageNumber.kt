@@ -302,7 +302,7 @@ data class DamageNumber(
         // damage that reaction dealt (`感电 (-28.30)`), which is what the author asked for — the name
         // alone left the reader guessing whether the reaction did anything at all.
         if (role == PacketDamageIndicator.ROLE_LABEL) {
-            val name = net.minecraft.text.Text.translatable(label).string
+            val name = labelText(label)
             return if (actualDamage > 0f) "$name (-${formatFloat(actualDamage)})" else name
         }
         val percentageMode = DamageIndicatorConfig.percentageMode
@@ -314,6 +314,22 @@ data class DamageNumber(
         } else {
             "$sign${formatFloat(actualDamage)}"
         }
+    }
+
+    /**
+     * Translates a reaction label, honouring the `moon:` / `star:` namespace a blessing installs on the
+     * server (`moon:reaction.simple_tweaks.conduct` renders as 「月感电」 / "Lunar Conduct").
+     *
+     * The namespace is resolved on this side because the blessing's own name is a lang entry: the server
+     * sends keys, never finished text.
+     */
+    private fun labelText(raw: String): String {
+        val colon = raw.indexOf(':')
+        if (colon <= 0) return net.minecraft.text.Text.translatable(raw).string
+        val prefix = net.minecraft.text.Text
+            .translatable("gui.simple_tweaks.blessing.${raw.substring(0, colon)}").string
+        val inner = net.minecraft.text.Text.translatable(raw.substring(colon + 1)).string
+        return prefix + inner
     }
 
     /** `false` for the elemental half of a split hit and for labels, which show only one line. */

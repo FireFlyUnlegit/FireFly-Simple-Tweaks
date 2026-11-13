@@ -58,6 +58,9 @@ object EnchantMoonBlessingHandler : Listenable {
      */
     private val LUNAR_REACTIONS = setOf("steam", "conduct", "bloom", "purify")
 
+    /** Label namespace installed on the reaction: `moon:reaction.simple_tweaks.conduct` → 「月感电」. */
+    const val LABEL_PREFIX = "moon"
+
     fun shareFor(level: Int): Float = SHARE_BASE + SHARE_PER_LEVEL * level.coerceIn(0, 3)
 
     fun critChanceFor(level: Int): Float = CRIT_BASE + CRIT_PER_LEVEL * level.coerceIn(0, 3)
@@ -83,6 +86,8 @@ object EnchantMoonBlessingHandler : Listenable {
 
         target.damageElemental(player, ModDamageTypes.MOON, lunar)
         STACKS[player] = Stacks(minOf(count + 1, MAX_STACKS), now + STACK_TICKS)
+        // The reaction stops being "过载" and becomes "月过载" for this hit.
+        outcome.labelPrefix = LABEL_PREFIX
 
         FSTLog.log("MoonBlessing") {
             "element=${element.id}, lvl=$level, reaction=${"%.2f".format(flatDamage)}, " +

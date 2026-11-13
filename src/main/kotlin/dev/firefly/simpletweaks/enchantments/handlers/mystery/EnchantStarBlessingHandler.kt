@@ -52,6 +52,9 @@ object EnchantStarBlessingHandler : Listenable {
      */
     private val STELLAR_REACTIONS = setOf("melt", "vanish", "overload", "eclipse", "freeze", "brittle")
 
+    /** Label namespace installed on the reaction: `star:reaction.simple_tweaks.overload` → 「星过载」. */
+    const val LABEL_PREFIX = "star"
+
     override fun init() {
         ReactionSeam.register { attacker, target, element, outcome -> onReaction(attacker, target, element, outcome) }
     }
@@ -66,6 +69,8 @@ object EnchantStarBlessingHandler : Listenable {
 
         val star = flatDamage * shareFor(level) * CRIT_MULTIPLIER
         target.damageElemental(player, ModDamageTypes.STAR, star)
+        // The reaction stops being "过载" and becomes "星过载" for this hit.
+        outcome.labelPrefix = LABEL_PREFIX
 
         var splashed = 0
         val splash = star * SPLASH_SHARE

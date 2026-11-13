@@ -103,6 +103,7 @@ object DamageIndicatorHandler : Listenable {
         // possible at all: the health differ below only ever sees the total.
         if (DamageIndicatorConfig.splitElemental) {
             val bucket = composition.getOrPut(uuid) { Composition() }
+            bucket.tick = tickCounter
             val element = ElementType.of(event.source)
             if (element == null) {
                 bucket.nonElemental += event.amount
@@ -124,6 +125,16 @@ object DamageIndicatorHandler : Listenable {
         /** `element ordinal -> damage this tick`, in arrival order so the numbers stay stable. */
         val elemental: LinkedHashMap<Int, Float> = LinkedHashMap()
 
+        /**
+         * [DamageIndicatorHandler.tickCounter] when this bucket last received a component.
+         *
+         * A bucket may outlive the tick it was filled in by one tick: a hit's elemental rider is dealt
+         * from the world tick, i.e. after the physical instance, so a hit that spans a tick boundary used
+         * to lose its elemental half ("我只看得到一段物理伤害"). One tick is the whole allowance —
+         * anything older is stale by definition.
+         */
+        var tick: Long = -1L
+
         /** Total of every elemental share this tick; the over-clamp rescale needs the sum. */
         fun elementalTotal(): Float {
             var total = 0f
@@ -131,6 +142,9 @@ object DamageIndicatorHandler : Listenable {
             return total
         }
     }
+
+    /** Increments once per [onServerTickEnd]; the age unit of [Composition.tick]. */
+    private var tickCounter = 0L
 
     /**
      * Per-entity, per-tick composition buckets.
@@ -216,31 +230,35 @@ object DamageIndicatorHandler : Listenable {
                                     else ElementCombat.lastElementOrdinal(entity)
 
                                 // Split display: emit the non-elemental and elemental halves as their
-                                // own numbers. Only for damage (a heal has no components) and only when
-                                // the accumulated composition actually covers this delta — otherwise
-                                // fall through to the single merged number, which is what the health
-                                // differ is good at.
-                                val split = if (isHeal) null else composition.remove(uuid)
-                                if (split != null &&
-                                    (split.nonElemental > 0.001f || split.elementalTotal() > 0.001f)
-                                ) {
-                                    // The components come from the damage seam, i.e. they are *pre-clamp*
-                                    // and can sum to more than the target had left; the health differ is
-                                    // the only part of this handler that knows what the player actually
-                                    // watched happen. So when they disagree the observed delta wins and
-                                    // every component is scaled by the same factor — the ratio between
-                                    // them (the whole point of the split) survives, the total stops
-                                    // lying (`cleanup47`, same reasoning as the deleted `originalDamage`).
-                                    val componentTotal = split.nonElemental + split.elementalTotal()
-                                    val componentScale = if (componentTotal > actualDamage + 0.001f) {
-                                        actualDamage / componentTotal
-                                    } else {
-                                        1f
-                                    }
+                                // own numbers. The components come from the damage seam and the health
+                                // differ only ever sees the total, so this is the only way to show what
+                                // the hit was made of.
+                                //
+                                // **A heal no longer suppresses the components** (`build=cleanup99`):
+                                // with a big absorption shield (`healing_blade`) the rider's share is
+                                // soaked and the absorption is refilled in the same tick, so the net
+                                // delta can come out positive while the damage was very real. Dropping
+                                // the bucket there is exactly the reported "只看到一段物理伤害".
+                                val split = composition.remove(uuid)
+                                val componentTotal =
+                                    if (split == null) 0f else split.nonElemental + split.elementalTotal()
+                                if (split != null && componentTotal > 0.001f) {
+                                    // The components are *pre-clamp* and can sum to more than the target
+                                    // had left; the health differ is the only part of this handler that
+                                    // knows what the player actually watched happen. When they disagree
+                                    // the observed delta wins and every component is scaled by the same
+                                    // factor — the ratio between them (the whole point of the split)
+                                    // survives, the total stops lying (`cleanup47`).
+                                    //
+                                    // A heal tick has no damage delta to scale against, so the components
+                                    // are shown at face value.
+                                    val componentScale =
+                                        if (isHeal || componentTotal <= actualDamage + 0.001f) 1f
+                                        else actualDamage / componentTotal
                                     val nonElemental = split.nonElemental * componentScale
+                                    // `health + absorption` after a heal tick is the honest "after".
+                                    val displayAfter = if (isHeal) currentRealHealth else afterRealHealth
 
-                                    // `minHealthChange` is applied per component here, so a tiny
-                                    // elemental tick can be hidden while the plain part still shows.
                                     if (nonElemental > 0.001f && nonElemental >= minChange) {
                                         sendToNearbyPlayers(
                                             entity,
@@ -248,7 +266,7 @@ object DamageIndicatorHandler : Listenable {
                                             false,
                                             entity.maxHealth,
                                             currentRealMaxHealth,
-                                            afterRealHealth,
+                                            displayAfter,
                                             ElementType.NONE_ORDINAL,
                                             PacketDamageIndicator.ROLE_NON_ELEMENTAL,
                                         )
@@ -267,10 +285,18 @@ object DamageIndicatorHandler : Listenable {
                                             false,
                                             entity.maxHealth,
                                             currentRealMaxHealth,
-                                            afterRealHealth,
+                                            displayAfter,
                                             ordinal,
                                             PacketDamageIndicator.ROLE_ELEMENTAL,
                                         )
+                                    }
+
+                                    FSTLog.log("DamageIndicator") {
+                                        "target=${entity.type.name.string}, diff=${"%.2f".format(diff)}, " +
+                                            "isHeal=$isHeal, nonElemental=${"%.2f".format(nonElemental)}, " +
+                                            "elemental=${"%.2f".format(componentTotal - split.nonElemental)}, " +
+                                            "scale=${"%.3f".format(componentScale)}, " +
+                                            "outcome=${if (isHeal) "split-on-heal-tick" else "split"}"
                                     }
                                 } else {
                                     sendToNearbyPlayers(
@@ -297,17 +323,14 @@ object DamageIndicatorHandler : Listenable {
         // bound over a long session.
         lastRealHealth.keys.removeAll { it !in aliveUUIDs }
 
-        // Composition is per-tick state. When the split option is off nothing consumes it, so clearing
-        // here is what keeps it from growing; when it is on, anything left belongs to an entity that
-        // took damage but produced no visible delta (already at 0 HP, or outside render range) and is
-        // equally stale by next tick.
-        // Anything still here was not consumed this tick: either its delta was below the threshold, the health
-                // differ cancelled out, or the entity is out of range. Keeping it would let a later hit inherit
-                // stale elements and report the wrong physical/elemental split (`build=cleanup63`), so the whole
-                // map is dropped — a bucket is only meaningful for the tick it was filled in.
-                composition.clear()
-        if (!DamageIndicatorConfig.splitElemental) composition.clear()
+        // Composition is per-tick state with a **one tick** allowance (see [Composition.tick]): a bucket
+        // filled during tick N is still valid during the scan of tick N+1, because a hit's elemental rider
+        // is dealt from the world tick and can land on the far side of a tick boundary. Anything older is
+        // stale — keeping it would let a later hit inherit elements it never had and report the wrong
+        // split (`build=cleanup63`).
+        composition.entries.removeIf { it.value.tick < tickCounter - 1 }
         suppressedEntities.removeAll { it !in aliveUUIDs }
+        tickCounter++
     }
 
     /** 1.12.2 `sendToNearbyPlayers` — everyone within 64 blocks, including the target itself. */

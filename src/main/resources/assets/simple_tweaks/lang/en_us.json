@@ -93,6 +93,8 @@
   "enchantment.simple_tweaks.void_protection": "Void Protection",
   "enchantment.simple_tweaks.water_conversion": "Water Conversion",
   "enchantment.simple_tweaks.water_protection": "Water Affinity",
+  "gui.simple_tweaks.blessing.moon": "Lunar ",
+  "gui.simple_tweaks.blessing.star": "Star ",
   "gui.simple_tweaks.category.common": "Common",
   "gui.simple_tweaks.category.epic": "Epic",
   "gui.simple_tweaks.category.legendary": "Legendary",
@@ -340,7 +342,7 @@
   "enchantment.simple_tweaks.quake": "Quake",
   "enchantment.simple_tweaks.quake.desc": "Interrupts a target that is using an item (bow draw, shield, potion, food); if the target is a player, that item also goes on a 1 s cooldown",
   "enchantment.simple_tweaks.elemental_supremacy": "Elemental Supremacy",
-  "enchantment.simple_tweaks.elemental_supremacy.desc": "(1) Your highest elemental affinity defends against all seven elements (maximum, never summed). (2) Its own mitigation zone: 4.5%% per total level (90%% at 20 levels), applied separately from the affinity (98%% total, never 100%%). (3) Every hit carries an extra 5%% of its damage as an elemental conversion (the hit itself is not reduced), once per 10 total levels (2 at a full set), random element, can start a reaction. (4) Every reaction that hits you is remembered, capacity = total level / 2 (max 10); your next hit replays all of them, each at 40%% of that hit. (5) Attachment and reaction ICDs are shortened by 1 - total level / 20: at a full set (20 levels) both collapse to a single tick. (6) Counter: every elemental hit you take is answered by the element that counters it, attached to the attacker at 0.5 units (an active hit applies 1 unit), reflects 4%% x total level of that hit (80%% at a full set) and locks the attacker's healing for total level ticks (20 ticks = 1 s at a full set) - not triggered when the attacker also wears Elemental Supremacy",
+  "enchantment.simple_tweaks.elemental_supremacy.desc": "(1) Your highest elemental affinity defends against all seven elements (maximum, never summed). (2) Its own mitigation zone: 4.5%% per total level (90%% at 20 levels), applied separately from the affinity (98%% total, never 100%%); this zone also covers damage no element claims (a plain swing), except true/venom/reflection damage. (3) Every hit carries an extra 5%% of its damage as an elemental conversion (the hit itself is not reduced), once per 10 total levels (2 at a full set), random element, can start a reaction. (4) Every reaction that hits you is remembered, capacity = total level / 2 (max 10); your next hit replays all of them, each at 40%% of that hit. (5) Attachment and reaction ICDs are shortened by 1 - total level / 20: at a full set (20 levels) both collapse to a single tick. (6) Counter: every elemental hit you take is answered by the element that counters it, attached to the attacker at 0.5 units (an active hit applies 1 unit), reflects 4%% x total level of that hit (80%% at a full set) and locks the attacker's healing for total level ticks (20 ticks = 1 s at a full set) - not triggered when the attacker also wears Elemental Supremacy",
   "element.simple_tweaks.dark": "Dark",
   "gui.simple_tweaks.config.mobEnhancement.levelUpOnHitPlayer": "Level-up chance when hitting a player (%%)",
   "gui.simple_tweaks.config.mobEnhancement.levelUpOnKill": "Level-up chance on kill (%%)",
@@ -375,8 +377,8 @@
   "enchantment.simple_tweaks.resonance_core": "Resonance Core",
   "enchantment.simple_tweaks.resonance_core.desc": "Every elemental reaction you trigger adds one Resonance stack to the target (cap 2 + level, III = 5 stacks, 10 s). Each stack makes your elemental damage against it +4%% (5 stacks = +20%%); once the stacks are full, your next elemental hit is a guaranteed crit (x2) and consumes them",
   "enchantment.simple_tweaks.moon_blessing": "Blessing of the Moon",
-  "enchantment.simple_tweaks.moon_blessing.desc": "Your water reactions (Vaporize / Electro-Charged / Bloom / Purify) turn lunar: 20%%+10%% x level (III = 50%%) of that reaction resolves as Lunar damage - ignores armour, can crit (15%%+10%% x level chance, x1.5) and grants one Moonlight stack (max 5, 10 s, +5%% Lunar damage each). Reactions between other elements are unaffected",
+  "enchantment.simple_tweaks.moon_blessing.desc": "Your water reactions (Vaporize / Electro-Charged / Bloom / Purify) turn lunar: 20%%+10%% x level (III = 50%%) of that reaction resolves as Lunar damage - ignores armour, can crit (15%%+10%% x level chance, x1.5) and grants one Moonlight stack (max 5, 10 s, +5%% Lunar damage each). Reactions between other elements are unaffected. The floating reaction label reads \"Lunar <reaction>\"",
   "enchantment.simple_tweaks.star_blessing": "Blessing of the Star",
-  "enchantment.simple_tweaks.star_blessing.desc": "Your frost reactions (Melt / Vanish / Overload / Eclipse / Freeze / Brittle) turn stellar: 15%%+10%% x level (III = 45%%) of that reaction resolves as Stellar damage - always crits (x1.5) and splashes 50%% of it to other enemies within 4 blocks. Reactions between other elements are unaffected",
+  "enchantment.simple_tweaks.star_blessing.desc": "Your frost reactions (Melt / Vanish / Overload / Eclipse / Freeze / Brittle) turn stellar: 15%%+10%% x level (III = 45%%) of that reaction resolves as Stellar damage - always crits (x1.5) and splashes 50%% of it to other enemies within 4 blocks. Reactions between other elements are unaffected. The floating reaction label reads \"Star <reaction>\"",
   "gui.simple_tweaks.devour.stacks": "Devoured: %1$s stacks (+%2$s%% damage)"
 }
