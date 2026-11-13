@@ -8,13 +8,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-/**
- * Suppresses vanilla's food icons; **the hunger bar itself is drawn by {@code BarHealthHud}**.
- *
- * See {@code InGameHudArmorMixin} for why this is a suppressor only: a mod that injects into
- * {@code renderFood} first would swallow anything drawn here, and the hunger bar disappearing is worse than
- * a duplicated icon row.
- */
+/** Suppresses vanilla food icons only; the bar is drawn by {@code HungerHud}. */
 @Mixin(InGameHud.class)
 public abstract class InGameHudFoodMixin {
 

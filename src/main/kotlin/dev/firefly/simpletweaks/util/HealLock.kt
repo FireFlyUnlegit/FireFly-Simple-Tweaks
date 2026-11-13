@@ -9,36 +9,12 @@ import dev.firefly.simpletweaks.core.Listenable
 import net.minecraft.entity.LivingEntity
 import java.util.WeakHashMap
 
-/**
- * 禁疗 — "this entity cannot be healed until tick N", the one implementation in the mod.
- *
- * ## Who uses it
- * | source | duration |
- * |---|---|
- * | `echo_shield` (being blocked) | `level` ticks — the 1.12.2 value, kept verbatim |
- * | `elemental_supremacy` (countering an elemental hit) | `total level × 10` ticks (0.5 s per level, 10 s at a 20-level set) |
- *
- * ## Why a shared object and not a map per handler
- * `echo_shield` carried its own `WeakHashMap` + `LivingHealEvent` + `LivingUpdateEvent` trio for this.
- * Adding a second copy for 万法 would mean two cancel paths that can silently disagree (one cancels the
- * event, the other zeroes the amount, …) and two expiry sweeps. One owner, one behaviour.
- *
- * ## Why `WeakHashMap` and not entity NBT
- * The value is a `world.time` deadline measured in seconds of combat. Persisting it would restore a
- * stale deadline after a reload — 1.12.2 stored it in NBT because its only alternative was awkward, not
- * because the data is worth keeping. The key is the entity itself, so a removed entity takes its entry
- * with it (`AGENTS.md` §4.11's leak family).
- *
- * ## Why it is registered by hand
- * It is not an enchantment: `EnchantmentManager.initHandlers` registers it next to `MobLevelProgression`
- * so it stays out of the "Registered N enchantment handler(s)" count.
- */
+/** "Cannot be healed until tick N". Used by `echo_shield` and `elemental_supremacy`; deadlines are not persisted. */
 object HealLock : Listenable {
 
-    /** Entity → first tick at which it may be healed again. */
     private val UNTIL = WeakHashMap<LivingEntity, Long>()
 
-    /** Forbid healing [entity] for [ticks]; an existing, longer lock is never shortened. */
+    /** A longer existing lock is never shortened. */
     @JvmStatic
     fun lock(entity: LivingEntity, ticks: Long) {
         if (ticks <= 0L) return
@@ -53,7 +29,6 @@ object HealLock : Listenable {
         }
     }
 
-    /** Remaining locked ticks for [entity], `0` when it can heal. Diagnostics and tests. */
     @JvmStatic
     fun remaining(entity: LivingEntity): Long {
         val until = UNTIL[entity] ?: return 0L
