@@ -381,5 +381,9 @@
   "enchantment.simple_tweaks.karma.desc": "Each attack you land (elemental riders, reactions and damage-over-time ticks do not count) resets the karma pool to 20%% + 10%% x effective level of that hit. The pool lasts floor(5 + effective level) seconds and cancels incoming damage 1:1 (before armour reduction) for at most floor(effective level) hits, then it is spent. maxLevel 16 = four pieces at IV; effective level = sum of all four / 4",
   "enchantment.simple_tweaks.resonance_core": "Resonance Core",
   "enchantment.simple_tweaks.resonance_core.desc": "Every elemental reaction you trigger adds one Resonance stack to the target (cap 2 + level, III = 5 stacks, 10 s). Each stack makes your elemental damage against it +4%% (5 stacks = +20%%); once the stacks are full, your next elemental hit is a guaranteed crit (x2) and consumes them",
-  "gui.simple_tweaks.devour.stacks": "Devoured: %1$s stacks (+%2$s%% damage)"
+
+  "enchantment.simple_tweaks.moon_blessing": "Blessing of the Moon",
+  "enchantment.simple_tweaks.moon_blessing.desc": "Each elemental reaction you trigger also resolves 20%%+10%% x level (III = 50%%) of its damage as Lunar damage: ignores armour, can crit (15%%+10%% x level chance, x1.5) and grants one Moonlight stack (max 5, 10 s) worth +5%% Lunar damage each",
+  "enchantment.simple_tweaks.star_blessing": "Blessing of the Star",
+  "enchantment.simple_tweaks.star_blessing.desc": "Each elemental reaction you trigger also resolves 15%%+10%% x level (III = 45%%) of its damage as Stellar damage: always crits (x1.5) and splashes 50%% of it to other enemies within 4 blocks",  "gui.simple_tweaks.devour.stacks": "Devoured: %1$s stacks (+%2$s%% damage)"
 }

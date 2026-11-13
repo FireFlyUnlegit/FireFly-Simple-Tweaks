@@ -43,6 +43,14 @@ object ModDamageTypes {
 
     val REFLECTION: RegistryKey<DamageType> =
         RegistryKey.of(RegistryKeys.DAMAGE_TYPE, Identifier.of(SimpleTweaks.MOD_ID, "reflection"))
+
+    /** 月 blessings: the flat damage a reaction is re-expressed as. Armour-bypassing, never an element. */
+    val MOON: RegistryKey<DamageType> =
+        RegistryKey.of(RegistryKeys.DAMAGE_TYPE, Identifier.of(SimpleTweaks.MOD_ID, "moon"))
+
+    /** 星 blessings: same shape as [MOON], separate type so the two never share a death message or tag. */
+    val STAR: RegistryKey<DamageType> =
+        RegistryKey.of(RegistryKeys.DAMAGE_TYPE, Identifier.of(SimpleTweaks.MOD_ID, "star"))
 }
 
 /**
