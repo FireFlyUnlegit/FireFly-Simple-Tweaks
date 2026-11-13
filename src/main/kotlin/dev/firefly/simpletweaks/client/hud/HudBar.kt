@@ -8,6 +8,31 @@ import net.minecraft.util.math.MathHelper
 /** Shared drawing for the HUD bars: container sprite + bordered track + gradient fill + centred text. */
 object HudBar {
 
+    /**
+     * Per-frame tween for one bar value: 40 % of the remaining gap per frame, so every change reaches its
+     * target in ~6 frames regardless of magnitude. Numbers stay exact; only the fill animates.
+     */
+    class Smooth {
+        private var value = Float.NaN
+
+        fun update(target: Float): Float {
+            val current = value
+            if (current.isNaN()) {
+                value = target
+                return target
+            }
+            val gap = target - current
+            if (gap == 0f) return current
+            val step = maxOf(kotlin.math.abs(gap) * 0.4f, 0.01f)
+            value = if (gap > 0f) minOf(current + step, target) else maxOf(current - step, target)
+            return value
+        }
+
+        fun reset() {
+            value = Float.NaN
+        }
+    }
+
     const val HEIGHT = 9
     const val ICON = 9
 

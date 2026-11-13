@@ -66,7 +66,20 @@ object MobElements {
 
     /** Same threshold as the enchant side, so both features appear together as difficulty rises. */
     const val DIFFICULTY_FOR_FULL_CHANCE = 2.0f
-    const val CONVERSION_FRACTION = 0.40f
+
+    /** Conversion gained per 5 mob levels: a level-50 mob converts 10 %. */
+    const val CONVERSION_PER_5_LEVELS = 0.01f
+
+    /** Conversion ceiling; a level-250 mob is the first to reach it. */
+    const val MAX_CONVERSION = 0.50f
+
+    /** Aura units a mob's elemental hit attaches to its victim (the player), independent of the damage share. */
+    const val AURA_UNITS = 1.0f
+
+    /** Share of a mob's melee hit turned into its element; `0` below level 5. */
+    fun conversionFraction(level: Int): Float =
+        (level / 5 * CONVERSION_PER_5_LEVELS).coerceIn(0f, MAX_CONVERSION)
+
     const val BONUS_SCALE = 0.50f
     const val RESISTANCE = 0.30f
     const val RESISTANCE_PER_LEVEL = 0.03f

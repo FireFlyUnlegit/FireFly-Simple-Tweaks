@@ -44,17 +44,17 @@ import net.minecraft.entity.player.PlayerEntity
  */
 object PlayerPower {
 
-    /** Armour points that count as one unit of power. `20` = a full netherite set. */
-    private const val ARMOR_REFERENCE = 20.0
+    /** Armour points that count as one unit of power. Higher = base gear matters less. */
+    private const val ARMOR_REFERENCE = 40.0
 
     /** Health above the vanilla `20` that counts as one unit. */
     private const val HEALTH_REFERENCE = 20.0
 
     /** Attack damage that counts as one unit (a base sword is `~7`). */
-    private const val ATTACK_REFERENCE = 10.0
+    private const val ATTACK_REFERENCE = 20.0
 
-    /** Enchantment levels across the loadout that count as one unit. */
-    private const val ENCHANT_LEVELS_REFERENCE = 40.0
+    /** Enchantment levels across the loadout that count as one unit. Lower = enchantments matter more. */
+    private const val ENCHANT_LEVELS_REFERENCE = 20.0
 
     /** Slots whose enchantments count. Off-hand is skipped: it is usually a torch. */
     private val SLOTS = arrayOf(

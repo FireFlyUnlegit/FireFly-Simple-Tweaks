@@ -13,15 +13,23 @@ object HungerHud {
 
     private const val REFERENCE = 20f
 
+    private val smooth = HudBar.Smooth()
+
     fun renderRightAligned(context: DrawContext, player: PlayerEntity, rightEdge: Int, y: Int) {
         val food = player.hungerManager.foodLevel
+        val shown = smooth.update(food.toFloat())
+
         val barX = rightEdge - HudBar.WIDTH
         HudBar.frame(context, barX, y, HudBar.WIDTH, HudBar.HEIGHT)
         HudBar.fill(
             context, barX, y, HudBar.WIDTH, HudBar.HEIGHT,
-            (food / REFERENCE).coerceIn(0f, 1f), FILL_TOP, FILL_BOTTOM,
+            (shown / REFERENCE).coerceIn(0f, 1f), FILL_TOP, FILL_BOTTOM,
         )
         HudBar.text(context, MathHelper.ceil(food.toFloat()).toString(), barX, y, HudBar.WIDTH, TEXT)
         HudBar.icon(context, HudBar.FOOD_EMPTY, HudBar.FOOD_FULL, rightEdge, y)
+    }
+
+    fun reset() {
+        smooth.reset()
     }
 }

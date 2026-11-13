@@ -129,7 +129,7 @@ object MobLevels {
      * the total could never exceed `+3` (+10 levels) no matter how strong the player got — which is why
      * mobs fell behind the moment the player started enchanting.
      */
-    private const val PLAYER_POWER_WEIGHT = 2.0f
+    private const val PLAYER_POWER_WEIGHT = 1.5f
 
     /** How far away a player still counts as "the one this mob is scaling against", in blocks. */
     /**

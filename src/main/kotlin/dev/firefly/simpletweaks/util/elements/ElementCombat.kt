@@ -16,6 +16,7 @@ import dev.firefly.simpletweaks.util.damagesource.damageElemental
 import dev.firefly.simpletweaks.util.getElementSpecificEnchantLevel
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import dev.firefly.simpletweaks.util.mobs.MobElements
+import dev.firefly.simpletweaks.util.mobs.MobLevelSync
 import net.minecraft.entity.EquipmentSlot
 import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.damage.DamageSource
@@ -739,7 +740,13 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
         val original = e.amount
         if (original <= 0f) return
 
-        val cancelled = original * MobElements.CONVERSION_FRACTION
+        // Conversion scales with the mob's level (1 % per 5 levels, cap 50 %); below level 5 the hit stays
+        // physical, so a fresh world does not start with elemental zombies.
+        val level = MobLevelSync.levelOf(mob)
+        val fraction = MobElements.conversionFraction(level)
+        if (fraction <= 0f) return
+
+        val cancelled = original * fraction
         val reDealt = cancelled * (1.0f + MobElements.BONUS_SCALE)
         val kept = (original - cancelled).coerceAtLeast(0f)
 
@@ -759,12 +766,16 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
         e.amount = kept
 
         rememberElement(target, element)
+        // The victim also gets the aura: without it a mob's element could only ever hit, never set up a
+        // reaction on the player — i.e. the whole element game was one-directional.
+        ElementAuras.attach(target, element, MobElements.AURA_UNITS)
         enqueueElemental(attacker, target, element, reDealt)
 
         FSTLog.log("Element") {
-            "mob=${mob.type.name.string}, element=${element.id}, " +
+            "mob=${mob.type.name.string}, level=$level, element=${element.id}, " +
                 "amount=${"%.2f".format(original)}->${"%.2f".format(e.amount)}, " +
-                "elemental=${"%.2f".format(reDealt)}, outcome=mob-elemental-attack"
+                "fraction=$fraction, elemental=${"%.2f".format(reDealt)}, " +
+                "aura=${ElementAuras.describe(target)}, outcome=mob-elemental-attack"
         }
     }
 

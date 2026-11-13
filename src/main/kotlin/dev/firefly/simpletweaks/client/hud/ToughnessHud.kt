@@ -13,25 +13,35 @@ object ToughnessHud {
 
     private const val REFERENCE = 20f
 
+    private val smooth = HudBar.Smooth()
+
     fun renderRightAligned(context: DrawContext, player: PlayerEntity, rightEdge: Int, y: Int) {
         val toughness = player.getAttributeValue(
             net.minecraft.entity.attribute.EntityAttributes.GENERIC_ARMOR_TOUGHNESS
         )
-        if (toughness <= 0.0) return
+        if (toughness <= 0.0) {
+            smooth.reset()
+            return
+        }
+        val shown = smooth.update(toughness.toFloat())
 
         val barX = rightEdge - HudBar.WIDTH
         HudBar.frame(context, barX, y, HudBar.WIDTH, HudBar.HEIGHT)
         HudBar.fill(
             context, barX, y, HudBar.WIDTH, HudBar.HEIGHT,
-            (toughness / REFERENCE).coerceIn(0.0, 1.0).toFloat(), FILL_TOP, FILL_BOTTOM,
+            (shown / REFERENCE).coerceIn(0f, 1f), FILL_TOP, FILL_BOTTOM,
         )
-        val shown = if (toughness == Math.floor(toughness)) {
+        val value = if (toughness == Math.floor(toughness)) {
             MathHelper.ceil(toughness).toString()
         } else {
             "%.1f".format(toughness)
         }
-        HudBar.text(context, shown, barX, y, HudBar.WIDTH, TEXT)
+        HudBar.text(context, value, barX, y, HudBar.WIDTH, TEXT)
         // No vanilla toughness sprite; the armour glyph in a different palette.
         HudBar.icon(context, HudBar.ARMOR_EMPTY, HudBar.ARMOR_FULL, rightEdge, y)
+    }
+
+    fun reset() {
+        smooth.reset()
     }
 }

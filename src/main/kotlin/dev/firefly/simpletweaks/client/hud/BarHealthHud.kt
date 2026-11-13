@@ -4,10 +4,7 @@ import net.minecraft.client.gui.DrawContext
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.util.math.MathHelper
 
-/**
- * Health bar, plus absorption as a gold bar one row above. `health` must be the **real** value:
- * vanilla's `renderHealthBar` also passes an animated one, which made the bar trail the number.
- */
+/** Health bar, plus absorption as a gold bar one row above; fills tween, numbers are exact. */
 object BarHealthHud {
 
     private val FILL_TOP = 0xFFE0524A.toInt()
@@ -23,6 +20,8 @@ object BarHealthHud {
     private const val GHOST_MIN_STEP = 0.25f
     private const val GHOST_HOLD_FRAMES = 6
 
+    private val healthSmooth = HudBar.Smooth()
+    private val absorbSmooth = HudBar.Smooth()
     private var ghost = Float.NaN
     private var holdFrames = 0
 
@@ -39,7 +38,7 @@ object BarHealthHud {
         val max = maxHealth.coerceAtLeast(1f)
         val current = health.toFloat().coerceIn(0f, max)
 
-        // Damage ghost: only the trailing slice animates, the fill and the number are exact.
+        // Damage ghost: trails behind the (already tweened) fill for the "lost health" read.
         if (ghost.isNaN()) ghost = current
         if (current < ghost) {
             if (holdFrames < GHOST_HOLD_FRAMES) {
@@ -52,6 +51,8 @@ object BarHealthHud {
             holdFrames = 0
         }
 
+        val shown = healthSmooth.update(current)
+
         // Bar edge sits on the HUD anchor; the icon hangs outside it.
         val barX = x
         val iconX = x - HudBar.ICON
@@ -62,28 +63,30 @@ object BarHealthHud {
         HudBar.frame(context, barX, y, HudBar.WIDTH, HudBar.HEIGHT)
 
         val innerW = HudBar.WIDTH - 2
-        val realRatio = (current / max).coerceIn(0f, 1f)
-        val filledPx = MathHelper.ceil(innerW * realRatio).toInt()
+        val filledPx = MathHelper.ceil(innerW * (shown / max).coerceIn(0f, 1f)).toInt()
         val ghostPx = MathHelper.ceil(innerW * (ghost / max).coerceIn(0f, 1f)).toInt()
 
         if (ghostPx > filledPx) {
             context.fill(barX + 1 + filledPx, y + 1, barX + 1 + ghostPx, y + HudBar.HEIGHT - 1, GHOST)
         }
-        HudBar.fill(context, barX, y, HudBar.WIDTH, HudBar.HEIGHT, realRatio, FILL_TOP, FILL_BOTTOM, blinking)
+        HudBar.fill(context, barX, y, HudBar.WIDTH, HudBar.HEIGHT, shown / max, FILL_TOP, FILL_BOTTOM, blinking)
         HudBar.text(context, "${MathHelper.ceil(current)}/${MathHelper.ceil(max)}", barX, y, HudBar.WIDTH, TEXT)
 
         if (absorption > 0) {
             val absorbY = y - 10
+            val absorbShown = absorbSmooth.update(absorption.toFloat())
             HudBar.icon(context, HudBar.HEART_CONTAINER, HudBar.HEART_ABSORBING, iconX, absorbY)
             HudBar.frame(context, barX, absorbY, HudBar.WIDTH, HudBar.HEIGHT)
             HudBar.fill(
                 context, barX, absorbY, HudBar.WIDTH, HudBar.HEIGHT,
-                (absorption / max).coerceIn(0f, 1f), ABSORB_TOP, ABSORB_BOTTOM,
+                (absorbShown / max).coerceIn(0f, 1f), ABSORB_TOP, ABSORB_BOTTOM,
             )
             HudBar.text(
                 context, "+${MathHelper.ceil(absorption.toFloat())}",
                 barX, absorbY, HudBar.WIDTH, ABSORB_TEXT,
             )
+        } else {
+            absorbSmooth.reset()
         }
 
         // Right column: toughness above hunger, both mirrored.
@@ -93,7 +96,12 @@ object BarHealthHud {
     }
 
     fun reset() {
+        healthSmooth.reset()
+        absorbSmooth.reset()
         ghost = Float.NaN
         holdFrames = 0
+        ArmorHud.reset()
+        ToughnessHud.reset()
+        HungerHud.reset()
     }
 }
