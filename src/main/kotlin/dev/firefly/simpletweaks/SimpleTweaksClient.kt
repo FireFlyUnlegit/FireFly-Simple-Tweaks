@@ -127,7 +127,7 @@ class SimpleTweaksClient : ClientModInitializer {
                 "+ split damage display now emits one number per element, fanned out and staggered " +
                 "+ every moon / star reaction has a rider of its own (mist, arc, seed, cleanse / " +
                 "burst, veil, detonation, theft, seal, fracture) + toughness bar uses a shield glyph " +
-                "(v2.2.7, build=cleanup1)",
+                "(v2.2.8, build=cleanup2)",
             SimpleTweaks.NAME,
             enchantmentCount,
         )

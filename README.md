@@ -12,14 +12,14 @@
 
 一个自己做着玩的 Minecraft 模组，为原版游戏带来新的附魔、功能模块和视觉反馈。
 
-当前 **1.21.1 / Fabric** 版本：**v2.2.7**（127 种附魔、17 种元素反应、元素量系统、护甲曲线重做）。
+当前 **1.21.1 / Fabric** 版本：**v2.2.8**（127 种附魔、17 种元素反应、元素量系统、护甲曲线重做）。
 
 ## 🌿 版本分支
 
 | 分支                                                                                          | 游戏版本 | 加载器 | 状态          |
 |-----------------------------------------------------------------------------------------------|----------|--------|---------------|
 | [`forge-1.12.2`](https://github.com/FireFlyUnlegit/FireFly-Simple-Tweaks/tree/forge-1.12.2)   | 1.12.2   | Forge  | ✅ 稳定       |
-| [`fabric-1.21.1`](https://github.com/FireFlyUnlegit/FireFly-Simple-Tweaks/tree/fabric-1.21.1) | 1.21.1   | Fabric | ✅ **v2.2.6** |
+| [`fabric-1.21.1`](https://github.com/FireFlyUnlegit/FireFly-Simple-Tweaks/tree/fabric-1.21.1) | 1.21.1   | Fabric | ✅ **v2.2.8** |
 
 - **1.21.1 / Fabric 版**是完整的跨版本迁移，详见 [`MIGRATION.md`](./MIGRATION.md)
 - 两个版本**平行维护**，不做合并
@@ -303,7 +303,7 @@
 
 **步骤**：
 
-1. 从 [Releases](https://github.com/FireFlyUnlegit/FireFly-Simple-Tweaks/releases) 下载 `simple_tweaks-2.2.7.jar`
+1. 从 [Releases](https://github.com/FireFlyUnlegit/FireFly-Simple-Tweaks/releases) 下载 `simple_tweaks-2.2.8.jar`
 2. 放进 `.minecraft/mods/`
 3. 启动游戏
 
