@@ -37,8 +37,7 @@ object ToughnessHud {
             "%.1f".format(toughness)
         }
         HudBar.text(context, value, barX, y, HudBar.WIDTH, TEXT)
-        // No vanilla toughness sprite; the armour glyph in a different palette.
-        HudBar.icon(context, HudBar.ARMOR_EMPTY, HudBar.ARMOR_FULL, rightEdge, y)
+        HudBar.shieldIcon(context, rightEdge, y)
     }
 
     fun reset() {

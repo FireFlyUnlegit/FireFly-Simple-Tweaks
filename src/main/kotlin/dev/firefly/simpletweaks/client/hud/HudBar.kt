@@ -48,6 +48,9 @@ object HudBar {
     val FOOD_EMPTY = Identifier.ofVanilla("hud/food_empty")
     val FOOD_FULL = Identifier.ofVanilla("hud/food_full")
 
+    /** Our own 9×9 shield glyph — vanilla ships no toughness sprite, and its 18×18 resistance icon blurs at 9. */
+    val SHIELD = Identifier.of("simple_tweaks", "hud/toughness")
+
     private val BORDER = 0xFF000000.toInt()
     private val TRACK = 0xFF2B2B2B.toInt()
     private val HIGHLIGHT = 0x66FFFFFF
@@ -56,6 +59,11 @@ object HudBar {
     fun icon(context: DrawContext, container: Identifier, fill: Identifier, x: Int, y: Int) {
         context.drawGuiTexture(container, x, y, 9, 9)
         context.drawGuiTexture(fill, x, y, 9, 9)
+    }
+
+    /** Single-sprite icon slot (the toughness shield). */
+    fun shieldIcon(context: DrawContext, x: Int, y: Int) {
+        context.drawGuiTexture(SHIELD, x, y, ICON, ICON)
     }
 
     /** 1 px outline with cut corners (square corners read as a debug overlay). */

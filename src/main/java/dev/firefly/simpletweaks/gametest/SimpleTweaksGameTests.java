@@ -692,6 +692,36 @@ public class SimpleTweaksGameTests implements FabricGameTest {
         context.complete();
     }
 
+    /**
+     * The moon and star blessings each answer to a fixed set of reaction keys.
+     *
+     * <p>Those keys are strings: a typo (`"conducts"`) compiles, runs, and silently never fires — the
+     * enchantment would look broken with no log line to show for it. This test resolves every key the two
+     * handlers claim against the reaction table, and pins that the families stay disjoint (the moon owns
+     * the water family, the star the frost one).
+     */
+    @GameTest(templateName = FabricGameTest.EMPTY_STRUCTURE)
+    public void blessingReactionKeysAllExist(TestContext context) {
+        var reactions = dev.firefly.simpletweaks.util.elements.ElementReactions.INSTANCE;
+        var lunar = dev.firefly.simpletweaks.enchantments.handlers.mystery
+                .EnchantMoonBlessingHandler.reactionKeys();
+        var stellar = dev.firefly.simpletweaks.enchantments.handlers.mystery
+                .EnchantStarBlessingHandler.reactionKeys();
+
+        LOGGER.info("[FST-GameTest] blessing keys: lunar={}, stellar={}", lunar, stellar);
+
+        context.assertEquals(4, lunar.size(), "the moon answers four water reactions");
+        context.assertEquals(6, stellar.size(), "the star answers six frost reactions");
+        for (var key : lunar) {
+            context.assertTrue(reactions.byKey(key) != null, "unknown lunar reaction key: " + key);
+        }
+        for (var key : stellar) {
+            context.assertTrue(reactions.byKey(key) != null, "unknown stellar reaction key: " + key);
+            context.assertTrue(!lunar.contains(key), "a reaction cannot be both lunar and stellar: " + key);
+        }
+        context.complete();
+    }
+
     private static void assertReduction(TestContext context, float damage, float armor, float expected) {
         float actual = ArmorCurve.INSTANCE.reductionFor(armor, damage);
         LOGGER.info("[FST-GameTest] damage {} armor {} -> reduction {} (expected {})",

@@ -100,7 +100,8 @@ class SimpleTweaksClient : ClientModInitializer {
         // `v2.2.0` starts a **new build cycle**: the identifier was reset to `cleanup1` and the
         // feature list was collapsed from the ~2 KB accumulation of 46 batches into a per-version
         // summary. The list is not a changelog -- it only has to answer "which jar is this", and a
-        // 2 KB line is no easier to read than a 300-byte one. Reset it again at the next minor version.
+        // 2 KB line is no easier to read than a 300-byte one. Reset it again at the next minor version,
+        // or whenever the author asks for `cleanupCountReset` (the count had reached `cleanup99`).
         // ⚠️ The enchantment count is **read from the generated table**, never typed as a literal.
         // It was a hard-coded `85` for three batches and went stale the moment three element
         // enchantments were added (`build=cleanup12`) —the log then claimed 85 while `/fst
@@ -124,7 +125,9 @@ class SimpleTweaksClient : ClientModInitializer {
                 "+ element damage is no longer exempt from the i-frame gate (only combo cancels it) " +
                 "+ reaction names as floating labels with their damage, 17 reactions " +
                 "+ split damage display now emits one number per element, fanned out and staggered " +
-                "(v2.2.7, build=cleanup99)",
+                "+ every moon / star reaction has a rider of its own (mist, arc, seed, cleanse / " +
+                "burst, veil, detonation, theft, seal, fracture) + toughness bar uses a shield glyph " +
+                "(v2.2.7, build=cleanup1)",
             SimpleTweaks.NAME,
             enchantmentCount,
         )
