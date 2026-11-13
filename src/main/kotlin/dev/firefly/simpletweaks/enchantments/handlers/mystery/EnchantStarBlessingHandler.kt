@@ -46,13 +46,21 @@ object EnchantStarBlessingHandler : Listenable {
 
     fun shareFor(level: Int): Float = SHARE_BASE + SHARE_PER_LEVEL * level.coerceIn(0, 3)
 
+    /**
+     * Only **frost-driven** reactions can go stellar (Genshin's 星烁反应 are the 冰 family: 星超导/星扩散).
+     * The moon owns the water family; the two must not overlap.
+     */
+    private val STELLAR_REACTIONS = setOf("melt", "vanish", "overload", "eclipse", "freeze", "brittle")
+
     override fun init() {
-        ReactionSeam.register { attacker, target, element, outcome -> onReaction(attacker, target, element, outcome.flatDamage) }
+        ReactionSeam.register { attacker, target, element, outcome -> onReaction(attacker, target, element, outcome) }
     }
 
-    private fun onReaction(attacker: LivingEntity?, target: LivingEntity, element: dev.firefly.simpletweaks.util.elements.ElementType, flatDamage: Float) {
+    private fun onReaction(attacker: LivingEntity?, target: LivingEntity, element: dev.firefly.simpletweaks.util.elements.ElementType, outcome: dev.firefly.simpletweaks.util.elements.ReactionOutcome) {
         val player = attacker as? PlayerEntity ?: return
         if (player.world.isClient) return
+        if (outcome.key == null || outcome.key !in STELLAR_REACTIONS) return
+        val flatDamage = outcome.flatDamage
         val level = getItemSpecificEnchantLevel(player.mainHandStack, GeneratedEnchantments.STAR_BLESSING)
         if (level <= 0 || flatDamage <= 0f) return
 

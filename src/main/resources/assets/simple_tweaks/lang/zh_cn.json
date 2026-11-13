@@ -381,9 +381,9 @@
   "enchantment.simple_tweaks.karma.desc": "你每次攻击命中（不含元素转化、反应、毒等附带伤害）都会重置因果池：数值 = 该次伤害的 20%%+10%%×有效等级。池子存在 ⌊5+有效等级⌋ 秒，按 1:1 抵消你受到的伤害（护甲减免前的数值），最多抵消 ⌊有效等级⌋ 次，用尽或超时即消失。四件护甲各 IV = maxLevel 16，有效等级 = 四件等级之和÷4",
   "enchantment.simple_tweaks.resonance_core": "共鸣核心",
   "enchantment.simple_tweaks.resonance_core.desc": "你触发的每次元素反应都会在目标身上叠 1 层「共鸣」（上限 2+等级，III = 5 层，10 秒）。每层让你对该目标的元素伤害 +4%%（5 层 = +20%%）；层数满时，下一次元素伤害必定暴击（×2）并消耗全部层数",
-
   "enchantment.simple_tweaks.moon_blessing": "月之祝福",
-  "enchantment.simple_tweaks.moon_blessing.desc": "你触发的每次元素反应，另有 20%%+10%%×等级（III = 50%%）的部分以「月曜伤害」结算：无视护甲、可暴击（暴击率 15%%+10%%×等级，×1.5），并叠 1 层「月华」（上限 5 层，10 秒），每层再 +5%% 月曜伤害",
+  "enchantment.simple_tweaks.moon_blessing.desc": "你的水系反应（蒸发 / 感电 / 绽放 / 净化）会月曜化：其中 20%%+10%%×等级（III = 50%%）的部分改以「月曜伤害」结算 —— 无视护甲、可暴击（15%%+10%%×等级，×1.5），并叠 1 层「月华」（上限 5 层，10 秒），每层再 +5%% 月曜伤害。其他元素之间的反应不触发",
   "enchantment.simple_tweaks.star_blessing": "星之祝福",
-  "enchantment.simple_tweaks.star_blessing.desc": "你触发的每次元素反应，另有 15%%+10%%×等级（III = 45%%）的部分以「星曜伤害」结算：必定暴击（×1.5），并对 4 格内的其他敌人溅射其中 50%%",  "gui.simple_tweaks.devour.stacks": "已吞噬：%1$s 层（伤害 +%2$s%%）"
+  "enchantment.simple_tweaks.star_blessing.desc": "你的冰系反应（融化 / 汽化 / 过载 / 亏蚀 / 冻结 / 碎裂）会星曜化：其中 15%%+10%%×等级（III = 45%%）的部分改以「星曜伤害」结算 —— 必定暴击（×1.5），并对 4 格内的其他敌人溅射其中 50%%。其他元素之间的反应不触发",
+  "gui.simple_tweaks.devour.stacks": "已吞噬：%1$s 层（伤害 +%2$s%%）"
 }
