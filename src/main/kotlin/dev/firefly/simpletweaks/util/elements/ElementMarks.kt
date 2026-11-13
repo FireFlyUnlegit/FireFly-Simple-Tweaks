@@ -537,7 +537,6 @@ object ElementMarks {
 
 /** Particle for each element, used by the reaction burst. */
 fun ElementType.particle(): net.minecraft.particle.ParticleEffect = when (this) {
-    ElementType.PHYSICAL -> ParticleTypes.CRIT
     ElementType.FIRE -> ParticleTypes.FLAME
     ElementType.FROST -> ParticleTypes.SNOWFLAKE
     ElementType.LIGHTNING -> ParticleTypes.ELECTRIC_SPARK

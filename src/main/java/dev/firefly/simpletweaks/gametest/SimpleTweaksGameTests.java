@@ -62,8 +62,8 @@ public class SimpleTweaksGameTests implements FabricGameTest {
         int keys = GeneratedEnchantments.INSTANCE.getKEYS().size();
         int categories = GeneratedEnchantments.INSTANCE.getCATEGORY().size();
         LOGGER.info("[FST-GameTest] generated table: keys={}, categories={}", keys, categories);
-        context.assertEquals(129, keys, "GeneratedEnchantments.KEYS should list all 129 enchantments");
-        context.assertEquals(129, categories, "GeneratedEnchantments.CATEGORY should cover every id");
+        context.assertEquals(127, keys, "GeneratedEnchantments.KEYS should list all 127 enchantments");
+        context.assertEquals(127, categories, "GeneratedEnchantments.CATEGORY should cover every id");
         context.complete();
     }
 
@@ -592,13 +592,12 @@ public class SimpleTweaksGameTests implements FabricGameTest {
         var lightning = dev.firefly.simpletweaks.util.elements.ElementType.LIGHTNING;
         var light = dev.firefly.simpletweaks.util.elements.ElementType.LIGHT;
         var dark = dev.firefly.simpletweaks.util.elements.ElementType.DARK;
-        var physical = dev.firefly.simpletweaks.util.elements.ElementType.PHYSICAL;
 
         LOGGER.info("[FST-GameTest] supremacy counter: fire->{}, frost->{}, water->{}, nature->{}, "
-                        + "lightning->{}, light->{}, dark->{}, physical->{}",
+                        + "lightning->{}, light->{}, dark->{}",
                 reactions.counterOf(fire), reactions.counterOf(frost), reactions.counterOf(water),
                 reactions.counterOf(nature), reactions.counterOf(lightning), reactions.counterOf(light),
-                reactions.counterOf(dark), reactions.counterOf(physical));
+                reactions.counterOf(dark));
 
         context.assertEquals(water, reactions.counterOf(fire), "fire is answered by water");
         context.assertEquals(fire, reactions.counterOf(frost), "frost is answered by fire");
@@ -607,9 +606,6 @@ public class SimpleTweaksGameTests implements FabricGameTest {
         context.assertEquals(water, reactions.counterOf(lightning), "lightning is answered by water");
         context.assertEquals(dark, reactions.counterOf(light), "light is answered by dark");
         context.assertEquals(light, reactions.counterOf(dark), "dark is answered by light");
-        // `assertEquals(null, …)` NPEs inside the vanilla helper (it calls `expected.equals`), so the
-        // "no counter" case is an assertTrue.
-        context.assertTrue(reactions.counterOf(physical) == null, "physical has no counter");
 
         // Every non-null answer must actually react against the element it answers.
         for (var incoming : new Object[] {fire, frost, water, nature, lightning, light, dark}) {
@@ -618,6 +614,48 @@ public class SimpleTweaksGameTests implements FabricGameTest {
             context.assertTrue(answer != null && reactions.of(e, answer) != null,
                     "counter " + answer + " must form a reaction on a " + e + " aura");
         }
+        context.complete();
+    }
+
+    /**
+     * The element layer's shape after `PHYSICAL` was retired.
+     *
+     * <p>Removing an enum constant is a silent, wide-reaching change: ordinal-shifted NBT, a conversion
+     * enchantment that no longer exists, a protected tag with a dangling member. This test pins the facts
+     * that code above it assumes — seven elements, a sentinel that really means "none", and exactly one
+     * `<element>_conversion` / `<element>_protection` pair generated per element (14, not the old 16).
+     */
+    @GameTest(templateName = FabricGameTest.EMPTY_STRUCTURE)
+    public void elementLayerHasSevenElementsAndNoPhysicalLeftovers(TestContext context) {
+        var elements = dev.firefly.simpletweaks.util.elements.ElementType.values();
+        var companion = dev.firefly.simpletweaks.util.elements.ElementType.Companion;
+        var generated = GeneratedEnchantments.INSTANCE;
+
+        int conversions = 0;
+        int protections = 0;
+        for (var element : elements) {
+            if (generated.keyOfElement(element.getId(), false) != null) conversions++;
+            if (generated.keyOfElement(element.getId(), true) != null) protections++;
+        }
+
+        LOGGER.info("[FST-GameTest] element layer: elements={}, noneOrdinal={}, conversions={}, "
+                        + "protections={}, ordinals {}..{}",
+                elements.length, dev.firefly.simpletweaks.util.elements.ElementType.NONE_ORDINAL,
+                conversions, protections,
+                elements[0].ordinal(), elements[elements.length - 1].ordinal());
+
+        context.assertEquals(7, elements.length, "PHYSICAL is retired: seven elements remain");
+        context.assertEquals(-1, dev.firefly.simpletweaks.util.elements.ElementType.NONE_ORDINAL,
+                "the no-element sentinel stays -1");
+        context.assertEquals(7, conversions, "one <element>_conversion per element");
+        context.assertEquals(7, protections, "one <element>_protection per element");
+
+        // The sentinel and every out-of-range value must resolve to null, not to element 0 or an exception.
+        context.assertTrue(
+                companion.ofOrdinal(dev.firefly.simpletweaks.util.elements.ElementType.NONE_ORDINAL) == null,
+                "NONE_ORDINAL must resolve to null");
+        context.assertTrue(companion.ofOrdinal(7) == null, "an out-of-range ordinal must resolve to null");
+        context.assertEquals(elements[0], companion.ofOrdinal(0), "ordinal 0 is the first real element");
         context.complete();
     }
 

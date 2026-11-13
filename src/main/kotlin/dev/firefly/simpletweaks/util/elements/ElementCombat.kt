@@ -217,9 +217,9 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
      *
      * so it looked for `simple_tweaks:elemental_mastery_conversion`, which does not exist → `null` →
      * `return 0`. Every conversion line in a real session logged `mastery=1.00`, i.e. the enchantment was
-     * never read at all. `keyOfElement` is only correct for the 16 enchantments whose ids are literally
-     * `<element>_conversion` / `<element>_protection`; mastery is the seventeenth and is not keyed to an
-     * `ElementType`, so it must use its own generated key.
+     * never read at all. `keyOfElement` is only correct for the 14 enchantments whose ids are literally
+     * `<element>_conversion` / `<element>_protection`; mastery is not keyed to an `ElementType`, so it
+     * must use its own generated key.
      */
     fun masteryLevel(stack: ItemStack): Int =
         getItemSpecificEnchantLevel(stack, GeneratedEnchantments.ELEMENTAL_MASTERY)
@@ -266,7 +266,7 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
 
     /** The conversion the attacker's main hand performs, or `null` when there is none.
      *
-     * At most one can be present because the eight conversion enchantments share one `exclusive_set`
+     * At most one can be present because the seven conversion enchantments share one `exclusive_set`
      * (`#simple_tweaks:exclusive_set/elements`). This does **not** trust that: exclusivity is a datapack
      * property a pack can edit away, so the first match in [ElementType] order wins and a second one is
      * reported as `outcome=multiple-conversions` instead of silently changing which element the player
@@ -279,9 +279,6 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
     ): Conversion? {
         var found: Conversion? = null
         for (element in ElementType.CONVERTIBLE) {
-            // `physical_conversion` is the exception: PHYSICAL is the default element, so a physical
-            // conversion means "convert *back* to physical", i.e. it only applies when the incoming hit
-            // is some other element. It is still a normal declared enchantment.
             val level = getElementSpecificEnchantLevel(stack, element, protective = false)
             if (level <= 0) continue
             if (found != null) {
@@ -415,8 +412,8 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
         // "附有元素转化的武器上攻击也是红色字体". Recording first only affects the *colour*; the early
         // return below still stops the element from being converted a second time.
         //
-        // Physical is skipped so a plain hit keeps the indicator's original colour.
-        if (incoming != ElementType.PHYSICAL) rememberElement(target, incoming)
+        // A hit no element claims (a plain swing) is skipped so it keeps the indicator's original colour.
+        if (incoming != null) rememberElement(target, incoming)
 
         // Our own re-dealt element damage must never be converted again — that would chain forever.
         if (isOwnElementalDamage(e)) return
@@ -431,7 +428,7 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
         // Mastery is read **before** the conversion branch, because it must also affect a hit that is
         // already elemental (a fire weapon on a fire hit, an arrow from a fire arrow, ...). Reading it
         // inside the conversion branch only would make the enchantment silently do nothing to any
-        // player who is not carrying one of the eight conversions — the "键存在 ≠ 有人读它" shape.
+        // player who is not carrying one of the seven conversions — the "键存在 ≠ 有人读它" shape.
         // The weapon **that fired this shot**, not whatever is in hand now: swapping to a
         // strong melee weapon after releasing the bow must not upgrade the arrow in flight.
         val weapon = attacker.combatStack(e.source)
@@ -444,23 +441,22 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
             //
             // 1. an **already-elemental** hit (a fire weapon, an arrow, a mob's own elemental source)
             //    gets the mastery multiplier and leaves a mark;
-            // 2. a **physical** hit leaves no mark (physical is the "no element" base and reacting on it
-            //    would make every plain sword hit mark the target) but **still gets mastery**.
+            // 2. a **non-elemental** hit leaves no mark (having no element is the base case and reacting on
+            //    it would make every plain sword hit mark the target) but **still gets mastery**.
             //
-            // ⚠️ Case 2 is the one the first revision got wrong: `if (incoming != PHYSICAL)` wrapped the
-            // whole block, so with a sword and no conversion enchantment `elemental_mastery` did
-            // *nothing at all* — the reported "元素精通未见成效". Mastery is an elemental-output
-            // multiplier, and on a physical hit the elemental output is zero, so the correct behaviour
-            // for mastery alone on a plain hit is to do nothing *visible* — but it must still be
-            // reachable, otherwise it silently never fires and cannot be told apart from a broken
-            // enchantment. It is logged (see `outcome=mastery-only-physical`), which is what makes the
-            // two distinguishable.
-            if (incoming == ElementType.PHYSICAL) {
+            // ⚠️ Case 2 is the one the first revision got wrong: the early return wrapped the whole block,
+            // so with a sword and no conversion enchantment `elemental_mastery` did *nothing at all* —
+            // the reported "元素精通未见成效". Mastery is an elemental-output multiplier, and on a
+            // non-elemental hit the elemental output is zero, so the correct behaviour for mastery alone
+            // on a plain hit is to do nothing *visible* — but it must still be reachable, otherwise it
+            // silently never fires and cannot be told apart from a broken enchantment. It is logged
+            // (see `outcome=mastery-only-non-elemental`), which is what makes the two distinguishable.
+            if (incoming == null) {
                 if (mastery != 1.0f) {
                     FSTLog.log("Element") {
-                        "incoming=physical, mastery=${"%.2f".format(mastery)}, " +
+                        "incoming=none, mastery=${"%.2f".format(mastery)}, " +
                             "note=no element to scale (equip a conversion for mastery to apply), " +
-                            "outcome=mastery-only-physical"
+                            "outcome=mastery-only-non-elemental"
                     }
                 }
                 return
@@ -512,8 +508,7 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
                 }
                 return
             }
-            // PHYSICAL has no reaction row: recording it would only attach a phantom 190-tick aura.
-            if (element == ElementType.PHYSICAL) return
+            // Every element has a reaction row now, so recording is unconditional here.
             val outcome = ElementMarks.record(attacker, target, element, e.amount, source = e.source)
             if (outcome.amplify > 1f) {
                 e.amount *= outcome.amplify
@@ -627,7 +622,7 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
         FSTLog.log("Element") {
             "element=${element.id}, lvl=${conversion.level}, " +
                 "fraction=${"%.2f".format(fraction)}, mastery=${"%.2f".format(mastery)}, " +
-                "incoming=${incoming.id}, " +
+                "incoming=${incoming?.id ?: "none"}, " +
                 "original=${"%.2f".format(original)}, kept=${"%.2f".format(e.amount)}, " +
                 "planned_elemental=${"%.2f".format(reDealt)}, landed=pending, " +
                 "reaction=${reacted.key ?: "none"}, " +
@@ -641,7 +636,8 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
     private class PendingElement(
         val attacker: LivingEntity,
         val target: LivingEntity,
-        val element: ElementType,
+        /** `null` for an unreduced rider that carries no element (`enqueueUnreduced`). */
+        val element: ElementType?,
         val amount: Float,
         /** The triggering hit's damage after mastery — the reaction table scales from this. */
         val baseDamage: Float,
@@ -679,6 +675,27 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
         )
     }
 
+    /**
+     * Queues [amount] of **unreduced, non-elemental** damage against [target], to be dealt at the end of
+     * the tick like [enqueueElemental].
+     *
+     * This is the rider path for flat bonuses that used to borrow the physical element type (shield bash,
+     * shockwave, skyfall): deferring is mandatory (see [enqueueElemental]), and `true_damage` is in
+     * `#minecraft:bypasses_armor` with no protection row, which is the same "cannot be reduced, cannot
+     * re-enter the on-hit stack" behaviour those riders need now that no physical element exists.
+     */
+    fun enqueueUnreduced(attacker: LivingEntity, target: LivingEntity, amount: Float) {
+        if (amount <= 0f || !amount.isFinite()) {
+            FSTLog.log("Element") {
+                "requested=$amount, target=${target.type.name.string}, outcome=unreduced-amount-not-finite"
+            }
+            return
+        }
+        PENDING.computeIfAbsent(target.world) { java.util.ArrayDeque() }.add(
+            PendingElement(attacker, target, null, amount, amount, target.health),
+        )
+    }
+
     /** Queued elemental damage, one deque per world, flushed on the server tick. */
     private val PENDING = java.util.concurrent.ConcurrentHashMap<net.minecraft.world.World, java.util.ArrayDeque<PendingElement>>()
 
@@ -708,11 +725,15 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
             // queued this, in which case dealing more damage would be a phantom hit on a corpse.
             if (!target.isAlive) continue
             val before = target.health
-            val landed = target.damageElemental(pending.attacker, pending.element.damageType, pending.amount)
+            val landed = target.damageElemental(
+                pending.attacker,
+                pending.element?.damageType ?: ModDamageTypes.TRUE_DAMAGE,
+                pending.amount,
+            )
             val actual = (before - target.health).coerceAtLeast(0f)
             // Debug-gated like the conversion line above — same `[FST-Element]` tag, debug switch.
             FSTLog.log("Element") {
-                "element=${pending.element.id}, " +
+                "element=${pending.element?.id ?: "true"}, " +
                     "flushed_elemental=${"%.2f".format(pending.amount)}, landed=$landed, " +
                     "actual_elemental=${"%.2f".format(actual)}, " +
                     "total_this_hit=${"%.2f".format(pending.healthAtStart - target.health)}, " +
@@ -732,7 +753,7 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
      * The elemental part is **queued** like every other re-deal — dealing damage from inside a
      * `LivingHurtEvent` corrupts `EventSeams`' cache (see `DEVLOG` §12.6).
      */
-    private fun handleMobAttack(attacker: LivingEntity, target: LivingEntity, incoming: ElementType, e: LivingHurtEvent) {
+    private fun handleMobAttack(attacker: LivingEntity, target: LivingEntity, incoming: ElementType?, e: LivingHurtEvent) {
         val mob = attacker as? MobEntity ?: return
         val element = MobElements.elementOf(mob) ?: return
         if (incoming == element) return
@@ -784,6 +805,10 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
     fun onLivingDamage(e: LivingDamageEvent) {
         if (e.invalid) return
         val element = ElementType.of(e.source)
+
+        // Only elemental damage has a mitigation row: a hit no element claims has no `xx_protection`,
+        // no mob resistance and no ward to apply it to.
+        if (element == null) return
 
         // `build=cleanup21`: venom and reflection sit in `#minecraft:bypasses_enchantments` on purpose
         // (the author's "无视抗性"). Now that venom counts as `nature` and reflection mirrors an element,
@@ -942,7 +967,7 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
      * ## `elemental_supremacy`
      * With that enchantment worn, the **highest** single-element total is used for **every** element instead
      * of each element's own total. So four pieces of fire protection defend exactly as well against frost —
-     * "specialise into one affinity, gain all eight" — but they do **not** stack: the answer is a maximum,
+     * "specialise into one affinity, gain all seven" — but they do **not** stack: the answer is a maximum,
      * not a sum, so wearing one piece of each element still gives you the single highest one.
      *
      * This is deliberately implemented here and nowhere else: [protectionLevel] is the only reader of the
@@ -1032,7 +1057,15 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
         return key == ElementDamageTypes.VENOM ||
             key == ElementDamageTypes.CHAIN_LIGHTNING ||
             key == CelestialDamageSources.CELESTIAL_PARTICLE ||
-            key == ModDamageTypes.REFLECTION
+            key == ModDamageTypes.REFLECTION ||
+            // Non-elemental riders (`enqueueUnreduced`, `true_damage`) and the moon/star tiers are ours
+            // too. They carry no element, so `ElementType.of` reads `null` and the conversion branch below
+            // would happily convert them again — a shield bash with a fire conversion would cancel a share
+            // of the bash, mark the target and queue a *second* rider. Removing `PHYSICAL` (which used to
+            // sit in `CONVERTIBLE` and therefore caught this) is what exposed it.
+            key == ModDamageTypes.TRUE_DAMAGE ||
+            key == ModDamageTypes.MOON ||
+            key == ModDamageTypes.STAR
     }
 
     private val ARMOR_SLOTS = arrayOf(

@@ -75,15 +75,13 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
  *    would be stale anyway). The 1:1 control flow of `onHeal` / `onLivingUpdate` / `markNoHeal` is
  *    otherwise unchanged.
  *
- * 2. **Reflection bypasses armour — FIXED via a custom damage type.** Both reflection calls need
+ * 2. **Reflection bypasses armour — FIXED via a damage-type tag.** Both reflection calls need
  *    `ignoreArmorAndPotion = true` (1.12.2 reflected the reduced damage "raw"). The shared
  *    `util/PlayerUtils.runPlayerAttack` cannot honour that flag in 1.21 (no
- *    `applyPotionDamageCalculations`), so these two call sites deliberately do **not** use it.
- *    They call `util/damagesource/ModDamageTypes.damageBypassingArmor` instead, which deals damage
- *    through the mod's own `simple_tweaks:reflection` damage type — registered in the vanilla
- *    `#minecraft:bypasses_armor`, `#minecraft:bypasses_resistance` and
- *    `#minecraft:bypasses_enchantments` tags, which together reproduce 1.12.2's armour + potion +
- *    protection skipping without touching the shared helper other batches depend on.
+ *    `applyPotionDamageCalculations`), so these two call sites deal the bounce through
+ *    `ElementCombat.damageElemental` instead: the element that hit the shield when there is one,
+ *    `true_damage` otherwise. Both kinds are in `#minecraft:bypasses_armor`, which reproduces the
+ *    armour half without touching the shared helper other batches depend on.
  *
  * Everything else — the NaN/Inf bail-outs (and their `println` diagnostics), the `lvl`-tick heal
  * lockout, the `0.03f * lvl` reduction, the buffer fill/burst state machine and the level-20 armour
@@ -159,12 +157,21 @@ object EnchantEchoShieldHandler : Listenable {
             // `build=cleanup21`: the reflection is dealt as **the element that hit the shield**, not as a
             // generic `reflection` type. A fireball bounced back used to arrive as physical (red number,
             // no fire protection, no reaction); it now comes back as fire and leaves a fire mark.
-            // Armour is still bypassed — the eight `element_*` types are in `#minecraft:bypasses_armor`
+            // Armour is still bypassed — the seven `element_*` types are in `#minecraft:bypasses_armor`
             // (restored in `build=cleanup12`), which is exactly what 1.12.2's `ignoreArmorAndPotion` meant.
             val reflectElement = ElementType.of(e.source)
             val reflected = buffer.coerceAtMost(attacker.maxHealth)
-            attacker.damageElemental(player, reflectElement.damageType, reflected)
-            ElementMarks.recordAndReact(player, attacker, reflectElement, reflected, forceAttach = true)
+            // A plain hit has no element left to mirror: it bounces back as unreduced `true_damage` and
+            // leaves no mark. Armour is still bypassed — `true_damage` is in `#minecraft:bypasses_armor`
+            // (restored in `build=cleanup12`), which is exactly what 1.12.2's `ignoreArmorAndPotion` meant.
+            attacker.damageElemental(
+                player,
+                reflectElement?.damageType ?: ModDamageTypes.TRUE_DAMAGE,
+                reflected,
+            )
+            if (reflectElement != null) {
+                ElementMarks.recordAndReact(player, attacker, reflectElement, reflected, forceAttach = true)
+            }
 
             playFeedback(player, big = true)
             FSTLog.log("EchoShield") {
@@ -219,8 +226,14 @@ object EnchantEchoShieldHandler : Listenable {
 
         // Same rule as the full-absorb branch: reflect the incoming **element**, and leave its mark.
         val reflectElement = ElementType.of(e.source)
-        attacker.damageElemental(player, reflectElement.damageType, reduced)
-        ElementMarks.recordAndReact(player, attacker, reflectElement, reduced, forceAttach = true)
+        attacker.damageElemental(
+            player,
+            reflectElement?.damageType ?: ModDamageTypes.TRUE_DAMAGE,
+            reduced,
+        )
+        if (reflectElement != null) {
+            ElementMarks.recordAndReact(player, attacker, reflectElement, reduced, forceAttach = true)
+        }
         e.amount -= reduced
 
         val newBuffer = (echoBuffer[id] ?: 0f) + reduced

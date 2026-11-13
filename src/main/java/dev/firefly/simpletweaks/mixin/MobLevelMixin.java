@@ -42,6 +42,19 @@ public abstract class MobLevelMixin implements LevelledMob, ElementalMob {
     /** NBT key for the attack element ordinal; absent = plain mob. */
     private static final String NBT_ELEMENT = "simple_tweaks:mob_element";
 
+    /** NBT key that stamps **which ordinal scheme** [NBT_ELEMENT] was written with. */
+    private static final String NBT_ELEMENT_VERSION = "simple_tweaks:mob_element_version";
+
+    /**
+     * Ordinal scheme version.
+     *
+     * <p>v1 (no marker) had a `PHYSICAL` element at ordinal 0, so every element was one higher than
+     * today. v2 removed it, which shifted `FIRE` from 1 to 0. A save written by v1 therefore has to be
+     * shifted down on load, otherwise a fire zombie comes back as a frost one and a light one loses its
+     * element entirely (its ordinal no longer exists).
+     */
+    private static final int ELEMENT_SCHEME_VERSION = 2;
+
     /** `0` = not levelled yet. See {@link LevelledMob}. */
     @Unique
     private int simpletweaks$mobLevel = 0;
@@ -49,8 +62,8 @@ public abstract class MobLevelMixin implements LevelledMob, ElementalMob {
     /**
      * Attack element ordinal, or `-1` for "no element". See {@link ElementalMob}.
      *
-     * Default `-1` and not `0`: `0` is {@code ElementType.PHYSICAL}, which would make every plain mob
-     * look like it had an element and send [dev.firefly.simpletweaks.util.mobs.MobElements] down the
+     * Default `-1` and not `0`: `0` is a real element (FIRE), which would make every plain mob look
+     * like it had one and send [dev.firefly.simpletweaks.util.mobs.MobElements] down the
      * "already assigned" path without ever assigning one.
      */
     @Unique
@@ -83,6 +96,7 @@ public abstract class MobLevelMixin implements LevelledMob, ElementalMob {
         }
         if (simpletweaks$mobElement != ElementType.NONE_ORDINAL) {
             nbt.putInt(NBT_ELEMENT, simpletweaks$mobElement);
+            nbt.putInt(NBT_ELEMENT_VERSION, ELEMENT_SCHEME_VERSION);
         }
     }
 
@@ -92,9 +106,14 @@ public abstract class MobLevelMixin implements LevelledMob, ElementalMob {
             simpletweaks$mobLevel = nbt.getInt(NBT_LEVEL);
         }
         if (nbt.contains(NBT_ELEMENT)) {
-            // Read raw: `ElementType.ofOrdinal` already treats an out-of-range ordinal as "no element",
-            // so a save from a build with more elements degrades instead of throwing here.
-            simpletweaks$mobElement = nbt.getInt(NBT_ELEMENT);
+            int raw = nbt.getInt(NBT_ELEMENT);
+            if (!nbt.contains(NBT_ELEMENT_VERSION)) {
+                // v1: ordinal 0 was the retired `PHYSICAL`, 1..7 were FIRE..LIGHT.
+                raw = raw == 0 ? ElementType.NONE_ORDINAL : raw - 1;
+            }
+            // `ElementType.ofOrdinal` already treats an out-of-range ordinal as "no element", so a save
+            // from a build with more elements degrades instead of throwing here.
+            simpletweaks$mobElement = raw;
         }
     }
 }

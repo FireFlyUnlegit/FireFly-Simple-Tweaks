@@ -62,7 +62,7 @@ object DamageIndicatorConfig {
     var minHealthChange: Double = 0.0
 
     /**
-     * Split a hit into its **physical** and **elemental** parts as two separate floating numbers.
+     * Split a hit into its **non-elemental** and **elemental** parts as two separate floating numbers.
      *
      * Default **false** — the merged single number is the pre-`cleanup32` behaviour and stays the
      * default so nothing changes for anyone who does not ask for this.
@@ -70,18 +70,18 @@ object DamageIndicatorConfig {
      * <p><b>Where the split comes from.</b> The indicator is a per-tick health differ: it only knows
      * *how much* health was lost, not of what. The breakdown is collected on
      * `LivingDamageEvent`, which fires once per `LivingEntity#applyDamage` — i.e. exactly once per
-     * damage instance, so a converted hit arrives as one physical instance and one elemental instance
-     * and their amounts are summed separately per entity per tick.
+     * damage instance, so a converted hit arrives as one non-elemental instance and one elemental
+     * instance and their amounts are summed separately per entity per tick.
      *
      * <p><b>What this changes:</b>
-     * - with the option on, the two components are emitted as their own numbers (physical = the
+     * - with the option on, the two components are emitted as their own numbers (non-elemental = the
      *   indicator's red, elemental = that element's colour, drawn slightly higher and without the second
      *   health line so the pair stays readable);
      * - a hit with only one component still produces one number;
      * - **heals** are never split — they produce no damage event, so they keep going through the health
      *   differ;
      * - `minHealthChange` is applied **per component** rather than to the total, so a tiny elemental
-     *   tick can be hidden while the physical part still shows.
+     *   tick can be hidden while the plain part still shows.
      *
      * <p><b>Who reads it:</b> [dev.firefly.simpletweaks.damageindicator.DamageIndicatorHandler], on the
      * **server** (that is where the damage events are). Both numbers travel in the same packet shape, so

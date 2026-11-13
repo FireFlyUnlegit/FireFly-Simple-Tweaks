@@ -1,18 +1,15 @@
 package dev.firefly.simpletweaks.util.damagesource
 
 import dev.firefly.simpletweaks.SimpleTweaks
-import net.minecraft.entity.LivingEntity
-import net.minecraft.entity.damage.DamageSource
 import net.minecraft.entity.damage.DamageType
-import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.registry.RegistryKey
 import net.minecraft.registry.RegistryKeys
 import net.minecraft.util.Identifier
 
 /**
- * The mod's own damage type, used for Echo Shield's reflection.
+ * The mod's own damage types that are **not** elements.
  *
- * ## Why this exists
+ * ## `reflection`
  * 1.12.2's `runPlayerAttack(..., ignoreArmorAndPotion = true)` skipped armour and potion reduction by
  * calling the accessor-level pipeline directly (`applyArmorCalculations` /
  * `applyPotionDamageCalculations`). Neither exists in 1.21, so the ported shared helper cannot honour
@@ -38,6 +35,13 @@ import net.minecraft.util.Identifier
  *
  * Verification: `DamageTypeTags.BYPASSES_ARMOR` = `field_42241`; `RegistryKeys.DAMAGE_TYPE` =
  * `field_42534`; `DamageSources.create(RegistryKey, Entity)` = `method_48796`.
+ *
+ * ⚠️ **Nothing emits `reflection` any more.** Since `build=cleanup21` Echo Shield mirrors the element
+ * that hit the shield and falls back to [TRUE_DAMAGE] for a plain hit, so the bounce is either a real
+ * `element_*` type or `true_damage` — see `EnchantEchoShieldHandler`. The key and its JSON are kept
+ * because `isAuxiliaryDamage` / `isOwnElementalDamage` / `EnchantEchoShieldHandler.isReflection` still
+ * name it: they are the "our own rider" filters, and deleting the type would silently widen them.
+ * Either the type gets a producer again or those three checks go with it — not one at a time.
  */
 object ModDamageTypes {
 
@@ -48,29 +52,11 @@ object ModDamageTypes {
     val MOON: RegistryKey<DamageType> =
         RegistryKey.of(RegistryKeys.DAMAGE_TYPE, Identifier.of(SimpleTweaks.MOD_ID, "moon"))
 
+    /** Generic armour-bypassing hit for shockwaves and other non-elemental "true" damage. */
+    val TRUE_DAMAGE: RegistryKey<DamageType> =
+        RegistryKey.of(RegistryKeys.DAMAGE_TYPE, Identifier.of(SimpleTweaks.MOD_ID, "true_damage"))
+
     /** 星 blessings: same shape as [MOON], separate type so the two never share a death message or tag. */
     val STAR: RegistryKey<DamageType> =
         RegistryKey.of(RegistryKeys.DAMAGE_TYPE, Identifier.of(SimpleTweaks.MOD_ID, "star"))
-}
-
-/**
- * Deals [rawDamage] to this entity, attributed to [attacker], with armour / resistance / protection
- * skipping — the 1.21 equivalent of 1.12.2's `ignoreArmorAndPotion = true`.
- *
- * Mirrors the pre-checks the 1.12.2 `runPlayerAttack` performed for the reflection call sites
- * (`forceHit = true`, so the i-frame counter is cleared, plus the alive and creative checks).
- * Deliberately separate from `util/PlayerUtils.runPlayerAttack`: in 1.21 "skip armour" is a property of
- * the **damage type's tags**, not a flag on the call, so `runPlayerAttack` has no such parameter at all
- * (`build=cleanup21` deleted it rather than let it lie) — this function is the shape that capability
- * actually takes, with the reflection type that Echo Shield also identifies its own damage by.
- */
-fun LivingEntity.damageBypassingArmor(attacker: PlayerEntity, rawDamage: Float): Float {
-    if (!this.isAlive) return 0f
-    // 1.12.2 passed forceHit = true -> hurtResistantTime = 0 (1.21: timeUntilRegen)
-    this.timeUntilRegen = 0
-    if (this is PlayerEntity && this.abilities.creativeMode) return -1f
-
-    val source: DamageSource = attacker.damageSources.create(ModDamageTypes.REFLECTION, attacker)
-    this.damage(source, rawDamage)
-    return rawDamage
 }

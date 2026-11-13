@@ -173,8 +173,8 @@ val PlayerEntity.attackCharge: Float
  *     `source`, because in 1.21 skipping armour/resistance is a property of the **damage type's tags**,
  *     not of the call. The capability is unchanged and lives in the data layer: use a source whose type
  *     is in `#minecraft:bypasses_armor` / `bypasses_resistance` / `bypasses_enchantments` (see
- *     `util/damagesource/ModDamageTypes.kt` — [dev.firefly.simpletweaks.util.damagesource.damageBypassingArmor]
- *     is exactly this for Echo Shield's reflection). Keeping both would be two ways to say one thing.
+ *     `util/damagesource/ModDamageTypes.kt`); Echo Shield's bounce is dealt this way through
+ *     `ElementCombat.damageElemental`). Keeping both would be two ways to say one thing.
  *
  * ✅ **The crit block is honoured.** It calls [EventSeams.forgeCriticalHit], a reproduction of
  * `ForgeHooks.getCriticalHit`, so `allowCrit` and a handler's `damageModifier` both take effect.

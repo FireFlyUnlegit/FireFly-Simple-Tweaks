@@ -13,7 +13,6 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 import dev.firefly.simpletweaks.util.damagesource.isAuxiliaryDamage
 import dev.firefly.simpletweaks.util.elements.ElementCombat
-import dev.firefly.simpletweaks.util.elements.ElementType
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.player.PlayerEntity
@@ -31,11 +30,11 @@ import net.minecraft.entity.player.PlayerEntity
  * immediately before health is subtracted — which is exactly the moment a block has *succeeded*, and
  * `player.isBlocking` is still true there (vanilla clears the block later, when the shield is disabled).
  *
- * ## Why the damage is `element_physical`
- * The eight `element_*` types are in `#minecraft:bypasses_armor` and are flagged auxiliary, so
- * `enqueueElemental` gives true damage that cannot re-enter the on-hit stack (`AGENTS.md`: riders must
- * never recursively fire the handler list). It also keeps this enchantment out of the crit / combo
- * multipliers — bash damage is `2 + 2 × level`, never a scaled copy of the swing.
+ * ## Why the damage is `true_damage`
+ * It is in `#minecraft:bypasses_armor` and is flagged auxiliary, so `enqueueUnreduced` gives true damage
+ * that cannot re-enter the on-hit stack (`AGENTS.md`: riders must never recursively fire the handler
+ * list). It also keeps this enchantment out of the crit / combo multipliers — bash damage is
+ * `2 + 2 × level`, never a scaled copy of the swing.
  *
  * ## Scope
  * Melee only: `source.source === attacker` excludes arrows and thrown projectiles (the archer should
@@ -82,7 +81,7 @@ object EnchantShieldBashHandler : Listenable {
         attacker.takeKnockback(KNOCKBACK, player.x - attacker.x, player.z - attacker.z)
 
         val damage = BASH_BASE + BASH_PER_LEVEL * level
-        ElementCombat.enqueueElemental(player, attacker, ElementType.PHYSICAL, damage)
+        ElementCombat.enqueueUnreduced(player, attacker, damage)
 
         FSTLog.log("ShieldBash") {
             "player=${player.name.string}, attacker=${attacker.type.name.string}, lvl=$level, " +

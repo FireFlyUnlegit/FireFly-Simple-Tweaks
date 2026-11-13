@@ -19,7 +19,7 @@ import net.minecraft.entity.player.PlayerEntity
 /**
  * 万法归元 — 「you return what you were given」.
  *
- * ## Passive half — one affinity, eight elements
+ * ## Passive half — one affinity, seven elements
  * `ElementCombat.protectionLevel` is the single reader of protective levels, and with this enchantment worn it
  * answers with the **highest** single-element total for **every** element (a maximum, never a sum, so it cannot
  * be stacked into immunity). Four pieces of fire protection defend exactly as well against frost.
@@ -123,8 +123,8 @@ object EnchantElementalSupremacyHandler : Listenable {
      * 1. **The other side's 万法** (`wearsSupremacy(attacker)`) — otherwise two wearers trading hits would
      *    keep answering each other's answers, and the winner would be whoever's aura happened to survive
      *    the exchange. Author's rule: the counter is for *normal* elemental attacks.
-     * 2. **Physical damage** — `counterOf` returns `null`, so a sword swing does nothing; 万法's counter is
-     *    about the element system.
+     * 2. **Non-elemental damage** — `ElementType.of` returns `null`, so a sword swing does nothing;
+     *    万法's counter is about the element system.
      *
      * ## Why it attaches instead of dealing damage
      * "反伤" here is a **setup**, not a second damage source: the attack already went through the normal
@@ -143,7 +143,8 @@ object EnchantElementalSupremacyHandler : Listenable {
         val attacker = e.source.attacker as? LivingEntity ?: return
         if (attacker === victim) return
 
-        val element = ElementType.of(e.source)
+        // Only elemental damage has a counter: a plain swing has no element to answer.
+        val element = ElementType.of(e.source) ?: return
         val counter = ElementReactions.counterOf(element) ?: return
 
         if (ElementCombat.wearsSupremacy(attacker)) {

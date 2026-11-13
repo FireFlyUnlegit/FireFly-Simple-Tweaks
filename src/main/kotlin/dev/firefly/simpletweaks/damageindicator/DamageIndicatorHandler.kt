@@ -104,8 +104,8 @@ object DamageIndicatorHandler : Listenable {
         if (DamageIndicatorConfig.splitElemental) {
             val bucket = composition.getOrPut(uuid) { Composition() }
             val element = ElementType.of(event.source)
-            if (element == ElementType.PHYSICAL) {
-                bucket.physical += event.amount
+            if (element == null) {
+                bucket.nonElemental += event.amount
             } else {
                 // One bucket **per element**, not one shared "elemental" sum. With a single sum a hit
                 // carrying water + lightning (conversion rider + `heavenly_punishment`) collapsed into
@@ -118,7 +118,8 @@ object DamageIndicatorHandler : Listenable {
 
     /** One entity's per-tick damage broken down by element. */
     private class Composition {
-        var physical: Float = 0f
+        /** Damage no element claims (a plain swing, `true_damage`, `moon`, `star`). */
+        var nonElemental: Float = 0f
 
         /** `element ordinal -> damage this tick`, in arrival order so the numbers stay stable. */
         val elemental: LinkedHashMap<Int, Float> = LinkedHashMap()
@@ -214,14 +215,14 @@ object DamageIndicatorHandler : Listenable {
                                     if (isHeal) ElementType.NONE_ORDINAL
                                     else ElementCombat.lastElementOrdinal(entity)
 
-                                // Split display: emit the physical and elemental halves as their own
-                                // numbers. Only for damage (a heal has no components) and only when the
-                                // accumulated composition actually covers this delta — otherwise fall
-                                // through to the single merged number, which is what the health differ
-                                // is good at.
+                                // Split display: emit the non-elemental and elemental halves as their
+                                // own numbers. Only for damage (a heal has no components) and only when
+                                // the accumulated composition actually covers this delta — otherwise
+                                // fall through to the single merged number, which is what the health
+                                // differ is good at.
                                 val split = if (isHeal) null else composition.remove(uuid)
                                 if (split != null &&
-                                    (split.physical > 0.001f || split.elementalTotal() > 0.001f)
+                                    (split.nonElemental > 0.001f || split.elementalTotal() > 0.001f)
                                 ) {
                                     // The components come from the damage seam, i.e. they are *pre-clamp*
                                     // and can sum to more than the target had left; the health differ is
@@ -230,26 +231,26 @@ object DamageIndicatorHandler : Listenable {
                                     // every component is scaled by the same factor — the ratio between
                                     // them (the whole point of the split) survives, the total stops
                                     // lying (`cleanup47`, same reasoning as the deleted `originalDamage`).
-                                    val componentTotal = split.physical + split.elementalTotal()
+                                    val componentTotal = split.nonElemental + split.elementalTotal()
                                     val componentScale = if (componentTotal > actualDamage + 0.001f) {
                                         actualDamage / componentTotal
                                     } else {
                                         1f
                                     }
-                                    val physical = split.physical * componentScale
+                                    val nonElemental = split.nonElemental * componentScale
 
                                     // `minHealthChange` is applied per component here, so a tiny
-                                    // elemental tick can be hidden while the physical part still shows.
-                                    if (physical > 0.001f && physical >= minChange) {
+                                    // elemental tick can be hidden while the plain part still shows.
+                                    if (nonElemental > 0.001f && nonElemental >= minChange) {
                                         sendToNearbyPlayers(
                                             entity,
-                                            physical,
+                                            nonElemental,
                                             false,
                                             entity.maxHealth,
                                             currentRealMaxHealth,
                                             afterRealHealth,
-                                            ElementType.PHYSICAL.ordinal,
-                                            PacketDamageIndicator.ROLE_PHYSICAL,
+                                            ElementType.NONE_ORDINAL,
+                                            PacketDamageIndicator.ROLE_NON_ELEMENTAL,
                                         )
                                     }
 

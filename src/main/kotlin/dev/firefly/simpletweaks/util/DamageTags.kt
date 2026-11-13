@@ -11,7 +11,7 @@ import net.minecraft.util.Identifier
  * ## `magic_damage`
  * The tag `magic_protection` keys on: vanilla's own magic-ish types.
  *
- * ## `elemental_*` — the eight element tags
+ * ## `elemental_*` — the seven element tags
  * Each element has one tag. Membership is how an incoming hit is classified as that element, and it is
  * what both the `xx_protection` enchantments and the reaction system read.
  *
@@ -36,7 +36,7 @@ import net.minecraft.util.Identifier
  * Four of them (`ELEMENTAL_FIRE` / `FROST` / `LIGHTNING` / `EXPLOSION`) were declared long before
  * anything read them — no tag files shipped and no handler referenced them. `docs/acceptance-checklist.md`
  * recorded that as a known blank. They are live as of the elemental batch: `ELEMENTAL_EXPLOSION` was
- * **deleted** (explosive damage is physical for our purposes — see [ElementType.physical]), and the
+ * **deleted** (explosive damage is non-elemental for our purposes — see [ElementType.of]), and the
  * other three are now shipped and read.
  */
 object DamageTags {
@@ -69,8 +69,8 @@ object DamageTags {
      * Water: drowning, plus this mod's conversion type.
      *
      * Note this is "the water element", not "damage while wet". A player standing in water hit by a
-     * sword takes `player_attack`, which is [ElementType.physical] — that is the whole point of having
-     * a physical element that is the default.
+     * sword takes `player_attack`, which no element claims — that is the whole point of "no element" being
+     * the default (see [ElementType.of]).
      */
     val ELEMENTAL_WATER: TagKey<DamageType> =
         TagKey.of(RegistryKeys.DAMAGE_TYPE, Identifier.of("simple_tweaks", "elemental_water"))
@@ -92,19 +92,4 @@ object DamageTags {
     /** Light: this mod's conversion type only — vanilla has no "holy" damage type. */
     val ELEMENTAL_LIGHT: TagKey<DamageType> =
         TagKey.of(RegistryKeys.DAMAGE_TYPE, Identifier.of("simple_tweaks", "elemental_light"))
-
-    /**
-     * Physical: **the absence of every other element**, plus explicit vanilla melee types.
-     *
-     * This is the most important and the least obvious tag. Two roles:
-     *
-     * 1. **`physical_protection` reads it.** It cannot be "any damage", because then it would stack
-     *    with every elemental protection; it means "blunt/melee/environmental", i.e. the damage that is
-     *    *not* one of the other seven elements.
-     * 2. **Zero-length and default-safe.** Every type not listed in any of the eight files is physical
-     *    by default — see [ElementType]. This file only lists the types we want to be explicit about;
-     *    it is **not** the definition of physical.
-     */
-    val ELEMENTAL_PHYSICAL: TagKey<DamageType> =
-        TagKey.of(RegistryKeys.DAMAGE_TYPE, Identifier.of("simple_tweaks", "elemental_physical"))
 }

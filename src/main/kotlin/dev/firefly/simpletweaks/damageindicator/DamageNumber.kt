@@ -43,7 +43,7 @@ data class DamageNumber(
     val realMaxHealth: Float = 0f,
     val afterRealHealth: Float = 0f,
     /**
-     * Element that caused this number (`ElementType.NONE_ORDINAL` = unknown / physical).
+     * Element that caused this number (`ElementType.NONE_ORDINAL` = unknown / non-elemental).
      *
      * Stored as the ordinal the packet carries and resolved in [element] on demand; keeping the enum out
      * of the constructor signature means the client does not have to touch the element registry to
@@ -51,8 +51,8 @@ data class DamageNumber(
      */
     val elementOrdinal: Int = ElementType.NONE_ORDINAL,
     /**
-     * Which slot of a hit this number is — `PacketDamageIndicator.ROLE_SINGLE` / `ROLE_PHYSICAL` /
-     * `ROLE_ELEMENTAL`.
+     * Which slot of a hit this number is — `PacketDamageIndicator.ROLE_SINGLE` /
+     * `ROLE_NON_ELEMENTAL` / `ROLE_ELEMENTAL`.
      *
      * It decides **both** the colour context (via [elementOrdinal]) and the **placement** in the XZ
      * region around the entity: a split hit sends two packets, and they must not land on the same spot.
@@ -162,8 +162,8 @@ data class DamageNumber(
      * feature). Only Y moves afterwards, and only along the rise.
      *
      * `ROLE_SINGLE` keeps the pre-split behaviour exactly (`±0.3` uniform on each axis), so this feature
-     * is invisible while the split option is off. `ROLE_PHYSICAL` / `ROLE_ELEMENTAL` sit at [SPLIT_RADIUS]
-     * on opposite ends of [spreadAngle].
+     * is invisible while the split option is off. `ROLE_NON_ELEMENTAL` / `ROLE_ELEMENTAL` sit at
+     * [SPLIT_RADIUS] on opposite ends of [spreadAngle].
      */
     val fixedX: Double = entity.x + if (role == PacketDamageIndicator.ROLE_SINGLE) {
         Math.random() * 0.6 - 0.3
@@ -232,7 +232,7 @@ data class DamageNumber(
         LABEL_RUNG * 0.20
     } else {
         val rung =
-            if (role == PacketDamageIndicator.ROLE_PHYSICAL) -1 else elementOrdinal.coerceAtLeast(0)
+            if (role == PacketDamageIndicator.ROLE_NON_ELEMENTAL) -1 else elementOrdinal.coerceAtLeast(0)
         rung * 0.20 + (Math.random() - 0.5) * 0.06
     }
 
@@ -262,9 +262,9 @@ data class DamageNumber(
      * Heal always wins (`0x00FF00`) — a heal's "element" is meaningless, and the existing green is the
      * only signal that distinguishes healing from damage at a glance.
      *
-     * For damage, the element's colour is used when there is one. `PHYSICAL` is the indicator's original
-     * red, so an ordinary sword hit is byte-identical to the pre-`cleanup30` behaviour; the eight
-     * elemental colours only appear once a hit actually is elemental.
+     * For damage, the element's colour is used when there is one. [ElementType.PHYSICAL_COLOR] is the
+     * indicator's original red, so an ordinary sword hit is byte-identical to the pre-`cleanup30`
+     * behaviour; the seven elemental colours only appear once a hit actually is elemental.
      */
     fun getColor(): Int {
         if (isHeal) return 0x00FF00

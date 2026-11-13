@@ -108,10 +108,10 @@ class SimpleTweaksClient : ClientModInitializer {
         // that cannot drift is a count nobody has to remember to bump.
         val enchantmentCount = dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments.KEYS.size
         SimpleTweaks.LOGGER.info(
-            "{} client ready: {} enchantments + 8 elemental conversions / affinities / reactions " +
+            "{} client ready: {} enchantments + 7 elemental conversions / affinities / reactions " +
                 "+ 3 cross-element (ward / resonance / penetration) + elemental mastery + mob levels, " +
                 "mod enchantments and mob elements with [Lv.N] tags " +
-                "+ per-element damage numbers (optional physical/elemental split) + kill_aura / " +
+                "+ per-element damage numbers (optional non-elemental/elemental split) + kill_aura / " +
                 "infinite_power / starfall / celestial ring + every command under /simple_tweaks " +
                 "(alias /fst) + damage numbers report the health actually removed " +
                 "+ every mob gets a level, not only the armed ones " +
@@ -122,9 +122,9 @@ class SimpleTweaksClient : ClientModInitializer {
                 "+ mob levels start low and scale with the player's whole loadout " +
                 "+ conversion share is 1.5 %/level (cap 7.5 %), element damage bypasses armour again " +
                 "+ element damage is no longer exempt from the i-frame gate (only combo cancels it) " +
-                "+ reaction names as floating labels with their damage, 18 reactions, " +
+                "+ reaction names as floating labels with their damage, 17 reactions " +
                 "+ split damage display now emits one number per element, fanned out and staggered " +
-                "(v2.2.7, build=cleanup97)",
+                "(v2.2.7, build=cleanup98)",
             SimpleTweaks.NAME,
             enchantmentCount,
         )

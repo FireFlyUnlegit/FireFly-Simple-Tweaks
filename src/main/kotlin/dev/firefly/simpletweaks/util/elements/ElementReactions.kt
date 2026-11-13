@@ -6,7 +6,6 @@ import dev.firefly.simpletweaks.util.elements.ElementType.FROST
 import dev.firefly.simpletweaks.util.elements.ElementType.LIGHT
 import dev.firefly.simpletweaks.util.elements.ElementType.LIGHTNING
 import dev.firefly.simpletweaks.util.elements.ElementType.NATURE
-import dev.firefly.simpletweaks.util.elements.ElementType.PHYSICAL
 import dev.firefly.simpletweaks.util.elements.ElementType.WATER
 
 /**
@@ -79,18 +78,18 @@ data class ElementReaction(
  * 冰打火 are different multipliers in the reference, and they are different rows here.
  *
  * ```
- *           trigger: PHYS  FIRE      FROST     LIGHTNING  WATER     NATURE    DARK        LIGHT
- *  mark PHYS     -      .          .         .          .         .        backstab    smother
- *  mark FIRE     .      -        vanish×1.5    .       steam×2.0  burn       scorch      sanctify
- *  mark FROST    .   melt×2.0       -       overload      freeze   .           .         eclipse
- *  mark LIGHTNING.      .         overload      -       conduct   quicken      .           .
- *  mark WATER    .   steam×1.5    brittle   conduct       -      bloom        .         purify
- *  mark NATURE   .      burn        .       quicken     bloom      -         blight       bloom
- *  mark DARK  backstab scorch       .         .          .       blight        -       annihilate
- *  mark LIGHT smother sanctify    eclipse      .        purify     bloom   annihilate       -
+ *            trigger: FIRE      FROST     LIGHTNING  WATER      NATURE   DARK       LIGHT
+ *  mark FIRE       -      vanish×1.5      .      steam×2.0     burn    scorch    sanctify
+ *  mark FROST   melt×2.0      -       overload     freeze       .        .       eclipse
+ *  mark LIGHTNING   .      overload       -        conduct   quicken     .         .
+ *  mark WATER   steam×1.5  brittle     conduct       -        bloom      .       purify
+ *  mark NATURE     burn       .        quicken      bloom       -      blight     bloom
+ *  mark DARK     scorch      .          .           .       blight      -      annihilate
+ *  mark LIGHT  sanctify   eclipse        .         purify     bloom  annihilate     -
  * ```
  * `.` = no reaction; `-` = same element (impossible: the trigger is resolved before the aura is
- * overwritten).
+ * overwritten). Seventeen distinct reactions over thirty rows — every pair that exists is declared in
+ * both directions, so which element lands second cannot decide *whether* something reacts.
  */
 object ElementReactions {
 
@@ -169,12 +168,6 @@ object ElementReactions {
         // state; the numbers live there too (`QUICKEN_BONUS_PER_LEVEL`).
         add(ElementReaction(NATURE, LIGHTNING, "quicken", quicken = true, triggerUnits = ElementAuras.STRONG))
         add(ElementReaction(LIGHTNING, NATURE, "quicken", quicken = true, triggerUnits = ElementAuras.STRONG))
-
-        // ---- physical is special ----------------------------------------------------------------
-        // A physical strike on a dark aura: 背刺, the biggest single-target flat hit in the table.
-        add(ElementReaction(DARK, PHYSICAL, "backstab", transformativeCoeff = 1.75f))
-        // A physical strike on a light aura: 闷击, blinds and barely hurts.
-        add(ElementReaction(LIGHT, PHYSICAL, "smother", transformativeCoeff = 0.55f, blindTicks = 60))
     }.associateBy { it.mark to it.trigger }
 
     /** The reaction for an aura of [mark] triggered by a hit of [trigger], or `null`. */
@@ -198,8 +191,8 @@ object ElementReactions {
      * `2.0` means "this trigger counters that aura": 1 unit of water strips 2 units of fire, 1 unit of
      * fire strips 2 of frost, and water/fire/frost/lightning all counter nature.
      *
-     * Mirrors the reference's 消耗比例, restricted to the eight elements this mod has (the mod has no
-     * anemo/geo, so the "counters nature" clause replaces 风/岩).
+     * Mirrors the reference's 消耗比例, restricted to the seven elements this mod has (the mod has no
+     * anemo/geo/物理, so the "counters nature" clause replaces 风/岩).
      */
     fun dampening(mark: ElementType, trigger: ElementType): Float = when {
         trigger == WATER && mark == FIRE -> 2.0f
@@ -212,7 +205,7 @@ object ElementReactions {
     private val COUNTERS_NATURE = setOf(WATER, FIRE, FROST, LIGHTNING)
 
     /**
-     * 相对元素 — the element the 克制链 treats as the answer to [element], or `null` for [PHYSICAL].
+     * 相对元素 — the element the 克制链 treats as the answer to [element], or `null` when nothing counters it.
      *
      * Used by `elemental_supremacy`'s counter (`build=cleanup82`): when the wearer is hit by an elemental
      * attack, the armour attaches **this** element onto the attacker, i.e. it answers fire with water.
@@ -227,8 +220,6 @@ object ElementReactions {
      * | nature | fire | 燃烧 (`NATURE` aura + `FIRE` trigger) |
      * | lightning | water | 感电 (`WATER` aura + `LIGHTNING` trigger) |
      * | light ↔ dark | dark ↔ light | 湮灭, the mutual pair |
-     *
-     * `PHYSICAL` has no answer: 万法's counter is explicitly about elemental damage.
      */
     fun counterOf(element: ElementType): ElementType? = when (element) {
         FIRE -> WATER
@@ -238,6 +229,5 @@ object ElementReactions {
         LIGHTNING -> WATER
         LIGHT -> DARK
         DARK -> LIGHT
-        PHYSICAL -> null
     }
 }

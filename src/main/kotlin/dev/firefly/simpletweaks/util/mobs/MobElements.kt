@@ -12,7 +12,7 @@ import net.minecraft.world.LocalDifficulty
  * [ElementType.NONE_ORDINAL].
  *
  * Separate from [LevelledMob] rather than folded into it because the two are independent features with
- * independent config switches, and a mob can plausibly have one without the other (a levelled physical
+ * independent config switches, and a mob can plausibly have one without the other (a levelled plain
  * zombie, or an unlevelled fire spider if the level switch is off).
  *
  * The value is an `Int` ordinal rather than an [ElementType] reference because it has to survive NBT and
@@ -34,9 +34,11 @@ interface ElementalMob {
  * ## The four knobs
  * | constant | value | meaning |
  * |---|---|---|
- * | [ELEMENT_CHANCE] | `0.35` | base chance per spawn, × `clampedLocalDifficulty` |
- * | [MAX_CHANCE] | `0.75` | cap, so a third of mobs stay plain even at max difficulty |
- * | [CONVERSION_FRACTION] | `0.40` | share of the mob's melee hit turned into its element |
+ * | [ELEMENT_CHANCE_MIN] | `0.15` | chance per spawn at difficulty 0 |
+ * | [ELEMENT_CHANCE_MAX] | `0.60` | cap, so most mobs still stay plain |
+ * | [CONVERSION_PER_5_LEVELS] | `0.01` | share of the melee hit turned into its element, per 5 levels |
+ * | [MAX_CONVERSION] | `0.50` | ceiling on that share (first reached at level 250) |
+ * | [AURA_UNITS] | `1.0` | aura the mob's elemental hit attaches to the victim |
  * | [BONUS_SCALE] | `0.50` | extra elemental damage, as a share of the converted part |
  * | [RESISTANCE] | `0.30` | flat reduction to incoming damage of its own element |
  * | [RESISTANCE_PER_LEVEL] | `0.03` | extra reduction per mob level above 1 |

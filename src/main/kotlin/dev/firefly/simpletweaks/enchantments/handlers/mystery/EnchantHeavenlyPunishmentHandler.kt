@@ -8,6 +8,7 @@ import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.invalid
 import dev.firefly.simpletweaks.core.Listenable
 import dev.firefly.simpletweaks.util.combatStack
+import dev.firefly.simpletweaks.util.damagesource.isAuxiliaryDamage
 import dev.firefly.simpletweaks.util.elements.ElementAuras
 import dev.firefly.simpletweaks.util.elements.ElementCombat
 import dev.firefly.simpletweaks.util.elements.ElementMarks
@@ -158,9 +159,14 @@ object EnchantHeavenlyPunishmentHandler : Listenable {
         // killed (`health <= 0` is false forever) — that is the reported "打不死怪物 / lag on 0hp",
         // and its `0/0` is also what crashed StatusWarnings' HUD.
         //
-        // Element damage also has no meaning for the "physical swing multiplied by level" fantasy:
+        // Element damage also has no meaning for the "plain swing multiplied by level" fantasy:
         // the bonus is defined on the swing, and a rider is not a swing.
-        if (ElementType.of(source) != ElementType.PHYSICAL) return
+        if (ElementType.of(source) != null) return
+        // Elementless riders (`true_damage`, `moon`, `star`) slip past the line above because they
+        // resolve to no element at all, yet they are still follow-ups of a real hit, not swings.
+        // Without this a moon/star payout would be multiplied by `level + 1` — a cascade on the
+        // reaction tier rather than on the player's own blade.
+        if (source.isAuxiliaryDamage()) return
         // A non-finite hit cannot produce a finite bonus; refusing here keeps `Infinity` out of the queue.
         if (!event.amount.isFinite()) return
 

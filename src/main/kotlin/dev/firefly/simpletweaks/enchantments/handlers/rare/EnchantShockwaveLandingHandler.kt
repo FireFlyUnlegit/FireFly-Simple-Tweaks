@@ -7,8 +7,8 @@ import dev.firefly.simpletweaks.core.Listenable
 import dev.firefly.simpletweaks.enchantments.annotations.*
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 import dev.firefly.simpletweaks.util.boots
+import dev.firefly.simpletweaks.util.damagesource.ModDamageTypes
 import dev.firefly.simpletweaks.util.damagesource.damageElemental
-import dev.firefly.simpletweaks.util.elements.ElementType
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.player.PlayerEntity
@@ -68,7 +68,7 @@ object EnchantShockwaveLandingHandler : Listenable {
 
         var hit = 0
         for (other in world.getEntitiesByClass(LivingEntity::class.java, box) { it !== player && it.isAlive }) {
-            other.damageElemental(player, ElementType.PHYSICAL.damageType, shockwave)
+            other.damageElemental(player, ModDamageTypes.TRUE_DAMAGE, shockwave)
             hit++
         }
 

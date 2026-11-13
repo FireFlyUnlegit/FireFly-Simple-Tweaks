@@ -75,7 +75,7 @@ class PacketDamageIndicator(
      */
     val elementOrdinal: Int,
     /**
-     * Which slot of a hit this number is: [ROLE_SINGLE], [ROLE_PHYSICAL] or [ROLE_ELEMENTAL].
+     * Which slot of a hit this number is: [ROLE_SINGLE], [ROLE_NON_ELEMENTAL] or [ROLE_ELEMENTAL].
      *
      * The client needs this to **place** the number, not just colour it: a split hit sends two packets
      * and they have to land in different parts of the small XZ region around the entity, otherwise they
@@ -100,8 +100,8 @@ class PacketDamageIndicator(
         /** Ordinary number: one merged value for the whole hit. */
         const val ROLE_SINGLE = 0
 
-        /** Physical half of a split hit. */
-        const val ROLE_PHYSICAL = 1
+        /** Non-elemental half of a split hit. */
+        const val ROLE_NON_ELEMENTAL = 1
 
         /** Elemental half of a split hit; also the only role without the second health line. */
         const val ROLE_ELEMENTAL = 2

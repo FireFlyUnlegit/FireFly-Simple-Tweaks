@@ -9,18 +9,18 @@ import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 
 /**
- * The eight `xx_conversion` and eight `xx_protection` declarations.
+ * The seven `xx_conversion` and seven `xx_protection` declarations.
  *
  * ## Why every one of these is a *pure declaration* with no `@SubscribeEvent`
  * All the behaviour lives in one engine, `util/elements/ElementCombat`, which is registered once from
- * `SimpleTweaks.onInitialize`. Sixteen handlers each listening to `LivingHurtEvent` /
- * `LivingDamageEvent` would run sixteen element lookups per hit — and, more importantly, would be
- * sixteen places for the "which element is this?" rule to drift. A conversion enchantment's entire
+ * `SimpleTweaks.onInitialize`. Fourteen handlers each listening to `LivingHurtEvent` /
+ * `LivingDamageEvent` would run fourteen element lookups per hit — and, more importantly, would be
+ * fourteen places for the "which element is this?" rule to drift. A conversion enchantment's entire
  * definition is its **element**, its **level curve** and its **cost**, which is exactly what an
  * annotation plus a table entry is.
  *
  * ⚠️ A pure declaration is not a warning-free one: `ForgeEventBus.register` logs
- * `No @SubscribeEvent methods found on …` for every object it registers without listeners. Sixteen of
+ * `No @SubscribeEvent methods found on …` for every object it registers without listeners. Fourteen of
  * those lines on every startup is noise that will make a real problem hard to spot, so these
  * declarations are registered **for their keys only** — see the `ELEMENT_HANDLERS` note in
  * `EnchantmentManager`. They still appear in `GeneratedEnchantments.HANDLERS` (KSP puts one entry per
@@ -29,7 +29,6 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
  * ## Element → enchantment mapping
  * | element | conversion | protection |
  * |---|---|---|
- * | physical | `physical_conversion` | `physical_protection` |
  * | fire | `fire_conversion` | `fire_protection` |
  * | frost | `frost_conversion` | `frost_protection` |
  * | lightning | `lightning_conversion` | `lightning_protection` |
@@ -46,13 +45,13 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
  * `fire_protection` so the `<element>_protection` convention in `ElementType` holds.
  *
  * ## Plus one that belongs to no element
- * `elemental_mastery`（元素精通）is the sixteenth-plus-one declaration and the only one that is *not*
+ * `elemental_mastery`（元素精通）is the fifteenth declaration and the only one that is *not*
  * keyed to an `ElementType`: it multiplies the output of **whichever** element a conversion produces
  * (+10% per level, capped at +200%), and it is in no exclusive set. See the note above its declaration.
  */
 object ElementEnchantments {
 
-    /** The shared `exclusive_set` tag: an item can carry at most one of the eight conversions. */
+    /** The shared `exclusive_set` tag: an item can carry at most one of the seven conversions. */
     const val ELEMENT_EXCLUSIVE_SET = "#simple_tweaks:exclusive_set/elements"
 
     /**
@@ -60,9 +59,9 @@ object ElementEnchantments {
      * letting KSP register their keys and data.
      */
     val ALL: List<Listenable> = listOf(
-        PhysicalConversion, FireConversion, FrostConversion, LightningConversion,
+        FireConversion, FrostConversion, LightningConversion,
         WaterConversion, NatureConversion, DarkConversion, LightConversion,
-        PhysicalProtection, FireProtection, FrostProtection, LightningProtection,
+        FireProtection, FrostProtection, LightningProtection,
         WaterProtection, NatureProtection, DarkProtection, LightProtection,
         ElementalMastery,
         ElementalWard, ElementalResonance, ElementalPenetration,
@@ -76,25 +75,10 @@ object ElementEnchantments {
  * (0.10 + 0.05 × 4 = 0.30 at V) well under `MAX_FRACTION`, so the level the player can actually reach
  * is the one the curve was tuned for; reaching 0.50 is only possible by editing the table.
  *
- * Weights: EPIC for all eight. They are mutually exclusive, so the *effective* value of one is its
- * share of the EPIC pool spread over eight ids — a COMMON or RARE weight here would make the pool they
+ * Weights: EPIC for all seven. They are mutually exclusive, so the *effective* value of one is its
+ * share of the EPIC pool spread over seven ids — a COMMON or RARE weight here would make the pool they
  * compete in worse, not better, once exclusivity is taken into account.
  */
-
-@ModEnchantment(
-    id = "physical_conversion",
-    category = EnchantCategory.EPIC,
-    type = EnchantType.SWORD,
-    maxLevel = 5,
-    weight = EnchantItemWeights.EPIC,
-    anvilCost = 8,
-    minCostBase = 25,
-    minCostPerLevel = 10,
-    supportedItems = EnchantSupportedItemTags.CONVERSION_WEAPONS,
-    slots = [EnchantSlot.MAINHAND, EnchantSlot.OFFHAND],
-    exclusiveSet = ElementEnchantments.ELEMENT_EXCLUSIVE_SET,
-)
-object PhysicalConversion : Listenable
 
 @ModEnchantment(
     id = "fire_conversion",
@@ -211,20 +195,6 @@ object LightConversion : Listenable
  * ⚠️ Protections are **not** in the exclusive set. Wearing fire protection boots and a frost
  * protection chest is the intended way to build a set; only the *conversions* exclude each other.
  */
-
-@ModEnchantment(
-    id = "physical_protection",
-    category = EnchantCategory.RARE,
-    type = EnchantType.ARMOR,
-    maxLevel = 5,
-    weight = EnchantItemWeights.RARE,
-    anvilCost = 10,
-    minCostBase = 4,
-    minCostPerLevel = 8,
-    supportedItems = EnchantSupportedItemTags.ARMOR,
-    slots = [EnchantSlot.ARMOR],
-)
-object PhysicalProtection : Listenable
 
 @ModEnchantment(
     id = "fire_protection",
@@ -374,7 +344,7 @@ object ElementalMastery : Listenable
  * "which element is this?" rule still lives in exactly one place.
  *
  * They exist because `build=cleanup12` cut the conversion share to `1.5 % × level` (cap `7.5 %`): with
- * that small a slice the eight conversions alone leave the element system with nothing to build a
+ * that small a slice the seven conversions alone leave the element system with nothing to build a
  * character around, and these three give the axis its own defensive and offensive levers.
  */
 

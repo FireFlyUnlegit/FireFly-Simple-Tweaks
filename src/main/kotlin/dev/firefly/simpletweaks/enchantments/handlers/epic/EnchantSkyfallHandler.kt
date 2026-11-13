@@ -8,9 +8,9 @@ import dev.firefly.simpletweaks.core.Listenable
 import dev.firefly.simpletweaks.enchantments.annotations.*
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 import dev.firefly.simpletweaks.util.combatStack
+import dev.firefly.simpletweaks.util.damagesource.ModDamageTypes
 import dev.firefly.simpletweaks.util.damagesource.damageElemental
 import dev.firefly.simpletweaks.util.elements.ElementCombat
-import dev.firefly.simpletweaks.util.elements.ElementType
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.player.PlayerEntity
@@ -27,7 +27,7 @@ import net.minecraft.item.Items
  *
  * ## Two halves
  * - **Shockwave**: on a hit that carries fall distance (`player.fallDistance >= MIN_FALL`), every other
- *   living entity within `2 + level` blocks takes `damage × 15% × level` as physical elemental damage.
+ *   living entity within `2 + level` blocks takes `damage × 15% × level` as `true_damage`.
  * - **No fall damage**: holding the enchanted mace cancels fall damage outright, which is what makes
  *   repeatedly jumping off cliffs with a mace viable instead of suicidal.
  *
@@ -76,7 +76,7 @@ object EnchantSkyfallHandler : Listenable {
         for (other in target.world.getEntitiesByClass(LivingEntity::class.java, box) {
             it !== attacker && it.isAlive && it !== target
         }) {
-            other.damageElemental(attacker, ElementType.PHYSICAL.damageType, shockwave)
+            other.damageElemental(attacker, ModDamageTypes.TRUE_DAMAGE, shockwave)
             hit++
         }
 

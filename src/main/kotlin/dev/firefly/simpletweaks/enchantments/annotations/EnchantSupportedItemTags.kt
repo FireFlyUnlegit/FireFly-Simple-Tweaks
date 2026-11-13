@@ -35,7 +35,7 @@ const val AXE           = "#simple_tweaks:axe_enchantable"
 const val FIRE_ASPECT   = "#minecraft:enchantable/fire_aspect"
 
 /**
- * Everything the eight element conversions can go on: swords, bows and crossbows.
+ * Everything the seven element conversions can go on: swords, bows and crossbows.
  *
  * A **mod-owned** tag (`data/simple_tweaks/tags/item/conversion_weapons.json`) rather than a vanilla one,
  * because no vanilla tag contains exactly "melee weapon + both ranged weapons", and the conversion has to

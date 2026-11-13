@@ -6,9 +6,9 @@ import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.core.Listenable
 import dev.firefly.simpletweaks.enchantments.annotations.*
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
+import dev.firefly.simpletweaks.util.damagesource.ModDamageTypes
 import dev.firefly.simpletweaks.util.damagesource.damageElemental
 import dev.firefly.simpletweaks.util.elements.ElementCombat
-import dev.firefly.simpletweaks.util.elements.ElementType
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.player.PlayerEntity
@@ -148,7 +148,7 @@ object EnchantVoidCollapseHandler : Listenable {
         val amount = minOf(byHealth, accumulated * 2f)
         if (amount <= 0f) return
 
-        val applied = target.damageElemental(attacker, ElementType.PHYSICAL.damageType, amount)
+        val applied = target.damageElemental(attacker, ModDamageTypes.TRUE_DAMAGE, amount)
 
         val radius = 3.0 + level
         val box = target.boundingBox.expand(radius)
@@ -156,7 +156,7 @@ object EnchantVoidCollapseHandler : Listenable {
         for (other in target.world.getEntitiesByClass(LivingEntity::class.java, box) {
             it !== target && it !== attacker && it.isAlive && it !is PlayerEntity
         }) {
-            other.damageElemental(attacker, ElementType.PHYSICAL.damageType, amount * 0.5f)
+            other.damageElemental(attacker, ModDamageTypes.TRUE_DAMAGE, amount * 0.5f)
             splashed++
         }
 

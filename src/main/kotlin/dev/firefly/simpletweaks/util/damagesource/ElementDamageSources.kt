@@ -111,7 +111,7 @@ fun DamageSource.isElementDamage(): Boolean =
  * Without this, one poisoned target re-fired crit / combo / double strike / aoe / charged strike once
  * per second and the damage exploded (the reported "然后就会导致伤害爆高").
  *
- * Deliberately **not** the eight `element_*` damage types: a mob's elemental attack uses those
+ * Deliberately **not** the seven `element_*` damage types: a mob's elemental attack uses those
  * directly, so the defensive half of the enchantment list (echo shield, immortal, damage reduction,
  * adopted armour) has to keep seeing them.
  */
@@ -125,7 +125,7 @@ fun DamageSource.isAuxiliaryDamage(): Boolean =
  * True while [damageElemental] is inside `LivingEntity#damage`, i.e. while a rider this mod queued is
  * landing.
  *
- * Needed *in addition* to [isAuxiliaryDamage]'s per-type checks: the eight `element_*` types are also
+ * Needed *in addition* to [isAuxiliaryDamage]'s per-type checks: the seven `element_*` types are also
  * the type a **mob's own** elemental attack uses, so they cannot be classified as auxiliary by type.
  * The flag disambiguates by call path instead — a converted / reaction / shield-reflection rider is ours,
  * a mob swinging an elemental weapon is not.

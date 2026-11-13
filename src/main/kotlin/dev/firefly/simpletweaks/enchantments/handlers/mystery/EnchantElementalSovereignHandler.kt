@@ -10,8 +10,8 @@ import dev.firefly.simpletweaks.enchantments.annotations.*
  * ## What it breaks
  * Every conversion in this mod is a fixed element: you hold `fire_conversion` and you get fire, every hit,
  * forever. This is the only enchantment that makes the conversion element **dynamic**, which turns the
- * 19-row reaction table from a lookup you plan around into something you can steer mid-fight: hold one
- * conversion and you carry all eight that matter, as long as an aura is present.
+ * reaction table from a lookup you plan around into something you can steer mid-fight: hold one
+ * conversion and you carry all seven that matter, as long as an aura is present.
  *
  * ## Where the effect lives
  * - element selection: `ElementCombat.conversionOf(attacker, stack, target)` — it needs the target, which is
