@@ -48,7 +48,7 @@ object HudBar {
     val FOOD_EMPTY = Identifier.ofVanilla("hud/food_empty")
     val FOOD_FULL = Identifier.ofVanilla("hud/food_full")
 
-    /** Our own 9×9 shield glyph — vanilla ships no toughness sprite, and its 18×18 resistance icon blurs at 9. */
+    /** 9×9 shield glyph (author-supplied); vanilla ships no toughness sprite. */
     val SHIELD = Identifier.of("simple_tweaks", "hud/toughness")
 
     private val BORDER = 0xFF000000.toInt()
