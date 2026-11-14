@@ -128,7 +128,8 @@ class SimpleTweaksClient : ClientModInitializer {
                 "+ every moon / star / sun reaction has a rider of its own (mist, arc, seed, cleanse / " +
                 "burst, veil, detonation, theft, seal, fracture / echo, sear, doom, ground, embers, corona) " +
                 "+ blessings carry +2.5 base attack damage per level + toughness bar uses a shield glyph " +
-                "(v2.2.8, build=cleanup4)",
+                "+ flat damage / mining speed / armour now follow the rarity ladder automatically " +
+                "(v2.2.8, build=cleanup5)",
             SimpleTweaks.NAME,
             enchantmentCount,
         )

@@ -312,12 +312,12 @@ object LightProtection : Listenable
  * the conversion tuning notes.
  *
  * ⚠️ `damagePerLevel = 0.0` is **load-bearing**, not decoration. Its LEGENDARY tier would otherwise
- * derive `minecraft:damage` at `rarity × 1.5 / 20 = 0.3` per level (see `ModEnchantmentProcessor`
- * `tierDamagePerLevel`), i.e. the enchantment would ALSO add +1.5 flat melee damage at V. That
- * contradicts the whole design: mastery is supposed to raise *elemental* output, and a flat physical
- * bonus would make it a plain `sharpness` competitor that silently overrides its own stated purpose.
- * The explicit `0.0` is exactly the "opt out of the derived component" escape hatch the annotation
- * documents.
+ * derive `minecraft:damage` from the rarity ladder (`rarity × 2.5 / 6 = 1.667` per level — see
+ * `ModEnchantmentProcessor` `tierDamagePerLevel`), i.e. the enchantment would ALSO add +8.3 flat melee
+ * damage at V. That contradicts the whole design: mastery is supposed to raise *elemental* output, and a
+ * flat physical bonus would make it a plain `sharpness` competitor that silently overrides its own stated
+ * purpose. The explicit `0.0` is exactly the "opt out of the derived component" escape hatch the
+ * annotation documents.
  */
 
 @ModEnchantment(

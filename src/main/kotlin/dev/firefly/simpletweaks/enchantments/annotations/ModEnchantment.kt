@@ -118,22 +118,26 @@ annotation class ModEnchantment(
      * damage component.
      *
      * ## The default is derived, and where the rule comes from
-     * Left at [DAMAGE_PER_LEVEL_FROM_CATEGORY], the processor applies **its own tier curve** —
-     * `rarity * 1.5 / 20` on `TIER_RARITY`, i.e. `COMMON 0 / UNCOMMON 0.075 / RARE 0.15 / EPIC 0.225 /
-     * LEGENDARY 0.3 / MYTHIC 0.375 / MYSTERY 0.45`, and **`EnchantType.SWORD` is the only type that
-     * gets any** (every other type is `0.0`, exactly as in the reference project).
+     * Left at [DAMAGE_PER_LEVEL_FROM_CATEGORY], the processor applies the **rarity ladder** —
+     * `rarity * 2.5 / 6` on `TIER_RARITY`, i.e. `COMMON 0 / UNCOMMON 0.417 / RARE 0.833 / EPIC 1.25 /
+     * LEGENDARY 1.667 / MYTHIC 2.083 / MYSTERY 2.5`, and the weapon types (`SWORD`, `WEAPON`, `HELD`) are
+     * the only ones that get it — bows are projectile-only, `BREAKABLE` covers anything.
      *
-     * ⚠️ That curve is a `build=cleanup21` rebalance, **not** 1.12.2's `0.2 + rarity/20` (which the
-     * port originally reproduced value-for-value). The authoritative copy is `tierDamagePerLevel` in
-     * `ModEnchantmentProcessor`; this paragraph only describes it, so change both together.
+     * ⚠️ The author's rule is "rarity decides the flat damage", so this is **not** 1.12.2's
+     * `0.2 + rarity/20` and not the `build=cleanup21` `rarity × 1.5 / 20` either (that one was SWORD-only
+     * and topped out at 0.45, which is why later enchantments looked like they added no damage). The
+     * authoritative copy is `tierDamagePerLevel` in `ModEnchantmentProcessor`; this paragraph only
+     * describes it, so change both together.
      *
      * ## When to write it
-     * Only to **override** the tier. 1.12.2 let an enchantment override `itemExtraDamage`, and six did:
-     * `combo` (0.15), `fire_master` (0.25), `healing_blade` (1.0), `celestial_blessing` (2.0),
-     * `heavenly_punishment` (5.0), plus `infinite_power`, whose override returned `Int.MAX_VALUE` as a
-     * one-shot-kill hack and therefore carries `damagePerLevel = 0.0` — writing a *damage* there would
-     * invent a component the enchantment never had. A declaration that wants no damage can say so
-     * explicitly with `0.0`.
+     * Only to **override** the ladder — either down (`combo` 0.15, `fire_master` 0.25) or up
+     * (`void_collapse` 3.0). `0.0` is load-bearing for the rider-only enchantments: it means "this one's
+     * damage comes from its own code, not from a flat component" (`chain_lightning`, `frostbite`,
+     * `infinite_power`, the elemental conversions) — the build log names every such override so they stay
+     * deliberate.
+     *
+     * The other half of the rule lives next door: mining types (`TOOL`) derive mining speed and the armour
+     * types derive max health / armour / toughness. See `deriveAttributes` there.
      */
     val damagePerLevel: Double = DAMAGE_PER_LEVEL_FROM_CATEGORY,
 

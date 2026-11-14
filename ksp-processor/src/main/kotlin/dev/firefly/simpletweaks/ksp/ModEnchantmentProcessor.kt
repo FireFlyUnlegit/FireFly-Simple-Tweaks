@@ -136,28 +136,62 @@ private val TIER_RARITY = mapOf(
 private fun tierWeight(category: String): Int = TIER_WEIGHTS[category] ?: 1
 
 /**
- * The derived `damagePerLevel`, **only for SWORD types** — every other type gets `0.0` (the reference
- * project's base `itemExtraDamage` returned `0.0` for them too).
+ * Derived `damagePerLevel` — **weapon types only**, on the rarity ladder
+ * (`rarity × 2.5 / 6`, rounded to 3 decimals): `UNIQUE/COMMON 0 / UNCOMMON 0.417 / RARE 0.833 /
+ * EPIC 1.25 / LEGENDARY 1.667 / MYTHIC 2.083 / MYSTERY 2.5`.
  *
- * The curve is `rarity * 1.5 / 20`, i.e. `UNIQUE 0 / COMMON 0 / UNCOMMON 0.075 / RARE 0.15 /
- * EPIC 0.225 / LEGENDARY 0.3 / MYTHIC 0.375 / MYSTERY 0.45`.
+ * Bows are projectile-only and `BREAKABLE` covers anything, so neither gets melee damage. A declaration
+ * that wants none writes `damagePerLevel = 0.0` — the drift report then lists it as an override, which is
+ * what the rider-only enchantments (chain_lightning, frostbite, the elemental conversions) do.
  *
- * ⚠️ **This is deliberately NOT the reference project's formula.** 1.12.2 used `0.2 + rarity / 20`
- * (COMMON 0.2 … MYTHIC 0.45), which the author replaced with this curve in `build=cleanup21` as a
- * rebalance: low tiers lose most of their flat damage and COMMON now adds none at all. The 1.12.2
- * provenance of every *override* below still holds (they are the six `itemExtraDamage` overrides plus
- * explicit opt-outs) — only the derived default changed. Keep this comment and the function together:
- * a comment describing a formula the code no longer implements is how this project's earlier drift
- * started.
- *
- * A value below 0 means "derive" (the annotation's sentinel), which is why [TIER_RARITY] never has to
- * express "no damage": the type does.
+ * History: before `build=cleanup5` this was SWORD-only and used `rarity × 1.5 / 20` (ceiling 0.45), so
+ * WEAPON/HELD added no damage at all and every weapon enchantment topped out at +1.35 at V. The author's
+ * rule is "rarity decides the flat damage", so the ladder is now shared by all three weapon types.
  */
+private val DAMAGE_TYPES = setOf("SWORD", "WEAPON", "HELD")
+
 private fun tierDamagePerLevel(category: String, type: String): Double {
-    if (type != "SWORD") return 0.0
+    if (type !in DAMAGE_TYPES) return 0.0
     val rarity = TIER_RARITY[category] ?: 0
-    return (rarity * 1.5) / 20.0
+    return round3(rarity * 2.5 / 6.0)
 }
+
+/** Mining only: gets the block-break attribute and nothing else. */
+private val MINING_TYPES = setOf("TOOL")
+
+/** Armour only: max health + armour + toughness, all deliberately small. */
+private val ARMOR_TYPES = setOf("ARMOR", "HELMET", "CHESTPLATE", "LEGGINGS", "BOOTS")
+
+/**
+ * The attribute package every declaration of this rarity/type gets, on top of whatever it names itself.
+ *
+ * Rarity ladder (`r` = 0..6): mining speed `r × 0.05` (multiplicative), max health `r × 0.1`,
+ * armour `r × 0.05`, toughness `r × 0.05` — the author's "护甲类也给生命/护甲/韧性，但给得比较少".
+ * These are deliberately an order of magnitude below the damage ladder: they stack across four worn
+ * pieces and multiply with each other, so a MYSTERY armour set at III ends up around +7 HP / +3.6 armour
+ * / +3.6 toughness in total, not +24 / +14 / +7 (the first draft, which was far too strong).
+ *
+ * The caller filters out anything the declaration already names by hand (`swift_sneak` keeps its own
+ * sneak speed and still gains the package).
+ */
+private fun deriveAttributes(category: String, type: String): List<AttrSpec> {
+    val rarity = TIER_RARITY[category] ?: 0
+    if (rarity <= 0) return emptyList()
+    return when {
+        type in MINING_TYPES -> listOf(
+            AttrSpec("minecraft:player.block_break_speed", round3(rarity * 0.05), "add_multiplied_base"),
+        )
+        type in ARMOR_TYPES -> listOf(
+            AttrSpec("minecraft:generic.max_health", round3(rarity * 0.1), "add_value"),
+            AttrSpec("minecraft:generic.armor", round3(rarity * 0.05), "add_value"),
+            AttrSpec("minecraft:generic.armor_toughness", round3(rarity * 0.05), "add_value"),
+        )
+        else -> emptyList()
+    }
+}
+
+/** Keeps the JSON readable: no `0.30000000000000004`. */
+private fun round3(value: Double): Double = kotlin.math.round(value * 1000.0) / 1000.0
 
 /**
  * The shape every enum argument must have, checked by [ModEnchantmentProcessor.validEnum].
@@ -257,6 +291,13 @@ class ModEnchantmentProcessor(
      */
     private val overrides = mutableListOf<String>()
 
+    /**
+     * Declarations that received a derived attribute package (mining speed / max health / armour /
+     * toughness), rendered as `Handler (TYPE: tails)`. `info`, because there is nothing to fix — the point
+     * is that the tutorial does not silently decide what an armour enchantment grants.
+     */
+    private val derivedNotes = mutableListOf<String>()
+
     override fun process(resolver: Resolver): List<KSAnnotated> {
         if (done || codeGenerator.generatedFile.isNotEmpty()) return emptyList()
         done = true
@@ -278,6 +319,15 @@ class ModEnchantmentProcessor(
             logger.warn(
                 "ModEnchantment: ${overrides.size} explicit value(s) differ from the tier default " +
                     "(deliberate overrides) -> " + overrides.joinToString("; ")
+            )
+        }
+
+        // Which declarations got a derived attribute package. `info` on purpose: there is nothing to fix,
+        // the list exists so "why does this armour enchantment grant +HP" is answerable from the build log.
+        if (derivedNotes.isNotEmpty()) {
+            logger.info(
+                "ModEnchantment: ${derivedNotes.size} declaration(s) received a derived attribute package " +
+                    "-> " + derivedNotes.joinToString("; ")
             )
         }
 
@@ -485,7 +535,16 @@ class ModEnchantmentProcessor(
             return null
         }
 
-        val attributes = readAttributes(args["attributes"]?.value, where, decl) ?: return null
+        val declaredAttributes = readAttributes(args["attributes"]?.value, where, decl) ?: return null
+        // Merged, not replaced: a declaration only *adds* to the rarity package. Anything it names itself
+        // wins, because two entries for one attribute would share the derived id
+        // (`<enchantment>.<attribute tail>`) and vanilla would treat them as one modifier anyway.
+        val derivedAttributes = deriveAttributes(category!!, type!!)
+            .filterNot { derived -> declaredAttributes.any { it.attribute == derived.attribute } }
+        if (derivedAttributes.isNotEmpty()) {
+            derivedNotes += "$where ($type: ${derivedAttributes.joinToString("/") { it.tail }})"
+        }
+        val attributes = declaredAttributes + derivedAttributes
 
         return Spec(
             id = id!!,
