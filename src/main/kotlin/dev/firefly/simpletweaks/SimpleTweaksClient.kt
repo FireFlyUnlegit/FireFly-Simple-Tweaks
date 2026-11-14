@@ -129,8 +129,8 @@ class SimpleTweaksClient : ClientModInitializer {
                 "burst, veil, detonation, theft, seal, fracture / echo, sear, doom, ground, embers, corona) " +
                 "+ blessings carry +2.5 base attack damage per level + toughness bar uses a shield glyph " +
                 "+ flat damage / mining speed / armour now follow the rarity ladder automatically " +
-                "+ enchantment attribute lines are summed per attribute, prismatic folded to one line " +
-                "(v2.2.8, build=cleanup8)",
+                "+ enchantment armour / health / toughness print as plain totals like a weapon's damage " +
+                "(v2.2.8, build=cleanup9)",
             SimpleTweaks.NAME,
             enchantmentCount,
         )

@@ -13,148 +13,84 @@ import net.minecraft.text.TranslatableTextContent
 import net.minecraft.util.Formatting
 
 /**
- * Sums this mod's enchantment-granted attribute lines: one line per attribute, plus a single line for
- * `prismatic_blessing`, whose 17 attributes all carry the same percentage.
+ * Rewrites the enchantment-granted armour/health/toughness lines into plain totals, the way vanilla
+ * prints a weapon's `4 攻击伤害`: one `attribute.modifier.equals.0` line per attribute instead of one
+ * `+0.3 护甲值` line per enchantment (a fully enchanted piece prints 30+ of them).
  *
- * Whatever mirrors enchantment `minecraft:attributes` into a stack's tooltip prints one line per effect,
- * so a fully enchanted armour piece buries its own stats under 30+ lines. Vanilla does not draw them,
- * which is why this is a post-process on the finished line list.
- *
- * Lines are matched by translation key (`attribute.modifier.plus|take.<op>` plus the `attribute.name.*`
- * argument), never by rendered text. The stack's own `ATTRIBUTE_MODIFIERS` entries are consumed entry by
- * entry first, so an item's `+4 armour` is never folded into an enchantment's `+0.3 armour`.
+ * Percent lines are left alone.
  */
 object EnchantAttributeTooltipFolder {
 
-    /** Header of the folded block. */
-    private const val HEADER_KEY = "gui.simple_tweaks.attributes.folded"
+    private const val PLUS_FLAT = "attribute.modifier.plus.0"
+    private const val TAKE_FLAT = "attribute.modifier.take.0"
 
-    /** `%1$s` = the shared percentage, `%2$s` = how many attributes it covers. */
-    private const val PRISMATIC_KEY = "gui.simple_tweaks.prismatic.folded"
-
-    private const val PRISMATIC_ID = "prismatic_blessing"
-
-    /** Below this many lines there is nothing worth collapsing. */
-    private const val MIN_MATCHES = 4
-
-    /** A shared percentage needs at least this many attributes to be worth its own line. */
-    private const val MIN_SHARED = 3
-
-    private const val VALUE_TOLERANCE = 0.001
-
-    private class Candidate(
-        val lineIndex: Int,
-        val attributeKey: String,
-        val operation: Int,
-        val value: Double,
+    /** Attributes the rarity ladder's armour package touches. */
+    private val TOTAL_ATTRIBUTES = setOf(
+        "attribute.name.generic.max_health",
+        "attribute.name.generic.armor",
+        "attribute.name.generic.armor_toughness",
     )
 
-    private class Owned(val attributeKey: String, val operation: Int, val value: Double)
+    private class FlatLine(val index: Int, val value: Double, val owned: Boolean)
 
-    /** `prismatic_blessing` on this stack: the attributes it covers and the percentage of each. */
-    private class Prismatic(val attributeKeys: Set<String>, val percent: Float, val level: Int)
+    private class Owned(val attributeKey: String, val operation: Int, val value: Double)
 
     fun register() {
         ItemTooltipCallback.EVENT.register { stack, _, _, lines ->
             if (stack.isEmpty) return@register
+            if (lines.isEmpty()) return@register
 
-            // Re-entrancy guard: a rebuilt tooltip can still carry a previous pass's block, and folding
-            // our own sums again would add our numbers back into themselves.
-            if (lines.any { it.content is TranslatableTextContent && (it.content as TranslatableTextContent).key == HEADER_KEY }) {
-                return@register
+            val enchantmentAttributes = ourAttributeKeys(stack)
+            if (enchantmentAttributes.isEmpty()) return@register
+
+            for (attributeKey in enchantmentAttributes) {
+                if (attributeKey in TOTAL_ATTRIBUTES) fold(stack, lines, attributeKey)
             }
+        }
+    }
 
-            val attributeKeys = ourAttributeKeys(stack)
-            if (attributeKeys.isEmpty()) return@register
+    private fun fold(stack: ItemStack, lines: MutableList<Text>, attributeKey: String) {
+        // An item that already prints a flat total (a sword's attack damage) keeps vanilla's number: the
+        // other handler folds enchantment bonuses into it.
+        if (TooltipTotals.findTotalLine(lines, attributeKey) != null) return
 
-            val owned = ownedModifiers(stack)
-            val candidates = mutableListOf<Candidate>()
+        val owned = ownedModifiers(stack)
+        val flats = mutableListOf<FlatLine>()
 
-            lines.forEachIndexed { index, line ->
-                // One candidate per line: lines are removed by index, so two candidates on one index
-                // would delete the wrong line on the second removal.
-                for (node in TooltipTotals.nodes(line)) {
-                    if (!node.key.startsWith("attribute.modifier.")) continue
-                    if (node.key == TooltipTotals.TOTAL_KEY) continue
+        lines.forEachIndexed { index, line ->
+            for (node in TooltipTotals.nodes(line)) {
+                if (node.key != PLUS_FLAT && node.key != TAKE_FLAT) continue
+                if (attributeKeyOf(node) != attributeKey) continue
 
-                    val attributeKey = attributeKeyOf(node) ?: continue
-                    if (attributeKey !in attributeKeys) continue
-
-                    val operation = node.key.substringAfterLast('.').toIntOrNull() ?: continue
-                    val raw = node.args.firstOrNull() ?: continue
-                    val value = TooltipTotals.parseFlatNumber(TooltipTotals.numberOf(raw)) ?: continue
-                    val signed = if (node.key.contains(".take.")) -value.toDouble() else value.toDouble()
-
-                    if (owned.consume(Owned(attributeKey, operation, signed))) break
-                    candidates += Candidate(index, attributeKey, operation, signed)
-                    break
-                }
+                val raw = node.args.firstOrNull() ?: continue
+                val value = TooltipTotals.parseFlatNumber(TooltipTotals.numberOf(raw)) ?: continue
+                val signed = if (node.key == TAKE_FLAT) -value.toDouble() else value.toDouble()
+                flats += FlatLine(index, signed, owned.consume(Owned(attributeKey, 0, signed)))
+                break
             }
+        }
 
-            val prismatic = prismaticOn(stack)
-            val prismaticLines = if (prismatic == null) {
-                emptyList()
-            } else {
-                candidates.filter {
-                    it.attributeKey in prismatic.attributeKeys &&
-                        kotlin.math.abs(it.value - prismatic.percent) < VALUE_TOLERANCE
-                }
-            }
-            val shared = prismaticLines.size >= MIN_SHARED
-            val summed = if (shared) candidates - prismaticLines.toSet() else candidates
+        // Only the item's own modifier(s): nothing was granted by an enchantment here.
+        if (flats.none { !it.owned }) return
 
-            if (!shared && summed.size < MIN_MATCHES) {
-                if (candidates.isNotEmpty()) {
-                    FSTLog.log("AttributeTooltip") {
-                        "candidates=${candidates.size}, outcome=too-few-to-fold"
-                    }
-                }
-                return@register
-            }
+        val total = flats.sumOf { it.value }
+        if (kotlin.math.abs(total) < 0.001) return
 
-            val perAttribute = LinkedHashMap<Pair<String, Int>, Double>()
-            for (candidate in summed) {
-                perAttribute.merge(candidate.attributeKey to candidate.operation, candidate.value, Double::plus)
-            }
+        val insertAt = flats.minOf { it.index }
+        for (flat in flats.sortedByDescending { it.index }) lines.removeAt(flat.index)
+        lines.add(
+            insertAt,
+            Text.translatable(
+                TooltipTotals.TOTAL_KEY,
+                TooltipTotals.format(kotlin.math.abs(total).toFloat()),
+                Text.translatable(attributeKey),
+            ).formatted(Formatting.DARK_GREEN),
+        )
 
-            val removed = if (shared) candidates else summed
-            val insertAt = removed.minOf { it.lineIndex }
-            for (candidate in removed.sortedByDescending { it.lineIndex }) lines.removeAt(candidate.lineIndex)
-
-            val block = mutableListOf<Text>()
-            block += Text.translatable(HEADER_KEY).formatted(Formatting.AQUA)
-            if (shared) {
-                block += Text.translatable(
-                    PRISMATIC_KEY,
-                    TooltipTotals.format(kotlin.math.abs(prismatic!!.percent) * 100f),
-                    prismaticLines.size.toString(),
-                ).formatted(Formatting.LIGHT_PURPLE)
-            }
-            for ((key, sum) in perAttribute) {
-                val (attributeKey, operation) = key
-                val verb = if (sum < 0.0) "take" else "plus"
-                block += Text.translatable(
-                    "attribute.modifier.$verb.$operation",
-                    TooltipTotals.format(kotlin.math.abs(sum).toFloat()),
-                    Text.translatable(attributeKey),
-                ).formatted(Formatting.BLUE)
-            }
-            lines.addAll(insertAt, block)
-
-            FSTLog.log("AttributeTooltip") {
-                val detail = perAttribute.entries.joinToString(", ") {
-                    "${it.key.first.substringAfterLast('.')}=${it.value}"
-                }
-                val raw = candidates.groupBy { it.attributeKey.substringAfterLast('.') }
-                    .entries
-                    .joinToString(", ") { (attribute, list) ->
-                        "$attribute=${list.joinToString("+") { it.value.toString() }}"
-                    }
-                    .take(600)
-                "stack=${stack.item.translationKey}, folded=${removed.size}, attributes=${perAttribute.size}, " +
-                    "prismatic=${if (shared) "${prismaticLines.size}x${prismatic?.percent}" else "none"}, " +
-                    "totals=[$detail], raw=[$raw], outcome=folded"
-            }
+        FSTLog.log("AttributeTooltip") {
+            val detail = flats.joinToString("+") { it.value.toString() }
+            "stack=${stack.item.translationKey}, attribute=${attributeKey.substringAfterLast('.')}, " +
+                "lines=[$detail], shown=${TooltipTotals.format(kotlin.math.abs(total).toFloat())}, outcome=total"
         }
     }
 
@@ -172,26 +108,6 @@ object EnchantAttributeTooltipFolder {
             for (effect in effects) keys += effect.attribute().value().translationKey
         }
         return keys
-    }
-
-    private fun prismaticOn(stack: ItemStack): Prismatic? {
-        val enchantments = EnchantmentHelper.getEnchantments(stack)
-        for (entry in enchantments.enchantments) {
-            val key = entry.key.orElse(null) ?: continue
-            if (key.value.namespace != SimpleTweaks.MOD_ID || key.value.path != PRISMATIC_ID) continue
-
-            val level = enchantments.getLevel(entry)
-            if (level <= 0) continue
-
-            val effects = entry.value().effects().get(EnchantmentEffectComponentTypes.ATTRIBUTES) ?: continue
-            val first = effects.firstOrNull() ?: continue
-            return Prismatic(
-                effects.mapTo(mutableSetOf()) { it.attribute().value().translationKey },
-                first.amount().getValue(level),
-                level,
-            )
-        }
-        return null
     }
 
     /** The stack's own attribute modifiers, as a consume-as-you-match list. */
@@ -213,7 +129,7 @@ object EnchantAttributeTooltipFolder {
         val index = indexOfFirst {
             it.attributeKey == candidate.attributeKey &&
                 it.operation == candidate.operation &&
-                kotlin.math.abs(it.value - candidate.value) < VALUE_TOLERANCE
+                kotlin.math.abs(it.value - candidate.value) < 0.001
         }
         if (index < 0) return false
         removeAt(index)
