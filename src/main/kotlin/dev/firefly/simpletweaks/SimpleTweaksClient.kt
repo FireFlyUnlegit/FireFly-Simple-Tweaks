@@ -16,7 +16,7 @@ import dev.firefly.simpletweaks.client.tooltips.DevourTooltipHandler
 import dev.firefly.simpletweaks.client.tooltips.EnchantAttributeToolTipHandler
 import dev.firefly.simpletweaks.client.tooltips.EnchantDamageToolTipHandler
 import dev.firefly.simpletweaks.client.tooltips.ManaPoolToolTipHandler
-import dev.firefly.simpletweaks.client.tooltips.PrismaticTooltipFolder
+import dev.firefly.simpletweaks.client.tooltips.EnchantAttributeTooltipFolder
 import dev.firefly.simpletweaks.core.config.DamageIndicatorConfig
 import dev.firefly.simpletweaks.core.registerEvents
 import dev.firefly.simpletweaks.damageindicator.DamageIndicatorManager
@@ -84,9 +84,9 @@ class SimpleTweaksClient : ClientModInitializer {
         // reads only the item's own `ATTRIBUTE_MODIFIERS` component. Without this, `combo 10` still
         // reads `1.6 攻击速度`.
         EnchantAttributeToolTipHandler.register()
-        // prismatic_blessing's 17 attribute lines are rendered by whatever mirrors enchantment
-        // attributes into the stack's tooltip; fold them into one line unless Shift is held.
-        PrismaticTooltipFolder.register()
+        // Whatever mirrors enchantment attributes into the stack's tooltip prints one line per effect;
+        // sum them per attribute so a fully enchanted armour piece stays readable (Shift expands).
+        EnchantAttributeTooltipFolder.register()
         // devour keeps its stacks in the item's CUSTOM_DATA, which nothing else displays.
         DevourTooltipHandler.register()
         registerCelestialReceivers()
@@ -129,7 +129,8 @@ class SimpleTweaksClient : ClientModInitializer {
                 "burst, veil, detonation, theft, seal, fracture / echo, sear, doom, ground, embers, corona) " +
                 "+ blessings carry +2.5 base attack damage per level + toughness bar uses a shield glyph " +
                 "+ flat damage / mining speed / armour now follow the rarity ladder automatically " +
-                "(v2.2.8, build=cleanup6)",
+                "+ enchantment attribute lines are summed per attribute, Shift expands " +
+                "(v2.2.8, build=cleanup7)",
             SimpleTweaks.NAME,
             enchantmentCount,
         )
