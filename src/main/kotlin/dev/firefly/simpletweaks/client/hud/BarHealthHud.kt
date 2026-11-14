@@ -31,12 +31,12 @@ object BarHealthHud {
         x: Int,
         y: Int,
         maxHealth: Float,
-        health: Int,
-        absorption: Int,
+        health: Float,
+        absorption: Float,
         blinking: Boolean,
     ) {
         val max = maxHealth.coerceAtLeast(1f)
-        val current = health.toFloat().coerceIn(0f, max)
+        val current = health.coerceIn(0f, max)
 
         // Damage ghost: trails behind the (already tweened) fill for the "lost health" read.
         if (ghost.isNaN()) ghost = current
@@ -70,11 +70,14 @@ object BarHealthHud {
             context.fill(barX + 1 + filledPx, y + 1, barX + 1 + ghostPx, y + HudBar.HEIGHT - 1, GHOST)
         }
         HudBar.fill(context, barX, y, HudBar.WIDTH, HudBar.HEIGHT, shown / max, FILL_TOP, FILL_BOTTOM, blinking)
-        HudBar.text(context, "${MathHelper.ceil(current)}/${MathHelper.ceil(max)}", barX, y, HudBar.WIDTH, TEXT)
+        HudBar.text(
+            context, "${HudBar.number(current.toDouble())}/${HudBar.number(max.toDouble())}",
+            barX, y, HudBar.WIDTH, TEXT,
+        )
 
-        if (absorption > 0) {
+        if (absorption > 0f) {
             val absorbY = y - 10
-            val absorbShown = absorbSmooth.update(absorption.toFloat())
+            val absorbShown = absorbSmooth.update(absorption)
             HudBar.icon(context, HudBar.HEART_CONTAINER, HudBar.HEART_ABSORBING, iconX, absorbY)
             HudBar.frame(context, barX, absorbY, HudBar.WIDTH, HudBar.HEIGHT)
             HudBar.fill(
@@ -82,7 +85,7 @@ object BarHealthHud {
                 (absorbShown / max).coerceIn(0f, 1f), ABSORB_TOP, ABSORB_BOTTOM,
             )
             HudBar.text(
-                context, "+${MathHelper.ceil(absorption.toFloat())}",
+                context, "+${HudBar.number(absorption.toDouble())}",
                 barX, absorbY, HudBar.WIDTH, ABSORB_TEXT,
             )
         } else {

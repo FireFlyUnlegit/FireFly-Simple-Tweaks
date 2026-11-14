@@ -1,5 +1,7 @@
 package dev.firefly.simpletweaks.client.hud
 
+import dev.firefly.simpletweaks.core.config.ConfigBounds
+import dev.firefly.simpletweaks.core.config.GeneralConfig
 import net.minecraft.client.MinecraftClient
 import net.minecraft.client.gui.DrawContext
 import net.minecraft.util.Identifier
@@ -107,6 +109,13 @@ object HudBar {
         val renderer = MinecraftClient.getInstance().textRenderer
         context.drawText(renderer, value, x + (w - renderer.getWidth(value)) / 2, y + 1, color, true)
     }
+
+    /**
+     * A bar number: at most [GeneralConfig.barDecimalPlaces] decimals, trailing zeros dropped, so 0.1 never
+     * prints as 0.1000 and whole values stay whole ("20", not "20.00").
+     */
+    fun number(value: Double): String =
+        BarNumber.of(value, GeneralConfig.barDecimalPlaces.coerceIn(ConfigBounds.BAR_DECIMALS))
 
     private fun lerp(a: Int, b: Int, t: Float): Int {
         fun mix(shift: Int): Int {

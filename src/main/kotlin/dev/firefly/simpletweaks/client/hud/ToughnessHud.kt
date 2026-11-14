@@ -1,8 +1,8 @@
 package dev.firefly.simpletweaks.client.hud
 
 import net.minecraft.client.gui.DrawContext
+import net.minecraft.entity.attribute.EntityAttributes
 import net.minecraft.entity.player.PlayerEntity
-import net.minecraft.util.math.MathHelper
 
 /** Armour toughness bar, right column above hunger. Hidden at 0 — an empty row there explains nothing. */
 object ToughnessHud {
@@ -16,9 +16,7 @@ object ToughnessHud {
     private val smooth = HudBar.Smooth()
 
     fun renderRightAligned(context: DrawContext, player: PlayerEntity, rightEdge: Int, y: Int) {
-        val toughness = player.getAttributeValue(
-            net.minecraft.entity.attribute.EntityAttributes.GENERIC_ARMOR_TOUGHNESS
-        )
+        val toughness = player.getAttributeValue(EntityAttributes.GENERIC_ARMOR_TOUGHNESS)
         if (toughness <= 0.0) {
             smooth.reset()
             return
@@ -31,11 +29,7 @@ object ToughnessHud {
             context, barX, y, HudBar.WIDTH, HudBar.HEIGHT,
             (shown / REFERENCE).coerceIn(0f, 1f), FILL_TOP, FILL_BOTTOM,
         )
-        val value = if (toughness == Math.floor(toughness)) {
-            MathHelper.ceil(toughness).toString()
-        } else {
-            "%.1f".format(toughness)
-        }
+        val value = HudBar.number(toughness)
         HudBar.text(context, value, barX, y, HudBar.WIDTH, TEXT)
         HudBar.shieldIcon(context, rightEdge, y)
     }

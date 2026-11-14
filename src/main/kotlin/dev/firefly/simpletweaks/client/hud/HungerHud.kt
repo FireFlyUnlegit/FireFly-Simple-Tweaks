@@ -2,7 +2,6 @@ package dev.firefly.simpletweaks.client.hud
 
 import net.minecraft.client.gui.DrawContext
 import net.minecraft.entity.player.PlayerEntity
-import net.minecraft.util.math.MathHelper
 
 /** Hunger bar, mirrored to vanilla's right edge with the icon on the right of the bar. */
 object HungerHud {
@@ -25,7 +24,7 @@ object HungerHud {
             context, barX, y, HudBar.WIDTH, HudBar.HEIGHT,
             (shown / REFERENCE).coerceIn(0f, 1f), FILL_TOP, FILL_BOTTOM,
         )
-        HudBar.text(context, MathHelper.ceil(food.toFloat()).toString(), barX, y, HudBar.WIDTH, TEXT)
+        HudBar.text(context, HudBar.number(food.toDouble()), barX, y, HudBar.WIDTH, TEXT)
         HudBar.icon(context, HudBar.FOOD_EMPTY, HudBar.FOOD_FULL, rightEdge, y)
     }
 

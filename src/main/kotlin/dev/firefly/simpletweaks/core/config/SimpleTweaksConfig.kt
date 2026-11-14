@@ -100,6 +100,8 @@ object SimpleTweaksConfig {
         GeneralConfig.noHurtCam = s.bool("noHurtCam", false)
         // New in cleanup86: the bar-shaped health HUD is on by default (it is the whole feature).
         GeneralConfig.barHealthHud = s.bool("barHealthHud", true)
+        GeneralConfig.barDecimalPlaces = s.int("barDecimalPlaces", 2)
+            .coerceIn(ConfigBounds.BAR_DECIMALS)
     }
 
     /**
@@ -180,6 +182,7 @@ object SimpleTweaksConfig {
             addProperty("autoSprintOmniSprint", GeneralConfig.autoSprintOmniSprint)
             addProperty("noHurtCam", GeneralConfig.noHurtCam)
             addProperty("barHealthHud", GeneralConfig.barHealthHud)
+            addProperty("barDecimalPlaces", GeneralConfig.barDecimalPlaces)
         }
         val mobEnhancement = JsonObject().apply {
             addProperty("enabled", MobEnhancementConfig.enabled)

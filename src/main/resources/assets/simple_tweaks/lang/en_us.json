@@ -132,6 +132,7 @@
   "gui.simple_tweaks.config.next_page": "Next page ▶",
   "gui.simple_tweaks.config.noHurtCam": "No hurt cam shake",
   "gui.simple_tweaks.config.barHealthHud": "Health bar instead of vanilla hearts",
+  "gui.simple_tweaks.config.barDecimalPlaces": "Bar numbers: max decimal places",
   "gui.simple_tweaks.config.off": "Off",
   "gui.simple_tweaks.config.on": "On",
   "gui.simple_tweaks.config.page": "%s (page %s/%s)",

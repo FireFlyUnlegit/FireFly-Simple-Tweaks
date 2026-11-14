@@ -31,8 +31,8 @@ object BarsHud {
             leftX,
             y,
             player.maxHealth,
-            Math.ceil(player.health.toDouble()).toInt(),
-            player.absorptionAmount.toInt(),
+            player.health,
+            player.absorptionAmount,
             // Same 20-tick window vanilla used for the hearts' flash.
             player.hurtTime > 10,
         )

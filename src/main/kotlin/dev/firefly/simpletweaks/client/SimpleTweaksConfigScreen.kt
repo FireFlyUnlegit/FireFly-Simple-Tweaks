@@ -195,6 +195,12 @@ class SimpleTweaksConfigScreen(private val parent: Screen?) :
                 boolRow("barHealthHud", { GeneralConfig.barHealthHud }) {
                     GeneralConfig.barHealthHud = it
                 }
+                numRow(
+                    "barDecimalPlaces", { GeneralConfig.barDecimalPlaces.toDouble() },
+                    { GeneralConfig.barDecimalPlaces = it.toInt().coerceIn(ConfigBounds.BAR_DECIMALS) },
+                    step = 0.0, min = ConfigBounds.BAR_DECIMALS.first.toDouble(), max = ConfigBounds.BAR_DECIMALS.last.toDouble(),
+                    fmt = { Text.literal(it.toInt().toString()) },
+                )
             }
 
             1 -> {

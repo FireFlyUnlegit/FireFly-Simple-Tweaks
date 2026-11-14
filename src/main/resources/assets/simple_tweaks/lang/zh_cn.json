@@ -132,6 +132,7 @@
   "gui.simple_tweaks.config.next_page": "下一页 ▶",
   "gui.simple_tweaks.config.noHurtCam": "受伤不抖动画面",
   "gui.simple_tweaks.config.barHealthHud": "血量显示为条状（关掉回到原版心形）",
+  "gui.simple_tweaks.config.barDecimalPlaces": "条状数值：最多小数位",
   "gui.simple_tweaks.config.off": "关",
   "gui.simple_tweaks.config.on": "开",
   "gui.simple_tweaks.config.page": "%s（第 %s/%s 页）",

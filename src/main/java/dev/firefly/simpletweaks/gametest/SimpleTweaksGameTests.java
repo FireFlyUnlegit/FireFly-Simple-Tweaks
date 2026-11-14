@@ -730,6 +730,30 @@ public class SimpleTweaksGameTests implements FabricGameTest {
         context.complete();
     }
 
+    /**
+     * Bar numbers must round to the configured place count and drop the padding, so 0.1 with four places
+     * prints "0.1" rather than "0.1000". Formatting runs on the client, but [BarNumber] carries no Minecraft
+     * types, so the rule can be pinned here instead of only by eyeballing the HUD.
+     */
+    @GameTest(templateName = FabricGameTest.EMPTY_STRUCTURE)
+    public void barNumbersTrimTrailingZeros(TestContext context) {
+        String[] cases = {
+                dev.firefly.simpletweaks.client.hud.BarNumber.INSTANCE.of(0.1, 4),
+                dev.firefly.simpletweaks.client.hud.BarNumber.INSTANCE.of(20.0, 2),
+                dev.firefly.simpletweaks.client.hud.BarNumber.INSTANCE.of(10.75, 1),
+                dev.firefly.simpletweaks.client.hud.BarNumber.INSTANCE.of(4096.0, 0),
+                dev.firefly.simpletweaks.client.hud.BarNumber.INSTANCE.of(892.28, 1),
+                dev.firefly.simpletweaks.client.hud.BarNumber.INSTANCE.of(-0.001, 2),
+        };
+        String[] expected = {"0.1", "20", "10.8", "4096", "892.3", "0"};
+
+        LOGGER.info("[FST-GameTest] bar numbers: {}", String.join(" / ", cases));
+        for (int i = 0; i < expected.length; i++) {
+            context.assertEquals(expected[i], cases[i], "bar number " + i);
+        }
+        context.complete();
+    }
+
     private static void assertReduction(TestContext context, float damage, float armor, float expected) {
         float actual = ArmorCurve.INSTANCE.reductionFor(armor, damage);
         LOGGER.info("[FST-GameTest] damage {} armor {} -> reduction {} (expected {})",

@@ -1,6 +1,7 @@
 package dev.firefly.simpletweaks.client.hud
 
 import net.minecraft.client.gui.DrawContext
+import net.minecraft.entity.attribute.EntityAttributes
 import net.minecraft.entity.player.PlayerEntity
 
 /** Armour bar; hidden when the player has no armour. */
@@ -17,8 +18,9 @@ object ArmorHud {
 
     fun render(context: DrawContext, player: PlayerEntity, x: Int, y: Int) {
         val barX = x + HudBar.ICON
-        val armor = player.armor
-        if (armor <= 0) {
+        // Attribute value, not `player.armor`: that one floors, and our enchantments add fractions.
+        val armor = player.getAttributeValue(EntityAttributes.GENERIC_ARMOR)
+        if (armor <= 0.0) {
             smooth.reset()
             return
         }
@@ -30,7 +32,7 @@ object ArmorHud {
             context, barX, y, HudBar.WIDTH, HudBar.HEIGHT,
             (shown / REFERENCE).coerceIn(0f, 1f), FILL_TOP, FILL_BOTTOM,
         )
-        HudBar.text(context, armor.toString(), barX, y, HudBar.WIDTH, TEXT)
+        HudBar.text(context, HudBar.number(armor), barX, y, HudBar.WIDTH, TEXT)
     }
 
     fun reset() {

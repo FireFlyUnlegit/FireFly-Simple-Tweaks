@@ -104,6 +104,10 @@ object GeneralConfig {
     @JvmStatic
     var barHealthHud: Boolean = true
 
+    /** Decimals in the bar HUD numbers, 0..4; trailing zeros are trimmed, so 0.1 never prints as 0.1000. */
+    @JvmStatic
+    var barDecimalPlaces: Int = 2
+
     @JvmStatic
     var noHurtCam: Boolean = false
 
