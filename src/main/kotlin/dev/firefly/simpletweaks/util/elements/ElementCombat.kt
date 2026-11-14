@@ -13,15 +13,18 @@ import dev.firefly.simpletweaks.util.damagesource.CelestialDamageSources
 import dev.firefly.simpletweaks.util.damagesource.ElementDamageTypes
 import dev.firefly.simpletweaks.util.damagesource.ModDamageTypes
 import dev.firefly.simpletweaks.util.damagesource.damageElemental
+import dev.firefly.simpletweaks.util.EnchantPresence
 import dev.firefly.simpletweaks.util.getElementSpecificEnchantLevel
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import dev.firefly.simpletweaks.util.mobs.MobElements
 import dev.firefly.simpletweaks.util.mobs.MobLevelSync
+import net.minecraft.enchantment.Enchantment
 import net.minecraft.entity.EquipmentSlot
 import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.damage.DamageSource
 import net.minecraft.entity.mob.MobEntity
 import net.minecraft.entity.player.PlayerEntity
+import net.minecraft.registry.RegistryKey
 import net.minecraft.registry.tag.DamageTypeTags
 import net.minecraft.item.ItemStack
 import java.util.UUID
@@ -225,13 +228,8 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
         getItemSpecificEnchantLevel(stack, GeneratedEnchantments.ELEMENTAL_MASTERY)
 
     /** Mastery level from a set of armour slots' stacks (used for armour-borne mastery, if any). */
-    fun armorMasteryLevel(entity: LivingEntity): Int {
-        var total = 0
-        for (slot in ARMOR_SLOTS) {
-            total += masteryLevel(entity.getEquippedStack(slot))
-        }
-        return total
-    }
+    fun armorMasteryLevel(entity: LivingEntity): Int =
+        EnchantPresence.armorLevelOf(entity, GeneratedEnchantments.ELEMENTAL_MASTERY)
 
     /**
      * Startup self-check: **a conversion must never reduce the hit.**
@@ -262,6 +260,7 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
     /** [Listenable.init] hook — registers nothing, only runs [selfCheck]. */
     override fun init() {
         selfCheck()
+        selfCheckProtectionKeys()
     }
 
     /** The conversion the attacker's main hand performs, or `null` when there is none.
@@ -903,14 +902,8 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
      * `elemental_ward` level on [entity]'s four armour slots (max 3, so the reduction is capped at
      * `WARD_CAP` = 9 %). Deliberately **not** per element: that is what `xx_protection` is for.
      */
-    fun wardLevel(entity: LivingEntity): Int {
-        var best = 0
-        for (slot in ARMOR_SLOTS) {
-            val lvl = getItemSpecificEnchantLevel(entity.getEquippedStack(slot), GeneratedEnchantments.ELEMENTAL_WARD)
-            if (lvl > best) best = lvl
-        }
-        return best
-    }
+    fun wardLevel(entity: LivingEntity): Int =
+        EnchantPresence.armorMax(entity, GeneratedEnchantments.ELEMENTAL_WARD)
 
     /** `elemental_ward` reduction, capped. */
     fun wardReduction(entity: LivingEntity): Float {
@@ -1018,13 +1011,8 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
     }
 
     /** Per-element sum, without the `elemental_supremacy` override. */
-    private fun rawProtectionLevel(entity: LivingEntity, element: ElementType): Int {
-        var total = 0
-        for (slot in ARMOR_SLOTS) {
-            total += getElementSpecificEnchantLevel(entity.getEquippedStack(slot), element, protective = true)
-        }
-        return total
-    }
+    private fun rawProtectionLevel(entity: LivingEntity, element: ElementType): Int =
+        EnchantPresence.armorSum(entity, PROTECTION_KEYS.getValue(element))
 
     /**
      * `elemental_supremacy`'s own mitigation **zone**: `4.5 % × total level`, capped at 90 %.
@@ -1044,9 +1032,7 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
      */
     fun supremacyHaste(entity: LivingEntity): Float {
         if (!wearsSupremacy(entity)) return 1f
-        val total = ARMOR_SLOTS.sumOf {
-            getItemSpecificEnchantLevel(entity.getEquippedStack(it), GeneratedEnchantments.ELEMENTAL_SUPREMACY)
-        }
+        val total = EnchantPresence.armorLevelOf(entity, GeneratedEnchantments.ELEMENTAL_SUPREMACY)
         return (1f - total / 20f).coerceIn(0f, 1f)
     }
 
@@ -1060,15 +1046,13 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
 
     fun supremacyReduction(entity: LivingEntity): Float {
         if (!wearsSupremacy(entity)) return 0f
-        val total = ARMOR_SLOTS.sumOf {
-            getItemSpecificEnchantLevel(entity.getEquippedStack(it), GeneratedEnchantments.ELEMENTAL_SUPREMACY)
-        }
+        val total = EnchantPresence.armorLevelOf(entity, GeneratedEnchantments.ELEMENTAL_SUPREMACY)
         return (SUPREMACY_PER_LEVEL * total).coerceAtMost(SUPREMACY_CAP)
     }
 
     /** Whether [entity] wears `elemental_supremacy` (any armour slot). */
     fun wearsSupremacy(entity: LivingEntity): Boolean =
-        ARMOR_SLOTS.any { getItemSpecificEnchantLevel(entity.getEquippedStack(it), GeneratedEnchantments.ELEMENTAL_SUPREMACY) > 0 }
+        EnchantPresence.armorLevelOf(entity, GeneratedEnchantments.ELEMENTAL_SUPREMACY) > 0
 
     /**
      * True when this hit's damage type is one of **our own** `element_<id>` types.
@@ -1106,4 +1090,25 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
         EquipmentSlot.LEGS,
         EquipmentSlot.FEET,
     )
+
+    /** The `<element>_protection` key per element, so [rawProtectionLevel] never builds a key per hit. */
+    private val PROTECTION_KEYS: Map<ElementType, Array<RegistryKey<Enchantment>>> by lazy {
+        ElementType.entries.associateWith { element ->
+            arrayOf(
+                requireNotNull(GeneratedEnchantments.keyOfElement(element.id, protective = true)) {
+                    "missing protection key for ${element.id}"
+                },
+            )
+        }
+    }
+
+    /** Startup self-check: the per-element protection key table must cover every element once. */
+    private fun selfCheckProtectionKeys() {
+        if (PROTECTION_KEYS.size == ElementType.entries.size) return
+        SimpleTweaks.LOGGER.warn(
+            "Elemental protection self-check FAILED: {} key(s) for {} element(s); protection would be under-counted.",
+            PROTECTION_KEYS.size,
+            ElementType.entries.size,
+        )
+    }
 }

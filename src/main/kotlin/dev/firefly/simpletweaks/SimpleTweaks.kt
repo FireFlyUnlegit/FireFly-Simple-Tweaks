@@ -14,6 +14,7 @@ import dev.firefly.simpletweaks.util.ArrowDamageSeam
 import dev.firefly.simpletweaks.util.elements.ElementCombat
 import dev.firefly.simpletweaks.util.elements.ElementShredTicker
 import net.fabricmc.api.ModInitializer
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -82,6 +83,12 @@ class SimpleTweaks : ModInitializer {
         // side that owns the inventory. See EnchantCommand's KDoc for what it bypasses and why the
         // name cannot carry a `modid:` prefix.
         EnchantCommand.register()
+
+        // Damage-type tags can differ between sessions (datapack reload), so the damage-type -> element
+        // memo is dropped at every server start. The client half drops it on Join/Disconnect.
+        ServerLifecycleEvents.SERVER_STARTING.register { _ ->
+            dev.firefly.simpletweaks.util.elements.ElementType.clearCache()
+        }
 
         LOGGER.info("{} load complete.", NAME)
     }

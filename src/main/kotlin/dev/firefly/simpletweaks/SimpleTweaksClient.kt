@@ -132,7 +132,9 @@ class SimpleTweaksClient : ClientModInitializer {
                 "+ enchantment armour / health / toughness print as plain totals like a weapon's damage " +
                 "+ bar numbers take decimals (max places is configurable, trailing zeros trimmed) " +
                 "+ enchantment lookups are cached per entity until its equipment changes " +
-                "(v2.2.8, build=cleanup11)",
+                "+ damage-type classification is memoised, armour mitigation reads the snapshot, " +
+                "mob level packets are sent only when the level actually changes " +
+                "(v2.2.8, build=cleanup12)",
             SimpleTweaks.NAME,
             enchantmentCount,
         )
@@ -211,6 +213,8 @@ class SimpleTweaksClient : ClientModInitializer {
             // The health bar's damage ghost must not survive into the next world (a new player starts
             // full, and a trail from the previous session would draw as phantom damage).
             dev.firefly.simpletweaks.client.hud.BarHealthHud.reset()
+            // Damage-type tags may have changed while we were away.
+            dev.firefly.simpletweaks.util.elements.ElementType.clearCache()
         }
     }
 

@@ -1,6 +1,9 @@
 package dev.firefly.simpletweaks.util.mobs
 
+import dev.firefly.simpletweaks.network.NetworkManager
+import dev.firefly.simpletweaks.network.packets.PacketMobLevel
 import net.minecraft.entity.Entity
+import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -30,9 +33,51 @@ object MobLevelSync {
 
     private val levels = ConcurrentHashMap<Int, Int>()
 
+    /** Levels already sent to each player this session, keyed `playerUUID -> entity id -> level`. */
+    private val announced: MutableMap<UUID, MutableMap<Int, Int>> =
+        java.util.Collections.synchronizedMap(java.util.WeakHashMap())
+
     /** Called by the client packet receiver. */
     fun put(entityId: Int, level: Int) {
         levels[entityId] = level
+    }
+
+    /**
+     * Server side: sends [level] for [entityId] to [player] unless that player already has exactly that
+     * level for that id.
+     *
+     * Two seams announce the same level — `MobLevelTracker`'s `START_TRACKING` and `MobSpawnEnhancer`'s
+     * `ENTITY_LOAD` — and neither is ordered before the other (`build=cleanup24` had to send from both,
+     * because a mob added mid-tick starts tracking before it has a level). Their overlap is the **normal**
+     * path: a mob entering view is both loaded and tracked. Suppressing the repeat on the server is what
+     * keeps a mob farm from paying double packet encoding per spawn.
+     *
+     * A genuine change (`0 -> 12`, a level-up from `MobLevelProgression`) is **not** a repeat: it differs
+     * from what this player was last told and is always sent.
+     *
+     * The map is weak on players and lives as long as the session's server, which has the same lifetime as
+     * the entity-id space it keys.
+     */
+    fun announce(entityId: Int, level: Int, player: net.minecraft.server.network.ServerPlayerEntity) {
+        val playerId = player.uuid
+        if (!changed(playerId, entityId, level)) return
+        NetworkManager.sendToClient(PacketMobLevel(entityId, level), player)
+    }
+
+    /**
+     * Server bookkeeping without the packet — returns whether [level] is worth sending to [playerId].
+     *
+     * Kept separate so `announce` reads as "check, then send", and so a test can drive the bookkeeping
+     * without a live connection.
+     */
+    fun changed(playerId: UUID, entityId: Int, level: Int): Boolean {
+        val perPlayer = announced.getOrPut(playerId) { ConcurrentHashMap() }
+        return perPlayer.put(entityId, level) != level
+    }
+
+    /** Drops the announce bookkeeping for one player (e.g. after a respawn in a new dimension). */
+    fun forget(playerId: UUID) {
+        announced.remove(playerId)
     }
 
     /** Called when leaving a world, so a new session does not inherit stale ids. */

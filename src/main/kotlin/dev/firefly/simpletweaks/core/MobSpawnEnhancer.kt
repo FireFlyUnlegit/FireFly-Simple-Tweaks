@@ -1,10 +1,9 @@
 package dev.firefly.simpletweaks.core
 
 import dev.firefly.simpletweaks.core.config.MobEnhancementConfig
-import dev.firefly.simpletweaks.network.NetworkManager
-import dev.firefly.simpletweaks.network.packets.PacketMobLevel
 import dev.firefly.simpletweaks.util.mobs.LevelledMob
 import dev.firefly.simpletweaks.util.mobs.MobElements
+import dev.firefly.simpletweaks.util.mobs.MobLevelSync
 import dev.firefly.simpletweaks.util.mobs.MobLevels
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents
 import net.minecraft.entity.mob.MobEntity
@@ -82,12 +81,19 @@ object MobSpawnEnhancer {
             // when tracking starts before this callback runs (mobs added mid-tick — slime splits,
             // summon-ed minions, spawner cycles) the packet would carry level **0** and nothing ever
             // re-sends it, so that client shows no `[Lv.N]` name tag until the chunk is reloaded.
-            // Sending again is idempotent: `MobLevelSync` keys by entity id and simply overwrites.
+            // Sending again is idempotent: the client keys by entity id.
+            //
+            // `build=cleanup12`: this announcement is only a **fallback** for mobs whose
+            // `START_TRACKING` already fired (see `MobLevelTracker`). A mob that loads through the normal
+            // tracking path has usually already been announced, and sending it twice doubles the packets
+            // on every chunk load — which is the single most frequent path in a mob farm. The client now
+            // answers "did this level actually change", so the duplicate costs one byte instead of a new
+            // packet.
             val level = levelled.mobLevel
             if (level > 0) {
                 for (player in world.players) {
                     if (player.squaredDistanceTo(entity) <= ANNOUNCE_RANGE * ANNOUNCE_RANGE) {
-                        NetworkManager.sendToClient(PacketMobLevel(entity.id, level), player)
+                        MobLevelSync.announce(entity.id, level, player)
                     }
                 }
             }

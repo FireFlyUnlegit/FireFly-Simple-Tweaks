@@ -104,6 +104,47 @@ object EnchantPresence {
         return profileFor(entity, ARMOR_SLOTS).armorLevel(index)
     }
 
+    /**
+     * Sum of [keys] over the four armour slots, from a single snapshot.
+     *
+     * Same answer as calling [armorLevelOf] in a loop, but one validity check instead of N.
+     */
+    @JvmStatic
+    fun armorSum(entity: LivingEntity, keys: Array<RegistryKey<Enchantment>>): Int {
+        val profile = profileFor(entity, ARMOR_SLOTS)
+        var total = 0
+        for (key in keys) {
+            val index = INDEX[key] ?: continue
+            total += profile.armorLevel(index)
+        }
+        return total
+    }
+
+    /** [sum] of [keys] over all six slots, from a single snapshot. */
+    @JvmStatic
+    fun totalSum(entity: LivingEntity, keys: Array<RegistryKey<Enchantment>>): Int {
+        val profile = profileFor(entity, ALL_SLOTS)
+        var total = 0
+        for (key in keys) {
+            val index = INDEX[key] ?: continue
+            total += profile.totalLevel(index)
+        }
+        return total
+    }
+
+    /** Highest single level of [key] across the four armour slots. */
+    @JvmStatic
+    fun armorMax(entity: LivingEntity, key: RegistryKey<Enchantment>): Int {
+        val index = INDEX[key] ?: return 0
+        val profile = profileFor(entity, ARMOR_SLOTS)
+        var best = 0
+        for (slot in ARMOR_SLOTS) {
+            val level = profile.slotLevel(index, slot)
+            if (level > best) best = level
+        }
+        return best
+    }
+
     // ------------------------------------------------------------------ internals
 
     /**
@@ -124,6 +165,7 @@ object EnchantPresence {
         val main = IntArray(MAX_TRACKED)
         val off = IntArray(MAX_TRACKED)
         val armor = IntArray(MAX_TRACKED)
+        val shares = Array(SLOTS.size) { IntArray(MAX_TRACKED) }
         var tracked = 0
 
         for (slot in SLOTS.indices) {
@@ -149,6 +191,7 @@ object EnchantPresence {
                 }
 
                 all[position] += level
+                shares[slot][position] += level
                 when (slot) {
                     MAIN -> main[position] += level
                     OFF -> off[position] += level
@@ -164,6 +207,7 @@ object EnchantPresence {
             main = main.copyOf(tracked),
             off = off.copyOf(tracked),
             armor = armor.copyOf(tracked),
+            perSlot = Array(SLOTS.size) { shares[it].copyOf(tracked) },
         )
     }
 
@@ -174,6 +218,8 @@ object EnchantPresence {
         private val main: IntArray,
         private val off: IntArray,
         private val armor: IntArray,
+        /** Per-slot levels, indexed `[slot][position]`; only the armour rows are filled after build. */
+        private val perSlot: Array<IntArray>,
     ) {
 
         fun totalLevel(index: Int): Int = levelOf(index, all)
@@ -183,6 +229,14 @@ object EnchantPresence {
         fun offLevel(index: Int): Int = levelOf(index, off)
 
         fun armorLevel(index: Int): Int = levelOf(index, armor)
+
+        /** Level of one armour slot; [slot] is an index into [SLOTS] (2..5). */
+        fun slotLevel(index: Int, slot: Int): Int {
+            for (position in indices.indices) {
+                if (indices[position] == index) return perSlot[slot][position]
+            }
+            return 0
+        }
 
         /** True while [slots] still hold the exact stacks this snapshot was built from. */
         fun stillMatches(entity: LivingEntity, slots: IntArray): Boolean {

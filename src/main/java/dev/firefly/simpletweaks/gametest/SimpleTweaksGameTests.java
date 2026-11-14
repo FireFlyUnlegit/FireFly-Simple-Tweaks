@@ -373,6 +373,15 @@ public class SimpleTweaksGameTests implements FabricGameTest {
         return null;
     }
 
+    /** The registry key of a generated enchantment, for APIs that take a `RegistryKey`. */
+    private static net.minecraft.registry.RegistryKey<net.minecraft.enchantment.Enchantment>
+            enchantmentKeyByPath(String path) {
+        for (var key : GeneratedEnchantments.INSTANCE.getKEYS()) {
+            if (key.getValue().getPath().equals(path)) return key;
+        }
+        throw new IllegalStateException("no generated enchantment named " + path);
+    }
+
     /**
      * 剧变 (transformative) reaction damage must not depend on the target's max health.
      *
@@ -656,6 +665,124 @@ public class SimpleTweaksGameTests implements FabricGameTest {
                 "NONE_ORDINAL must resolve to null");
         context.assertTrue(companion.ofOrdinal(7) == null, "an out-of-range ordinal must resolve to null");
         context.assertEquals(elements[0], companion.ofOrdinal(0), "ordinal 0 is the first real element");
+        context.complete();
+    }
+
+    /**
+     * The damage-type -> element memo must agree with a fresh scan, for both hits and misses.
+     *
+     * <p>The memo is the only place in the engine that can go stale without an exception: a wrong answer
+     * silently changes which protection applies. Misses are stored too (as a marker), so the failure mode
+     * this pins is "a non-element damage type was cached as an element" or vice versa.
+     */
+    @GameTest(templateName = FabricGameTest.EMPTY_STRUCTURE)
+    public void elementClassificationMemoMatchesAFreshScan(TestContext context) {
+        var registry = context.getWorld().getRegistryManager()
+                .get(net.minecraft.registry.RegistryKeys.DAMAGE_TYPE);
+        var companion = dev.firefly.simpletweaks.util.elements.ElementType.Companion;
+
+        int checked = 0;
+        int elemental = 0;
+        for (var entry : registry.streamEntries().toList()) {
+            var first = companion.classify(entry);
+            var second = companion.classify(entry);
+            // assertEquals dereferences both sides, so a `null` answer (the expected one for most types)
+            // has to be compared as a boolean.
+            context.assertTrue(first == second, "classify is stable for " + entry.getKey().orElseThrow());
+            if (first != null) elemental++;
+            checked++;
+        }
+
+        // A known elemental type and a known non-elemental one, so "everything returned null" cannot pass.
+        var fire = registry.getEntry(net.minecraft.registry.RegistryKey.of(
+                net.minecraft.registry.RegistryKeys.DAMAGE_TYPE,
+                net.minecraft.util.Identifier.of("simple_tweaks", "element_fire")));
+        var trueDamage = registry.getEntry(net.minecraft.registry.RegistryKey.of(
+                net.minecraft.registry.RegistryKeys.DAMAGE_TYPE,
+                net.minecraft.util.Identifier.of("simple_tweaks", "true_damage")));
+
+        LOGGER.info("[FST-GameTest] element classify: {} damage type(s), {} elemental, fire={}, "
+                        + "true_damage={}", checked, elemental,
+                fire.map(companion::classify).orElse(null),
+                trueDamage.map(companion::classify).orElse(null));
+
+        context.assertTrue(fire.isPresent(), "element_fire is registered");
+        context.assertTrue(fire.map(e -> companion.classify(e) != null).orElse(false),
+                "element_fire must classify as an element");
+        context.assertTrue(trueDamage.isPresent(), "true_damage is registered");
+        context.assertTrue(trueDamage.map(e -> companion.classify(e) == null).orElse(false),
+                "true_damage claims no element");
+
+        companion.clearCache();
+        context.complete();
+    }
+
+    /**
+     * The armour aggregates on {@code EnchantPresence} must equal the per-key calls they replace.
+     *
+     * <p>The element engine's mitigation row was moved onto these aggregates (`build=cleanup12`); if the
+     * sum and the max ever disagree with the single-key answers, protection would be under- or
+     * over-counted with no log line.
+     */
+    @GameTest(templateName = FabricGameTest.EMPTY_STRUCTURE)
+    public void enchantPresenceAggregatesAgreeWithSingleKeys(TestContext context) {
+        var registry = context.getWorld().getRegistryManager()
+                .get(net.minecraft.registry.RegistryKeys.ENCHANTMENT);
+        var presence = dev.firefly.simpletweaks.util.EnchantPresence.INSTANCE;
+        var mob = net.minecraft.entity.EntityType.ZOMBIE.create(context.getWorld());
+
+        context.assertTrue(mob != null, "zombie created");
+        var helm = new net.minecraft.item.ItemStack(net.minecraft.item.Items.DIAMOND_HELMET);
+        var chest = new net.minecraft.item.ItemStack(net.minecraft.item.Items.DIAMOND_CHESTPLATE);
+        var crit = enchantmentKeyByPath("crit");
+        var ward = enchantmentKeyByPath("elemental_ward");
+        helm.addEnchantment(enchantmentByPath(registry, "crit"), 2);
+        helm.addEnchantment(enchantmentByPath(registry, "elemental_ward"), 1);
+        chest.addEnchantment(enchantmentByPath(registry, "elemental_ward"), 3);
+        mob.equipStack(net.minecraft.entity.EquipmentSlot.HEAD, helm);
+        mob.equipStack(net.minecraft.entity.EquipmentSlot.CHEST, chest);
+
+        int critSum = presence.armorSum(mob, new net.minecraft.registry.RegistryKey[] { crit });
+        int wardSum = presence.armorSum(mob, new net.minecraft.registry.RegistryKey[] { ward });
+        int wardMax = presence.armorMax(mob, ward);
+        int wardAll = presence.totalSum(mob, new net.minecraft.registry.RegistryKey[] { ward });
+
+        LOGGER.info("[FST-GameTest] presence aggregates: critSum={}, wardSum={} (max {}), wardTotal={}",
+                critSum, wardSum, wardMax, wardAll);
+
+        context.assertEquals(2, critSum, "one piece carries crit 2");
+        context.assertEquals(4, wardSum, "ward sums across pieces: 1 + 3");
+        context.assertEquals(3, wardMax, "ward max is the chest piece");
+        context.assertEquals(4, wardAll, "ward over all six slots is still 4");
+        context.complete();
+    }
+
+    /**
+     * The mob-level announce bookkeeping must collapse the two seams' duplicate into one packet.
+     *
+     * <p>{@code MobLevelTracker} and {@code MobSpawnEnhancer} both announce the same level on the normal
+     * mob-load path; without the dedupe every spawn costs two encodes. A real level change must still go
+     * out.
+     */
+    @GameTest(templateName = FabricGameTest.EMPTY_STRUCTURE)
+    public void mobLevelAnnounceIsDeduplicated(TestContext context) {
+        var sync = dev.firefly.simpletweaks.util.mobs.MobLevelSync.INSTANCE;
+        var playerId = java.util.UUID.randomUUID();
+        int entityId = 4242;
+
+        boolean first = sync.changed(playerId, entityId, 12);
+        boolean repeat = sync.changed(playerId, entityId, 12);
+        boolean changed = sync.changed(playerId, entityId, 13);
+        boolean otherPlayer = sync.changed(java.util.UUID.randomUUID(), entityId, 12);
+
+        LOGGER.info("[FST-GameTest] announce dedupe: first={}, repeat={}, changed={}, otherPlayer={}",
+                first, repeat, changed, otherPlayer);
+
+        context.assertTrue(first, "the first announce goes out");
+        context.assertTrue(!repeat, "the same level is not sent twice");
+        context.assertTrue(changed, "a real level change is still sent");
+        context.assertTrue(otherPlayer, "another player has its own bookkeeping");
+        sync.forget(playerId);
         context.complete();
     }
 

@@ -1,7 +1,5 @@
 package dev.firefly.simpletweaks.core
 
-import dev.firefly.simpletweaks.network.NetworkManager
-import dev.firefly.simpletweaks.network.packets.PacketMobLevel
 import dev.firefly.simpletweaks.util.mobs.MobLevelSync
 import net.fabricmc.fabric.api.networking.v1.EntityTrackingEvents
 import net.minecraft.entity.mob.MobEntity
@@ -29,8 +27,7 @@ object MobLevelTracker {
     fun registerEvents() {
         EntityTrackingEvents.START_TRACKING.register { entity, player ->
             if (entity !is MobEntity) return@register
-            val level = MobLevelSync.levelOf(entity)
-            NetworkManager.sendToClient(PacketMobLevel(entity.id, level), player)
+            MobLevelSync.announce(entity.id, MobLevelSync.levelOf(entity), player)
         }
     }
 }
