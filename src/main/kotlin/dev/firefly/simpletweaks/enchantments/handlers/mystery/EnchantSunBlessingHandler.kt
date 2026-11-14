@@ -20,8 +20,6 @@ import dev.firefly.simpletweaks.util.elements.ReactionOutcome
 import dev.firefly.simpletweaks.util.elements.ReactionSeam
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import net.minecraft.entity.LivingEntity
-import net.minecraft.entity.effect.StatusEffectInstance
-import net.minecraft.entity.effect.StatusEffects
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.particle.ParticleEffect
 import net.minecraft.particle.ParticleTypes
@@ -37,8 +35,8 @@ import java.util.WeakHashMap
  * 日之祝福: a share of every **fire / light family** reaction is re-expressed as 日曜伤害.
  *
  * The blessing of the noon sun has no crit and no stacking (that is the moon's identity). Its identity is
- * **persistence**: +50 % against the undead, and every rider keeps working after the hit — echoes, burns,
- * scorched ground, embers. Nothing here is a bigger number on the same tick.
+ * **afterburn**: +50 % against the undead, and every rider keeps paying out after the hit. It is the most
+ * damage-forward of the three blessings — not one rider heals, buffs or shields.
  *
  * | reaction | effect |
  * |---|---|
@@ -46,17 +44,18 @@ import java.util.WeakHashMap
  * | `scorch`     | 灼痕: burns for 5 s, 15 %/s |
  * | `annihilate` | 灭度: marked 6 s; if it dies while marked, 60 % bursts over 5 blocks |
  * | `burn`       | 焦土: leaves scorched ground for 6 s, 10 %/s to enemies standing in it |
- * | `extinguish` | 余烬: heals the caster 25 % and grants Regeneration I for 3 s |
- * | `quicken`    | 光合: grants Speed II + Haste I for 4 s |
+ * | `extinguish` | 余烬: three sparks over half a second, 50 % each (150 % total) |
+ * | `quicken`    | 日冕: opens a 6 s window where every solar instance is ×1.75, this one included |
  *
- * Nothing changes the instance itself, so the damage is always `share × undead bonus` and the log number is
- * the number that lands.
+ * [CORONA_MULTIPLIER] is the only rider that changes the instance; everything else schedules extra damage,
+ * so the log number is always the number that lands.
  */
 @ModEnchantment(
     id = "sun_blessing",
     category = EnchantCategory.MYSTERY,
     type = EnchantType.WEAPON,
     maxLevel = 3,
+    damagePerLevel = 2.5,
     weight = EnchantItemWeights.MYSTERY,
     anvilCost = 20,
     minCostBase = 55,
@@ -87,12 +86,14 @@ object EnchantSunBlessingHandler : Listenable {
     const val FIELD_RADIUS = 3.0
     const val FIELD_SHARE = 0.10f
 
-    /** `extinguish` — 余烬: the dying fire pays the caster back. */
-    const val EMBER_HEAL_SHARE = 0.25f
-    const val EMBER_REGEN_TICKS = 60
+    /** `extinguish` — 余烬: three sparks in half a second, 50 % each — the dying fire flares up. */
+    const val EMBER_INTERVAL_TICKS = 5
+    private const val EMBER_FIRES = 3
+    const val EMBER_SHARE = 0.50f
 
-    /** `quicken` — 光合: the sun accelerates the caster. */
-    const val PHOTOSYNTH_TICKS = 80
+    /** `quicken` — 日冕: the sun stands overhead, and everything it touches burns brighter. */
+    const val CORONA_TICKS = 120L
+    const val CORONA_MULTIPLIER = 1.75f
 
     /** `annihilate` — 灭度: an on-death burst, the only rider that waits for a kill. */
     const val DOOM_TICKS = 120L
@@ -123,6 +124,7 @@ object EnchantSunBlessingHandler : Listenable {
 
     private val pulses = mutableListOf<Pulse>()
     private val doom = WeakHashMap<LivingEntity, Doom>()
+    private val corona = WeakHashMap<PlayerEntity, Long>()
 
     /**
      * Fire + light family. Not water (moon) and not frost (star), and `blight` is deliberately left out —
@@ -157,7 +159,13 @@ object EnchantSunBlessingHandler : Listenable {
         val level = getItemSpecificEnchantLevel(player.mainHandStack, GeneratedEnchantments.SUN_BLESSING)
         if (level <= 0 || flatDamage <= 0f) return
 
+        // `quicken` opens the corona window for everything that follows, itself included.
+        val now = player.world.time
+        if (key == "quicken") corona[player] = now + CORONA_TICKS
+        val focused = (corona[player] ?: 0L) > now
+
         var sun = flatDamage * shareFor(level)
+        if (focused) sun *= CORONA_MULTIPLIER
         val undead = target.type.isIn(EntityTypeTags.UNDEAD)
         if (undead) sun *= UNDEAD_BONUS
 
@@ -185,23 +193,19 @@ object EnchantSunBlessingHandler : Listenable {
                 spawn(target, ParticleTypes.FLAME, 14, 0.5, 0.02)
             }
             "extinguish" -> {
-                val healed = sun * EMBER_HEAL_SHARE
-                player.heal(healed)
-                player.addStatusEffect(StatusEffectInstance(StatusEffects.REGENERATION, EMBER_REGEN_TICKS, 0))
-                spawn(player, ParticleTypes.LAVA, 8, 0.3, 0.05)
-                detail = ", healed=${"%.2f".format(healed)}"
+                schedule(player, target, sun * EMBER_SHARE, "ember", EMBER_INTERVAL_TICKS, EMBER_FIRES)
+                spawn(target, ParticleTypes.LAVA, 8, 0.3, 0.05)
+                detail = ", embers=${EMBER_FIRES}x${(EMBER_SHARE * 100).toInt()}%"
             }
             "quicken" -> {
-                player.addStatusEffect(StatusEffectInstance(StatusEffects.SPEED, PHOTOSYNTH_TICKS, 1))
-                player.addStatusEffect(StatusEffectInstance(StatusEffects.HASTE, PHOTOSYNTH_TICKS, 0))
-                spawn(player, ParticleTypes.HAPPY_VILLAGER, 8, 0.3, 0.02)
-                detail = ", buffed=${PHOTOSYNTH_TICKS / 20}s"
+                spawn(player, ParticleTypes.FLAME, 10, 0.35, 0.03)
+                detail = ", corona=${CORONA_TICKS / 20}s, focused=$focused"
             }
         }
 
         FSTLog.log("SunBlessing") {
             "element=${element.id}, lvl=$level, reaction=${"%.2f".format(flatDamage)}, undead=$undead, " +
-                "solar=${"%.2f".format(sun)}, effect=$key$detail, outcome=solar-conversion"
+                "corona=$focused, solar=${"%.2f".format(sun)}, effect=$key$detail, outcome=solar-conversion"
         }
     }
 
@@ -284,7 +288,11 @@ object EnchantSunBlessingHandler : Listenable {
         val target = world.getEntity(targetUUID) as? LivingEntity ?: return
         if (!target.isAlive) return
         target.damageElemental(owner, ModDamageTypes.SUN, pulse.amount)
-        val particle = if (pulse.kind == "wick") ParticleTypes.SMALL_FLAME else ParticleTypes.END_ROD
+        val particle = when (pulse.kind) {
+            "wick" -> ParticleTypes.SMALL_FLAME
+            "ember" -> ParticleTypes.LAVA
+            else -> ParticleTypes.END_ROD
+        }
         world.spawnParticles(
             particle,
             target.x, target.y + target.height * 0.5, target.z,

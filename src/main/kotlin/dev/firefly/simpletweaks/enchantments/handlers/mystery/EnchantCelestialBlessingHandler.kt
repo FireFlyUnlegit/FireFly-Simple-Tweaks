@@ -107,7 +107,7 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
     minCostPerLevel = 30,
     supportedItems = EnchantSupportedItemTags.SWORD,
     slots = [EnchantSlot.MAINHAND],
-    damagePerLevel = 2.0,
+    damagePerLevel = 2.5,
     order = 50,
 )
 object EnchantCelestialBlessingHandler : Listenable {

@@ -48,6 +48,7 @@ import java.util.WeakHashMap
     category = EnchantCategory.MYSTERY,
     type = EnchantType.WEAPON,
     maxLevel = 3,
+    damagePerLevel = 2.5,
     weight = EnchantItemWeights.MYSTERY,
     anvilCost = 20,
     minCostBase = 55,
