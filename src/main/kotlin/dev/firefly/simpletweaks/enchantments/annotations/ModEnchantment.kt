@@ -130,10 +130,11 @@ annotation class ModEnchantment(
      * describes it, so change both together.
      *
      * ## When to write it
-     * Only to **override** the ladder — either down (`combo` 0.15, `fire_master` 0.25) or up
-     * (`void_collapse` 3.0). `0.0` is load-bearing for the rider-only enchantments: it means "this one's
-     * damage comes from its own code, not from a flat component" (`chain_lightning`, `frostbite`,
-     * `infinite_power`, the elemental conversions) — the build log names every such override so they stay
+     * Only `0.0`, for the rider-only enchantments: it means "this one's damage comes from its own code,
+     * not from a flat component" (`chain_lightning`, `frostbite`, `infinite_power`, the elemental
+     * conversions). Nothing overrides the ladder in either direction — the five legacy values that did
+     * (`combo`, `fire_master`, `grievous_wounds`, `healing_blade`, `void_collapse`) were dropped once the
+     * ladder became the single source. The build log names every remaining override so they stay
      * deliberate.
      *
      * The other half of the rule lives next door: mining types (`TOOL`) derive mining speed and the armour

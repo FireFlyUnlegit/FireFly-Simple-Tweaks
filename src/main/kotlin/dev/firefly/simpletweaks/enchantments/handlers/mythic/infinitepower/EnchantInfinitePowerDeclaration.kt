@@ -55,7 +55,7 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
     supportedItems = EnchantSupportedItemTags.SWORD,
     slots = [EnchantSlot.MAINHAND],
     // Explicit opt-out, and load bearing: this is a SWORD, so the tier default would emit
-    // `minecraft:damage` +0.45/level. 1.12.2's override returned `Int.MAX_VALUE` as a one-shot-kill hack
+    // `minecraft:damage` +2.083/level. 1.12.2's override returned `Int.MAX_VALUE` as a one-shot-kill hack
     // (see `EnchantInfinitePowerHandler`), not as weapon damage — the enchantment never carried a damage
     // component, and the hand-written JSON this replaced had `effects: {}`.
     damagePerLevel = 0.0,

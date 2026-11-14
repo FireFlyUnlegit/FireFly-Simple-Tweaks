@@ -50,9 +50,6 @@ import kotlin.random.Random.Default.nextFloat
     minCostPerLevel = 5,
     supportedItems = EnchantSupportedItemTags.SWORD,
     slots = [EnchantSlot.MAINHAND],
-    // `+0.4` per level == 1.12.2's `itemExtraDamage` for a LEGENDARY sword enchantment
-    // (0.2 + rarity/20 = 0.2 + 0.2). Reproduces the `minecraft:damage` block of the old crit.json
-    // byte for byte; this is the parameter `crit` could not be migrated without.
 )
 object EnchantCritHandler : Listenable {
 

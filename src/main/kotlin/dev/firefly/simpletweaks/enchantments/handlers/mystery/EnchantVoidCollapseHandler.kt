@@ -56,7 +56,6 @@ import java.util.WeakHashMap
     minCostPerLevel = 30,
     supportedItems = EnchantSupportedItemTags.SWORD,
     slots = [EnchantSlot.MAINHAND],
-    damagePerLevel = 3.0,
     order = 52,
 )
 object EnchantVoidCollapseHandler : Listenable {

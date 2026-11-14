@@ -49,7 +49,6 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
     minCostPerLevel = 4,
     supportedItems = EnchantSupportedItemTags.SWORD,
     slots = [EnchantSlot.MAINHAND],
-    damagePerLevel = 0.25,
     order = 19,
 )
 object EnchantFireMasterHandler : Listenable {

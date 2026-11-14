@@ -76,7 +76,6 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
     minCostPerLevel = 5,
     supportedItems = EnchantSupportedItemTags.SWORD,
     slots = [EnchantSlot.MAINHAND],
-    damagePerLevel = 0.15,
     order = 32,
 )
 object EnchantComboHandler : Listenable {

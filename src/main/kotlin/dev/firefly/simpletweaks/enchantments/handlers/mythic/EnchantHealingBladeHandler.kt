@@ -87,7 +87,6 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
     minCostPerLevel = 8,
     supportedItems = SWORD,
     slots = [EnchantSlot.MAINHAND],
-    damagePerLevel = 1.0,
     order = 43,
 )
 object EnchantHealingBladeHandler : Listenable {

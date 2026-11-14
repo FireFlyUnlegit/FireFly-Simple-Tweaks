@@ -61,7 +61,6 @@ import java.util.UUID
     minCostPerLevel = 12,
     supportedItems = EnchantSupportedItemTags.SWORD,
     slots = [EnchantSlot.MAINHAND],
-    damagePerLevel = 0.45,
     order = 42,
 )
 object EnchantGrievousWoundsHandler : Listenable {
