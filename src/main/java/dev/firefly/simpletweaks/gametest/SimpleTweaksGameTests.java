@@ -62,8 +62,8 @@ public class SimpleTweaksGameTests implements FabricGameTest {
         int keys = GeneratedEnchantments.INSTANCE.getKEYS().size();
         int categories = GeneratedEnchantments.INSTANCE.getCATEGORY().size();
         LOGGER.info("[FST-GameTest] generated table: keys={}, categories={}", keys, categories);
-        context.assertEquals(127, keys, "GeneratedEnchantments.KEYS should list all 127 enchantments");
-        context.assertEquals(127, categories, "GeneratedEnchantments.CATEGORY should cover every id");
+        context.assertEquals(128, keys, "GeneratedEnchantments.KEYS should list all 128 enchantments");
+        context.assertEquals(128, categories, "GeneratedEnchantments.CATEGORY should cover every id");
         context.complete();
     }
 
@@ -707,17 +707,25 @@ public class SimpleTweaksGameTests implements FabricGameTest {
                 .EnchantMoonBlessingHandler.reactionKeys();
         var stellar = dev.firefly.simpletweaks.enchantments.handlers.mystery
                 .EnchantStarBlessingHandler.reactionKeys();
+        var solar = dev.firefly.simpletweaks.enchantments.handlers.mystery
+                .EnchantSunBlessingHandler.reactionKeys();
 
-        LOGGER.info("[FST-GameTest] blessing keys: lunar={}, stellar={}", lunar, stellar);
+        LOGGER.info("[FST-GameTest] blessing keys: lunar={}, stellar={}, solar={}", lunar, stellar, solar);
 
         context.assertEquals(4, lunar.size(), "the moon answers four water reactions");
         context.assertEquals(6, stellar.size(), "the star answers six frost reactions");
+        context.assertEquals(6, solar.size(), "the sun answers six fire/light reactions");
         for (var key : lunar) {
             context.assertTrue(reactions.byKey(key) != null, "unknown lunar reaction key: " + key);
         }
         for (var key : stellar) {
             context.assertTrue(reactions.byKey(key) != null, "unknown stellar reaction key: " + key);
             context.assertTrue(!lunar.contains(key), "a reaction cannot be both lunar and stellar: " + key);
+        }
+        for (var key : solar) {
+            context.assertTrue(reactions.byKey(key) != null, "unknown solar reaction key: " + key);
+            context.assertTrue(!lunar.contains(key), "a reaction cannot be both lunar and solar: " + key);
+            context.assertTrue(!stellar.contains(key), "a reaction cannot be both stellar and solar: " + key);
         }
         context.complete();
     }

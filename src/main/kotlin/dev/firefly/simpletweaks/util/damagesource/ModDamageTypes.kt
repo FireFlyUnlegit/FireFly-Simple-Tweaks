@@ -59,4 +59,8 @@ object ModDamageTypes {
     /** 星 blessings: same shape as [MOON], separate type so the two never share a death message or tag. */
     val STAR: RegistryKey<DamageType> =
         RegistryKey.of(RegistryKeys.DAMAGE_TYPE, Identifier.of(SimpleTweaks.MOD_ID, "star"))
+
+    /** 日 blessings: same shape again — armour-bypassing, never an element, no death-message collision. */
+    val SUN: RegistryKey<DamageType> =
+        RegistryKey.of(RegistryKeys.DAMAGE_TYPE, Identifier.of(SimpleTweaks.MOD_ID, "sun"))
 }

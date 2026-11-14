@@ -95,6 +95,7 @@
   "enchantment.simple_tweaks.water_protection": "流水亲和",
   "gui.simple_tweaks.blessing.moon": "月",
   "gui.simple_tweaks.blessing.star": "星",
+  "gui.simple_tweaks.blessing.sun": "日",
   "gui.simple_tweaks.category.common": "普通",
   "gui.simple_tweaks.category.epic": "史诗",
   "gui.simple_tweaks.category.legendary": "传说",
@@ -243,8 +244,8 @@
   "enchantment.simple_tweaks.void_protection.desc": "掉入虚空时把你传送回 y=256，并取消这次虚空伤害",
   "enchantment.simple_tweaks.water_conversion.desc": "将攻击伤害的 1.5%% × 等级（最高 7.5%%）转化为流水伤害：该部分从原伤害中取消，以流水伤害重新结算，并额外追加其一半。与其他所有转化附魔互斥。 可附在剑、弓与弩上；箭矢命中同样触发转化与元素反应。",
   "enchantment.simple_tweaks.water_protection.desc": "每件护甲每级减少受到的流水伤害 4%%，最多 80%%。",
-  "modmenu.summaryTranslation.simple_tweaks": "127 个附魔、7 种元素、怪物等级与飘字伤害",
-  "modmenu.descriptionTranslation.simple_tweaks": "127 个自定义附魔，含 7 种元素转化、7 种元素亲和、元素精通，以及 17 种元素反应。\n\n怪物会获得等级（以及随之提升的生命、攻击与护甲），等级由世界「年龄」和玩家整身的强度共同决定；它们的装备可能带有本模组的附魔，但掉落前会被剥离。\n\n伤害飘字按元素上色，可选择把元素/非元素拆成两个数字，且永远只报血条真实减少的血量。\n\n所有命令都在 /simple_tweaks 下（别名 /fst）。",
+  "modmenu.summaryTranslation.simple_tweaks": "128 个附魔、7 种元素、怪物等级与飘字伤害",
+  "modmenu.descriptionTranslation.simple_tweaks": "128 个自定义附魔，含 7 种元素转化、7 种元素亲和、元素精通，以及 17 种元素反应。\n\n怪物会获得等级（以及随之提升的生命、攻击与护甲），等级由世界「年龄」和玩家整身的强度共同决定；它们的装备可能带有本模组的附魔，但掉落前会被剥离。\n\n伤害飘字按元素上色，可选择把元素/非元素拆成两个数字，且永远只报血条真实减少的血量。\n\n所有命令都在 /simple_tweaks 下（别名 /fst）。",
   "gui.simple_tweaks.enchant_info.mode.item": "按适用物品 (Tab)",
   "gui.simple_tweaks.enchant_info.mode.rarity": "按稀有度 (Tab)",
   "gui.simple_tweaks.item_group.sword": "剑",
@@ -380,5 +381,7 @@
   "enchantment.simple_tweaks.moon_blessing.desc": "你的水系反应（蒸发 / 感电 / 绽放 / 净化）会月曜化：其中 20%%+10%%×等级（III = 50%%）的部分改以「月曜伤害」结算 —— 无视护甲、可暴击（15%%+10%%×等级，×1.5），并叠 1 层「月华」（上限 5 层，10 秒），每层再 +5%% 月曜伤害。每个反应另有独立效果：蒸发 → 月雾（目标 6 秒内受到的月曜伤害 +25%%）；感电 → 月弧（其中 40%% 弹向 6 格内最近的另一个敌人）；绽放 → 月华之种（1.5 秒后绽放，3 格内造成 40%% 并治疗你 20%%）；净化 → 月净（移除你 1 个负面效果，若没有则本次 ×1.5）。其他元素之间的反应不触发。触发时反应飘字改为「月××」",
   "enchantment.simple_tweaks.star_blessing": "星之祝福",
   "enchantment.simple_tweaks.star_blessing.desc": "你的冰系反应（融化 / 汽化 / 过载 / 亏蚀 / 冻结 / 碎裂）会星曜化：其中 15%%+10%%×等级（III = 45%%）的部分改以「星曜伤害」结算 —— 必定暴击（×1.5），并对 4 格内的其他敌人溅射其中 50%%。每个反应另有独立效果：融化 → 星熔（本次星曜 ×1.8）；汽化 → 星隐（获得等量吸收盾）；过载 → 星爆（4 格内敌人受到 35%% 并被击退）；亏蚀 → 星蚀（偷取目标 1 个正面效果，若没有则本次 ×1.3）；冻结 → 星封（禁疗 3 秒）；碎裂 → 星裂（目标 5 秒内受到的非元素追加伤害 +10%%）。其他元素之间的反应不触发。触发时反应飘字改为「星××」",
+  "enchantment.simple_tweaks.sun_blessing": "日之祝福",
+  "enchantment.simple_tweaks.sun_blessing.desc": "你的火 / 光系反应（圣化 / 灼魂 / 湮灭 / 燃烧 / 熄灭 / 激化）会日曜化：其中 20%%+10%%×等级（III = 50%%）的部分改以「日曜伤害」结算 —— 无视护甲、不暴击，但对亡灵 +50%%。这一系不靠更大的数字，靠「留在场上」：圣化 → 圣辉（1 秒后同一笔日曜伤害再落一次）；灼魂 → 灼痕（5 秒内每秒再烧 15%%）；湮灭 → 灭度（标记 6 秒，目标在此期间死亡则 5 格内敌人受到该次 60%%）；燃烧 → 焦土（留下 6 秒焦土，3 格内敌人每秒 10%%）；熄灭 → 余烬（治疗你该次 25%%，并获得 3 秒生命恢复 I）；激化 → 光合（获得 4 秒速度 II 与急迫 I）。其他元素之间的反应不触发。触发时反应飘字改为「日××」",
   "gui.simple_tweaks.devour.stacks": "已吞噬：%1$s 层（伤害 +%2$s%%）"
 }

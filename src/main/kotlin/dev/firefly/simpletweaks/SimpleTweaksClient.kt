@@ -125,9 +125,10 @@ class SimpleTweaksClient : ClientModInitializer {
                 "+ element damage is no longer exempt from the i-frame gate (only combo cancels it) " +
                 "+ reaction names as floating labels with their damage, 17 reactions " +
                 "+ split damage display now emits one number per element, fanned out and staggered " +
-                "+ every moon / star reaction has a rider of its own (mist, arc, seed, cleanse / " +
-                "burst, veil, detonation, theft, seal, fracture) + toughness bar uses a shield glyph " +
-                "(v2.2.8, build=cleanup2)",
+                "+ every moon / star / sun reaction has a rider of its own (mist, arc, seed, cleanse / " +
+                "burst, veil, detonation, theft, seal, fracture / echo, sear, doom, ground, embers, " +
+                "photosynthesis) + toughness bar uses a shield glyph " +
+                "(v2.2.8, build=cleanup3)",
             SimpleTweaks.NAME,
             enchantmentCount,
         )
