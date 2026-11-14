@@ -65,15 +65,30 @@ fun hasEnchantment(itemStack: ItemStack, key: RegistryKey<Enchantment>): Boolean
 /**
  * Level of [key] on [LivingEntity]'s main hand.
  * Replaces the old `getSpecificEnchantLevel(enchantment)` which read the client player's held item.
+ *
+ * Served from [EnchantPresence] for our own enchantments, so repeated questions inside one hit do not
+ * re-read the component; vanilla keys fall back to the stack.
  */
 fun LivingEntity.getMainHandEnchantLevel(key: RegistryKey<Enchantment>): Int =
-    getItemSpecificEnchantLevel(this.mainHandStack, key)
+    if (EnchantPresence.tracks(key)) {
+        EnchantPresence.mainHandLevelOf(this, key)
+    } else {
+        getItemSpecificEnchantLevel(this.mainHandStack, key)
+    }
 
-/** Sum of [key] across all four armor slots, capped at [maxTotal]. */
+/**
+ * Sum of [key] across all four armor slots, capped at [maxTotal].
+ *
+ * Served from [EnchantPresence] for our own enchantments; vanilla keys fall back to reading the four
+ * stacks, because the snapshot only indexes the generated table.
+ */
 fun LivingEntity.getArmorEnchantLevel(
     key: RegistryKey<Enchantment>,
     maxTotal: Int = Int.MAX_VALUE
 ): Int {
+    if (EnchantPresence.tracks(key)) {
+        return EnchantPresence.armorLevelOf(this, key).coerceAtMost(maxTotal)
+    }
     var total = 0
     for (slot in ARMOR_SLOTS) {
         total += getItemSpecificEnchantLevel(this.getEquippedStack(slot), key)

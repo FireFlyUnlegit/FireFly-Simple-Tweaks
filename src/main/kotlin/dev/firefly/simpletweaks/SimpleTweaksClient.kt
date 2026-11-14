@@ -131,7 +131,8 @@ class SimpleTweaksClient : ClientModInitializer {
                 "+ flat damage / mining speed / armour now follow the rarity ladder automatically " +
                 "+ enchantment armour / health / toughness print as plain totals like a weapon's damage " +
                 "+ bar numbers take decimals (max places is configurable, trailing zeros trimmed) " +
-                "(v2.2.8, build=cleanup10)",
+                "+ enchantment lookups are cached per entity until its equipment changes " +
+                "(v2.2.8, build=cleanup11)",
             SimpleTweaks.NAME,
             enchantmentCount,
         )

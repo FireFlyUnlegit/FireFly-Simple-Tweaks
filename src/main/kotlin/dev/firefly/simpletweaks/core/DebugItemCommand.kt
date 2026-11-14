@@ -4,6 +4,7 @@ import com.mojang.brigadier.arguments.IntegerArgumentType
 import com.mojang.brigadier.arguments.StringArgumentType
 import com.mojang.brigadier.builder.LiteralArgumentBuilder
 import com.mojang.brigadier.context.CommandContext
+import dev.firefly.simpletweaks.util.EnchantPresence
 import net.minecraft.command.argument.IdentifierArgumentType
 import net.minecraft.component.ComponentType
 import net.minecraft.component.DataComponentTypes
@@ -360,6 +361,7 @@ object DebugItemCommand {
                             return@executes 0
                         }
                         stack.remove(DataComponentTypes.ENCHANTMENTS)
+                        afterEnchantWrite(ctx)
                         feedback(ctx, "enchantments removed")
                         1
                     }
@@ -378,6 +380,7 @@ object DebugItemCommand {
                                         val builder = enchantmentBuilder(stack)
                                         builder.set(entry, level)
                                         stack.set(DataComponentTypes.ENCHANTMENTS, builder.build())
+                                        afterEnchantWrite(ctx)
                                         feedback(ctx, "set $id = $level")
                                         1
                                     }
@@ -408,6 +411,7 @@ object DebugItemCommand {
                                     if (other !== entry) builder.set(other, existing.getLevel(other))
                                 }
                                 stack.set(DataComponentTypes.ENCHANTMENTS, builder.build())
+                                afterEnchantWrite(ctx)
                                 feedback(ctx, "removed $id")
                                 1
                             }
@@ -476,8 +480,21 @@ object DebugItemCommand {
             return 0
         }
         stack.set(DataComponentTypes.ENCHANTMENTS, builder.build())
+        afterEnchantWrite(ctx)
         feedback(ctx, "${if (merge) "merged" else "pasted"} $applied enchantment(s); other components untouched")
         return 1
+    }
+
+    /**
+     * Drops the executing player's equipment snapshot after a write to the **held** stack.
+     *
+     * The write lands on the equipped stack in place, so `EnchantPresence`'s identity check cannot see it;
+     * without this the command would leave handlers reading the previous levels and would be debugging
+     * itself.
+     */
+    private fun afterEnchantWrite(ctx: CommandContext<ServerCommandSource>) {
+        val player = ctx.source.player ?: return
+        EnchantPresence.invalidate(player)
     }
 
     /** Builder seeded with the item's current enchantments (or an empty one). */

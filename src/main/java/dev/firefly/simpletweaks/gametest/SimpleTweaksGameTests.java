@@ -754,6 +754,87 @@ public class SimpleTweaksGameTests implements FabricGameTest {
         context.complete();
     }
 
+    /**
+     * The equipment snapshot must follow equipment, including the swap-away case, and it must not answer
+     * for a slot it was not asked about.
+     *
+     * <p>This is the whole risk of {@code EnchantPresence}: it caches "what are this entity's enchantments"
+     * and every handler in the mod now trusts it. A stale snapshot would not crash — it would silently
+     * answer with the gear the entity used to wear, which is exactly the class of bug that survives a
+     * playtest. Three things are pinned here:
+     *
+     * <ol>
+     *   <li>a piece equipped after the fact shows up immediately ({@code onEquipStack} invalidated),</li>
+     *   <li>armour levels sum across pieces while the main hand stays independent,</li>
+     *   <li>removing a piece is seen on the very next question.</li>
+     * </ol>
+     *
+     * <p>The last assertion documents the one blind spot on purpose: writing enchantments onto the
+     * <em>already equipped</em> stack in place changes no stack identity, so the snapshot keeps the old
+     * answer until the writer calls {@code EnchantPresence.invalidate} — which is why
+     * {@code /fst enchant}, the mob gear roll/strip and {@code void_protection} do exactly that.
+     */
+    @GameTest(templateName = FabricGameTest.EMPTY_STRUCTURE)
+    public void enchantPresenceFollowsEquipmentChanges(TestContext context) {
+        var registry = context.getWorld().getRegistryManager()
+                .get(net.minecraft.registry.RegistryKeys.ENCHANTMENT);
+        var critEntry = enchantmentByPath(registry, "crit");
+        context.assertTrue(critEntry != null, "crit must exist in the enchantment registry");
+        if (critEntry == null) {
+            context.complete();
+            return;
+        }
+        var critKey = critEntry.getKey().orElse(null);
+        context.assertTrue(critKey != null, "crit registry entry must carry a key");
+
+        ZombieEntity zombie = EntityType.ZOMBIE.create(context.getWorld());
+        context.assertTrue(zombie != null, "could not create a zombie for the presence test");
+        if (zombie == null || critKey == null) {
+            context.complete();
+            return;
+        }
+        var presence = dev.firefly.simpletweaks.util.EnchantPresence.INSTANCE;
+
+        context.assertEquals(0, presence.armorLevelOf(zombie, critKey),
+                "a bare zombie must report no armour enchantment");
+
+        var helmet = new net.minecraft.item.ItemStack(net.minecraft.item.Items.IRON_HELMET);
+        helmet.addEnchantment(critEntry, 2);
+        zombie.equipStack(net.minecraft.entity.EquipmentSlot.HEAD, helmet);
+
+        int afterHelmet = presence.armorLevelOf(zombie, critKey);
+        context.assertEquals(2, afterHelmet, "two levels of crit on the helmet must be visible at once");
+        context.assertEquals(0, presence.mainHandLevelOf(zombie, critKey),
+                "the armour aggregate must not leak into the main hand");
+
+        var chest = new net.minecraft.item.ItemStack(net.minecraft.item.Items.IRON_CHESTPLATE);
+        chest.addEnchantment(critEntry, 3);
+        zombie.equipStack(net.minecraft.entity.EquipmentSlot.CHEST, chest);
+
+        int afterChest = presence.armorLevelOf(zombie, critKey);
+        int total = presence.totalLevel(zombie, critKey);
+        context.assertEquals(5, afterChest, "armour levels must sum across the four pieces");
+        context.assertEquals(5, total, "all-slot total must match the armour total here");
+
+        zombie.equipStack(net.minecraft.entity.EquipmentSlot.HEAD, net.minecraft.item.ItemStack.EMPTY);
+        int afterRemoval = presence.armorLevelOf(zombie, critKey);
+
+        // In-place write: no stack identity changes, so the snapshot keeps the stale answer until told.
+        chest.addEnchantment(critEntry, 4);
+        int stale = presence.armorLevelOf(zombie, critKey);
+        presence.invalidate(zombie);
+        int refreshed = presence.armorLevelOf(zombie, critKey);
+
+        LOGGER.info("[FST-GameTest] presence: helmet={} then chest={} (sum), helmet removed={}, "
+                        + "in-place write without invalidate={}, after invalidate={}",
+                afterHelmet, afterChest, afterRemoval, stale, refreshed);
+
+        context.assertEquals(3, afterRemoval, "removing the helmet must be seen immediately");
+        context.assertEquals(3, stale, "an in-place write without invalidate must stay invisible (documented)");
+        context.assertEquals(4, refreshed, "invalidate must make an in-place write visible");
+        context.complete();
+    }
+
     private static void assertReduction(TestContext context, float damage, float armor, float expected) {
         float actual = ArmorCurve.INSTANCE.reductionFor(armor, damage);
         LOGGER.info("[FST-GameTest] damage {} armor {} -> reduction {} (expected {})",

@@ -271,6 +271,7 @@ object MobEnchantments {
 
         // Re-equip so the enchantment's own effects (attributes, location-based effects) are applied and
         // the change is tracked; the ItemStack was mutated in place, so this is mostly bookkeeping.
+        // It is also what drops the entity's `EnchantPresence` snapshot (`onEquipStack` -> invalidate).
         mob.equipStack(slot, stack)
 
         FSTLog.log("MobEnchant") {
@@ -415,7 +416,8 @@ object MobEnchantments {
             val stack = mob.getEquippedStack(slot)
             if (stack.isEmpty) continue
             // Re-equip only when something was actually removed: `equipStack` is not free (attribute
-            // map rebuild, tracking) and the vast majority of slots have nothing to strip.
+            // map rebuild, tracking) and the vast majority of slots have nothing to strip. It doubles as
+            // the `EnchantPresence` invalidation for the stripped stack.
             if (stripModEnchantments(stack, pool)) {
                 mob.equipStack(slot, stack)
                 FSTLog.log("MobEnchant") {

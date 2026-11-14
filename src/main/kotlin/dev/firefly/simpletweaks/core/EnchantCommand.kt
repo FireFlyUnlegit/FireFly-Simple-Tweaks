@@ -11,6 +11,7 @@ import dev.firefly.simpletweaks.core.config.ConfigBounds
 import dev.firefly.simpletweaks.core.config.SimpleTweaksConfig
 import dev.firefly.simpletweaks.core.config.MobEnhancementConfig
 import dev.firefly.simpletweaks.compat.FSTLog
+import dev.firefly.simpletweaks.util.EnchantPresence
 import dev.firefly.simpletweaks.util.mobs.MobLevels
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback
 import net.minecraft.command.CommandRegistryAccess
@@ -337,6 +338,7 @@ object EnchantCommand {
         var unsupported = 0
         for (entity in targets) {
             if (entity !is LivingEntity) continue
+            var wrote = false
             for (equipmentSlot in slots) {
                 val stack = entity.getEquippedStack(equipmentSlot)
                 if (stack.isEmpty) continue
@@ -354,8 +356,14 @@ object EnchantCommand {
                 if (level > 0 && !entry.value().isSupportedItem(stack)) {
                     unsupported++
                 }
-                if (write(stack, entry, level)) changed++
+                if (write(stack, entry, level)) {
+                    changed++
+                    wrote = true
+                }
             }
+            // The write mutates the equipped stack in place, so the equipment snapshot's identity check
+            // cannot see it -- this is one of the three explicit invalidations `EnchantPresence` needs.
+            if (wrote) EnchantPresence.invalidate(entity)
         }
         if (inspected == 0) throw NO_ITEM.create()
 

@@ -28,6 +28,7 @@
     "ProjectileShotWeaponMixin",
     "LivingEntityDamageWindowMixin",
     "LivingEntityMainHandSnapshotMixin",
+    "LivingEntityOnEquipStackMixin",
     "PlayerEquippedStackSnapshotMixin",
     "PersistentProjectileEntityPiercingMixin",
     "PersistentProjectileEntityStateMixin",

@@ -94,6 +94,9 @@ object EnchantVoidProtectionHandler : Listenable {
                 p.tp(y=256.0)
                 p.sendMessage(Text.literal("Triggered Void Protection!"), false)
                 stack.set(DataComponentTypes.ENCHANTMENTS, enchantsBuilder.build())
+                // The boots were edited in place, so the equipment snapshot still reports the old level;
+                // this is one of the few paths that must invalidate explicitly.
+                dev.firefly.simpletweaks.util.EnchantPresence.invalidate(p)
                 waitForCancel[uuid] = true
                 FSTLog.log("VoidProtection") {
                     "player=${p.name.string}, lvl=$level, y=${p.y}, fallDistance=${p.fallDistance}, " +
