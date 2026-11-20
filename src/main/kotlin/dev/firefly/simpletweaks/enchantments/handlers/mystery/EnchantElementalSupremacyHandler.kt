@@ -180,7 +180,15 @@ object EnchantElementalSupremacyHandler : Listenable {
         }
     }
 
-    @SubscribeEvent
+    /**
+     * Priority 250, i.e. **after** `ElementCombat#onLivingHurt` (200).
+     *
+     * The riders and the replay are extra conversions of the same swing, and `forceAttach` skips the
+     * attachment ICD so they always resolve. At the default priority they ran first and ate the aura the
+     * main conversion was about to react with — the author's "this hit showed a reaction but nothing
+     * happened" (`build=cleanup15`). Running last, they resolve against whatever aura is left over.
+     */
+    @SubscribeEvent(priority = 250)
     fun onLivingHurt(e: LivingHurtEvent) {
         if (ElementCombat.isOwnElementalDamage(e)) return
 

@@ -1,6 +1,8 @@
 package dev.firefly.simpletweaks.util.elements
 
 import dev.firefly.simpletweaks.compat.FSTLog
+import dev.firefly.simpletweaks.util.ArcaneEcho
+import dev.firefly.simpletweaks.util.combatStack
 import dev.firefly.simpletweaks.util.damagesource.damageElemental
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import dev.firefly.simpletweaks.util.chestplate
@@ -41,6 +43,14 @@ data class ReactionOutcome(
      * through this object — the label is emitted after the seam for exactly that reason.
      */
     var labelPrefix: String? = null,
+    /**
+     * The stack the hit was made with: the firing weapon for a projectile, the main hand for a melee swing.
+     *
+     * Blessings read their level from here instead of `player.mainHandStack`, because a reaction resolves
+     * whenever it resolves — an arrow lands after the player swapped to another item, and a rider may fire
+     * from a tick that is no longer inside the damage window.
+     */
+    var weapon: net.minecraft.item.ItemStack? = null,
 )
 
 /**
@@ -155,6 +165,10 @@ object ElementMarks {
                 // resolved and a listener cannot change its numbers.
                 // `elemental_supremacy`: remember what hit the wearer, so their next swing can replay it.
                 ReactionMemory.recordIfWearing(target, reaction.key)
+
+                // The weapon this hit was made with, resolved from the source (projectiles carry their
+                // firing weapon, see `ShotWeapon`), so a blessing can be read even after a swap.
+                outcome.weapon = attacker?.combatStack(source)?.takeUnless { it.isEmpty }
 
                 ReactionSeam.fire(attacker, target, element, outcome)
 
@@ -354,8 +368,12 @@ object ElementMarks {
         val power = reactionPower(attacker)
         val base = TRANSFORMATIVE_BASE + power * TRANSFORMATIVE_PER_POWER
         val mastery = attacker?.let { ElementCombat.masteryLevel(it.mainHandStack) } ?: 0
-        return base * coeff * (1f + TRANSFORMATIVE_MASTERY_PER_LEVEL * mastery)
+        return base * coeff * (1f + TRANSFORMATIVE_MASTERY_PER_LEVEL * mastery) * echoMultiplier(attacker)
     }
+
+    /** `arcane_echo`'s share of reaction damage; `1` with no attacker. */
+    private fun echoMultiplier(attacker: PlayerEntity?): Float =
+        if (attacker == null) 1f else (1.0 + ArcaneEcho.statsOf(attacker).reaction).toFloat()
 
     /** Flat damage a nature/lightning hit gains while the target is 激化 (quicken) state. */
     private fun quickenBonus(attacker: PlayerEntity?, target: LivingEntity, reactionKey: String?): Float {
@@ -366,7 +384,7 @@ object ElementMarks {
             "reaction=quicken-bonus, target=${target.type.name.string}, power=${"%.2f".format(power)}, " +
                 "base=${"%.2f".format(base)}, trigger=${reactionKey ?: "none"}, outcome=quickened-hit"
         }
-        return base * (1f + TRANSFORMATIVE_MASTERY_PER_LEVEL * mastery)
+        return base * (1f + TRANSFORMATIVE_MASTERY_PER_LEVEL * mastery) * echoMultiplier(attacker)
     }
 
     // ------------------------------------------------------------------ constants

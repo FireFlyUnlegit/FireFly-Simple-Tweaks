@@ -38,7 +38,6 @@ object BarHealthHud {
         val max = maxHealth.coerceAtLeast(1f)
         val current = health.coerceIn(0f, max)
 
-        // Damage ghost: trails behind the (already tweened) fill for the "lost health" read.
         if (ghost.isNaN()) ghost = current
         if (current < ghost) {
             if (holdFrames < GHOST_HOLD_FRAMES) {

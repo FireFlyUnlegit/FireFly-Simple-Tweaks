@@ -16,6 +16,7 @@ import dev.firefly.simpletweaks.enchantments.annotations.EnchantSupportedItemTag
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
+import dev.firefly.simpletweaks.util.DotAcceleration
 import dev.firefly.simpletweaks.util.combatStack
 import dev.firefly.simpletweaks.util.damagesource.ElementDamageTypes
 import dev.firefly.simpletweaks.util.damagesource.damageElemental
@@ -99,6 +100,9 @@ object EnchantVenomHandler : Listenable {
         /** Whoever applied the poison — credited with the tick damage so kills keep their XP/drops. */
         var ownerUUID: UUID? = null
         var expireAt: Long = 0L
+
+        /** Ticks accumulated toward the next poison tick; `catalyze` makes this grow faster, not the damage. */
+        var phase: Double = 0.0
     }
 
     private val venoms = mutableMapOf<UUID, VenomState>()
@@ -156,7 +160,12 @@ object EnchantVenomHandler : Listenable {
             return
         }
 
-        if (entity.age % TICK_INTERVAL != 0) return
+        // A fixed `age % 20` cadence cannot be shortened, so the interval is accumulated instead:
+        // `catalyze` grows the phase faster and the tick value below stays untouched.
+        val factor = DotAcceleration.factorOf(entity)
+        state.phase += TICK_INTERVAL / factor
+        if (state.phase < TICK_INTERVAL) return
+        state.phase -= TICK_INTERVAL
 
         val damage = damagePerSecond(state)
         if (damage <= 0f) return
@@ -181,8 +190,8 @@ object EnchantVenomHandler : Listenable {
 
         FSTLog.log("Venom") {
             "owner=${owner?.name?.string ?: "offline"}, target=${entity.name.string}, stacks=${state.stacks}, " +
-                "level=${state.level}, damage=$damage, health=${entity.health}, applied=$applied, " +
-                "outcome=venom-tick"
+                "level=${state.level}, factor=$factor, damage=$damage, health=${entity.health}, " +
+                "applied=$applied, outcome=venom-tick"
         }
     }
 

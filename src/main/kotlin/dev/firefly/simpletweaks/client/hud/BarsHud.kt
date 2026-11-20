@@ -19,11 +19,11 @@ object BarsHud {
     fun render(context: DrawContext) {
         if (!dev.firefly.simpletweaks.core.config.GeneralConfig.barHealthHud) return
         val player: PlayerEntity = MinecraftClient.getInstance().player ?: return
-        if (player.isSpectator) return
+        if (player.isCreative || player.isSpectator) return
 
-        val width = context.getScaledWindowWidth()
+        val width = context.scaledWindowWidth
         val leftX = width / 2 - HALF_BLOCK
-        val y = context.getScaledWindowHeight() - ROW_FROM_BOTTOM
+        val y = context.scaledWindowHeight - ROW_FROM_BOTTOM
 
         BarHealthHud.render(
             context,

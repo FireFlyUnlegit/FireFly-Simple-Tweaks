@@ -1,15 +1,16 @@
 package dev.firefly.simpletweaks.enchantments.handlers.rare
 
-import dev.firefly.simpletweaks.compat.FSTLog
+import dev.firefly.simpletweaks.compat.WorldSide
 import dev.firefly.simpletweaks.compat.attacker
+import dev.firefly.simpletweaks.compat.event.LivingEvent
 import dev.firefly.simpletweaks.compat.event.LivingHurtEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.invalid
 import dev.firefly.simpletweaks.compat.target
 import dev.firefly.simpletweaks.core.Listenable
+import dev.firefly.simpletweaks.util.FireBurn
 import dev.firefly.simpletweaks.util.combatStack
 import dev.firefly.simpletweaks.util.damagesource.isAuxiliaryDamage
-import dev.firefly.simpletweaks.util.fireTime
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import net.minecraft.entity.effect.StatusEffectInstance
 import net.minecraft.entity.effect.StatusEffects
@@ -64,18 +65,17 @@ object EnchantFireMasterHandler : Listenable {
         val attacker = e.attacker as? PlayerEntity ?: return
         val target = e.target
         val lvl = getItemSpecificEnchantLevel(attacker.combatStack(e.source), GeneratedEnchantments.FIRE_MASTER)
-        if (lvl > 0) {
-            val fireTimeBefore = target.fireTime
-            val fireBonus = (target.fireTime * 0.05f).coerceAtLeast(0f)
-            e.amount += fireBonus
-            target.fireTime += lvl * 10
-            attacker.addStatusEffect(StatusEffectInstance(StatusEffects.FIRE_RESISTANCE,lvl * 20,0))
-            attacker.extinguish()
-            FSTLog.log("FireMaster") {
-                "attacker=${attacker.name.string}, target=${target.name.string}, lvl=$lvl, " +
-                    "targetFireTime=$fireTimeBefore->${target.fireTime}, fireBonus=$fireBonus, damage=${e.amount}, " +
-                    "selfFireResistanceTicks=${lvl * 20}"
-            }
-        }
+        if (lvl <= 0) return
+
+        FireBurn.ignite(target, lvl, attacker)
+        attacker.addStatusEffect(StatusEffectInstance(StatusEffects.FIRE_RESISTANCE, lvl * 20, 0))
+        attacker.extinguish()
+    }
+
+    @SubscribeEvent
+    fun onLivingUpdate(e: LivingEvent.LivingUpdateEvent) {
+        val entity = e.entityLiving
+        if (WorldSide.isClient(entity.world)) return
+        FireBurn.tick(entity)
     }
 }

@@ -43,7 +43,9 @@ public abstract class ProjectileShotWeaponMixin {
      * fires for a normal bow shot — this one does.
      *
      * <p>The `weapon` argument is exactly the firing weapon vanilla recorded, so it is preferred over
-     * reading the shooter's hand.
+     * reading the shooter's hand — and it is recorded **authoritatively**: `setOwner` already ran inside the
+     * superclass constructor and guessed from the main hand, which is the sword when the bow is in the off
+     * hand (`build=cleanup23`).
      */
     @Inject(
         method = "<init>(Lnet/minecraft/entity/EntityType;Lnet/minecraft/entity/LivingEntity;" +
@@ -66,9 +68,14 @@ public abstract class ProjectileShotWeaponMixin {
         }
         PersistentProjectileEntity self = (PersistentProjectileEntity) (Object) this;
         ItemStack chosen = (weapon != null && !weapon.isEmpty()) ? weapon : player.getMainHandStack();
-        ShotWeapon.INSTANCE.record(self, chosen);
+        ShotWeapon.INSTANCE.record(self, chosen, true);
     }
 
+    /**
+     * Fallback for any launcher that never passes a `weapon` to the constructor (vanilla does pass one for
+     * every `ArrowItem`/crossbow arrow, so this mostly covers modded or scripted spawns). Non-authoritative:
+     * it never replaces a snapshot the constructor already took from vanilla's own argument.
+     */
     @Inject(method = "setOwner", at = @At("TAIL"))
     private void simpletweaks$snapshotShotWeapon(Entity owner, CallbackInfo ci) {
         if (!(owner instanceof PlayerEntity player)) {

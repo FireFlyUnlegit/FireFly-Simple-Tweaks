@@ -41,22 +41,41 @@ import java.util.WeakHashMap
  * `javap` on 1.21.1: `PersistentProjectileEntity#getWeaponStack()` returns the `weapon` field, and
  * `DamageSource#getWeaponStack()` returns `source.getWeaponStack()`. That is used as a fallback for
  * projectiles this mod did not see spawn.
+ *
+ * ## Third rule: a delivered thing is not a swing
+ * `DamageSource#weaponStack` resolves through the **attacker's** main hand when the direct source has no
+ * weapon, so `indirectMagic(potion, player)` would evaluate the hit with whatever sword the thrower holds.
+ * Any source whose direct entity is **not the attacker itself** therefore resolves to `ItemStack.EMPTY` —
+ * "this hit has no weapon" — instead of falling back to the hand (`build=cleanup16` for projectiles,
+ * broadened to every non-self direct source in `build=cleanup17`: area-effect clouds and TNT had the same
+ * problem). A melee hit has `direct === attacker`, so it is untouched.
  */
 object ShotWeapon {
 
     /** projectile → the weapon stack it was fired with. */
     private val SNAPSHOTS = WeakHashMap<Entity, ItemStack>()
 
-    /** Records [weapon] as the weapon [projectile] was fired with. Never overwrites an existing snapshot. */
-    fun record(projectile: PersistentProjectileEntity, weapon: ItemStack) {
+    /**
+     * Records [weapon] as the weapon [projectile] was fired with; an existing snapshot is kept.
+     *
+     * [authoritative] is for the stack vanilla handed to the projectile's constructor. `ProjectileEntity`
+     * calls `setOwner` **inside** its constructor, i.e. before our later injection can see vanilla's own
+     * `weapon` argument, so the first write is a guess taken from the shooter's main hand. With the bow in
+     * the off hand that guess is the sword (`build=cleanup23`), and every shot then inherited the sword's
+     * enchantments. The constructor injection passes `true` and replaces that guess with vanilla's value.
+     */
+    @JvmOverloads
+    fun record(projectile: PersistentProjectileEntity, weapon: ItemStack, authoritative: Boolean = false) {
         if (projectile.world.isClient) return
         if (weapon.isEmpty) return
-        if (SNAPSHOTS.containsKey(projectile)) return
+        val replaced = SNAPSHOTS.containsKey(projectile)
+        if (replaced && !authoritative) return
         SNAPSHOTS[projectile] = weapon.copy()
 
         FSTLog.log("ShotWeapon") {
             "outcome=recorded, entity=${projectile.type.name.string}, item=${weapon.item}, " +
-                "enchants=${weapon.get(net.minecraft.component.DataComponentTypes.ENCHANTMENTS)?.enchantments?.size ?: 0}"
+                "enchants=${weapon.get(net.minecraft.component.DataComponentTypes.ENCHANTMENTS)?.enchantments?.size ?: 0}, " +
+                "authoritative=$authoritative, replaced=$replaced"
         }
     }
 
@@ -182,6 +201,23 @@ object ShotWeapon {
         if (direct is PersistentProjectileEntity) {
             snapshotOf(direct)?.let { return it }
         }
+        // ⚠️ A thrown potion / snowball / fireball is **not** a swing: it must not inherit the thrower's
+        // sword. `DamageSource#weaponStack` resolves through the *attacker's* main hand, so for
+        // `indirectMagic(potion, player)` it hands back whatever the player is holding — the refusal has to
+        // happen before that fallback. Returning `ItemStack.EMPTY` (not `null`) is the point: downstream,
+        // `combatStack` reads "no enchantment" instead of falling back to the hand, and the getter override
+        // reports an empty main hand for the duration of that resolution.
+        //
+        // Persistent projectiles are deliberately exempt: `/summon arrow` and mob arrows have no snapshot
+        // but do carry vanilla's `weapon` field, and a skeleton's enchanted bow must still count.
+        //
+        // The test is `direct !== attacker` rather than `direct is ProjectileEntity` (`build=cleanup17`):
+        // area-effect clouds, TNT and anything else the mod or another mod attributes to a player are just as
+        // unrelated to the item in that player's hand, and the projectile-only check kept letting them
+        // through. A melee hit has `direct === attacker`, so it still resolves normally.
+        if (direct != null && direct !== source.attacker && direct !is PersistentProjectileEntity) {
+            return ItemStack.EMPTY
+        }
         // ⚠️ `DamageSource#weaponStack` forwards to `Entity#getWeaponStack()`, and for a player-attributed
         // source that ends in `getMainHandStack()` — the very getter this class overrides. This call is
         // therefore only safe because `overriddenMainHand` sets its re-entrancy guard before reaching here;
@@ -196,11 +232,12 @@ object ShotWeapon {
  * The stack that **combat** should read for this hit.
  *
  * Replacement for `mainHandStack` in every on-hit path: for a melee hit it is the attacker's main hand;
- * for an arrow it is the weapon the arrow was fired with (see [ShotWeapon]).
+ * for an arrow it is the weapon the arrow was fired with (see [ShotWeapon]); for a thrown potion or a
+ * snowball it is **empty** — the throw does not inherit the sword.
  *
  * Declared on [LivingEntity] rather than on [PlayerEntity] because most handlers hold the attacker as a
  * `LivingEntity` (`e.source.attacker as? LivingEntity`), and widening it here keeps those call sites free
- * of casts. A non-player attacker simply has no snapshot to look up and falls back to its own main hand.
+ * of casts. An attacker with no projectile in the source falls back to its own main hand.
  */
 fun LivingEntity.combatStack(source: DamageSource?): ItemStack {
     val snap = ShotWeapon.weaponFor(source)

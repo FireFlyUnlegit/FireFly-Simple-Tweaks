@@ -42,6 +42,10 @@ import java.util.WeakHashMap
  * | `eclipse` | 星蚀: steal one buff from the target; with no buff the instance is ×1.3 |
  * | `freeze`  | 星封: 3 s heal lock (the reaction already freezes) |
  * | `brittle` | 星裂: +10 % from every non-rider hit for 5 s |
+ *
+ * **Every** stellar reaction pays out, amplifying (`melt`, `vanish`) included: an amplifying reaction queues
+ * no flat hit, so those are scaled from the damage its multiplier added ([ReactionOutcome.labelAmount]).
+ * An amplified reaction additionally spreads at full strength and fractures every neighbour (星棱).
  */
 @ModEnchantment(
     id = "star_blessing",
@@ -67,6 +71,12 @@ object EnchantStarBlessingHandler : Listenable {
     /** Splash: radius and share, so the star is the area option while the moon is the stacking one. */
     const val SPLASH_RADIUS = 4.0
     const val SPLASH_SHARE = 0.5f
+
+    /**
+     * 星棱 — an **amplifying** reaction (`melt`, `vanish`) spreads at full strength: the shard does not
+     * split its power over the neighbours, and every neighbour it touches is fractured like the target.
+     */
+    const val AMPLIFIED_SPLASH_SHARE = 1.0f
 
     /** `melt` — 星熔: one big instance instead of any rider. */
     const val MELT_BURST = 1.8f
@@ -121,11 +131,17 @@ object EnchantStarBlessingHandler : Listenable {
         if (player.world.isClient) return
         val key = outcome.key ?: return
         if (key !in STELLAR_REACTIONS) return
-        val flatDamage = outcome.flatDamage
-        val level = getItemSpecificEnchantLevel(player.mainHandStack, GeneratedEnchantments.STAR_BLESSING)
-        if (level <= 0 || flatDamage <= 0f) return
+        // Amplifying reactions queue no flat hit of their own — their whole contribution is the multiplier
+        // handed back to the caller, which `labelAmount` reports (`build=cleanup15`).
+        val base = if (outcome.flatDamage > 0f) outcome.flatDamage else outcome.labelAmount
+        val weapon = outcome.weapon ?: player.mainHandStack
+        val level = getItemSpecificEnchantLevel(weapon, GeneratedEnchantments.STAR_BLESSING)
+        if (level <= 0) return
+        // `freeze` is the one stellar reaction with no damage at all: the seal is its whole point.
+        if (base <= 0f && key != "freeze") return
+        val amplified = outcome.amplify > 1f
 
-        var star = flatDamage * shareFor(level) * CRIT_MULTIPLIER
+        var star = base * shareFor(level) * CRIT_MULTIPLIER
 
         // 星蚀 looks at the target before it is hit: a buff stolen is worth more than the flat bonus.
         val stolen = if (key == "eclipse") firstBeneficialEffect(target) else null
@@ -134,7 +150,7 @@ object EnchantStarBlessingHandler : Listenable {
             "eclipse" -> if (stolen == null) star *= ECLIPSE_BONUS
         }
 
-        target.damageElemental(player, ModDamageTypes.STAR, star)
+        if (star > 0f) target.damageElemental(player, ModDamageTypes.STAR, star)
         // The reaction stops being "过载" and becomes "星过载" for this hit.
         outcome.labelPrefix = LABEL_PREFIX
 
@@ -168,16 +184,21 @@ object EnchantStarBlessingHandler : Listenable {
         }
 
         var splashed = 0
-        val splash = star * SPLASH_SHARE
-        for (other in player.world.getOtherEntities(player, target.boundingBox.expand(SPLASH_RADIUS)) { it is LivingEntity }) {
-            val living = other as LivingEntity
-            if (living == target || living == player || !living.isAlive) continue
-            living.damageElemental(player, ModDamageTypes.STAR, splash)
-            splashed++
+        if (star > 0f) {
+            val now = player.world.time
+            val splash = star * (if (amplified) AMPLIFIED_SPLASH_SHARE else SPLASH_SHARE)
+            for (other in player.world.getOtherEntities(player, target.boundingBox.expand(SPLASH_RADIUS)) { it is LivingEntity }) {
+                val living = other as LivingEntity
+                if (living == target || living == player || !living.isAlive) continue
+                living.damageElemental(player, ModDamageTypes.STAR, splash)
+                // 星棱: every shard carries the fracture, so an amplified star leaves the whole group brittle.
+                if (amplified) FRACTURE[living] = now + FRACTURE_TICKS
+                splashed++
+            }
         }
 
         FSTLog.log("StarBlessing") {
-            "element=${element.id}, lvl=$level, reaction=${"%.2f".format(flatDamage)}, " +
+            "element=${element.id}, lvl=$level, base=${"%.2f".format(base)}, amplify=${"%.2f".format(outcome.amplify)}, " +
                 "star=${"%.2f".format(star)}, splashed=$splashed, effect=$key$detail, outcome=star-conversion"
         }
     }

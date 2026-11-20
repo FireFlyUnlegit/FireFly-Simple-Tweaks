@@ -12,6 +12,7 @@ import dev.firefly.simpletweaks.util.mobs.MobLevelSync
 import dev.firefly.simpletweaks.network.packets.PacketOpenModScreen
 import dev.firefly.simpletweaks.client.InfinitePowerLaserClient
 import dev.firefly.simpletweaks.client.particle.CelestialRingParticles
+import dev.firefly.simpletweaks.client.tooltips.ArcaneEchoTooltipHandler
 import dev.firefly.simpletweaks.client.tooltips.DevourTooltipHandler
 import dev.firefly.simpletweaks.client.tooltips.EnchantAttributeToolTipHandler
 import dev.firefly.simpletweaks.client.tooltips.EnchantDamageToolTipHandler
@@ -89,6 +90,8 @@ class SimpleTweaksClient : ClientModInitializer {
         EnchantAttributeTooltipFolder.register()
         // devour keeps its stacks in the item's CUSTOM_DATA, which nothing else displays.
         DevourTooltipHandler.register()
+        // arcane_echo's bonuses are runtime modifiers, so the live block has to be printed by us.
+        ArcaneEchoTooltipHandler.register()
         registerCelestialReceivers()
         registerAttackCooldownReceiver()
         InfinitePowerLaserClient.register()
@@ -97,44 +100,23 @@ class SimpleTweaksClient : ClientModInitializer {
         // from the previous one in the log, otherwise "the feature did not work" and "the client is
         // still running the old jar" look identical. (Phase-6 §16 records what that cost.)
         //
-        // `v2.2.0` starts a **new build cycle**: the identifier was reset to `cleanup1` and the
-        // feature list was collapsed from the ~2 KB accumulation of 46 batches into a per-version
-        // summary. The list is not a changelog -- it only has to answer "which jar is this", and a
-        // 2 KB line is no easier to read than a 300-byte one. Reset it again at the next minor version,
-        // or whenever the author asks for `cleanupCountReset` (the count had reached `cleanup99`).
+        // The identifier is `devVer.<major>.<minor>.<patch>`, replacing the old `cleanupN` counter.
+        // The patch number counts batches inside one release version; **whenever a version bump is
+        // requested, the whole identifier resets to `devVer.1.0.0`** and the feature list below is
+        // collapsed back to a per-version summary. The list is not a changelog -- it only has to
+        // answer "which jar is this", and a 2 KB line is no easier to read than a 300-byte one.
         // ⚠️ The enchantment count is **read from the generated table**, never typed as a literal.
         // It was a hard-coded `85` for three batches and went stale the moment three element
-        // enchantments were added (`build=cleanup12`) —the log then claimed 85 while `/fst
-        // enchantinfo` listed 88, which reads as "the lang/metadata was not updated either". A count
-        // that cannot drift is a count nobody has to remember to bump.
+        // enchantments were added —the log then claimed 85 while `/fst enchantinfo` listed 88, which
+        // reads as "the lang/metadata was not updated either". A count that cannot drift is a count
+        // nobody has to remember to bump.
         val enchantmentCount = dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments.KEYS.size
         SimpleTweaks.LOGGER.info(
-            "{} client ready: {} enchantments + 7 elemental conversions / affinities / reactions " +
-                "+ 3 cross-element (ward / resonance / penetration) + elemental mastery + mob levels, " +
-                "mod enchantments and mob elements with [Lv.N] tags " +
-                "+ per-element damage numbers (optional non-elemental/elemental split) + kill_aura / " +
-                "infinite_power / starfall / celestial ring + every command under /simple_tweaks " +
-                "(alias /fst) + damage numbers report the health actually removed " +
-                "+ every mob gets a level, not only the armed ones " +
-                "+ mob enchantments are budgeted by level (1 + level/10 total levels) " +
-                "+ debug logs off by default + mod metadata: icon, homepage, ModMenu links " +
-                "+ game tests (./gradlew runGametest) for mob levels, stats and damage " +
-                "+ enchant index can group by applicable item (Tab) + elemental riders respect shields " +
-                "+ mob levels start low and scale with the player's whole loadout " +
-                "+ conversion share is 1.5 %/level (cap 7.5 %), element damage bypasses armour again " +
-                "+ element damage is no longer exempt from the i-frame gate (only combo cancels it) " +
-                "+ reaction names as floating labels with their damage, 17 reactions " +
-                "+ split damage display now emits one number per element, fanned out and staggered " +
-                "+ every moon / star / sun reaction has a rider of its own (mist, arc, seed, cleanse / " +
-                "burst, veil, detonation, theft, seal, fracture / echo, sear, doom, ground, embers, corona) " +
-                "+ blessings carry +2.5 base attack damage per level + toughness bar uses a shield glyph " +
-                "+ flat damage / mining speed / armour now follow the rarity ladder automatically " +
-                "+ enchantment armour / health / toughness print as plain totals like a weapon's damage " +
-                "+ bar numbers take decimals (max places is configurable, trailing zeros trimmed) " +
-                "+ enchantment lookups are cached per entity until its equipment changes " +
-                "+ damage-type classification is memoised, armour mitigation reads the snapshot, " +
-                "mob level packets are sent only when the level actually changes " +
-                "(v2.2.8, build=cleanup12)",
+            "{} client ready: {} enchantments + 7 elements (affinity / conversion / 17 reactions / mastery) " +
+                "+ mob levels and mob elements with [Lv.N] tags + per-element damage numbers + HUD bars " +
+                "+ every command under /simple_tweaks (alias /fst) " +
+                "+ game tests (./gradlew runGametest) " +
+                "(v2.3.0, build=devVer.1.0.0)",
             SimpleTweaks.NAME,
             enchantmentCount,
         )

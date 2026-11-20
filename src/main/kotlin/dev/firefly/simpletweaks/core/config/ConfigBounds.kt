@@ -48,7 +48,7 @@ object ConfigBounds {
     val LEVEL_UP_PERCENT = 0..100
 
     /** Persistent `/fst difficulty modify` value (see `MobEnhancementConfig.difficultyModifier`). */
-    val DIFFICULTY_MODIFIER = -1000.0..10_000.0
+    val DIFFICULTY_MODIFIER = -1_000_000.0..1_000_000.0
 
     /** Decimals shown by the bar HUD numbers; 0 is "integers only", 4 is the finest readable step. */
     val BAR_DECIMALS = 0..4

@@ -43,6 +43,11 @@ import java.util.WeakHashMap
  *
  * The two that change the instance itself run **before** the damage lands, so the number in the log is the
  * number that hits; everything else is a side effect and runs after.
+ *
+ * Amplifying and transformative reactions both pay out. An amplifying reaction (`steam`) queues no flat hit,
+ * so it is scaled from the damage its multiplier added ([ReactionOutcome.labelAmount]); and because it is an
+ * amplification, the mist is worth more: two 月华 stacks instead of one, double the duration, and a cloud
+ * that mists everything around the target (月潮).
  */
 @ModEnchantment(
     id = "moon_blessing",
@@ -75,6 +80,10 @@ object EnchantMoonBlessingHandler : Listenable {
     /** `steam` — 月雾: lunar damage taken is multiplied while the mist lasts. */
     const val MIST_BONUS = 1.25f
     const val MIST_TICKS = 120L
+
+    /** 月潮 — an amplified `steam`: the mist spreads to the neighbours and lingers twice as long. */
+    const val MIST_CLOUD_RADIUS = 3.0
+    const val AMPLIFIED_STACKS = 2
 
     /** `conduct` — 月弧: one hop to the nearest other enemy, no chaining. */
     const val ARC_SHARE = 0.40f
@@ -137,16 +146,21 @@ object EnchantMoonBlessingHandler : Listenable {
         if (player.world.isClient) return
         val key = outcome.key ?: return
         if (key !in LUNAR_REACTIONS) return
-        val flatDamage = outcome.flatDamage
-        val level = getItemSpecificEnchantLevel(player.mainHandStack, GeneratedEnchantments.MOON_BLESSING)
-        if (level <= 0 || flatDamage <= 0f) return
+        // Amplifying reactions queue no flat hit; their contribution is the multiplier they added.
+        val base = if (outcome.flatDamage > 0f) outcome.flatDamage else outcome.labelAmount
+        val weapon = outcome.weapon ?: player.mainHandStack
+        val level = getItemSpecificEnchantLevel(weapon, GeneratedEnchantments.MOON_BLESSING)
+        if (level <= 0) return
+        // `bloom` on the nature side carries no damage — the seed is the point.
+        if (base <= 0f && key != "bloom") return
+        val amplified = outcome.amplify > 1f
 
         val now = player.world.time
         val stacks = STACKS[player]
         val count = if (stacks != null && stacks.expiresAt > now) stacks.count else 0
         val multiplier = 1f + STACK_BONUS * count
         val crit = player.random.nextFloat() < critChanceFor(level)
-        var lunar = flatDamage * shareFor(level) * multiplier * (if (crit) CRIT_MULTIPLIER else 1f)
+        var lunar = base * shareFor(level) * multiplier * (if (crit) CRIT_MULTIPLIER else 1f)
 
         // Instance modifiers first: what the log prints must be what lands.
         val canCleanse = key == "purify" && firstHarmfulEffect(player) == null
@@ -155,15 +169,20 @@ object EnchantMoonBlessingHandler : Listenable {
             "purify" -> if (canCleanse) lunar *= CLEANSE_BONUS
         }
 
-        target.damageElemental(player, ModDamageTypes.MOON, lunar)
-        STACKS[player] = Stacks(minOf(count + 1, MAX_STACKS), now + STACK_TICKS)
+        if (lunar > 0f) target.damageElemental(player, ModDamageTypes.MOON, lunar)
+        STACKS[player] = Stacks(
+            minOf(count + (if (amplified) AMPLIFIED_STACKS else 1), MAX_STACKS),
+            now + STACK_TICKS,
+        )
         // The reaction stops being "过载" and becomes "月过载" for this hit.
         outcome.labelPrefix = LABEL_PREFIX
 
         var detail = ""
         when (key) {
             "steam" -> {
-                MIST[target] = now + MIST_TICKS
+                val mistTicks = if (amplified) MIST_TICKS * 2 else MIST_TICKS
+                MIST[target] = now + mistTicks
+                if (amplified) detail = ", cloud=${spreadMist(player, target, now, mistTicks)}"
                 spawn(target, ParticleTypes.CLOUD, 10, 0.4, 0.01)
             }
             "conduct" -> {
@@ -171,7 +190,7 @@ object EnchantMoonBlessingHandler : Listenable {
                 detail = ", arc=${arc?.let { "%.2f".format(lunar * ARC_SHARE) } ?: "none"}"
             }
             "bloom" -> {
-                plantSeed(player, target, lunar)
+                if (lunar > 0f) plantSeed(player, target, lunar)
                 spawn(target, ParticleTypes.HAPPY_VILLAGER, 6, 0.3, 0.01)
             }
             "purify" -> {
@@ -181,10 +200,23 @@ object EnchantMoonBlessingHandler : Listenable {
         }
 
         FSTLog.log("MoonBlessing") {
-            "element=${element.id}, lvl=$level, reaction=${"%.2f".format(flatDamage)}, " +
+            "element=${element.id}, lvl=$level, base=${"%.2f".format(base)}, amplify=${"%.2f".format(outcome.amplify)}, " +
                 "stacks=$count, crit=$crit, lunar=${"%.2f".format(lunar)}, effect=$key$detail, " +
                 "outcome=lunar-conversion"
         }
+    }
+
+    /** 月潮: an amplified `steam` leaves a cloud that mists every other enemy around the target. */
+    private fun spreadMist(player: PlayerEntity, target: LivingEntity, now: Long, ticks: Long): Int {
+        var misted = 0
+        val box = target.boundingBox.expand(MIST_CLOUD_RADIUS)
+        for (other in player.world.getOtherEntities(target, box) { it is LivingEntity && it.isAlive }) {
+            val living = other as LivingEntity
+            if (living === player || living === target) continue
+            MIST[living] = now + ticks
+            misted++
+        }
+        return misted
     }
 
     /** `conduct`: one hop to the closest *other* enemy — deliberately not a chain. */

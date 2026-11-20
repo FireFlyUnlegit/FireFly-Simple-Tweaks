@@ -92,6 +92,15 @@ const val PICKAXE       = "#simple_tweaks:pickaxe_enchantable"
  */
 const val SHIELD        = "#simple_tweaks:shield_enchantable"
 
+/**
+ * "Equipment" in the player's six visible slots: melee weapons (sword/axe/mace), bows, crossbows and all
+ * armour.
+ *
+ * A **mod-owned** tag (`data/simple_tweaks/tags/item/equipment_enchantable.json`) composed only of vanilla
+ * tags — no vanilla tag means exactly this set. Pairs with `EnchantSlot.MAINHAND` + `EnchantSlot.ARMOR`.
+ */
+const val EQUIPMENT      = "#simple_tweaks:equipment_enchantable"
+
 // universal
 /** Anything with durability — the widest commonly used tag. */
 const val DURABILITY    = "#minecraft:enchantable/durability"

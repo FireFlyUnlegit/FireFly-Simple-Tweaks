@@ -2,11 +2,26 @@ package dev.firefly.simpletweaks.gametest;
 
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments;
 import dev.firefly.simpletweaks.util.mobs.LevelledMob;
+import dev.firefly.simpletweaks.util.ArcaneEcho;
 import dev.firefly.simpletweaks.util.ArmorCurve;
+import dev.firefly.simpletweaks.util.DotAcceleration;
+import dev.firefly.simpletweaks.util.FireBurn;
+import dev.firefly.simpletweaks.util.PlayerPower;
+import dev.firefly.simpletweaks.util.ShotWeapon;
 import dev.firefly.simpletweaks.util.mobs.MobLevels;
 import net.fabricmc.fabric.api.gametest.v1.FabricGameTest;
+import net.minecraft.entity.AreaEffectCloudEntity;
 import net.minecraft.entity.EntityType;
+import net.minecraft.entity.attribute.EntityAttributeModifier;
+import net.minecraft.entity.attribute.EntityAttributes;
 import net.minecraft.entity.mob.ZombieEntity;
+import net.minecraft.entity.projectile.ArrowEntity;
+import net.minecraft.entity.projectile.thrown.PotionEntity;
+import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
+import net.minecraft.nbt.NbtCompound;
+import net.minecraft.util.Identifier;
+import net.minecraft.world.World;
 import net.minecraft.test.GameTest;
 import net.minecraft.test.TestContext;
 import org.slf4j.Logger;
@@ -62,8 +77,67 @@ public class SimpleTweaksGameTests implements FabricGameTest {
         int keys = GeneratedEnchantments.INSTANCE.getKEYS().size();
         int categories = GeneratedEnchantments.INSTANCE.getCATEGORY().size();
         LOGGER.info("[FST-GameTest] generated table: keys={}, categories={}", keys, categories);
-        context.assertEquals(128, keys, "GeneratedEnchantments.KEYS should list all 128 enchantments");
-        context.assertEquals(128, categories, "GeneratedEnchantments.CATEGORY should cover every id");
+        context.assertEquals(131, keys, "GeneratedEnchantments.KEYS should list all 131 enchantments");
+        context.assertEquals(131, categories, "GeneratedEnchantments.CATEGORY should cover every id");
+        context.complete();
+    }
+
+    /**
+     * `catalyze` must change the DoT <em>interval</em>, never the per-tick value, so the only thing
+     * that can be asserted without a poison source is the shared factor the venom tick reads.
+     */
+    @GameTest(templateName = FabricGameTest.EMPTY_STRUCTURE)
+    public void dotAccelerationMultipliesTheFactorNotTheDamage(TestContext context) {
+        ZombieEntity zombie = EntityType.ZOMBIE.create(context.getWorld());
+        context.assertTrue(zombie != null, "could not create a zombie without spawning it");
+        if (zombie == null) {
+            context.complete();
+            return;
+        }
+
+        double untouched = DotAcceleration.INSTANCE.factorOf(zombie);
+        DotAcceleration.INSTANCE.apply(zombie, 3, 100L, null);
+        double catalysed = DotAcceleration.INSTANCE.factorOf(zombie);
+        // A lower level must not overwrite a higher one that is still running.
+        DotAcceleration.INSTANCE.apply(zombie, 1, 100L, null);
+        double afterWeakerHit = DotAcceleration.INSTANCE.factorOf(zombie);
+
+        LOGGER.info("[FST-GameTest] dot factor: untouched={} (expect 1.0), level 3 -> {} (expect 4.0), "
+                        + "then level 1 -> {} (expect 4.0)",
+                untouched, catalysed, afterWeakerHit);
+
+        context.assertTrue(Math.abs(untouched - 1.0) < 1e-6, "an untouched entity must have factor 1.0");
+        context.assertTrue(Math.abs(catalysed - 4.0) < 1e-6, "level 3 must give factor 4.0, got " + catalysed);
+        context.assertTrue(Math.abs(afterWeakerHit - 4.0) < 1e-6,
+                "a weaker re-application must not shorten the running factor, got " + afterWeakerHit);
+        context.complete();
+    }
+
+    /**
+     * `fire_master` caps the stacked burn at 10 s and turns the remaining burn time into the heat
+     * meter: interval shrinks from 20 to 5 ticks, per-tick damage rises from 0.05 to 0.15 per level.
+     */
+    @GameTest(templateName = FabricGameTest.EMPTY_STRUCTURE)
+    public void fireBurnScalesWithHeatAndCapsStacking(TestContext context) {
+        double coldInterval = FireBurn.intervalFor(0);
+        double hotInterval = FireBurn.intervalFor(FireBurn.MAX_FIRE_TICKS);
+        double coldDamage = FireBurn.damageFor(6, 0);
+        double hotDamage = FireBurn.damageFor(6, FireBurn.MAX_FIRE_TICKS);
+        int stacked = FireBurn.ignitedTicks(180, 6);
+        int capped = FireBurn.ignitedTicks(FireBurn.MAX_FIRE_TICKS, 6);
+        int lavaLonger = FireBurn.ignitedTicks(400, 6);
+
+        LOGGER.info("[FST-GameTest] fire burn: interval {}->{} (expect 20->5), damage {}->{} "
+                        + "(expect 0.3->0.9), 180+60={} (expect 200), 200+60={} (expect 200), 400+60={} (expect 400)",
+                coldInterval, hotInterval, coldDamage, hotDamage, stacked, capped, lavaLonger);
+
+        context.assertTrue(Math.abs(coldInterval - 20.0) < 1e-6, "no heat must burn every 20 ticks, got " + coldInterval);
+        context.assertTrue(Math.abs(hotInterval - 5.0) < 1e-6, "max heat must burn every 5 ticks, got " + hotInterval);
+        context.assertTrue(Math.abs(coldDamage - 0.30) < 1e-6, "level 6 at no heat must tick 0.30, got " + coldDamage);
+        context.assertTrue(Math.abs(hotDamage - 0.90) < 1e-6, "level 6 at max heat must tick 0.90, got " + hotDamage);
+        context.assertTrue(stacked == FireBurn.MAX_FIRE_TICKS, "stacking must cap at 200 ticks, got " + stacked);
+        context.assertTrue(capped == FireBurn.MAX_FIRE_TICKS, "an already capped burn must stay at 200, got " + capped);
+        context.assertTrue(lavaLonger == 400, "a longer burn from lava must never be shortened, got " + lavaLonger);
         context.complete();
     }
 
@@ -969,6 +1043,204 @@ public class SimpleTweaksGameTests implements FabricGameTest {
         context.assertTrue(Math.abs(actual - expected) < 0.001f,
                 "armor " + armor + " vs " + damage + " damage should reduce by " + expected
                         + " but was " + actual);
+    }
+
+    /**
+     * A thrown potion, snowball or fireball is not a swing: `DamageSource#weaponStack` resolves through
+     * the attacker's main hand, so before `build=cleanup16` a thrown potion inherited whatever sword the
+     * thrower was holding and could fire `venom` / `fire_master` / the blessings. A persistent projectile
+     * must still resolve to the weapon it was fired with.
+     */
+    @GameTest(templateName = FabricGameTest.EMPTY_STRUCTURE)
+    public void shotWeaponIgnoresTheHandForThrownProjectiles(TestContext context) {
+        World world = context.getWorld();
+        ZombieEntity zombie = EntityType.ZOMBIE.create(world);
+        context.assertTrue(zombie != null, "could not create a zombie without spawning it");
+        if (zombie == null) {
+            context.complete();
+            return;
+        }
+
+        // 1. An arrow keeps the weapon it was fired with, snapshot or vanilla field.
+        ArrowEntity arrow = new ArrowEntity(world, 0.0, 64.0, 0.0, new ItemStack(Items.ARROW), null);
+        ItemStack bow = new ItemStack(Items.BOW);
+        ShotWeapon.INSTANCE.record(arrow, bow);
+        ItemStack fromArrow = ShotWeapon.INSTANCE.weaponFor(world.getDamageSources().arrow(arrow, zombie));
+
+        // 2. A thrown potion resolves to "no weapon" — empty, not the thrower's hand.
+        PotionEntity potion = new PotionEntity(world, zombie);
+        ItemStack fromPotion = ShotWeapon.INSTANCE.weaponFor(world.getDamageSources().indirectMagic(potion, zombie));
+
+        // 3. A plain melee hit carries no override at all.
+        ItemStack fromMelee = ShotWeapon.INSTANCE.weaponFor(world.getDamageSources().mobAttack(zombie));
+
+        // 4. Nor does anything else whose direct entity is not the attacker: an area-effect cloud is the
+        //    case `build=cleanup17` broadened the rule to, because it used to fall through to the hand too.
+        AreaEffectCloudEntity cloud = new AreaEffectCloudEntity(world, 0.0, 64.0, 0.0);
+        ItemStack fromCloud = ShotWeapon.INSTANCE.weaponFor(world.getDamageSources().indirectMagic(cloud, zombie));
+
+        LOGGER.info("[FST-GameTest] shot weapon: arrow={} (expect bow), potion={} (expect empty), "
+                        + "cloud={} (expect empty), melee={} (expect none)",
+                fromArrow, fromPotion, fromCloud, fromMelee);
+
+        context.assertTrue(fromArrow != null && fromArrow.isOf(Items.BOW),
+                "an arrow must resolve to the bow it was fired with, got " + fromArrow);
+        context.assertTrue(fromPotion != null && fromPotion.isEmpty(),
+                "a thrown potion must resolve to an empty weapon, got " + fromPotion);
+        context.assertTrue(fromCloud != null && fromCloud.isEmpty(),
+                "an area-effect cloud must resolve to an empty weapon, got " + fromCloud);
+        context.assertTrue(fromMelee == null || fromMelee.isEmpty(),
+                "a melee hit must not carry an override, got " + fromMelee);
+        context.complete();
+    }
+
+    /**
+     * `setOwner` runs **inside** `ProjectileEntity`'s constructor, so the first snapshot is a guess taken
+     * from the shooter's main hand. With the bow in the off hand that guess is the sword — and before
+     * `build=cleanup23` it stuck, so a plain bow fired the sword's enchantments. The constructor injection
+     * records vanilla's own `weapon` argument authoritatively and replaces the guess; later non-authoritative
+     * guesses must still not overwrite it.
+     */
+    @GameTest(templateName = FabricGameTest.EMPTY_STRUCTURE)
+    public void shotWeaponConstructorOverridesTheHandGuess(TestContext context) {
+        World world = context.getWorld();
+        ZombieEntity zombie = EntityType.ZOMBIE.create(world);
+        context.assertTrue(zombie != null, "could not create a zombie without spawning it");
+        if (zombie == null) {
+            context.complete();
+            return;
+        }
+
+        ArrowEntity arrow = new ArrowEntity(world, 0.0, 64.0, 0.0, new ItemStack(Items.ARROW), null);
+        ShotWeapon.INSTANCE.record(arrow, new ItemStack(Items.NETHERITE_SWORD));
+        ShotWeapon.INSTANCE.record(arrow, new ItemStack(Items.BOW), true);
+        ItemStack resolved = ShotWeapon.INSTANCE.weaponFor(world.getDamageSources().arrow(arrow, zombie));
+
+        ShotWeapon.INSTANCE.record(arrow, new ItemStack(Items.DIAMOND_SWORD));
+        ItemStack afterLaterGuess = ShotWeapon.INSTANCE.weaponFor(world.getDamageSources().arrow(arrow, zombie));
+
+        LOGGER.info("[FST-GameTest] shot weapon overwrite: resolved={} (expect bow), after later guess={} "
+                + "(expect bow)", resolved, afterLaterGuess);
+
+        context.assertTrue(resolved != null && resolved.isOf(Items.BOW),
+                "the constructor's weapon must replace the hand guess, got " + resolved);
+        context.assertTrue(afterLaterGuess != null && afterLaterGuess.isOf(Items.BOW),
+                "a later hand guess must not overwrite the recorded weapon, got " + afterLaterGuess);
+        context.complete();
+    }
+
+    /**
+     * Why `arcane_echo`'s attribute modifiers are persistent: vanilla reads the `attributes` tag **before**
+     * `Health` (`LivingEntity#readCustomDataFromNbt`), so a max-health bonus living only in a temporary
+     * modifier is not there yet when the saved health is applied — vanilla clamps the save down to the base
+     * 20 on every re-join. This writes an entity to NBT and reads it back: the bonus must survive the round
+     * trip, and the health written with it must come back too.
+     */
+    @GameTest(templateName = FabricGameTest.EMPTY_STRUCTURE)
+    public void persistentMaxHealthSurvivesReloadSoHealthIsNotClamped(TestContext context) {
+        World world = context.getWorld();
+        ZombieEntity before = EntityType.ZOMBIE.create(world);
+        context.assertTrue(before != null, "could not create a zombie without spawning it");
+        if (before == null) {
+            context.complete();
+            return;
+        }
+
+        Identifier id = Identifier.of("simple_tweaks", "arcane_echo_health");
+        before.getAttributeInstance(EntityAttributes.GENERIC_MAX_HEALTH).addPersistentModifier(
+                new EntityAttributeModifier(id, 20.0, EntityAttributeModifier.Operation.ADD_VALUE));
+        before.setHealth(before.getMaxHealth());
+
+        NbtCompound nbt = new NbtCompound();
+        before.writeNbt(nbt);
+
+        ZombieEntity after = EntityType.ZOMBIE.create(world);
+        context.assertTrue(after != null, "could not create the reload target");
+        if (after == null) {
+            context.complete();
+            return;
+        }
+        after.readNbt(nbt);
+
+        LOGGER.info("[FST-GameTest] persistent max health: written max={} health={} -> reloaded max={} health={} "
+                        + "(expect 40/40/40/40)",
+                before.getMaxHealth(), before.getHealth(), after.getMaxHealth(), after.getHealth());
+
+        context.assertTrue(Math.abs(before.getHealth() - 40.0f) < 0.01f,
+                "a +20 max health modifier must let the zombie sit at 40, got " + before.getHealth());
+        context.assertTrue(Math.abs(after.getMaxHealth() - 40.0f) < 0.01f,
+                "the max health bonus must be written to the attributes tag, got " + after.getMaxHealth());
+        context.assertTrue(Math.abs(after.getHealth() - 40.0f) < 0.01f,
+                "saved health must not be clamped to the base 20 on reload, got " + after.getHealth());
+        context.complete();
+    }
+
+    /**
+     * The player-power half of the level curve, pinned to the numbers `MobLevels` documents:
+     * a brand-new world stays at level 1 (dead zone), and an enchantment's **rarity** weighs more than a
+     * common one (`build=cleanup17`).
+     */
+    @GameTest(templateName = FabricGameTest.EMPTY_STRUCTURE)
+    public void difficultyCurveRewardsGearQuality(TestContext context) {
+        double common = PlayerPower.qualityWeight(10);
+        double uncommon = PlayerPower.qualityWeight(5);
+        double mythic = PlayerPower.qualityWeight(1);
+        float naked = MobLevels.playerDifficultyTerm(0.1f);
+        float iron = MobLevels.playerDifficultyTerm(1.2f);
+        float endgame = MobLevels.playerDifficultyTerm(6.0f);
+
+        LOGGER.info("[FST-GameTest] quality: common={} uncommon={} mythic={} (expect 1.0 < {} < {} <= 2.2); "
+                        + "term: naked={} (expect 0), iron={} (expect {}), endgame={} (expect {})",
+                common, uncommon, mythic, uncommon, mythic,
+                naked, iron, (1.2f - 0.4f) * 1.6f, endgame, (6.0f - 0.4f) * 1.6f);
+
+        context.assertTrue(Math.abs(common - 1.0) < 0.001, "a common enchantment is worth exactly 1.0, got " + common);
+        context.assertTrue(uncommon > common, "an uncommon enchantment must outweigh a common one");
+        context.assertTrue(mythic > uncommon, "a mythic enchantment must outweigh an uncommon one");
+        context.assertTrue(mythic <= 2.2 + 0.001, "quality weight must stay capped at 2.2, got " + mythic);
+        context.assertTrue(naked == 0f, "a naked player must add no difficulty at all, got " + naked);
+        context.assertTrue(Math.abs(iron - 1.28f) < 0.01f,
+                "1.2 power must convert to 1.28 difficulty (dead zone 0.4, weight 1.6), got " + iron);
+        context.assertTrue(Math.abs(endgame - 8.96f) < 0.01f,
+                "6.0 power must convert to 8.96 difficulty, got " + endgame);
+        context.complete();
+    }
+
+    /**
+     * `arcane_echo`'s numbers, pinned: the bonus is `units × effective level`; only movement speed carries a
+     * ceiling (it changes how the game feels), everything else grows (`build=cleanup21`).
+     */
+    @GameTest(templateName = FabricGameTest.EMPTY_STRUCTURE)
+    public void arcaneEchoScalesWithEnchantmentLevelsAndCaps(TestContext context) {
+        ArcaneEcho.Stats idle = ArcaneEcho.statsOf(0, 0);
+        ArcaneEcho.Stats mid = ArcaneEcho.statsOf(50, 3);
+        ArcaneEcho.Stats maxed = ArcaneEcho.statsOf(400, 3);
+
+        LOGGER.info("[FST-GameTest] arcane echo: idle active={} (expect false); mid health={} (expect 18.0) "
+                        + "element={} (expect 0.375) reaction={} (expect 0.525); maxed attackSpeed={} (expect 1.44) "
+                        + "moveSpeed={} (expect 0.2) flat={} (expect 60.0) element={} (expect 3.0) reaction={} (expect 4.2)",
+                idle.getActive(), mid.getHealth(), mid.getElement(), mid.getReaction(),
+                maxed.getAttackSpeed(), maxed.getMoveSpeed(), maxed.getDamageReduction(),
+                maxed.getElement(), maxed.getReaction());
+
+        context.assertTrue(!idle.getActive(), "no arcane_echo level must mean no bonus at all");
+        context.assertTrue(Math.abs(mid.getHealth() - 18.0) < 0.001,
+                "50 units at level III must give 18 max health, got " + mid.getHealth());
+        context.assertTrue(Math.abs(mid.getElement() - 0.375) < 0.001,
+                "50 units at level III must give +37.5% elemental, got " + mid.getElement());
+        context.assertTrue(Math.abs(mid.getReaction() - 0.525) < 0.001,
+                "50 units at level III must give +52.5% reaction, got " + mid.getReaction());
+        context.assertTrue(Math.abs(maxed.getAttackSpeed() - 1.44) < 0.001,
+                "attack speed must no longer cap (0.0012 x 400 x 3 = 1.44), got " + maxed.getAttackSpeed());
+        context.assertTrue(Math.abs(maxed.getMoveSpeed() - 0.20) < 0.001,
+                "movement speed must still cap at 20%, got " + maxed.getMoveSpeed());
+        context.assertTrue(Math.abs(maxed.getDamageReduction() - 60.0) < 0.001,
+                "flat damage reduction must no longer cap (0.05 x 400 x 3 = 60), got " + maxed.getDamageReduction());
+        context.assertTrue(Math.abs(maxed.getElement() - 3.0) < 0.001,
+                "elemental bonus must no longer cap (0.0025 x 400 x 3 = 3.0), got " + maxed.getElement());
+        context.assertTrue(Math.abs(maxed.getReaction() - 4.2) < 0.001,
+                "reaction bonus must no longer cap (0.0035 x 400 x 3 = 4.2), got " + maxed.getReaction());
+        context.complete();
     }
 
     private static void assertTaken(TestContext context, float damage, float armor, float expected) {

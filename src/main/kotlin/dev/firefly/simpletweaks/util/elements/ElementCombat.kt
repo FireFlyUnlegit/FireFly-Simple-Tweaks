@@ -8,6 +8,7 @@ import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.invalid
 import dev.firefly.simpletweaks.mixin.accessors.LivingEntityAccessor
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
+import dev.firefly.simpletweaks.util.ArcaneEcho
 import dev.firefly.simpletweaks.util.combatStack
 import dev.firefly.simpletweaks.util.damagesource.CelestialDamageSources
 import dev.firefly.simpletweaks.util.damagesource.ElementDamageTypes
@@ -431,7 +432,10 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
         // The weapon **that fired this shot**, not whatever is in hand now: swapping to a
         // strong melee weapon after releasing the bow must not upgrade the arrow in flight.
         val weapon = attacker.combatStack(e.source)
-        val mastery = masteryMultiplier(masteryLevel(weapon))
+        // `arcane_echo` amplifies the elemental output of every hit, so it joins mastery here rather than
+        // in a second handler reading the same `e.amount`.
+        val mastery = masteryMultiplier(masteryLevel(weapon)) *
+            (1.0 + ArcaneEcho.statsOf(attacker).element).toFloat()
 
         val conversion = conversionOf(attacker, weapon, e.entityLiving)
 

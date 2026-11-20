@@ -366,7 +366,7 @@ tasks.register('runTest') {
             check('build id line matches the project version') {
                 def source = project.file('src/main/kotlin/dev/firefly/simpletweaks/SimpleTweaksClient.kt')
                         .getText('UTF-8')
-                def expected = '(v' + project.version + ', build=cleanup'
+                def expected = '(v' + project.version + ', build=devVer.'
                 expect(source.contains(expected),
                         "SimpleTweaksClient.kt does not contain '" + expected + "' - bump the versioned " +
                                 'build identifier together with gradle.properties, or the client ready line ' +

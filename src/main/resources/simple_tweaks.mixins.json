@@ -30,6 +30,7 @@
     "LivingEntityMainHandSnapshotMixin",
     "LivingEntityOnEquipStackMixin",
     "PlayerEquippedStackSnapshotMixin",
+    "PersistentProjectileEntityMirrorMixin",
     "PersistentProjectileEntityPiercingMixin",
     "PersistentProjectileEntityStateMixin",
     "PlayerEntityAttackMixin",

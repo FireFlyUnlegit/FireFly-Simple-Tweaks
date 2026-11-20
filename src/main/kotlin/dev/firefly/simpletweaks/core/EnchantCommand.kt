@@ -219,7 +219,6 @@ object EnchantCommand {
                         reportDifficulty(ctx.source)
                     }
             )
-            // ---- cleanup27: persisted knob + a report of the *computed* number ----------------
             .then(
                 CommandManager.literal("check")
                     .executes { ctx -> reportComputedDifficulty(ctx.source) }
@@ -297,8 +296,11 @@ object EnchantCommand {
      * term, their persistent `modify`, or their gear is doing the work:
      *
      * ```text
-     * localDifficulty=0.13  base=0.00  offset=0.00  modify=2.00  playerPower=4.20 -> effective=10.40  level=35
+     * localDifficulty=0.13  base=0.00  offset=0.00  modify=2.00  power=4.20 (+7.84) -> effective=9.84  level=33
      * ```
+     *
+     * `power` is the raw [MobLevels.playerPowerOf] figure and `(+…)` is what the curve actually turned it
+     * into — printing only the difference (as this used to) made a dead zone look like a broken gear read.
      */
     private fun reportComputedDifficulty(source: ServerCommandSource): Int {
         val world = source.world
@@ -307,15 +309,16 @@ object EnchantCommand {
         val level = MobLevels.averageLevelFor(effective)
         val local = world.getLocalDifficulty(pos).localDifficulty
         val base = MobLevels.baseDifficulty(local)
-        val power = effective - base
+        val power = source.player?.let { MobLevels.playerPowerOf(it) } ?: 0f
         source.sendFeedback(
             {
                 Text.literal(
                     "[FST] localDifficulty=${"%.2f".format(local)} base=${"%.2f".format(base)} " +
                         "offset=${"%.2f".format(MobLevels.difficultyOffset)} " +
                         "modify=${"%.2f".format(MobEnhancementConfig.difficultyModifier)} " +
-                        "playerPower=${"%.2f".format(power)} -> effective=${"%.2f".format(effective)} " +
-                        "level=$level"
+                        "power=${"%.2f".format(power)} " +
+                        "(+${"%.2f".format(MobLevels.playerDifficultyTerm(power))}) " +
+                        "-> effective=${"%.2f".format(effective)} level=$level"
                 )
             },
             false,

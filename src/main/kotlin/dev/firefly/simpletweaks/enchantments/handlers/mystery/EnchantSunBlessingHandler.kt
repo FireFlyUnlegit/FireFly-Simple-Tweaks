@@ -49,6 +49,9 @@ import java.util.WeakHashMap
  *
  * [CORONA_MULTIPLIER] is the only rider that changes the instance; everything else schedules extra damage,
  * so the log number is always the number that lands.
+ *
+ * Every key pays out, including a reaction with no damage of its own: `quicken` deals zero by definition, so
+ * it is allowed through with a zero instance and the 日冕 window is still opened (`build=cleanup15`).
  */
 @ModEnchantment(
     id = "sun_blessing",
@@ -155,21 +158,26 @@ object EnchantSunBlessingHandler : Listenable {
         if (player.world.isClient) return
         val key = outcome.key ?: return
         if (key !in SOLAR_REACTIONS) return
-        val flatDamage = outcome.flatDamage
-        val level = getItemSpecificEnchantLevel(player.mainHandStack, GeneratedEnchantments.SUN_BLESSING)
-        if (level <= 0 || flatDamage <= 0f) return
+        // Amplifying reactions queue no flat hit; their contribution is the multiplier they added.
+        val base = if (outcome.flatDamage > 0f) outcome.flatDamage else outcome.labelAmount
+        val weapon = outcome.weapon ?: player.mainHandStack
+        val level = getItemSpecificEnchantLevel(weapon, GeneratedEnchantments.SUN_BLESSING)
+        if (level <= 0) return
+        // `quicken` deals no damage at all — 日冕 is its entire payoff, so it must not be gated on damage.
+        if (base <= 0f && key != "quicken") return
+        val amplified = outcome.amplify > 1f
 
         // `quicken` opens the corona window for everything that follows, itself included.
         val now = player.world.time
         if (key == "quicken") corona[player] = now + CORONA_TICKS
         val focused = (corona[player] ?: 0L) > now
 
-        var sun = flatDamage * shareFor(level)
+        var sun = base * shareFor(level)
         if (focused) sun *= CORONA_MULTIPLIER
         val undead = target.type.isIn(EntityTypeTags.UNDEAD)
         if (undead) sun *= UNDEAD_BONUS
 
-        target.damageElemental(player, ModDamageTypes.SUN, sun)
+        if (sun > 0f) target.damageElemental(player, ModDamageTypes.SUN, sun)
         // The reaction stops being "灼裂" and becomes "日灼裂" for this hit.
         outcome.labelPrefix = LABEL_PREFIX
 
@@ -204,8 +212,9 @@ object EnchantSunBlessingHandler : Listenable {
         }
 
         FSTLog.log("SunBlessing") {
-            "element=${element.id}, lvl=$level, reaction=${"%.2f".format(flatDamage)}, undead=$undead, " +
-                "corona=$focused, solar=${"%.2f".format(sun)}, effect=$key$detail, outcome=solar-conversion"
+            "element=${element.id}, lvl=$level, base=${"%.2f".format(base)}, amplify=${"%.2f".format(outcome.amplify)}, " +
+                "undead=$undead, corona=$focused, solar=${"%.2f".format(sun)}, effect=$key$detail, " +
+                "outcome=solar-conversion"
         }
     }
 

@@ -40,7 +40,10 @@ enum class EnchantColor(val formatting: Formatting?) {
 
 enum class EnchantType {
     SWORD, WEAPON, HELD, ARMOR, HELMET, CHESTPLATE,
-    LEGGINGS, BOOTS, BREAKABLE, TOOL, BOW;
+    LEGGINGS, BOOTS, BREAKABLE, TOOL, BOW,
+
+    /** Melee weapons, both ranged weapons and all armour — see [EnchantSupportedItemTags.EQUIPMENT]. */
+    EQUIPMENT;
 
     override fun toString() = name.lowercase()
 }

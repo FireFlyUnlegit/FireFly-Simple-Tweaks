@@ -15,6 +15,7 @@ import dev.firefly.simpletweaks.util.elements.ElementCombat
 import dev.firefly.simpletweaks.util.elements.ElementShredTicker
 import net.fabricmc.api.ModInitializer
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents
+import net.fabricmc.loader.api.FabricLoader
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -98,10 +99,18 @@ class SimpleTweaks : ModInitializer {
         const val NAME = "FireFly's Simple Tweaks"
 
         /**
-         * Bumped from 1.0.7: the 1.21 Fabric build is a new artifact line and does not share
-         * saved data with the 1.12.2 version.
+         * The declared version, read from `fabric.mod.json`.
+         *
+         * That file's `version` is expanded from `gradle.properties` (`mod_version`) by
+         * `processResources`, so this is the only place the number has to be edited. It cannot be a
+         * `const`: a literal here had to be bumped by hand and silently went stale (the 1.21 Fabric
+         * line started at `1.0.7` and never shared saved data with 1.12.2).
          */
-        const val VERSION = "2.1.0"
+        @JvmField
+        val VERSION: String = FabricLoader.getInstance()
+            .getModContainer(MOD_ID)
+            .map { it.metadata.version.friendlyString }
+            .orElse("unknown")
 
         val LOGGER: Logger = LoggerFactory.getLogger(NAME)
     }

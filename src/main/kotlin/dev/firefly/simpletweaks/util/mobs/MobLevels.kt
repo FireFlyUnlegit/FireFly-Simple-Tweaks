@@ -19,22 +19,24 @@ import kotlin.math.max
 /**
  * The mob level system: difficulty decides a level, the level decides base stats.
  *
- * ## Formula (`v2.2.2`)
+ * ## Formula (`build=cleanup17`)
  * ```
- * worldTerm          = max(0, localDifficulty - 1.2) + difficultyOffset   (how old/hard the chunk is)
- * playerPower        = armor/20 + max(0, maxHealth-20)/20 + attackDamage/10 + enchantmentLevels/40
- * effectiveDifficulty = worldTerm + playerPower × 2.0
+ * worldTerm          = max(0, localDifficulty - 1.35) + difficultyOffset   (how old/hard the chunk is)
+ * playerPower        = armor/40 + max(0, maxHealth-20)/20 + attackDamage/20 + enchantScore/24
+ * playerTerm         = max(0, playerPower - 0.4) × 1.6                     (dead zone + weight)
+ * effectiveDifficulty = worldTerm + playerTerm
  * level              = 1 + floor(effectiveDifficulty / 0.30)              (NO upper bound)
  * ```
  * Three deliberate choices:
  *
  * 1. **No level cap.** The previous version clamped to `1..10`, which made late-game mobs stop scaling
  *    entirely. What bounds the level now is only the two inputs above, both of which keep growing.
- * 2. **A brand-new chunk means level 1-2, not level 6.** `1.2` is subtracted from vanilla's
- *    `localDifficulty` because its floor (`2 × 0.75 = 1.5` on `NORMAL`) is *not* "difficulty", it is the
- *    baseline every fresh chunk has. See [LOCAL_DIFFICULTY_FLOOR].
+ * 2. **A brand-new chunk means level 1.** `1.35` is subtracted from vanilla's `localDifficulty` because
+ *    its floor (`2 × 0.75 = 1.5` on `NORMAL`) is *not* "difficulty", it is the baseline every fresh chunk
+ *    has. See [LOCAL_DIFFICULTY_FLOOR].
  * 3. **The player's whole loadout is the second half of the difficulty** — armour, max health, attack
- *    damage and enchantment levels, uncapped, so upgrading keeps raising the mobs. See [playerPower].
+ *    damage and enchantment **score** (level × rarity weight), uncapped, so upgrading keeps raising the
+ *    mobs. See [playerPowerOf] and [playerDifficultyTerm].
  *
  * ## Stats, per level above 1
  * | attribute | operation | amount |
@@ -62,14 +64,14 @@ import kotlin.math.max
  */
 object MobLevels {
 
-    /** `+20 %` max health per level above 1. */
-    const val HEALTH_PER_LEVEL = 0.2
+    /** `+12.5 %` max health per level above 1. */
+    const val HEALTH_PER_LEVEL = 0.125
 
-    /** `+15 %` attack damage per level above 1. */
-    const val ATTACK_PER_LEVEL = 0.15
+    /** `+10 %` attack damage per level above 1. */
+    const val ATTACK_PER_LEVEL = 0.1
 
-    /** `+0.4` armour per level above 1. */
-    const val ARMOR_PER_LEVEL = 0.4
+    /** `+0.8` armour per level above 1. */
+    const val ARMOR_PER_LEVEL = 0.8
 
     /**
      * `+0.03` knockback resistance per level above 1, **capped at [KNOCKBACK_CAP]**.
@@ -87,7 +89,7 @@ object MobLevels {
     const val KNOCKBACK_PER_LEVEL = 0.03
 
     /** Ceiling for the knockback resistance this system grants. See [KNOCKBACK_PER_LEVEL]. */
-    const val KNOCKBACK_CAP = 0.95
+    const val KNOCKBACK_CAP = 0.96
 
     /**
      * `clampedLocalDifficulty` per level above 1.
@@ -114,22 +116,38 @@ object MobLevels {
      * is exactly the "新进游戏就是 Lv7~9" the author reported. Subtracting the floor is what makes level 1
      * mean "nothing has happened yet".
      *
-     * `1.2` rather than the exact `1.5`: it leaves a fresh (`NORMAL`) chunk at `0.3` → **level 2**, keeps
+     * `1.35` rather than the exact `1.5`: it leaves a fresh (`NORMAL`) chunk at `0.15` → **level 1**, keeps
      * `EASY` (`0.75`) at level 1, and puts `HARD` (`2.25`) at level 4 — difficulty still matters, without
-     * handing a new player level-6 mobs.
+     * handing a new player level-6 mobs. Raised from `1.2` in `build=cleanup17` because the author asked for
+     * "前期难度再降低" and level 1 is the honest name for "nothing has happened yet".
      */
-    private const val LOCAL_DIFFICULTY_FLOOR = 1.2f
+    private const val LOCAL_DIFFICULTY_FLOOR = 1.35f
 
     /**
-     * Difficulty added per unit of **player power** (see [playerPower]).
+     * Difficulty added per unit of **player power** beyond [PLAYER_POWER_DEAD_ZONE] (see [playerPowerOf]).
      *
-     * This is the number that decides whether the mod "keeps up": with `2.0`, an iron-armoured player is
-     * worth `+2.6` difficulty (level 10-ish) and a modded netherite player with 60 enchantment levels is
-     * worth `+10`, i.e. level 35+. Before `v2.2.2` the gear contribution was a **capped** `1.5 + 1.5`, so
-     * the total could never exceed `+3` (+10 levels) no matter how strong the player got — which is why
-     * mobs fell behind the moment the player started enchanting.
+     * This is the number that decides whether the mod "keeps up": with `1.6`, an iron-armoured player is
+     * worth `+1.2` difficulty (level 5) and a modded netherite player with a mythic-heavy loadout is worth
+     * `+11`, i.e. level 35+. Before `v2.2.2` the gear contribution was a **capped** `1.5 + 1.5`, so the
+     * total could never exceed `+3` (+10 levels) no matter how strong the player got — which is why mobs
+     * fell behind the moment the player started enchanting.
+     *
+     * Raised from `1.5` in `build=cleanup17` together with the enchantment-quality term in
+     * [dev.firefly.simpletweaks.util.PlayerPower]: power now grows faster for an enchant-heavy player, so
+     * the weight itself only needed a nudge.
      */
-    private const val PLAYER_POWER_WEIGHT = 1.5f
+    private const val PLAYER_POWER_WEIGHT = 1.6f
+
+    /**
+     * Power below this contributes **nothing** to mob levels.
+     *
+     * Without it, `armor/40` alone gives a leather-clad player `+0.2` difficulty before they have done
+     * anything, and every small upgrade (one iron chestplate, one level of Protection) moves the level
+     * needle. The dead zone makes the first hour of a world stay at level 1–2 and keeps the curve's
+     * *slope* where the author wants it: cheap gear is nearly free, but the term is still continuous and
+     * uncapped above the dead zone.
+     */
+    private const val PLAYER_POWER_DEAD_ZONE = 0.4f
 
     /** How far away a player still counts as "the one this mob is scaling against", in blocks. */
     /**
@@ -183,7 +201,7 @@ object MobLevels {
      *    player had done anything. Subtracting the floor makes "nothing has happened yet" mean level 1-2.
      * 2. **Too flat later.** The player's gear contributed a **capped** `1.5 + 1.5 = 3.0` difficulty — ten
      *    levels, forever — so the moment the player started enchanting, mobs fell behind. Gear now
-     *    contributes a continuous [playerPower] term with no per-stat cap.
+     *    contributes a continuous [playerDifficultyTerm] with no per-stat cap.
      *
      * ## Why the raw getter and not `clampedLocalDifficulty`
      * `getClampedLocalDifficulty()` in 1.21.1 is not a number in difficulty units at all: its bytecode is
@@ -214,16 +232,27 @@ object MobLevels {
             MobEnhancementConfig.difficultyModifier
 
     /**
+     * The **player-power term** of a mob's difficulty: `max(0, power - deadZone) × weight`.
+     *
+     * Split out from [previewDifficulty] / [effectiveDifficulty] so there is exactly one place that maps
+     * "how strong is the player" to "how many difficulty points is that", and so a static test can pin the
+     * curve without a world. See [PLAYER_POWER_DEAD_ZONE] for why the subtraction exists.
+     */
+    @JvmStatic
+    fun playerDifficultyTerm(power: Float): Float =
+        (power - PLAYER_POWER_DEAD_ZONE).coerceAtLeast(0f) * PLAYER_POWER_WEIGHT
+
+    /**
      * What [player] standing at [pos] would make a mob spawn at — the number `/fst difficulty check`
      * prints.
      *
-     * Same two terms as [effectiveDifficulty] (base + player power × weight), just computed from a
+     * Same two terms as [effectiveDifficulty] (base + [playerDifficultyTerm]), just computed from a
      * position and a player instead of from an entity that already exists.
      */
     fun previewDifficulty(world: net.minecraft.server.world.ServerWorld, pos: net.minecraft.util.math.BlockPos, player: PlayerEntity?): Float {
         val base = baseDifficulty(world.getLocalDifficulty(pos).localDifficulty)
         if (!MobEnhancementConfig.enabled || player == null) return base
-        return base + playerPower(player) * PLAYER_POWER_WEIGHT
+        return base + playerDifficultyTerm(playerPowerOf(player))
     }
 
     fun effectiveDifficulty(mob: MobEntity, world: ServerWorldAccess, difficulty: LocalDifficulty): Float {
@@ -234,7 +263,7 @@ object MobLevels {
         // back to "the nearest player, however far" keeps the curve continuous instead of dropping a
         // whole region to the bare chunk difficulty (see the KDoc on [PLAYER_SCAN_RANGE]).
         val player = nearestPlayer(mob, world) ?: nearestPlayerAnyDistance(mob, world) ?: return base
-        return base + playerPower(player) * PLAYER_POWER_WEIGHT
+        return base + playerDifficultyTerm(playerPowerOf(player))
     }
 
     /**
@@ -242,12 +271,13 @@ object MobLevels {
      *
      * The definition moved to [dev.firefly.simpletweaks.util.PlayerPower] (`build=cleanup76`) because the
      * **reaction damage** curve now reads the same number: one player-strength definition for both the
-     * mob difficulty curve and 剧变 / 激化. This method stays as the internal name `MobLevels` uses, so
-     * the difficulty formula below reads unchanged.
+     * mob difficulty curve and 剧变 / 激化. Public since `build=cleanup17` so `/fst difficulty check` can
+     * print raw power next to the difficulty it produced.
      *
      * ⚠️ Called once per mob spawn / first load, never per tick.
      */
-    private fun playerPower(player: PlayerEntity): Float =
+    @JvmStatic
+    fun playerPowerOf(player: PlayerEntity): Float =
         dev.firefly.simpletweaks.util.PlayerPower.of(player).toFloat()
 
     /**
@@ -280,14 +310,14 @@ object MobLevels {
     /**
      * The difficulty-derived level **before** the random spread, i.e. the mean of [levelFor].
      *
-     * At [DIFFICULTY_PER_LEVEL] `0.30` (`v2.2.2` calibration):
+     * At [DIFFICULTY_PER_LEVEL] `0.30` (`build=cleanup17` calibration):
      *
      * | situation | effectiveDifficulty | level |
      * |---|---|---|
-     * | brand-new `NORMAL` chunk, naked player | `0.3 + 0.1 × 2` | **2** |
-     * | same, iron armour + a few enchants | `0.3 + 1.3 × 2` | **9** |
-     * | same, diamond + ~25 enchant levels | `0.3 + 2.7 × 2` | **19** |
-     * | fully modded netherite + 60 enchant levels | `0.3 + 5.3 × 2` | **36** |
+     * | brand-new `NORMAL` chunk, naked player | `0.15 + 0` (dead zone) | **1** |
+     * | same, iron armour + a few enchants | `0.15 + 1.2` | **5** |
+     * | same, diamond + a few vanilla enchants | `0.15 + 3.4` | **12** |
+     * | fully modded netherite + mythic-heavy loadout | `0.15 + 10` | **34** |
      * | long-inhabited `HARD` chunk | `+1.8` on top of the above | higher still |
      *
      * Exposed so `/simple_tweaks difficulty` can report a number without having to spawn a mob: it prints
@@ -357,12 +387,9 @@ object MobLevels {
      * Every modifier is `removeModifier(id)` + `addPersistentModifier(...)` with a **fixed** id, so a
      * second call for the same level is an overwrite, not a stack — that is what makes "level up by 1"
      * safe to express as "call [apply] again with the new level".
-     *
-     * ⚠️ It **full-heals**: the heal exists because a fresh mob sits at the old maximum, and a mob that
-     * just levelled up is meant to feel like it renewed itself. The heal is therefore part of the
-     * feature, not a side effect people should "fix" without asking.
      */
     fun apply(mob: MobEntity, level: Int) {
+        val beforeHealth = mob.maxHealth
         val steps = (level - 1).toDouble()
 
         // `ADD_MULTIPLIED_BASE` multiplies the *base* value, so the bonus is a stable +N % of the mob's
@@ -412,9 +439,7 @@ object MobLevels {
             }
         }
 
-        // A mob whose max health just went up would otherwise spawn at the OLD maximum (a level-10 zombie
-        // would look almost dead). This is the "write + read back" half of `AGENTS.md` §4.9: after
-        // touching max_health, set current health from the *new* value rather than assuming it.
-        mob.health = mob.maxHealth
+        val diff = mob.maxHealth - beforeHealth
+        mob.heal(diff.coerceAtMost(mob.maxHealth-mob.health))
     }
 }
