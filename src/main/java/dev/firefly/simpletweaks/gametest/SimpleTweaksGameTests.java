@@ -1172,6 +1172,22 @@ public class SimpleTweaksGameTests implements FabricGameTest {
                 "the max health bonus must be written to the attributes tag, got " + after.getMaxHealth());
         context.assertTrue(Math.abs(after.getHealth() - 40.0f) < 0.01f,
                 "saved health must not be clamped to the base 20 on reload, got " + after.getHealth());
+
+        // The same round trip for a wounded entity: the point is the *current* health, not the max. 35 is
+        // above the base 20, so a clamp would show up as 20 here.
+        before.setHealth(35.0f);
+        NbtCompound wounded = new NbtCompound();
+        before.writeNbt(wounded);
+        ZombieEntity woundedAfter = EntityType.ZOMBIE.create(world);
+        context.assertTrue(woundedAfter != null, "could not create the wounded reload target");
+        if (woundedAfter != null) {
+            woundedAfter.readNbt(wounded);
+            LOGGER.info("[FST-GameTest] current health on reload: written={} -> reloaded max={} health={} "
+                            + "(expect 35/40/35)",
+                    before.getHealth(), woundedAfter.getMaxHealth(), woundedAfter.getHealth());
+            context.assertTrue(Math.abs(woundedAfter.getHealth() - 35.0f) < 0.01f,
+                    "current health above the base 20 must survive a reload, got " + woundedAfter.getHealth());
+        }
         context.complete();
     }
 

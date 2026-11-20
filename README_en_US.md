@@ -12,18 +12,19 @@
 
 A Minecraft mod I build for fun: new enchantments, new mechanics and better combat feedback for vanilla.
 
-Current **1.21.1 / Fabric** release: **v2.2.6** (113 enchantments, 19 elemental reactions, aura gauges, reworked armour curve).
+Current **1.21.1 / Fabric** release: **v2.3.0** (131 enchantments, 17 elemental reactions, aura gauges, reworked armour curve).
 
 ## 🌿 Branches
 
 | Branch                                                                                        | Game version | Loader | Status        |
 |-----------------------------------------------------------------------------------------------|--------------|--------|---------------|
 | [`forge-1.12.2`](https://github.com/FireFlyUnlegit/FireFly-Simple-Tweaks/tree/forge-1.12.2)   | 1.12.2       | Forge  | ✅ Stable     |
-| [`fabric-1.21.1`](https://github.com/FireFlyUnlegit/FireFly-Simple-Tweaks/tree/fabric-1.21.1) | 1.21.1       | Fabric | ✅ **v2.2.6** |
+| [`fabric-1.21.1`](https://github.com/FireFlyUnlegit/FireFly-Simple-Tweaks/tree/fabric-1.21.1) | 1.21.1       | Fabric | ✅ **v2.3.0** |
 
 - The **1.21.1 / Fabric** port is a full cross-version rewrite — see [`MIGRATION.md`](./MIGRATION.md)
 - The two versions are maintained **in parallel**, never merged
 - Per-batch changes live in the commit history
+- Per-item acceptance notes are kept locally only (`docs/`, `AGENTS.md`, `DEV_GUIDE_1.21.1.md` are local files and not committed)
 
 ---
 
@@ -31,18 +32,18 @@ Current **1.21.1 / Fabric** release: **v2.2.6** (113 enchantments, 19 elemental 
 
 ### 🧙 Custom enchantments
 
-**113** unique enchantments, split by rarity:
+**131** unique enchantments, split by rarity:
 
 | Rarity | Count | Rarity | Count |
 |--------|-------|--------|-------|
-| COMMON | 7 | LEGENDARY | 16 |
-| UNCOMMON | 9 | MYTHIC | 9 |
-| RARE | 31 | MYSTERY | 7 |
-| EPIC | 29 | UNIQUE | 5 |
+| COMMON | 13 | LEGENDARY | 16 |
+| UNCOMMON | 13 | MYTHIC | 12 |
+| RARE | 28 | MYSTERY | 14 |
+| EPIC | 30 | UNIQUE | 5 |
 
 #### 🌈 Elemental system
 
-Eight elements: **physical / fire / frost / lightning / water / nature / shadow / light**.
+Seven elements: **fire / frost / lightning / water / nature / shadow / light**.
 Each element has one **conversion** enchantment (EPIC, mutually exclusive) and one **affinity** armour
 enchantment (RARE), plus four **cross-element** enchantments (mastery / resonance / penetration / ward).
 
@@ -50,13 +51,16 @@ enchantment (RARE), plus four **cross-element** enchantments (mastery / resonanc
   half of it again as a bonus. **Can be put on swords, bows and crossbows** — arrow hits convert and react
   just like melee.
 - **Affinity**: per armour piece, −4% damage of that element per level, up to **80%** across four pieces.
-  The eight affinities do not exclude each other.
+  The seven affinities do not exclude each other.
 - **Mastery**: elemental **output** +10% per level (cap **+200%**); it never boosts the physical part.
 - **Resonance**: **transformative reaction** damage +10% per level (cap **+30%**); it does not scale
   amplifying multipliers.
 - **Penetration**: ignores 8% per level (cap **24%**) of the target's elemental reduction.
 - **Ward**: −3% per level (cap **9%**) against **any** elemental damage, **multiplied** with affinity.
-- **Elemental damage ignores armour** (the eight `element_*` damage types are in `#minecraft:bypasses_armor`).
+- **Elemental damage ignores armour** (the seven `element_*` damage types plus `moon` / `star` /
+  `true_damage` are in `#minecraft:bypasses_armor`).
+- **Non-elemental damage**: anything no element claims (a plain swing, explosions, falling, the void…)
+  belongs to no element, never reacts, never eats elemental reduction, and prints grey (`PHYSICAL_COLOR`).
 - **I-frames**: elemental damage does **not** bypass invulnerability frames — it is part of that swing.
   The only enchantment that shortens/cancels i-frames is **Combo** (−10% per level, fully cancelled at 10).
 - **What counts as elemental**: chain lightning arcs = lightning, venom ticks = nature, celestial light =
@@ -71,9 +75,10 @@ enchantment (RARE), plus four **cross-element** enchantments (mastery / resonanc
 | Weak | 1.0 | 9.5 s | most elemental hits, lightning arcs |
 | Strong | 2.0 | 12 s | conversion riders, starfall, celestial light |
 | Ultra | 4.0 | 17 s | heavenly punishment |
-- **Accumulation**: a repeat application of the same element **adds up**, but only counts **50%** - eight
-  weak hits (1.0 x 0.5 x 8) are needed to reach 4.0, so many small attachments do reach a high class,
-  just **slowly**; a single ultra application is still the fastest route.
+
+- **Accumulation**: a repeat application of the same element **adds up**, but only counts **50%** — eight
+  weak hits (1.0 × 0.5 × 8) are needed to reach 4.0, so many small attachments do reach a high tier, just
+  **slowly**; a single ultra application is still the fastest route.
 
 - **Attachment ICD (two counters)**: against the same target, only the 1st, 4th, 7th… hit from the same
   attacker actually attaches an element within a **2.5 s** window; the window resets afterwards. Venom
@@ -85,10 +90,14 @@ enchantment (RARE), plus four **cross-element** enchantments (mastery / resonanc
 - **Amplifying reactions** (melt / vaporize): no separate damage, they **multiply the triggering hit**
   (×2.0 / ×1.5), so weapon, crit and mastery are all included.
 - **Transformative reactions** (conduct / overload / burning / annihilation …): deal **separate damage**,
-  `(4.0 + level × 0.55) × coefficient × (1 + mastery × 0.08)`; **weapon does not apply, no crits**.
-  The same target takes transformative damage at most once per **1 s** (status effects are not throttled).
+  `(4.0 + power × 0.55) × coefficient × (1 + mastery × 0.08)`; **no weapon scaling, no crits**.
+  **Power = gear strength × 5** (= armour/40 + health above 20/20 + attack damage/20 + enchantment
+  score/24, the same source as the mob difficulty curve): naked ≈ 0.5, iron ≈ 6, full build ≈ 35,
+  **uncapped** — better gear hits harder, but **experience levels no longer feed it** (a mob farm is
+  useless for transformative damage). The same target takes transformative damage at most once per **1 s**
+  (status effects are not throttled).
 - **Quicken** (nature + lightning): no damage; the target becomes quickened for 6 s and every nature /
-  lightning hit afterwards gains flat damage.
+  lightning hit afterwards gains flat damage (also power-scaled).
 
 | Reaction | Pair | Type | Value |
 |----------|------|------|-------|
@@ -106,8 +115,6 @@ enchantment (RARE), plus four **cross-element** enchantments (mastery / resonanc
 | **Soulburn** | fire ↔ shadow | transformative | 1.45, blind |
 | **Wither** | nature ↔ shadow | transformative | 1.10, slow |
 | **Eclipse** | frost ↔ light | transformative | 0.80, blind + slow |
-| **Backstab** | shadow → physical | transformative | 1.75 (highest in the table) |
-| **Blunt** | light → physical | transformative | 0.55, blind |
 | **Freeze** | frost → water | control | frozen for 10 s |
 | **Brittle** | water → frost | transformative | 0.50, armour shred |
 | **Bloom** | water / light ↔ nature | control | heavy entanglement 7 s (light version also heals) |
@@ -135,31 +142,37 @@ A 100-damage hit: armour 26 → 17 taken; armour 40 → 10 taken.
 | Crit Damage | increases the extra damage a crit deals |
 | Double Crit | chance to deal a large bonus on a crit |
 | Bloodlust | more damage the more health the attacker has lost |
-| Execute | finish off low-health targets, threshold scales with level |
-| Area Attack | splash the hit onto nearby enemies; pool = original damage × level, one target takes at most 100% |
+| Execute | finishes off low-health targets, threshold scales with level; the bonus is `2% × level × missing health`, but **at most `1.25 × this hit`** (otherwise a target with a health pool in the millions would lose half of it to one swing) |
+| AoE Attack | splash the hit onto nearby enemies; pool = original damage × level, one target takes at most 100% |
 | Combo | shortens the target's post-hit i-frames (−10% per level), **fully cancelled at level 10** — the only enchantment in this mod that touches i-frames |
 | True Damage | part of the damage ignores armour |
-| Fire Master | more damage the longer the target burns; extends burning and grants fire resistance |
+| Fire Master | every hit applies burning, stacking up to 10 s; the longer the remaining burn, the faster and harder the extra ticks (down to one per 5 ticks) |
+| Catalyze | targets you hit resolve damage over time `1 + level` times faster for 5 s: venom ticks keep their value and simply land more often, and a burning target takes `level` extra fire damage every 20 ticks |
 | Heavenly Punishment | big final-damage boost; weakens, roots, suppresses attack speed and calls down lightning |
 | Starfall | arrows summon a meteor that hunts the target and explodes on impact |
 | Gravity Strike | more damage the further you fall, capped, no bonus on flat ground |
 | Charged Strike | stores part of each hit and releases it on the next one |
-| Momentum | more damage the faster you move relative to the target, max on a sprint collision |
+| Motion Bonus | more damage the faster you move relative to the target, max on a sprint collision |
 | Combat Master | consecutive hits on the same target stack a bonus, up to 20% × level |
 | Assassin | executes low-health enemies |
 | Echo Shot | arrows echo on the target for extra damage |
 | Fast Bow | shorter draw time, higher level = faster |
 | Piercing Arrow | arrows pierce several enemies and stay pickable after hitting a block |
-| Homing Arrow | arrows slowly turn toward the nearest enemy, radius scales with level |
+| Tracking Arrow | arrows slowly turn toward the nearest enemy, radius scales with level |
 | Multishot | one extra arrow per level, spread horizontally, each consuming ammo |
 | Hunter's Mark | arrow hits mark the target for 10 s; the next damage is increased by 20%/level |
 | Sniper | more damage the longer the arrow flies (+0.5% per block per level, capped at 40 blocks, doubled at max level and range) |
 | Elemental Mastery | +10% elemental conversion and reaction damage per level (cap +200%); elemental part only, no melee bonus, conflicts with no conversion |
 | Elemental Resonance | **reaction** damage +10% per level (cap +30%); reactions only, never elemental direct damage |
 | Elemental Penetration | ignore 8%/level (cap 24%) of the target's elemental reduction |
-| Eight Conversions | physical / fire / frost / lightning / water / nature / shadow / light conversion (1.5%/level, cap 7.5%), mutually exclusive — see the elemental section above |
+| Seven Conversions | fire / frost / lightning / water / nature / shadow / light conversion (1.5%/level, cap 7.5%), mutually exclusive — see the elemental section above |
 | Detonate | on hit, if the target's aura is ≥ 2.0, consume all of it and deal `aura × (2 + 0.5 × level)` damage of that element (**no reaction**) |
 | Elemental Spread | when a reaction fires, attach `0.5 × level` of that element to other enemies within `2 + 0.5 × level` blocks (**aura only, no damage**) |
+| Hamstring | hits have a `40% + 10% × level` chance to apply Slowness I for 3 s (refreshes, never stacks — pure speed control, no damage rider) |
+| Shield Bash | **shield only**: blocking a melee hit knocks the attacker back and deals `2 + 2 × level` **true damage** (ignores armour, never crits); projectiles do not trigger it |
+| Riposte | after being hit in melee, your next hit within **3 s** deals `+15% × level`, then the charge is spent (no combo multiplier, applies to final damage) |
+| First Strike | the first hit on a target that is **still at full health** deals `+12% × level` (IV = +48%); never twice on the same target |
+| Deft | attack speed `+8%/level` (III = +24%), shortening the swing interval from 0.625 s to 0.504 s |
 
 #### 🛡️ Defence
 
@@ -167,47 +180,54 @@ A 100-damage hit: armour 26 → 17 taken; armour 40 → 10 taken.
 |-------------|--------|
 | Void Protection | teleports you high up when you fall into the void, consuming one level |
 | Flight | chestplate grants flight; costs hunger and durability |
-| Echo Shield | each hit is partly reduced and stored; when the store is full the hit is negated and reflected |
+| Echo Shield | each hit is reduced by **3% × level** (total level capped at 20 → 60%) and the reduced part is stored in the echo buffer; when the buffer covers the hit it is fully negated and **the whole buffer is reflected back** (keeping the element that hit you, **ignoring armour**). **The blocked attacker cannot be healed for the next `level` ticks (at most 5 ticks = 0.25 s)** — the 1.12.2 original duration, barely readable in practice; the real heal cut is Grievous Wounds |
+| Mirror | a flying arrow / trident that hits you has a `25% × level` chance to be **caught**: ownership flips to you, it flies back at 1.5× speed, its damage is recalculated from your attack damage, and it no longer hurts you (the projectile entity is taken over — not a reflected damage number) |
 | Damage Limiter | medium hits are clamped to a fraction of max health, lethal hits pass through |
 | Resilience | more reduction the lower your health; four armours at III with 10% health reaches 84% |
 | Vitality | increases max health |
-| Extra Armour | grants armour and toughness |
-| Knockback Resistance | increases knockback resistance |
-| Extra Reduction | percentage damage reduction |
+| Extra Armor | grants armour and toughness |
+| Anti Knockback | increases knockback resistance |
+| Damage Reduction | percentage damage reduction |
 | Death Protection | consumes one level to survive a lethal hit and grants absorption |
 | Immortal | chance to fully ignore a hit, plus several consecutive hits after it triggers |
-| Soulbound | items are kept on death and return to your inventory |
+| Soul Bound | items are kept on death and return to your inventory |
 | Saturation | slowly restores hunger and saturation |
 | Regeneration | slowly restores health |
 | Healer | converts damage dealt into healing for the target |
-| Life Siphon | heals you for a share of the damage dealt; overflow becomes absorption |
+| Healing Blade | heals you for a share of the damage dealt; overflow becomes absorption |
 | Delayed Recovery | part of the damage returns as healing over the next seconds; death cancels it |
 | Healing Multiplier | incoming healing increased by +10%/level of that heal plus a flat 0.25/level; never heals past full health |
 | Grievous Wounds | reduces the healing the target receives; at level V they cannot heal at all |
 | Prismatic Blessing | +4% per level to max health, attack damage, attack speed, movement speed, armour and toughness |
 | Celestial Blessing | lifesteal on damage, overflow becomes a light shield, hits add true damage and health shred, summons homing light particles |
-| Adaptive Armour | repeated damage of the same type stacks reduction (max 6 stacks), 0.9% × level per stack |
-| Eight Affinities | physical / fire / frost / lightning / water / nature / shadow / light affinity, −4% per level per armour piece (cap 80%); **none of them exclude each other** |
+| Adopted Armor | repeated damage of the same type stacks reduction (max 6 stacks), 0.9% × level per stack |
+| Seven Affinities | fire / frost / lightning / water / nature / shadow / light affinity, −4% per level per armour piece (cap 80%); **none of them exclude each other** |
 | Elemental Ward | **all** elemental damage −3%/level (cap −9%); **multiplied** with affinity, so "specialist" and "generalist" both have value |
 | Elemental Catalyst | attachment ICD shortened by **0.5 s** per level (2.5 → 2.0 / 1.5 / 1.0 s) — the ceiling on reaction rate at high attack speed |
 | Elemental Echo | taking elemental damage attaches `min(0.3 × level, 1.0)` of that element to yourself — getting hit becomes ammo for the next swing |
 | Elemental Sight | while worn, the **action bar** shows the element and aura amount of whatever you look at (makes the whole aura system visible) |
+| Feather Fall | fall damage `−20%/level` (IV = −80%), **not** immunity, stacks with the enchantments that do cancel falls |
+| Fleetfoot | movement speed `+6%/level` while worn (III = +18%), removed the moment the boots come off |
 
 #### 🔧 Tools
 
 | Enchantment | Effect |
 |-------------|--------|
-| Auto Smelt | mined blocks drop furnace/blast-furnace products (conflicts with Silk Touch, stacks with Fortune) |
+| Auto Smelting | mined blocks drop furnace/blast-furnace products (conflicts with Silk Touch, stacks with Fortune) |
 | Item Fixer | slowly repairs durability (conflicts with Mending) |
-| Momentum (mining) | mining the same block type speeds up over time |
+| Momentum | mining the same block type speeds up over time |
 | Tunneling | breaking a block also breaks connected same-type blocks (I: up/down, II: cross, III: 3×3) |
 | Unbreakable | the item never loses durability |
-| Reforge | vanishes immediately after applying, resetting the item's anvil cost |
-| Experience Stealer | extra XP based on damage dealt |
+| ReForge | vanishes immediately after applying, resetting the item's anvil cost |
+| Experience Stealer | **every** damage you deal turns into experience at `10% × level` — elemental conversions, reactions, venom, arcs, holy light, shield reflections, not just the physical hit; hitting a player also drains their experience progress |
 | Acid Attack | corrodes the target's held weapon on hit |
-| Armour Breaker | corrodes a random piece of the target's armour on hit |
+| Armor Breaker | corrodes a random piece of the target's armour on hit |
 | Swift Sneak | faster movement while sneaking |
 | Scavenger | killing a **levelled** mob has a level-scaled chance to drop extra vanilla materials; higher mob levels give better materials (iron nuggets below 20 / gold nuggets below 40 / iron ingot below 60 / emerald above) |
+| Shield Breaker | **axe only**: hitting a **blocking** target drops the block immediately (that hit lands as if unblocked) and costs `2 × level` extra shield durability |
+| Bountiful | **hoe only**: breaking crops or leaves has a `15%/level` chance to double the whole drop list (fortune and silk-touch results included) |
+| Gleaner | **pickaxe only**: mining iron/gold/copper ore has a `10%/level` chance to drop one extra nugget-sized item (iron nugget / gold nugget / raw copper), stacks with Fortune |
+| Aqua Worker | **helmet only**: underwater mining speed `×(1 + level)` (IV exactly cancels the vanilla ÷5), nothing on dry land |
 
 #### ⭐ Special
 
@@ -218,29 +238,36 @@ A 100-damage hit: armour 26 → 17 taken; armour 40 → 10 taken.
 | **Elemental Attunement** | consumed on use: replace the conversion enchantment with **another random element** (level kept); nothing is consumed without a conversion |
 | **Reroll** | consumed on use: strip every **mod** enchantment and roll 2 fresh **applicable** ones (level 1 to half max), never a conflicting pair |
 | **Infusion** | consumed on use: spend **10 experience levels** to raise the highest non-maxed enchantment by **one level**; nothing consumed when maxed or short on levels |
-| **Void Collapse** | at 5 stacks, collapse: `min(target max health × (5%% + 5%% × level), accumulated × 2)` **true damage** (ignores armour, i-frames, no crits), 50%% of it to other enemies within 6 blocks; each stack also makes the target take +12%% × level from you. **No downside**, just one collapse per target per 1 s |
-| **Elemental Sovereign** | the conversion element **becomes whichever one reacts with the target's current aura** (falls back to your own conversion element when there is none); every reaction you trigger deals **+30%% × level** |
-| **Midas Touch** | block drops `×(1 + 25%% × level)` (**multiplicative with Fortune**), mining speed `+20%% × level`, plus bonus experience on a chance. Deliberately ignores mob drops and experience gain (those belong to Scavenger / Experience Stealer) |
-| **Reaction Cascade** | if the target **already carries** an aura, immediately resolve a reaction with the **strongest element that reacts with it** (**ignoring the attachment ICD**), feeding `40%% + 20%% × level` of the hit into it; **0.5 s** internal cooldown |
-| **Shockwave Landing** | fall damage halved; the other half leaves as a shockwave in a `3 + level` block radius (scales with height and level), only past 3 blocks |
-| **Aegis** | maximum absorption `+2/level` (cap +8) — finally lets Life Siphon / Echo Shield / Death Protection shields hold a value (vanilla cap defaults to 0) |
-| **Trident Wrath** | a **thrown** trident adds a lightning strike: `40%% × level` of the hit as lightning elemental damage (can react); **doubles** in rain or water and leaves 1.0 lightning aura |
-| **Shield Breaker** | an axe hit on a **blocking** target drops the block at once (that hit lands unprotected) and costs `2 × level` extra shield durability |
-| **Gale Elytra** | gliding pushes you along your heading (1.2% per level, cap 5%); every 10 s **sneak while gliding** to dash, costing `3 × level` elytra durability |
-| **Attunement** | every distinct enchantment on the weapon (vanilla included) adds `+2% × level` **final damage**; several levels of one enchantment count once |
-| **Skyfall** | holding the mace cancels fall damage; a hit carrying fall distance sends a `15% × level` shockwave to every other enemy within `2 + level` blocks |
-| **Sunder** | a mace blow goes straight **through a raised shield** (that hit lands unprotected) and costs `4 × level` extra shield durability |
+| **Void Collapse** | at 5 stacks, collapse: `min(target max health × (5% + 5% × level), accumulated × 2)` **true damage** (ignores armour, i-frames, no crits), 50% to other enemies within 6 blocks; each stack also makes the target take +12% × level from you. **No downside**, just one collapse per target per 1 s |
+| **Elemental Sovereign** | the conversion element **becomes whichever one reacts with the target's current aura** (falls back to your own conversion element when there is none); every reaction you trigger deals **+30% × level** |
+| **Midas Touch** | block drops `×(1 + 25% × level)` (**multiplicative with Fortune**), mining speed `+20% × level`, plus bonus experience on a chance. Deliberately ignores mob drops and experience gain (those belong to Scavenger / Experience Stealer) |
+| **Reaction Cascade** | if the target **already carries** an aura, immediately resolve a reaction with the **strongest element that reacts with it** (**ignoring the attachment ICD**), feeding `40% + 20% × level` of the hit into it; **0.5 s** internal cooldown |
+| **Gale Elytra** | gliding pushes you along your heading (1.2% per level, cap 5%); every 10 s **sneak while gliding** to dash, costing `3 × level` elytra durability. **Elytra only** — vanilla elytra have an enchantability of 0 and take no table enchantments at all; this mod raises it to 15, so this and every other enchantment can be applied at the table |
+| **Attunement** | every **distinct** enchantment on the weapon (vanilla included) adds `+2% × level` **final damage**; several levels of one enchantment count once |
+| **Skyfall** | holding the mace cancels fall damage; a hit made with fall distance sends a `15% × level` shockwave to every other enemy within `2 + level` blocks |
+| **Sunder** | a mace blow goes straight **through a raised shield**: the block is broken at once (the hit lands with full damage) and the shield loses `4 × level` extra durability |
 | **Quake** | interrupts a target that is **using an item** (bow draw / shield / potion / food) and puts that item on a 1 s cooldown |
-| **Elemental Supremacy** | (1) your **highest** elemental affinity defends against **all eight** elements (maximum, never summed). (2) its **own mitigation zone**: `4.5% × total level` (**90%** at 20 levels), a separate reduction multiplied with the affinity — 80% × 90% = **98%**, never 100%. (3) every hit carries an extra `5%` of its damage as an elemental conversion (the hit itself is not reduced), once per 10 total levels (2 at a full set), random element, can start a reaction. (4) every reaction that hits you is remembered, capacity = total armour level / 2 (max 10), and your **next hit** replays all of them, each at 40% of that hit |
+| **Devour** | every kill feeds **this weapon** by one stack: **+2% final damage** per stack, up to `5 × level` stacks (III = 15 = +30%); **dying drops half**. Stacks live in the item's NBT — a new weapon starts over, and the tooltip shows the current count |
+| **Multitude** | a reaction you trigger has a `15% + 10% × level` chance to be **replicated** onto every other enemy within `6 + 2 × level` blocks: each of them receives **the trigger element** and **the reaction's own damage** (unlike Elemental Spread — that one only attaches aura) |
+| **Karma** | every **attack you land** (elemental conversions / reactions / venom riders do not count) **resets** the karma pool to `20% + 10% × effective level` of that hit. The pool lasts `⌊5 + effective level⌋` s and cancels incoming damage at **1:1** (the value before armour reduction), for at most `⌊effective level⌋` hits, then it is gone. **Four armour pieces at IV = base maxLevel 16**; effective level = sum of all four ÷ 4 (so stuffing 16 into one piece is still worth one set) |
+| **Resonance Core** | every elemental reaction you trigger adds one Resonance stack to the target (cap `2 + level`, III = 5 stacks, 10 s). Each stack makes your **elemental damage** against it `+4%` (5 stacks = +20%); once full, your next elemental hit is a **guaranteed crit (×2.4)** and consumes every stack |
+| **Blessing of the Moon** | your **water reactions** (Vaporize / Conduct / Bloom / Purify) resolve an extra `20% + 10% × level` (III = 50%) as **lunar damage**: ignores armour, can crit (`15% + 10% × level` chance, ×1.5), and adds a Moonlight stack (max 5, 10 s, +5% lunar damage each). **Amplifying reactions (Vaporize) count too**: the base is the extra damage the multiplier added, and it triggers **Moontide** — the mist lasts twice as long, every other enemy within 3 blocks is misted too, and Moonlight jumps by 2 |
+| **Blessing of the Star** | your **frost reactions** (Melt / Vanish / Overload / Eclipse / Freeze / Brittle) resolve an extra `15% + 10% × level` (III = 45%) as **stellar damage**: **always crits** (×1.5) and splashes 50% of it to other enemies within 4 blocks. **Amplifying reactions (Melt / Vanish) count too**: the base is the extra damage the multiplier added, and it triggers **Starprism** — the splash is **not** reduced (100%) and everyone it hits is fractured |
+| **Blessing of the Sun** | your **fire / light reactions** (Sanctify / Scorch / Annihilation / Burning / Extinguish / Quicken) resolve an extra `20% + 10% × level` (III = 50%) as **solar damage**: ignores armour, **never crits**, but **+50% against the undead**. This whole family is output: Sanctify → **Radiance** (the same solar instance lands again after 1 s); Scorch → **Sear** (15% per second for 5 s); Annihilation → **Doom** (marked 6 s — if it dies, enemies within 5 blocks take 60% of that instance); Burning → **Scorched Ground** (6 s, 10% per second to enemies within 3 blocks); Extinguish → **Embers** (three bursts in half a second, 50% each, 150% total); Quicken → **Corona** (all solar damage ×1.75 for 6 s, this one included). **Quicken deals no damage of its own and is still allowed through** (Corona opens anyway); amplifying reactions are scaled from the extra damage they added |
+| **Elemental Supremacy** | (1) your **highest** elemental affinity also defends against **all seven** elements (maximum, never summed). (2) its **own mitigation zone**: `4.5% × total level` (**90%** at 20 levels), applied separately from the affinity and multiplied with it — 80% × 90% = **98%**, never 100%. (3) every attack carries an extra `5%` of its damage as an elemental conversion (the hit itself is not reduced), once per 10 total levels (2 at a full set), random element, can start a reaction. (4) every elemental reaction that hits you is remembered, capacity = total level ÷ 2 (max 10); your **next attack** replays all of them (each re-based on 40% of that hit). (5) attachment and reaction ICDs are shortened by `1 − total level ÷ 20` — both collapse to **1 tick** at a full set. (6) **Counter**: every elemental hit you take is answered by the element that counters it, attached to the attacker at **0.5 units** (an active hit applies 1), reflecting `4% × total level` of that hit (80% at a full set) as that element, and locking the attacker's healing for `total level` ticks (**1 s** at a full set) — the reflection runs on the auxiliary channel, so it can react and ignores armour but never re-enters on-hit; not triggered when the attacker also wears Elemental Supremacy |
+| **Arcane Echo** | converts the **total enchantment levels of your six equipment slots (both hands + four armour pieces)** into a whole block of bonuses: max health `+0.12/level`, armour `+0.08`, toughness `+0.03`, attack damage `+0.04`, attack speed `+0.12%/level`, movement speed `+0.08%` (**the only capped one: 20%**), knockback resistance `+0.15%`, luck `+0.015`, **flat damage reduction `−0.05/level`**, plus **elemental damage +0.25%/level** and **reaction damage +0.35%/level** — everything except move speed is **uncapped**, limited only by your total enchantment levels. The **effective level is the lowest** Arcane Echo you wear (chest I + sword II = level I), and its **own level does not count towards the total** (no self-feeding). Fits **swords / axes / maces / bows / crossbows / any armour**; the tooltip lists the live numbers |
 
 ### 🎮 Client features
 
 - **Damage indicator** — floating numbers on hits and heals; percentage mode, two-line display (damage + health)
     - **Final health change only**: it shows what the health bar actually lost, never "hit for 150, lost 48"
-    - **Per-element colours**: each of the eight elements has its own colour
-    - **Split by element**: one hit becomes **one number per element** (physical / water / lightning / reaction),
+    - **Per-element colours**: each of the seven elements has its own colour; non-elemental damage is grey
+    - **Split by element**: one hit becomes **one number per element** (non-elemental / water / lightning / reaction),
       fanned horizontally and **staggered vertically** so they never overlap (random position, not attached to the entity)
     - **Reaction labels**: a reaction prints its name and the damage it dealt above the target, e.g. `Conduct (-28.30)`
+- **HUD bars** — health and hunger drawn as bars instead of vanilla icons; the food bar prints
+  `food (saturation)` and tints the saturated share of the fill gold
+    - Bar numbers take decimals; the maximum number of places is configurable
 - **Enchantment index** — `/simple_tweaks enchantinfo`, browsable **by rarity** or **by applicable item**
 - **Config screen** — `/simple_tweaks stconfig`, applied live, no restart
 - **Coloured enchantment names** — by rarity; `Infinite Power` cycles a rainbow
@@ -250,13 +277,24 @@ A 100-damage hit: armour 26 → 17 taken; armour 40 → 10 taken.
 
 Difficulty is no longer "spawn more mobs": every mob gets a level **at spawn time** based on the current
 difficulty and is enhanced by this mod. Four switches on the "Mobs" tab of `/simple_tweaks stconfig`
-(config keys `mobEnhancement.*`): `enabled` / `levelsEnabled` / `enchantmentsEnabled` / `elementsEnabled`.
+(config keys `mobEnhancement.*`): `enabled` / `levelsEnabled` / `enchantmentsEnabled` / `elementsEnabled`;
+the same tab holds the three 0–100 **level-up chances** (see "levelling in combat" below).
 
-- **Levels** — base stats grow with level (health, attack, armour), **no level cap**. Level = chunk
-  "age/difficulty" **+ the player's overall power** (armour, max health, attack damage, total enchantment
-  levels), so **early game is Lv1–3** and it climbs as you gear up; a group spawned in one place spreads
-  over a small range and shows a **`[Lv.N]`** name tag (computed on the server, synced to clients).
-  **Every mob has a level** — unarmed spiders, creepers and slimes gain health and damage too
+- **Levels** — base stats grow with level (health, attack, armour, **knockback resistance**), **no level cap**.
+  Level = chunk "age/difficulty" **+ the player's overall power** (armour, max health, attack damage,
+  **enchantment score**; the score is `Σ(level × quality weight) + a breadth bonus`, where the quality
+  weight is `√(10 / weight)` and lands between 1.0 and 2.2), and power below 0.4 **does not count**
+  (bad starting gear never inflates the level), so a **new world starts at Lv1** and climbs as you gear
+  up; a group spawned in one place spreads over a small range and shows a **`[Lv.N]`** name tag
+  (computed on the server, synced to clients). **Every mob has a level** — unarmed spiders, creepers and
+  slimes gain health and damage too, not just the zombies holding a sword
+- **Levelling in combat** — mobs are not frozen at spawn: hitting a player, killing something and being hit
+  by a player each roll an independent chance to **gain one level** (default 3% / 10% / 1%, all three are
+  0–100 boxes on the mobs tab). A level-up heals to full and grants the new stats at once. The ceiling is
+  "spawn level at this position × 1.5" (clamped to Lv10–100), so growth follows your gear instead of
+  flat-lining
+- **Knockback resistance** — `+3%` per level, up to `95%`: high-level mobs barely budge, though a crit
+  knockback still moves them — and pushing them into lava still works
 - **Modded equipment** — zombies/skeletons can spawn with **this mod's enchantments** and mixed-material
   armour. Enchantment strength comes from the **mob's total level budget**: `1 + level/10` levels
   (Lv1–9 → 1, Lv10–19 → 2, Lv20–29 → 3 …), spread across its gear, at most 3 enchantments per item.
@@ -268,6 +306,7 @@ difficulty and is enhanced by this mod. Four switches on the "Mobs" tab of `/sim
   can watch the level/enchantment/element probabilities change; `reset` clears it (**session only**, never saved)
 
 ---
+
 
 ## 🚀 Installation
 
@@ -282,7 +321,7 @@ difficulty and is enhanced by this mod. Four switches on the "Mobs" tab of `/sim
 
 **Steps**:
 
-1. Download `simple_tweaks-2.2.6.jar` from [Releases](https://github.com/FireFlyUnlegit/FireFly-Simple-Tweaks/releases)
+1. Download `simple_tweaks-2.3.0.jar` from [Releases](https://github.com/FireFlyUnlegit/FireFly-Simple-Tweaks/releases)
 2. Drop it into `.minecraft/mods/`
 3. Launch the game
 
@@ -318,7 +357,7 @@ Every command lives under **`/simple_tweaks`**; `/fst` is an exact alias.
 | `/fst difficulty reset` | clear the session offset | OP 2 |
 | `/fst difficulty modify <±value>` | add to the **computed** difficulty, **saved to config and kept across restarts** | OP 2 |
 | `/fst difficulty modify clear` | reset the persistent offset | OP 2 |
-| `/fst difficulty check` | print `localDifficulty / base / offset / modify / playerPower → effective → level` | OP 2 |
+| `/fst difficulty check` | print `localDifficulty / base / offset / modify / power (+term) → effective → level` | OP 2 |
 | `/fst debugItem` | summary of the held item (id / count / durability / name / component count) | OP 2 |
 | `/fst debugItem nbt show\|set\|add\|remove\|clear` | edit `minecraft:custom_data` (values parsed as SNBT) | OP 2 |
 | `/fst debugItem component list\|get\|set\|remove` | inspect/edit any data component (through its own codec) | OP 2 |
@@ -328,6 +367,7 @@ Every command lives under **`/simple_tweaks`**; `/fst` is an exact alias.
 > You can also edit `config/simple_tweaks.json` directly; `/fst stconfig` is its GUI and applies changes live.
 
 ---
+
 
 ## ⚠️ Known 1.21.1 limitations
 
