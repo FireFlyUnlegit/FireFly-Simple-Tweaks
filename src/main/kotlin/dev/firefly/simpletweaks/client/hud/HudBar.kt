@@ -111,6 +111,42 @@ object HudBar {
     }
 
     /**
+     * Centred bar text that never outgrows the track: the first candidate that fits wins, and if even the
+     * last one is too wide it is drawn at half scale. A 1 000 HP pool would otherwise print
+     * `1093.84/1093.84` (15 chars = 90 px) inside a 78 px bar and spill over both ends.
+     */
+    fun fitText(context: DrawContext, candidates: List<String>, x: Int, y: Int, w: Int, color: Int) {
+        if (candidates.isEmpty()) return
+        val renderer = MinecraftClient.getInstance().textRenderer
+        val innerW = w - 2
+        val chosen = candidates.firstOrNull { renderer.getWidth(it) <= innerW } ?: candidates.last()
+        val textW = renderer.getWidth(chosen)
+        if (textW <= innerW) {
+            context.drawText(renderer, chosen, x + (w - textW) / 2, y + 1, color, true)
+            return
+        }
+        val pos = context.getMatrices()
+        pos.push()
+        pos.scale(0.5f, 0.5f, 1f)
+        context.drawText(renderer, chosen, (x + (w - textW / 2) / 2) * 2, (y + 1) * 2, color, true)
+        pos.pop()
+    }
+
+    /** `1.09k` / `12.3k` / `4.00M` / `1.20B`: short enough that even a 10-digit pool fits the track. */
+    fun compact(value: Double): String {
+        if (!value.isFinite()) return "0"
+        val abs = kotlin.math.abs(value)
+        val (scaled, suffix) = when {
+            abs >= 1_000_000_000_000.0 -> value / 1_000_000_000_000.0 to "T"
+            abs >= 1_000_000_000.0 -> value / 1_000_000_000.0 to "B"
+            abs >= 1_000_000.0 -> value / 1_000_000.0 to "M"
+            abs >= 1_000.0 -> value / 1_000.0 to "k"
+            else -> value to ""
+        }
+        return BarNumber.of(scaled, if (suffix.isEmpty()) GeneralConfig.barDecimalPlaces.coerceIn(ConfigBounds.BAR_DECIMALS) else 2) + suffix
+    }
+
+    /**
      * A bar number: at most [GeneralConfig.barDecimalPlaces] decimals, trailing zeros dropped, so 0.1 never
      * prints as 0.1000 and whole values stay whole ("20", not "20.00").
      */

@@ -956,6 +956,30 @@ public class SimpleTweaksGameTests implements FabricGameTest {
     }
 
     /**
+     * A four-digit health pool must not print "1093.84/1093.84" (90 px) inside a 78 px track: the HUD falls
+     * back to whole numbers first, then to the compact k/M form. [HudBar.compact] is the last rung.
+     */
+    @GameTest(templateName = FabricGameTest.EMPTY_STRUCTURE)
+    public void compactBarNumbersFitTheTrack(TestContext context) {
+        String[] cases = {
+                dev.firefly.simpletweaks.client.hud.HudBar.INSTANCE.compact(999.0),
+                dev.firefly.simpletweaks.client.hud.HudBar.INSTANCE.compact(1093.84),
+                dev.firefly.simpletweaks.client.hud.HudBar.INSTANCE.compact(2000.0),
+                dev.firefly.simpletweaks.client.hud.HudBar.INSTANCE.compact(1234567.0),
+                dev.firefly.simpletweaks.client.hud.HudBar.INSTANCE.compact(2_500_000_000.0),
+                dev.firefly.simpletweaks.client.hud.HudBar.INSTANCE.compact(3_200_000_000_000.0),
+                dev.firefly.simpletweaks.client.hud.HudBar.INSTANCE.compact(0.0),
+        };
+        String[] expected = {"999", "1.09k", "2k", "1.23M", "2.5B", "3.2T", "0"};
+
+        LOGGER.info("[FST-GameTest] compact bar numbers: {}", String.join(" / ", cases));
+        for (int i = 0; i < expected.length; i++) {
+            context.assertEquals(expected[i], cases[i], "compact bar number " + i);
+        }
+        context.complete();
+    }
+
+    /**
      * The equipment snapshot must follow equipment, including the swap-away case, and it must not answer
      * for a slot it was not asked about.
      *

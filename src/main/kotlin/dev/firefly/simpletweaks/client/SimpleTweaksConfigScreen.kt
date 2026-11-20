@@ -378,11 +378,17 @@ class SimpleTweaksConfigScreen(private val parent: Screen?) :
     override fun render(context: DrawContext, mouseX: Int, mouseY: Int, delta: Float) {
         super.render(context, mouseX, mouseY, delta)
 
-        context.drawCenteredTextWithShadow(this.textRenderer, this.title, this.width / 2, 16, 0xFFFFFF)
-        context.drawCenteredTextWithShadow(
+        // Header row: title on the left, section + page on the right. Both used to be stacked above the
+        // tab strip, where the centred page label sat exactly on top of the page buttons.
+        val headerLeft = this.width / 2 - ROW_W / 2
+        context.drawTextWithShadow(this.textRenderer, this.title, headerLeft, 16, 0xFFFFFF)
+        val pageText = Text.translatable("${KEY_PREFIX}page", key(sectionName()), page + 1, PAGES)
+        context.drawTextWithShadow(
             this.textRenderer,
-            Text.translatable("${KEY_PREFIX}page", key(sectionName()), page + 1, PAGES),
-            this.width / 2, 28, 0xA0A0A0,
+            pageText,
+            headerLeft + ROW_W - this.textRenderer.getWidth(pageText),
+            16,
+            0xA0A0A0,
         )
 
         // Selected page tab gets an underline, so "which page am I on" does not rely on the small "N/5" text.

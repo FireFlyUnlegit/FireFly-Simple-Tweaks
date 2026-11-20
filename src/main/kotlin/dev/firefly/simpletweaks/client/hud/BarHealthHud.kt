@@ -69,8 +69,14 @@ object BarHealthHud {
             context.fill(barX + 1 + filledPx, y + 1, barX + 1 + ghostPx, y + HudBar.HEIGHT - 1, GHOST)
         }
         HudBar.fill(context, barX, y, HudBar.WIDTH, HudBar.HEIGHT, shown / max, FILL_TOP, FILL_BOTTOM, blinking)
-        HudBar.text(
-            context, "${HudBar.number(current.toDouble())}/${HudBar.number(max.toDouble())}",
+        HudBar.fitText(
+            context,
+            listOf(
+                "${HudBar.number(current.toDouble())}/${HudBar.number(max.toDouble())}",
+                "${one(current.toDouble())}/${one(max.toDouble())}",
+                "${zero(current.toDouble())}/${zero(max.toDouble())}",
+                "${HudBar.compact(current.toDouble())}/${HudBar.compact(max.toDouble())}",
+            ),
             barX, y, HudBar.WIDTH, TEXT,
         )
 
@@ -83,8 +89,14 @@ object BarHealthHud {
                 context, barX, absorbY, HudBar.WIDTH, HudBar.HEIGHT,
                 (absorbShown / max).coerceIn(0f, 1f), ABSORB_TOP, ABSORB_BOTTOM,
             )
-            HudBar.text(
-                context, "+${HudBar.number(absorption.toDouble())}",
+            HudBar.fitText(
+                context,
+                listOf(
+                    "+${HudBar.number(absorption.toDouble())}",
+                    "+${one(absorption.toDouble())}",
+                    "+${zero(absorption.toDouble())}",
+                    "+${HudBar.compact(absorption.toDouble())}",
+                ),
                 barX, absorbY, HudBar.WIDTH, ABSORB_TEXT,
             )
         } else {
@@ -106,4 +118,10 @@ object BarHealthHud {
         ToughnessHud.reset()
         HungerHud.reset()
     }
+
+    /** One decimal: the first fallback, so a 1 000 HP pool still shows `1093.8/1093.8`. */
+    private fun one(value: Double): String = BarNumber.of(value, 1)
+
+    /** Whole numbers: the second fallback when even one decimal no longer fits the track. */
+    private fun zero(value: Double): String = BarNumber.of(value, 0)
 }
