@@ -206,7 +206,11 @@ class SimpleTweaksConfigScreen(private val parent: Screen?) :
                     step = 0.0, min = ConfigBounds.BAR_DECIMALS.first.toDouble(), max = ConfigBounds.BAR_DECIMALS.last.toDouble(),
                     fmt = { Text.literal(it.toInt().toString()) },
                 )
-                boolRow("barCompactNumbers", { GeneralConfig.barCompactNumbers }) {
+                boolRow("debugLogging", { GeneralConfig.debugLogging }) {
+                GeneralConfig.debugLogging = it
+                dev.firefly.simpletweaks.compat.FSTLog.runtimeEnabled = it
+            }
+            boolRow("barCompactNumbers", { GeneralConfig.barCompactNumbers }) {
                     GeneralConfig.barCompactNumbers = it
                 }
                 boolRow("compactScientific", { GeneralConfig.compactScientific }) {

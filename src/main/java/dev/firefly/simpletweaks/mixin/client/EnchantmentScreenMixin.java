@@ -85,6 +85,21 @@ public abstract class EnchantmentScreenMixin extends HandledScreen<EnchantmentSc
         int width = this.textRenderer.getWidth(label);
         context.drawTextWithShadow(this.textRenderer, label, this.x + 176 - width, this.y - 11,
                 on ? 0xFFD24A : 0x808080);
+        if (on && this.client != null && this.client.player != null) {
+            var player = this.client.player;
+            int lapis = this.handler.getLapisCount();
+            boolean creative = player.getAbilities().creativeMode;
+            for (int row = 0; row < 3; row++) {
+                int power = this.handler.enchantmentPower[row];
+                if (power <= 0) continue;
+                boolean affordable = creative || (player.experienceLevel >= AdvancedEnchantMode.INSTANCE.xpCost(power)
+                        && lapis >= AdvancedEnchantMode.INSTANCE.lapisCost(power));
+                if (!affordable) {
+                    context.fill(this.x + 60, this.y + 14 + 19 * row, this.x + 168, this.y + 14 + 19 * row + 19,
+                            0x99000000);
+                }
+            }
+        }
         if (simpletweaks$hoveredRow(mouseX, mouseY) >= 0) {
             Text hint = Text.translatable("gui.simple_tweaks.enchant_table.advanced_hint");
             context.drawTextWithShadow(this.textRenderer, hint, this.x + 176 - this.textRenderer.getWidth(hint),

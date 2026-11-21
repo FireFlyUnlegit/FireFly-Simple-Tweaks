@@ -118,6 +118,10 @@ object GeneralConfig {
     @JvmStatic
     var barCompactNumbers: Boolean = false
 
+    /** Prints `[FST-*]` debug lines. Same switch as the `-Dsimpletweaks.debug` startup flag. */
+    @JvmStatic
+    var debugLogging: Boolean = false
+
     /**
      * Write compact numbers as `1.24e3` instead of `1.24k`. Off by default: the suffix ladder reads faster,
      * but `E` (exa) and `e` (exponent) look alike once values get large, so this is the player's call.

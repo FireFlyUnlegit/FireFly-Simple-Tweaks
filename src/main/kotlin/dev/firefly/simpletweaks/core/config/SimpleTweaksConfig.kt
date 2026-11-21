@@ -1,5 +1,6 @@
 package dev.firefly.simpletweaks.core.config
 
+import dev.firefly.simpletweaks.compat.FSTLog
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
@@ -104,6 +105,8 @@ object SimpleTweaksConfig {
         GeneralConfig.barDecimalPlaces = s.int("barDecimalPlaces", 2)
             .coerceIn(ConfigBounds.BAR_DECIMALS)
         GeneralConfig.barCompactNumbers = s.bool("barCompactNumbers", false)
+        GeneralConfig.debugLogging = s.bool("debugLogging", false)
+        FSTLog.runtimeEnabled = GeneralConfig.debugLogging
         GeneralConfig.compactScientific = s.bool("compactScientific", false)
     }
 
@@ -210,6 +213,7 @@ object SimpleTweaksConfig {
             addProperty("barHealthHud", GeneralConfig.barHealthHud)
             addProperty("barDecimalPlaces", GeneralConfig.barDecimalPlaces)
         addProperty("barCompactNumbers", GeneralConfig.barCompactNumbers)
+        addProperty("debugLogging", GeneralConfig.debugLogging)
         addProperty("compactScientific", GeneralConfig.compactScientific)
         }
         val mobEnhancement = JsonObject().apply {

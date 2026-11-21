@@ -188,9 +188,9 @@ class EnchantInfoScreen(private val parent: Screen?) :
         "legendary" to (Items.YELLOW_WOOL to Formatting.GOLD),
         "mythic" to (Items.RED_WOOL to Formatting.DARK_RED),
         "mystery" to (Items.LIGHT_BLUE_WOOL to Formatting.AQUA),
-        "advanced_common" to (Items.PURPLE_WOOL to Formatting.DARK_PURPLE),
-        "advanced_uncommon" to (Items.PURPLE_WOOL to Formatting.DARK_PURPLE),
-        "advanced_rare" to (Items.PURPLE_WOOL to Formatting.DARK_PURPLE),
+        "advanced_common" to (Items.WHITE_WOOL to Formatting.WHITE),
+        "advanced_uncommon" to (Items.LIME_WOOL to Formatting.GREEN),
+        "advanced_rare" to (Items.LIGHT_BLUE_WOOL to Formatting.BLUE),
         "advanced_epic" to (Items.PURPLE_WOOL to Formatting.DARK_PURPLE),
     )
 

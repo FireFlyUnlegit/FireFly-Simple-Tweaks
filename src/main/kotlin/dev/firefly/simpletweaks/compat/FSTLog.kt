@@ -51,8 +51,15 @@ object FSTLog {
      * Read once at class-init — see the class KDoc. A Java mixin reaches this as
      * `FSTLog.INSTANCE.getEnabled()`.
      */
-    val enabled: Boolean =
+    private val startupEnabled: Boolean =
         isOn(System.getProperty("simpletweaks.debug")) || isOn(System.getenv("SIMPLETWEAKS_DEBUG"))
+
+    /** Flipped by the `debugLogging` config option; the startup switch above still wins. */
+    @JvmStatic
+    var runtimeEnabled: Boolean = false
+
+    val enabled: Boolean
+        get() = startupEnabled || runtimeEnabled
 
     private fun isOn(value: String?): Boolean =
         value != null && (value.equals("true", ignoreCase = true) || value.trim() == "1")

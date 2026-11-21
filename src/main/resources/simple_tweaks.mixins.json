@@ -46,6 +46,7 @@
   ],
   "client": [
     "AnvilScreenMixin",
+    "client.AdvancedEnchantmentNameMixin",
     "client.EnchantmentScreenMixin",
     "EnchantmentNameColorMixin",
     "client.InGameHudArmorMixin",

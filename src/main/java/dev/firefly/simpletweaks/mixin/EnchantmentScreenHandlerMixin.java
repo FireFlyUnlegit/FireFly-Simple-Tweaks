@@ -3,6 +3,7 @@ package dev.firefly.simpletweaks.mixin;
 import dev.firefly.simpletweaks.compat.FSTLog;
 import dev.firefly.simpletweaks.core.EnchantTableGate;
 import dev.firefly.simpletweaks.core.AdvancedEnchantMode;
+import dev.firefly.simpletweaks.client.AdvancedOffers;
 import dev.firefly.simpletweaks.util.UpgradeEnchantments;
 import java.util.ArrayList;
 import java.util.List;
@@ -11,6 +12,7 @@ import net.minecraft.enchantment.Enchantment;
 import net.minecraft.enchantment.EnchantmentLevelEntry;
 import net.minecraft.registry.DynamicRegistryManager;
 import net.minecraft.registry.Registry;
+import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.entry.RegistryEntry;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
@@ -27,6 +29,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -34,7 +37,7 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
- * Port of 1.12.2 `MixinContainerEnchantment` — the "already-enchanted items and enchanted books can
+ * Port of 1.12.2 `MixinContainerEnchantment` 鈥?the "already-enchanted items and enchanted books can
  * be enchanted again, and re-enchanting <b>replaces</b> the old enchantments" behaviour (B-2a).
  * `ContainerEnchantment` is `EnchantmentScreenHandler` in 1.21.
  *
@@ -42,7 +45,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  * gate on this mixin, and inventing one would silently change behaviour for anyone who flips an
  * unrelated option.
  *
- * <h2>Yarn 1.21.1 ground truth (bytecode, per MIGRATION.md 铁律二)</h2>
+ * <h2>Yarn 1.21.1 ground truth (bytecode, per MIGRATION.md 閾佸緥浜?</h2>
  * <pre>
  *   onContentChanged(Inventory)   gate: !isEmpty() &amp;&amp; isEnchantable()   (offsets 17..27)
  *   method_17410(ItemStack,int,PlayerEntity,int,ItemStack,World,BlockPos)
@@ -64,12 +67,12 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  * offset above was read out of
  * `minecraft-merged-1.21.1-net.fabricmc.yarn.1_21_1.1.21.1+build.3-v2.jar`, not inferred.
  *
- * <h2>(3) Replace instead of accumulate — the real root cause, and why three attempts failed</h2>
+ * <h2>(3) Replace instead of accumulate 鈥?the real root cause, and why three attempts failed</h2>
  * 1.12.2 cleared the old {@code ench} tag <b>between</b> the offer generation and the add loop, so the
  * loop wrote onto a clean stack. Three attempts were needed here and the first two, plus the third's
  * first revision, all failed <b>the same way</b>: the item was left stripped with nothing added.
  *
- * <p>That shared symptom was the clue, and it was not the injection point — it was <b>removing the
+ * <p>That shared symptom was the clue, and it was not the injection point 鈥?it was <b>removing the
  * component at all</b>. {@code method_17410} writes through {@code ItemStack#addEnchantment}, which
  * is a thin wrapper over {@code EnchantmentHelper#apply(ItemStack, Consumer)}:
  * <pre>
@@ -82,10 +85,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  * </pre>
  * So after {@code stack.remove(ENCHANTMENTS)} every following {@code addEnchantment} returns
  * {@code DEFAULT} without writing anything. The clear ran, the adds were discarded, and the item was
- * left empty — and because the component then stays absent, the table could not offer anything
+ * left empty 鈥?and because the component then stays absent, the table could not offer anything
  * afterwards either.
  *
- * <p><b>The fix is to empty the component rather than delete it</b> — {@code set(DEFAULT)} keeps
+ * <p><b>The fix is to empty the component rather than delete it</b> 鈥?{@code set(DEFAULT)} keeps
  * {@code get(type)} non-null, so the loop writes normally. The component type is mirrored from
  * {@code getEnchantmentsComponentType} above, because an enchanted book stores its enchantments in
  * {@code STORED_ENCHANTMENTS} and clearing the wrong one would be a no-op.
@@ -95,7 +98,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  *   <tr><td>1</td><td>HEAD</td><td>remove</td><td>stripped, nothing added</td></tr>
  *   <tr><td>2</td><td>{@code @Redirect addEnchantment}</td><td>remove</td><td>stripped, nothing added</td></tr>
  *   <tr><td>3a</td><td>after {@code applyEnchantmentCosts}</td><td>remove</td><td>stripped, nothing added</td></tr>
- *   <tr><td><b>3b</b></td><td>after {@code applyEnchantmentCosts}</td><td><b>set(DEFAULT)</b></td><td>—</td></tr>
+ *   <tr><td><b>3b</b></td><td>after {@code applyEnchantmentCosts}</td><td><b>set(DEFAULT)</b></td><td>鈥?/td></tr>
  * </table>
  *
  * <p>The anchor still matters for a second reason: it sits after the {@code ifne 240} early return, so
@@ -108,6 +111,22 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  */
 @Mixin(EnchantmentScreenHandler.class)
 public abstract class EnchantmentScreenHandlerMixin {
+    /** The table handler never kept its player, but the flag lives on the player, so keep it here. */
+    @Unique
+    private PlayerEntity simpletweaks$owner;
+
+    @Inject(method = "<init>(ILnet/minecraft/entity/player/PlayerInventory;Lnet/minecraft/screen/ScreenHandlerContext;)V",
+            at = @At("RETURN"))
+    private void simpletweaks$rememberOwner(int syncId, net.minecraft.entity.player.PlayerInventory playerInventory,
+            net.minecraft.screen.ScreenHandlerContext context, CallbackInfo ci) {
+        this.simpletweaks$owner = playerInventory.player;
+    }
+
+    @Inject(method = "<init>(ILnet/minecraft/entity/player/PlayerInventory;)V", at = @At("RETURN"))
+    private void simpletweaks$rememberOwner(int syncId, net.minecraft.entity.player.PlayerInventory playerInventory,
+            CallbackInfo ci) {
+        this.simpletweaks$owner = playerInventory.player;
+    }
 
     private static final Logger LOGGER = LoggerFactory.getLogger("simple_tweaks/enchant_table");
 
@@ -164,7 +183,7 @@ public abstract class EnchantmentScreenHandlerMixin {
      * empty-offer early return. See the class KDoc for why emptying (not removing) the component is
      * the part that actually matters.
      *
-     * <p>The parameter list must be the full target signature plus the callback — Mixin only permits
+     * <p>The parameter list must be the full target signature plus the callback 鈥?Mixin only permits
      * dropping arguments from the end, and `stack` (the first one) is the one that matters.
      */
     @Inject(
@@ -208,13 +227,13 @@ public abstract class EnchantmentScreenHandlerMixin {
      */
     @Inject(method = "generateEnchantments", at = @At("HEAD"))
     private void simpletweaks$beginAdvancedRoll(DynamicRegistryManager registryManager, ItemStack stack,
-            int level, int slot, CallbackInfoReturnable<List<EnchantmentLevelEntry>> cir) {
-        AdvancedEnchantMode.INSTANCE.beginRoll(AdvancedEnchantMode.INSTANCE.isAdvancedHandler(this));
+            int slot, int level, CallbackInfoReturnable<List<EnchantmentLevelEntry>> cir) {
+        AdvancedEnchantMode.INSTANCE.beginRoll(simpletweaks$owner != null && AdvancedEnchantMode.INSTANCE.isOn(simpletweaks$owner));
     }
 
     @Inject(method = "generateEnchantments", at = @At("RETURN"), cancellable = true)
     private void simpletweaks$advancedOffer(DynamicRegistryManager registryManager, ItemStack stack,
-            int level, int slot, CallbackInfoReturnable<List<EnchantmentLevelEntry>> cir) {
+            int slot, int level, CallbackInfoReturnable<List<EnchantmentLevelEntry>> cir) {
         boolean advanced = AdvancedEnchantMode.INSTANCE.inAdvancedRoll();
         AdvancedEnchantMode.INSTANCE.endRoll();
         if (!advanced || stack.isEmpty()) {
@@ -225,12 +244,61 @@ public abstract class EnchantmentScreenHandlerMixin {
             return;
         }
         List<EnchantmentLevelEntry> list = new ArrayList<>(base);
-        if (!simpletweaks$appendAdvanced(registryManager, stack, list)) {
-            return;
+        simpletweaks$appendAdvanced(registryManager, stack, list);
+        // Advanced mode guarantees power / 12 entries, so a 64-power roll is never a single line.
+        int minimum = level / 12;
+        if (list.size() < minimum) {
+            simpletweaks$appendExtraNormals(registryManager, stack, list, minimum - list.size());
         }
+
+        FSTLog.INSTANCE.log("AdvancedOffer", "power=" + level + ", entries=" + list.size());
         cir.setReturnValue(list);
     }
 
+    /**
+     * Advanced mode also widens the ordinary half of the offer: the extra entries are drawn from the
+     * same weighted pool vanilla uses, so advanced-ness still comes from `appendAdvanced` alone.
+     */
+    private static void simpletweaks$appendExtraNormals(DynamicRegistryManager registryManager, ItemStack stack,
+            List<EnchantmentLevelEntry> list, int wanted) {
+        Registry<Enchantment> registry = registryManager.get(RegistryKeys.ENCHANTMENT);
+        boolean book = UpgradeEnchantments.INSTANCE.isBook(stack);
+        List<RegistryEntry<Enchantment>> pool = new ArrayList<>();
+        List<Integer> weights = new ArrayList<>();
+        int total = 0;
+        for (RegistryEntry<Enchantment> reference : registry.getIndexedEntries()) {
+            RegistryKey<Enchantment> key = reference.getKey().orElse(null);
+            if (key == null) continue;
+            if (UpgradeEnchantments.INSTANCE.isUpgrade(key)) continue;
+            if (!AdvancedOffers.allowed(key.getValue().getPath())) continue;
+            Enchantment enchantment = reference.value();
+            if (!book && !enchantment.isAcceptableItem(stack)) continue;
+            boolean already = false;
+            for (EnchantmentLevelEntry entry : list) {
+                if (entry.enchantment.matchesKey(key)) { already = true; break; }
+            }
+            if (already) continue;
+            int weight = Math.max(1, enchantment.getWeight());
+            pool.add(reference);
+            weights.add(weight);
+            total += weight;
+        }
+        ThreadLocalRandom random = ThreadLocalRandom.current();
+        for (int added = 0; added < wanted && !pool.isEmpty() && total > 0; added++) {
+            int roll = random.nextInt(total);
+            int index = 0;
+            for (; index < pool.size(); index++) {
+                roll -= weights.get(index);
+                if (roll < 0) break;
+            }
+            if (index >= pool.size()) index = pool.size() - 1;
+            Enchantment picked = pool.get(index).value();
+            int level = 1 + random.nextInt(Math.max(1, Math.min(3, picked.getMaxLevel())));
+            list.add(new EnchantmentLevelEntry(pool.get(index), Math.min(level, picked.getMaxLevel())));
+            total -= weights.remove(index);
+            pool.remove(index);
+        }
+    }
     private static boolean simpletweaks$appendAdvanced(DynamicRegistryManager registryManager, ItemStack stack,
             List<EnchantmentLevelEntry> list) {
         Registry<Enchantment> registry = registryManager.get(RegistryKeys.ENCHANTMENT);
@@ -252,17 +320,19 @@ public abstract class EnchantmentScreenHandlerMixin {
                 eligible.add(rule);
             }
         }
-        if (eligible.isEmpty() || ThreadLocalRandom.current().nextFloat() > 0.6f) {
+        if (eligible.isEmpty() || ThreadLocalRandom.current().nextFloat() > 0.45f) {
             return false;
         }
-        UpgradeEnchantments.Rule rule = eligible.get(ThreadLocalRandom.current().nextInt(eligible.size()));
-        RegistryEntry<Enchantment> entry = registry.getEntry(rule.getUpgrade()).orElse(null);
-        if (entry == null) {
-            return false;
+        java.util.Collections.shuffle(eligible, ThreadLocalRandom.current());
+        int count = Math.min(eligible.size(), 1 + eligible.size() / 6);
+        for (int added = 0; added < count; added++) {
+            UpgradeEnchantments.Rule rule = eligible.get(added);
+            RegistryEntry<Enchantment> entry = registry.getEntry(rule.getUpgrade()).orElse(null);
+            if (entry != null) {
+                list.add(new EnchantmentLevelEntry(entry, 1));
+            }
         }
-        list.add(new EnchantmentLevelEntry(entry, 1));
-        return true;
-    }
+        return true;    }
 
     /**
      * (5) Advanced mode, cost side. Vanilla charges {@code slot + 1} levels and as many lapis; advanced
@@ -274,7 +344,7 @@ public abstract class EnchantmentScreenHandlerMixin {
      */
     @Inject(method = "onButtonClick", at = @At("HEAD"), cancellable = true)
     private void simpletweaks$advancedCostGate(PlayerEntity player, int id, CallbackInfoReturnable<Boolean> cir) {
-        if (!AdvancedEnchantMode.INSTANCE.isAdvancedHandler(this)) {
+        if (!AdvancedEnchantMode.INSTANCE.isOn(player)) {
             return;
         }
         int power = ((EnchantmentScreenHandler) (Object) this).enchantmentPower[id];
@@ -295,7 +365,8 @@ public abstract class EnchantmentScreenHandlerMixin {
                     target = "Lnet/minecraft/entity/player/PlayerEntity;applyEnchantmentCosts(Lnet/minecraft/item/ItemStack;I)V")
     )
     private void simpletweaks$advancedXpCost(PlayerEntity player, ItemStack stack, int level) {
-        player.applyEnchantmentCosts(stack, simpletweaks$advancedCost(level));
+        dev.firefly.simpletweaks.compat.FSTLog.INSTANCE.log("AdvancedCost", "xp path advanced=" + AdvancedEnchantMode.INSTANCE.isOn(player) + ", vanillaLevel=" + level + ", applied=" + simpletweaks$advancedCost(player, level) + ", xpBefore=" + player.experienceLevel);
+        player.applyEnchantmentCosts(stack, simpletweaks$advancedCost(player, level));
     }
 
     @Redirect(
@@ -304,15 +375,16 @@ public abstract class EnchantmentScreenHandlerMixin {
                     target = "Lnet/minecraft/item/ItemStack;decrementUnlessCreative(ILnet/minecraft/entity/LivingEntity;)V")
     )
     private void simpletweaks$advancedLapisCost(ItemStack lapis, int amount, net.minecraft.entity.LivingEntity owner) {
-        int levels = simpletweaks$advancedCost(amount);
-        int lapisCost = AdvancedEnchantMode.INSTANCE.isAdvancedHandler(this)
+        dev.firefly.simpletweaks.compat.FSTLog.INSTANCE.log("AdvancedCost", "lapis path advanced=" + (owner instanceof PlayerEntity pl && AdvancedEnchantMode.INSTANCE.isOn(pl)) + ", amount=" + amount + ", levels=" + simpletweaks$advancedCost(owner instanceof PlayerEntity lp ? lp : null, amount) + ", have=" + lapis.getCount());
+        int levels = simpletweaks$advancedCost(owner instanceof PlayerEntity p ? p : null, amount);
+        int lapisCost = owner instanceof PlayerEntity p && AdvancedEnchantMode.INSTANCE.isOn(p)
                 ? AdvancedEnchantMode.INSTANCE.lapisCost(levels)
                 : amount;
         lapis.decrementUnlessCreative(lapisCost, owner);
     }
 
-    private int simpletweaks$advancedCost(int vanillaLevel) {
-        if (!AdvancedEnchantMode.INSTANCE.isAdvancedHandler(this)) {
+    private int simpletweaks$advancedCost(PlayerEntity player, int vanillaLevel) {
+        if (player == null || !AdvancedEnchantMode.INSTANCE.isOn(player)) {
             return vanillaLevel;
         }
         int slot = vanillaLevel - 1;

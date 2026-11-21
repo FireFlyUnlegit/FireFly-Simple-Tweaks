@@ -67,5 +67,10 @@ object EnchantmentMeta {
      * the default grey — indistinguishable from a COMMON enchantment.
      */
     @JvmStatic
-    fun colorOf(id: String): Formatting? = color(id)?.formatting
+    fun colorOf(id: String): Formatting? = color(baseIdOf(id))?.formatting
+
+    /** Advanced tiers display in their base enchantment's colour; only the ` - 进阶` tail is purple. */
+    @JvmStatic
+    fun baseIdOf(id: String): String =
+        if (id.startsWith("advanced_")) id.removePrefix("advanced_") else id
 }
