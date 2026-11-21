@@ -1,7 +1,7 @@
 package dev.firefly.simpletweaks.client
 
 import dev.firefly.simpletweaks.client.hud.BarNumber
-import dev.firefly.simpletweaks.util.ArcaneEcho
+import dev.firefly.simpletweaks.util.CombatStats
 import dev.firefly.simpletweaks.util.PlayerPower
 import net.minecraft.client.gui.DrawContext
 import net.minecraft.client.gui.screen.Screen
@@ -55,21 +55,38 @@ class StatsScreen(private val parent: Screen?) : Screen(Text.translatable(TITLE)
         lines += Line(Text.translatable("gui.simple_tweaks.stats.attr.knockback", percent(attribute(player, EntityAttributes.GENERIC_KNOCKBACK_RESISTANCE))), 0, WHITE)
         lines += Line(Text.translatable("gui.simple_tweaks.stats.attr.luck", num(attribute(player, EntityAttributes.GENERIC_LUCK))), 0, WHITE)
 
-        val echo = ArcaneEcho.statsOf(player)
-        lines += header("gui.simple_tweaks.stats.arcane")
-        if (!echo.active) {
-            lines += Line(Text.translatable("gui.simple_tweaks.stats.arcane.none").formatted(Formatting.DARK_GRAY), 0, GREY)
+        // These come from several enchantments, not only Arcane Echo, so the section is always drawn:
+        // a player wearing Finality alone still needs to see what it is worth (`build=devVer.1.0.19`).
+        val combat = CombatStats.of(player)
+        lines += header("gui.simple_tweaks.stats.combat")
+        if (combat.echoActive) {
+            lines += Line(Text.translatable("gui.simple_tweaks.stats.arcane.summary", num(combat.echoLevel.toDouble()), num(combat.echoUnits.toDouble())), 0, 0xFFAA00)
         } else {
-            lines += Line(Text.translatable("gui.simple_tweaks.stats.arcane.summary", num(echo.level.toDouble()), num(echo.units.toDouble())), 0, 0xFFAA00)
-            lines += Line(Text.translatable("gui.simple_tweaks.stats.arcane.final_damage", percent(echo.finalDamage)), 0, WHITE)
-            lines += Line(Text.translatable("gui.simple_tweaks.stats.arcane.final_reduction", percent(echo.finalReduction)), 0, WHITE)
-            lines += Line(Text.translatable("gui.simple_tweaks.stats.arcane.flat", num(echo.damageReduction)), 0, WHITE)
-            lines += Line(Text.translatable("gui.simple_tweaks.stats.arcane.element", percent(echo.element)), 0, WHITE)
-            lines += Line(Text.translatable("gui.simple_tweaks.stats.arcane.reaction", percent(echo.reaction)), 0, WHITE)
-        lines += Line(Text.translatable("gui.simple_tweaks.stats.arcane.ranged", percent(echo.rangedDamage)), 0, WHITE)
-        lines += Line(Text.translatable("gui.simple_tweaks.stats.arcane.healing", percent(echo.healing)), 0, WHITE)
-        lines += Line(Text.translatable("gui.simple_tweaks.stats.arcane.mining", percent(echo.miningSpeed)), 0, WHITE)
+            lines += Line(Text.translatable("gui.simple_tweaks.stats.arcane.none").formatted(Formatting.DARK_GRAY), 0, GREY)
         }
+        lines += Line(Text.translatable("gui.simple_tweaks.stats.arcane.final_damage", percent(combat.finalDamage)), 0, WHITE)
+        lines += Line(Text.translatable("gui.simple_tweaks.stats.arcane.final_reduction", percent(combat.finalReduction)), 0, WHITE)
+        lines += Line(Text.translatable("gui.simple_tweaks.stats.arcane.flat", num(combat.flatReduction)), 0, WHITE)
+        lines += Line(Text.translatable("gui.simple_tweaks.stats.arcane.element", percent(combat.elemental)), 0, WHITE)
+        lines += Line(Text.translatable("gui.simple_tweaks.stats.combat.mastery", num(combat.mastery)), 0, WHITE)
+        lines += Line(Text.translatable("gui.simple_tweaks.stats.combat.conversion", share(combat.conversion)), 0, WHITE)
+        lines += Line(Text.translatable("gui.simple_tweaks.stats.combat.penetration", share(combat.penetration)), 0, WHITE)
+        lines += Line(Text.translatable("gui.simple_tweaks.stats.arcane.reaction", percent(combat.reaction)), 0, WHITE)
+        lines += Line(Text.translatable("gui.simple_tweaks.stats.arcane.ranged", percent(combat.ranged)), 0, WHITE)
+        lines += Line(Text.translatable("gui.simple_tweaks.stats.arcane.healing", percent(combat.healing)), 0, WHITE)
+        lines += Line(Text.translatable("gui.simple_tweaks.stats.arcane.mining", percent(combat.mining)), 0, WHITE)
+        lines += Line(
+            Text.translatable(
+                "gui.simple_tweaks.stats.combat.sources",
+                num(combat.finality.toDouble()),
+                num(combat.bulwark.toDouble()),
+                num(combat.elementalSurge.toDouble()),
+                num(combat.reactionSurge.toDouble()),
+                num(combat.heavenly.toDouble()),
+            ).formatted(Formatting.DARK_GRAY),
+            0,
+            GREY,
+        )
 
         lines += Line(Text.translatable("gui.simple_tweaks.stats.hint").formatted(Formatting.DARK_GRAY), 0, GREY)
         scroll = MathHelper.clamp(scroll, 0, max(0, lines.size - visibleLines()))
@@ -83,6 +100,9 @@ class StatsScreen(private val parent: Screen?) : Screen(Text.translatable(TITLE)
     private fun num(value: Double): String = BarNumber.of(value, 2)
 
     private fun percent(value: Double): String = "+" + num(value * 100.0) + "%"
+
+    /** A share of the hit rather than a bonus: `7.5%`, never `+7.5%`. */
+    private fun share(value: Double): String = num(value * 100.0) + "%"
 
     private fun visibleLines(): Int = max(1, (this.height - LIST_TOP - FOOTER) / LINE_H)
 

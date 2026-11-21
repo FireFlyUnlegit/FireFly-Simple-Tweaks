@@ -118,8 +118,8 @@ class SimpleTweaksClient : ClientModInitializer {
                 "+ every command under /simple_tweaks (alias /fst) " +
                 "+ game tests (./gradlew runGametest) " +
                 "+ per-attribute min/max overrides (config screen, page 6) + finality, bulwark, " +
-                "elemental surge and reaction surge " +
-                "(v2.3.0, build=devVer.1.0.18)",
+                "elemental surge and reaction surge + a combined damage-modifier section in /fst stats " +
+                "(v2.3.0, build=devVer.1.0.19)",
             SimpleTweaks.NAME,
             enchantmentCount,
         )

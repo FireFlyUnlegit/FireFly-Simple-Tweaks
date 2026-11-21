@@ -37,10 +37,10 @@ object ArcaneEcho {
 
     // Per enchantment level × effective level. Only the two terms that change how the game *feels*
     // (attack rhythm, walking speed) carry a ceiling; everything else is allowed to grow.
-    private const val SCALE_PER_LEVEL = 0.8
-    private const val HEALTH_PER_UNIT = 0.12
-    private const val ARMOR_PER_UNIT = 0.08
-    private const val TOUGHNESS_PER_UNIT = 0.03
+    private const val SCALE_PER_LEVEL = 0.6
+    private const val HEALTH_PER_UNIT = 0.24
+    private const val ARMOR_PER_UNIT = 0.32
+    private const val TOUGHNESS_PER_UNIT = 0.16
     private const val ATTACK_PER_UNIT = 0.05
     private const val ATTACK_SPEED_PER_UNIT = 0.0012
     private const val MOVE_SPEED_PER_UNIT = 0.0008
@@ -54,13 +54,13 @@ object ArcaneEcho {
     private const val MINING_PER_UNIT = 0.0010
 
     // Final damage is a plain multiplier on what is dealt.
-    private const val FINAL_DAMAGE_PER_UNIT = 0.002
+    private const val FINAL_DAMAGE_PER_UNIT = 0.0005
 
     // Final reduction is a *rating*, not a percentage: the share that actually applies is
     // rating / (rating + half), which approaches 100% asymptotically and therefore needs no ceiling.
-    // At `half` the share is exactly 50% (0.003 x units x level = 1.8 -> 50%).
-    private const val FINAL_REDUCTION_PER_UNIT = 0.003
-    private const val FINAL_REDUCTION_HALF = 1.8
+    // At `half` the share is exactly 50% (0.001 x units x level = 1.8 -> 50%).
+    private const val FINAL_REDUCTION_PER_UNIT = 0.001
+    private const val FINAL_REDUCTION_HALF = 0.5
 
     private const val MOVE_SPEED_CAP = 0.20
 

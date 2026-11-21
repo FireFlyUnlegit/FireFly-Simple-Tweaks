@@ -444,5 +444,10 @@
   "gui.simple_tweaks.stats.arcane.ranged": "Ranged damage %1$s",
   "gui.simple_tweaks.stats.arcane.healing": "Healing %1$s",
   "gui.simple_tweaks.stats.arcane.mining": "Mining speed %1$s",
+  "gui.simple_tweaks.stats.combat": "Damage modifiers",
+  "gui.simple_tweaks.stats.combat.mastery": "Elemental mastery x%1$s",
+  "gui.simple_tweaks.stats.combat.conversion": "Damage conversion %1$s",
+  "gui.simple_tweaks.stats.combat.penetration": "Elemental penetration %1$s",
+  "gui.simple_tweaks.stats.combat.sources": "Finality %1$s / Bulwark %2$s / Elemental Surge %3$s / Reaction Surge %4$s / Heavenly Punishment %5$s",
   "gui.simple_tweaks.stats.hint": "Scroll to read | values follow your current gear"
 }

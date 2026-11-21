@@ -444,5 +444,10 @@
   "gui.simple_tweaks.stats.arcane.ranged": "远程伤害 %1$s",
   "gui.simple_tweaks.stats.arcane.healing": "治疗量 %1$s",
   "gui.simple_tweaks.stats.arcane.mining": "挖掘速度 %1$s",
+  "gui.simple_tweaks.stats.combat": "伤害修正",
+  "gui.simple_tweaks.stats.combat.mastery": "元素精通 ×%1$s",
+  "gui.simple_tweaks.stats.combat.conversion": "伤害转化 %1$s",
+  "gui.simple_tweaks.stats.combat.penetration": "元素穿透 %1$s",
+  "gui.simple_tweaks.stats.combat.sources": "终焉 %1$s 级 · 铁壁 %2$s 级 · 元素激涌 %3$s 级 · 反应激涌 %4$s 级 · 天罚 %5$s 级",
   "gui.simple_tweaks.stats.hint": "滚轮滚动 · 依当前装备实时计算"
 }
