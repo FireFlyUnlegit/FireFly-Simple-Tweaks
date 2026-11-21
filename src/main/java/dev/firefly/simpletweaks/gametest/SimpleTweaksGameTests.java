@@ -1458,32 +1458,34 @@ public class SimpleTweaksGameTests implements FabricGameTest {
     }
 
     /**
-     * Pins the whole chain: vanilla squeezes `getMaxHealth` back to 1024 even when the base value is 5000,
-     * and the override makes the same 5000 survive — that is what proves the mixin reaches `computeValue`.
+     * Pins the whole chain: with no entry the attribute is unbounded (not "whatever the field says",
+     * which is what lets a pack mod's 2147483647 ceiling survive), a typed ceiling wins, and clearing it
+     * goes back to unbounded.
      */
     @GameTest(templateName = FabricGameTest.EMPTY_STRUCTURE)
     public void attributeCapOverrideRaisesTheVanillaCeiling(TestContext context) {
         var zombie = new net.minecraft.entity.mob.ZombieEntity(net.minecraft.entity.EntityType.ZOMBIE, context.getWorld());
         var instance = zombie.getAttributeInstance(net.minecraft.entity.attribute.EntityAttributes.GENERIC_MAX_HEALTH);
         instance.setBaseValue(5000.0);
-        float vanilla = zombie.getMaxHealth();
+        float unbounded = zombie.getMaxHealth();
 
         dev.firefly.simpletweaks.core.config.AttributeCapConfig.put(
                 "minecraft:generic.max_health",
-                new dev.firefly.simpletweaks.core.config.AttributeCapConfig.Cap(null, 1.0e6));
+                new dev.firefly.simpletweaks.core.config.AttributeCapConfig.Cap(null, 4000.0));
         instance.setBaseValue(5001.0);
-        float raised = zombie.getMaxHealth();
+        float capped = zombie.getMaxHealth();
 
         dev.firefly.simpletweaks.core.config.AttributeCapConfig.remove("minecraft:generic.max_health");
-        instance.setBaseValue(5002.0);
-        float restored = zombie.getMaxHealth();
+        instance.setBaseValue(1.0e10);
+        float huge = zombie.getMaxHealth();
 
-        LOGGER.info("[FST-GameTest] attribute cap: vanilla={}, raised={}, restored={} (expect 1024/5001/1024)",
-                vanilla, raised, restored);
+        LOGGER.info("[FST-GameTest] attribute cap: unbounded={}, capped={}, huge={} (expect 5000/4000/1.0E10)",
+                unbounded, capped, huge);
 
-        context.assertEquals(1024.0f, vanilla, "vanilla must still clamp the vanilla ceiling");
-        context.assertEquals(5001.0f, raised, "the override must lift that ceiling");
-        context.assertEquals(1024.0f, restored, "removing the override must restore vanilla");
+        context.assertEquals(5000.0f, unbounded, "no entry must mean no ceiling, so a 5000 base survives");
+        context.assertEquals(4000.0f, capped, "a typed ceiling must squeeze the base back to 4000");
+        context.assertTrue(huge > 2.1474836e9f,
+                "clearing the entry must go past Integer.MAX_VALUE, got " + huge);
 
         context.complete();
     }

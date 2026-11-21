@@ -1,6 +1,7 @@
 package dev.firefly.simpletweaks.util
 
 import dev.firefly.simpletweaks.core.config.AttributeCapConfig
+import dev.firefly.simpletweaks.mixin.accessors.ClampedEntityAttributeAccessor
 import net.minecraft.entity.attribute.ClampedEntityAttribute
 import net.minecraft.entity.attribute.EntityAttribute
 import net.minecraft.registry.Registries
@@ -12,6 +13,12 @@ import net.minecraft.registry.Registries
  * Vanilla applies the cap inside [ClampedEntityAttribute.clamp], which `computeValue` calls at the end —
  * so a modifier cannot exceed the declared maximum no matter how large it is. Raising the bound therefore
  * has to happen at *this* level, which is what `ClampedEntityAttributeMixin` does.
+ *
+ * The default is **no upper bound**: an attribute with no configured entry tops out at
+ * [Double.MAX_VALUE], which is what "break the 21 亿 ceiling" means in practice — the field still reads
+ * whatever the pack's other mods set (AttributeFix and friends write 2147483647 there), so reading it
+ * back as the default would silently keep their ceiling. The lower bound still defaults to vanilla's,
+ * because a negative maximum health is a different kind of damage.
  */
 object AttributeCaps {
 
@@ -43,20 +50,26 @@ object AttributeCaps {
         return vanillaMin(attribute)
     }
 
-    /** The upper bound actually in force. */
+    /** The upper bound actually in force; unbounded unless the config names one. */
     @JvmStatic
     fun maxOf(attribute: EntityAttribute): Double {
         capOf(attribute)?.max?.let { return it }
-        return vanillaMax(attribute)
+        return Double.MAX_VALUE
     }
 
     @JvmStatic
-    fun vanillaMin(attribute: EntityAttribute): Double =
-        (attribute as? ClampedEntityAttribute)?.minValue ?: Double.NEGATIVE_INFINITY
+    fun vanillaMin(attribute: EntityAttribute): Double {
+        val clamped = attribute as? ClampedEntityAttribute ?: return Double.NEGATIVE_INFINITY
+        // Reading `minValue` through the getter would come straight back here: `getMinValue` is patched.
+        return (clamped as ClampedEntityAttributeAccessor).simpletweaksReadMin()
+    }
 
+    /** The ceiling the game shipped with — *not* what is in force, since other mods may have raised it. */
     @JvmStatic
-    fun vanillaMax(attribute: EntityAttribute): Double =
-        (attribute as? ClampedEntityAttribute)?.maxValue ?: Double.POSITIVE_INFINITY
+    fun vanillaMax(attribute: EntityAttribute): Double {
+        val clamped = attribute as? ClampedEntityAttribute ?: return Double.POSITIVE_INFINITY
+        return (clamped as ClampedEntityAttributeAccessor).simpletweaksReadMax()
+    }
 
     /**
      * What vanilla would have done, with the override applied on top.
@@ -66,9 +79,8 @@ object AttributeCaps {
      */
     @JvmStatic
     fun clamp(attribute: EntityAttribute, value: Double): Double {
-        val cap = capOf(attribute) ?: return value
-        val low = cap.min ?: vanillaMin(attribute)
-        val high = cap.max ?: vanillaMax(attribute)
+        val low = minOf(attribute)
+        val high = maxOf(attribute)
         // A hand-edited file can invert the pair; `coerceIn` would throw, and the attribute would keep
         // the stale value forever because `computeValue` never finishes.
         return if (low <= high) value.coerceIn(low, high) else high

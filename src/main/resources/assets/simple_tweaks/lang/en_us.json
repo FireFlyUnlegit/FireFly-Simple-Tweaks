@@ -143,7 +143,7 @@
   "gui.simple_tweaks.config.attributeCaps": "Attribute bounds",
   "gui.simple_tweaks.config.attributeCaps.open": "Edit...",
   "gui.simple_tweaks.attribute_caps.title": "Attribute bounds",
-  "gui.simple_tweaks.attribute_caps.hint": "Left: min   Right: max   empty = vanilla   ∞ = Float max",
+  "gui.simple_tweaks.attribute_caps.hint": "Left: min (empty = vanilla)   Right: max (empty = no ceiling)   ∞ = 3.4E38",
   "gui.simple_tweaks.attribute_caps.prev": "◀ Prev",
   "gui.simple_tweaks.attribute_caps.next": "Next ▶",
   "gui.simple_tweaks.attribute_caps.unlimited_all": "Uncap all",

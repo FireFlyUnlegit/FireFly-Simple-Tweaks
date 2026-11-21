@@ -87,7 +87,10 @@ class StatsScreen(private val parent: Screen?) : Screen(Text.translatable(TITLE)
     private fun visibleLines(): Int = max(1, (this.height - LIST_TOP - FOOTER) / LINE_H)
 
     override fun render(context: DrawContext, mouseX: Int, mouseY: Int, delta: Float) {
-        renderBackground(context, mouseX, mouseY, delta)
+        // Widgets first: `super.render` is what paints the blurred backdrop, so drawing the list
+        // before it would put every line underneath that blur (`build=devVer.1.0.15`).
+        super.render(context, mouseX, mouseY, delta)
+
         context.drawCenteredTextWithShadow(this.textRenderer, this.title, this.width / 2, 16, WHITE)
 
         val left = this.width / 2 - ROW_W / 2
@@ -101,8 +104,6 @@ class StatsScreen(private val parent: Screen?) : Screen(Text.translatable(TITLE)
             context.drawTextWithShadow(this.textRenderer, line.text, left + line.indent * 8, y, line.colour)
         }
         context.disableScissor()
-
-        super.render(context, mouseX, mouseY, delta)
     }
 
     override fun mouseScrolled(mouseX: Double, mouseY: Double, horizontalAmount: Double, verticalAmount: Double): Boolean {

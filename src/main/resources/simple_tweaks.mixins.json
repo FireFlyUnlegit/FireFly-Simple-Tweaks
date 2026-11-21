@@ -26,6 +26,7 @@
     "MobEntityEnchantMixin",
     "MobEquipmentTopUpMixin",
     "MobLevelMixin",
+    "accessors.ClampedEntityAttributeAccessor",
     "accessors.LivingEntityAccessor",
     "accessors.PersistentProjectileEntityAccessor",
     "ProjectileShotWeaponMixin",

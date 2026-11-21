@@ -143,7 +143,7 @@
   "gui.simple_tweaks.config.attributeCaps": "属性上下限",
   "gui.simple_tweaks.config.attributeCaps.open": "配置…",
   "gui.simple_tweaks.attribute_caps.title": "属性上下限",
-  "gui.simple_tweaks.attribute_caps.hint": "左：最小值　右：最大值　留空 = 原版　∞ = Float 上限",
+  "gui.simple_tweaks.attribute_caps.hint": "左：最小值（留空 = 原版）　右：最大值（留空 = 不设上限）　∞ = 3.4E38",
   "gui.simple_tweaks.attribute_caps.prev": "◀ 上一页",
   "gui.simple_tweaks.attribute_caps.next": "下一页 ▶",
   "gui.simple_tweaks.attribute_caps.unlimited_all": "全部解除上限",
