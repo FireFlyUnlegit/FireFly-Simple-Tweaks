@@ -31,8 +31,9 @@ enum class ElementType(
     LIGHT("light", DamageTags.ELEMENTAL_LIGHT, 0xFFF2A8);
 
     /** `simple_tweaks:element_<id>` — the damage type a conversion re-deals part of the hit as. */
-    val damageType: RegistryKey<DamageType>
-        get() = RegistryKey.of(RegistryKeys.DAMAGE_TYPE, Identifier.of(SimpleTweaks.MOD_ID, "element_$id"))
+    // Built once: this is read on every hurt event (and 7 times per `isOwnElementalDamage`).
+    val damageType: RegistryKey<DamageType> =
+        RegistryKey.of(RegistryKeys.DAMAGE_TYPE, Identifier.of(SimpleTweaks.MOD_ID, "element_$id"))
 
     fun others(): List<ElementType> = entries.filter { it != this }
 

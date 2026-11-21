@@ -73,6 +73,10 @@ object DotAcceleration {
 
     /** Per-entity tick: retires lapsed entries and pays the extra burning damage. */
     fun tick(entity: LivingEntity) {
+        // Keyed by UUID, so an entity that unloads before its entry lapses never gets collected; prune on a
+        // tick we are already running instead of holding one row per mob forever.
+        if (entries.size > 64 && entity.age % 200 == 0) prune(entity.world.time)
+
         val entry = live(entity) ?: return
 
         // `fire_master` already runs a heat-scaled burn ticker that multiplies this very factor in,
@@ -99,6 +103,15 @@ object DotAcceleration {
         FSTLog.log("Catalyze") {
             "target=${entity.name.string}, fireTicks=${entity.fireTicks}, extra=$extra, landed=$landed, " +
                 "outcome=burn-catalyzed"
+        }
+    }
+
+    private fun prune(now: Long) {
+        val iterator = entries.entries.iterator()
+        while (iterator.hasNext()) {
+            val entry = iterator.next().value
+            val alive = entry.ref.get()
+            if (alive == null || alive.isRemoved || now > entry.expireAt) iterator.remove()
         }
     }
 

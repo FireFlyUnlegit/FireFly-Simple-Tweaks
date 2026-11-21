@@ -6,7 +6,7 @@ import dev.firefly.simpletweaks.compat.event.TickEvent
 import dev.firefly.simpletweaks.compat.invalid
 import dev.firefly.simpletweaks.core.Listenable
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
-import dev.firefly.simpletweaks.util.displayedItem
+import net.minecraft.entity.EquipmentSlot
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import kotlin.random.Random.Default.nextFloat
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
@@ -47,20 +47,29 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
     order = 22,
 )
 object EnchantItemFixerHandler : Listenable {
+
+    /** `LivingEntity.displayedItem` without the per-tick list + filter allocations. */
+    private val DISPLAYED = arrayOf(
+        EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS,
+        EquipmentSlot.FEET, EquipmentSlot.MAINHAND, EquipmentSlot.OFFHAND,
+    )
+
     @SubscribeEvent
     fun onPlayerTick(e:TickEvent.PlayerTickEvent) {
         if (e.invalid) return
         val p = e.player
-        p.displayedItem.forEach {
-            val level = getItemSpecificEnchantLevel(it, GeneratedEnchantments.ITEM_FIXER)
+        for (slot in DISPLAYED) {
+            val stack = p.getEquippedStack(slot)
+            if (stack.isEmpty) continue
+            val level = getItemSpecificEnchantLevel(stack, GeneratedEnchantments.ITEM_FIXER)
             if (level > 0) {
                 val roll = nextFloat()
-                if (roll <= 0.02 * level && it.damage > 0) {
-                    val damageBefore = it.damage
-                    it.damage -= (1 + level / 2).coerceAtMost(it.damage)
+                if (roll <= 0.02 * level && stack.damage > 0) {
+                    val damageBefore = stack.damage
+                    stack.damage -= (1 + level / 2).coerceAtMost(stack.damage)
                     FSTLog.log("ItemFixer") {
-                        "player=${p.name.string}, item=${it.item}, lvl=$level, roll=$roll, " +
-                            "chance=${0.02 * level}, damage=$damageBefore->${it.damage}"
+                        "player=${p.name.string}, item=${stack.item}, lvl=$level, roll=$roll, " +
+                            "chance=${0.02 * level}, damage=$damageBefore->${stack.damage}"
                     }
                 }
             }

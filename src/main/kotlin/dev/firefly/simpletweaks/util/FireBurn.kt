@@ -75,6 +75,10 @@ object FireBurn {
     fun hasEntry(target: LivingEntity): Boolean = live(target) != null
 
     fun tick(entity: LivingEntity) {
+        // Entries are keyed by UUID and normally die in `live`; a mob that unloads or despawns never ticks
+        // again, so a farm would leak one row per burn. Prune occasionally on a tick we are already in.
+        if (entries.size > 64 && entity.age % 200 == 0) prune(entity.world.time)
+
         val entry = live(entity) ?: return
         if (entity.fireTicks <= 0 || entity.isFireImmune) {
             entries.remove(entity.uuid)
@@ -93,6 +97,15 @@ object FireBurn {
         FSTLog.log("FireMaster") {
             "target=${entity.name.string}, fireTicks=${entity.fireTicks}, tickDamage=$damage, landed=$landed, " +
                 "catalyze=${DotAcceleration.factorOf(entity)}, outcome=burn-tick"
+        }
+    }
+
+    private fun prune(now: Long) {
+        val iterator = entries.entries.iterator()
+        while (iterator.hasNext()) {
+            val entry = iterator.next().value
+            val alive = entry.ref.get()
+            if (alive == null || alive.isRemoved || now > entry.expireAt) iterator.remove()
         }
     }
 

@@ -24,6 +24,7 @@ class StatsScreen(private val parent: Screen?) : Screen(Text.translatable(TITLE)
 
     private val lines = mutableListOf<Line>()
     private var scroll = 0
+    private var scrollRemainder = 0.0
 
     override fun init() {
         rebuild()
@@ -106,7 +107,11 @@ class StatsScreen(private val parent: Screen?) : Screen(Text.translatable(TITLE)
 
     override fun mouseScrolled(mouseX: Double, mouseY: Double, horizontalAmount: Double, verticalAmount: Double): Boolean {
         val before = scroll
-        scroll = MathHelper.clamp(scroll - verticalAmount.toInt() * 2, 0, max(0, lines.size - visibleLines()))
+        // A precision touchpad sends fractions of a notch; truncating first would swallow every scroll.
+        scrollRemainder += verticalAmount
+        val step = scrollRemainder.toInt()
+        scrollRemainder -= step
+        scroll = MathHelper.clamp(scroll - step * 2, 0, max(0, lines.size - visibleLines()))
         return scroll != before
     }
 

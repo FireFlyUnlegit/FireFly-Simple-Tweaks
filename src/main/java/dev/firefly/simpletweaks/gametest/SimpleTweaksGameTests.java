@@ -895,6 +895,25 @@ public class SimpleTweaksGameTests implements FabricGameTest {
         LOGGER.info("[FST-GameTest] loot guard second pass: stripped={} (expect false)", strippedAgain);
         context.assertFalse(strippedAgain, "a clean stack must not be rewritten on every sweep");
 
+        // Chests mostly roll books, and a book keeps its roll in `stored_enchantments`, not `enchantments`.
+        var book = new ItemStack(Items.ENCHANTED_BOOK);
+        var stored = new net.minecraft.component.type.ItemEnchantmentsComponent.Builder(
+                net.minecraft.component.type.ItemEnchantmentsComponent.DEFAULT);
+        stored.add(enchantmentByPath(registry, "infinite_power"), 1);
+        stored.add(enchantmentByPath(registry, "venom"), 2);
+        book.set(net.minecraft.component.DataComponentTypes.STORED_ENCHANTMENTS, stored.build());
+
+        var strippedBook = dev.firefly.simpletweaks.util.LootEnchantmentGuard.strip(book);
+        var bookLeft = strippedBook.get(net.minecraft.component.DataComponentTypes.STORED_ENCHANTMENTS);
+        boolean bookStillCreative = bookLeft != null && bookLeft.getEnchantments().stream()
+                .anyMatch(entry -> entry.matchesKey(enchantmentKeyByPath("infinite_power")));
+        int bookVenom = bookLeft == null ? 0 : bookLeft.getLevel(enchantmentByPath(registry, "venom"));
+        LOGGER.info("[FST-GameTest] loot guard book: creative={}, venom={} (expect false/2)",
+                bookStillCreative, bookVenom);
+
+        context.assertFalse(bookStillCreative, "a rolled book must lose the creative-only enchantment too");
+        context.assertEquals(2, bookVenom, "the book's ordinary enchantment must survive");
+
         context.complete();
     }
 
@@ -1090,8 +1109,10 @@ public class SimpleTweaksGameTests implements FabricGameTest {
                 dev.firefly.simpletweaks.client.hud.CompactNumber.INSTANCE.format(1240.0, 2, true),
                 dev.firefly.simpletweaks.client.hud.CompactNumber.INSTANCE.format(1240.0, 2, false),
                 dev.firefly.simpletweaks.client.hud.CompactNumber.INSTANCE.format(1_500_000.0, 0, true),
+                dev.firefly.simpletweaks.client.hud.CompactNumber.INSTANCE.of(999_999.0, 2),
+                dev.firefly.simpletweaks.client.hud.CompactNumber.INSTANCE.of(999_999_999.0, 2),
         };
-        String[] expected = {"999", "1.24k", "1240", "1.5M"};
+        String[] expected = {"999", "1.24k", "1240", "1.5M", "1M", "1B"};
 
         LOGGER.info("[FST-GameTest] compact number switch: {}", String.join(" / ", cases));
         for (int i = 0; i < expected.length; i++) {

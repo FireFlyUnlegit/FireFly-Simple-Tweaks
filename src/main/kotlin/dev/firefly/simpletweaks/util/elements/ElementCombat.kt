@@ -1049,8 +1049,9 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
     }
 
     fun supremacyReduction(entity: LivingEntity): Float {
-        if (!wearsSupremacy(entity)) return 0f
+        // `wearsSupremacy` used to re-run the same armour snapshot right after this lookup.
         val total = EnchantPresence.armorLevelOf(entity, GeneratedEnchantments.ELEMENTAL_SUPREMACY)
+        if (total <= 0) return 0f
         return (SUPREMACY_PER_LEVEL * total).coerceAtMost(SUPREMACY_CAP)
     }
 

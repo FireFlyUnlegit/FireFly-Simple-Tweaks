@@ -66,9 +66,9 @@ object EnchantDoubleCritHandler : Listenable {
         if (charge < 0.848) return
 
         val lvl = getItemSpecificEnchantLevel(living.mainHandStack, GeneratedEnchantments.DOUBLE_CRIT)
-        val lvl2 = getItemSpecificEnchantLevel(living.mainHandStack, GeneratedEnchantments.CRIT_DAMAGE)
 
         if (lvl > 0) {
+            val lvl2 = getItemSpecificEnchantLevel(living.mainHandStack, GeneratedEnchantments.CRIT_DAMAGE)
             val critDMG = (
                 (.1f * lvl2) +
                     (if (lvl2 >= 2) (.05f * (lvl2 - 2)) else 0.0f) +

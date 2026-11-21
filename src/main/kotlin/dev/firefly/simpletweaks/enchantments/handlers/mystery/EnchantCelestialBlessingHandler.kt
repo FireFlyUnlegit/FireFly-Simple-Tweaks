@@ -46,6 +46,7 @@ import net.minecraft.util.math.Vec3d
 import net.minecraft.world.World
 import java.lang.ref.WeakReference
 import java.util.UUID
+import java.util.WeakHashMap
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
@@ -117,7 +118,8 @@ object EnchantCelestialBlessingHandler : Listenable {
     private val targetQueue = mutableMapOf<UUID, MutableList<UUID>>()
 
     private val autoAttackCooldown = mutableMapOf<UUID, Int>()
-    private val projectiles = mutableListOf<CelestialProjectile>()
+    /** Per world: ticking one shared list from every mana holder made projectiles advance P× per tick. */
+    private val projectiles = WeakHashMap<ServerWorld, MutableList<CelestialProjectile>>()
 
     private val KNOCKBACK_ID: Identifier = Identifier.of(SimpleTweaks.MOD_ID, "celestial_knockback")
     private val ATTACK_SPEED_ID: Identifier = Identifier.of(SimpleTweaks.MOD_ID, "celestial_attack_speed")
@@ -360,7 +362,7 @@ object EnchantCelestialBlessingHandler : Listenable {
                         manaPool[id] = currentMana
 
                         val projDamage = (cost * lvl * 0.16f)
-                        projectiles.add(
+                        projectiles.getOrPut(player.world as ServerWorld) { mutableListOf() }.add(
                             CelestialProjectile(
                                 player.x, player.y + 1.2, player.z,
                                 target.uuid, id, projDamage, lvl,
@@ -391,7 +393,6 @@ object EnchantCelestialBlessingHandler : Listenable {
         if (manaPool.containsKey(id)) {
             manaPool[id] = currentMana
         }
-        (player.world as? ServerWorld)?.let { tickProjectiles(it) }
 
         if (reclvl > 0) {
             val kbAttr = player.getAttributeInstance(EntityAttributes.GENERIC_KNOCKBACK_RESISTANCE)
@@ -461,7 +462,16 @@ object EnchantCelestialBlessingHandler : Listenable {
         return null
     }
 
-    private fun tickProjectiles(world: ServerWorld) {
+    @SubscribeEvent
+    fun onWorldTick(e: TickEvent.WorldTickEvent) {
+        if (e.phase != TickEvent.Phase.END) return
+        val world = e.world as? ServerWorld ?: return
+        val active = projectiles[world] ?: return
+        tickProjectiles(world, active)
+        if (active.isEmpty()) projectiles.remove(world)
+    }
+
+    private fun tickProjectiles(world: ServerWorld, projectiles: MutableList<CelestialProjectile>) {
         val iterator = projectiles.iterator()
         while (iterator.hasNext()) {
             val proj = iterator.next()

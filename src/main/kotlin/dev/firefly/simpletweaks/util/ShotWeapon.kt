@@ -9,6 +9,7 @@ import net.minecraft.entity.projectile.PersistentProjectileEntity
 import net.minecraft.item.ItemStack
 import net.minecraft.nbt.NbtCompound
 import net.minecraft.nbt.NbtOps
+import java.util.Collections
 import java.util.WeakHashMap
 
 /**
@@ -52,8 +53,14 @@ import java.util.WeakHashMap
  */
 object ShotWeapon {
 
-    /** projectile → the weapon stack it was fired with. */
-    private val SNAPSHOTS = WeakHashMap<Entity, ItemStack>()
+    /**
+     * projectile → the weapon stack it was fired with.
+     *
+     * Synchronized because singleplayer has the client thread inside `overriddenMainHand` while the integrated
+     * server records a shot; an unsynchronized `WeakHashMap` resize on one side can spin the other forever.
+     */
+    private val SNAPSHOTS: MutableMap<Entity, ItemStack> =
+        Collections.synchronizedMap(WeakHashMap<Entity, ItemStack>())
 
     /**
      * Records [weapon] as the weapon [projectile] was fired with; an existing snapshot is kept.

@@ -2,6 +2,7 @@ package dev.firefly.simpletweaks.util
 
 import dev.firefly.simpletweaks.compat.FSTLog
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
+import net.minecraft.component.ComponentType
 import net.minecraft.component.DataComponentTypes
 import net.minecraft.component.type.ItemEnchantmentsComponent
 import net.minecraft.item.ItemStack
@@ -25,12 +26,23 @@ object LootEnchantmentGuard {
     @JvmStatic
     fun stripInPlace(stack: ItemStack): Boolean {
         if (stack.isEmpty) return false
-        val enchantments = stack.get(DataComponentTypes.ENCHANTMENTS) ?: return false
+        // Books keep their roll in `stored_enchantments`; a book is exactly what a chest usually rolls,
+        // so missing that component would leave the creative-only enchantment reachable through an anvil.
+        val onItem = strip(stack, DataComponentTypes.ENCHANTMENTS)
+        val inBook = strip(stack, DataComponentTypes.STORED_ENCHANTMENTS)
+        return onItem || inBook
+    }
+
+    private fun strip(
+        stack: ItemStack,
+        type: ComponentType<ItemEnchantmentsComponent>,
+    ): Boolean {
+        val enchantments = stack.get(type) ?: return false
         if (enchantments.getEnchantments().none(::isCreativeOnly)) return false
 
         val builder = ItemEnchantmentsComponent.Builder(enchantments)
         builder.remove(::isCreativeOnly)
-        stack.set(DataComponentTypes.ENCHANTMENTS, builder.build())
+        stack.set(type, builder.build())
         return true
     }
 

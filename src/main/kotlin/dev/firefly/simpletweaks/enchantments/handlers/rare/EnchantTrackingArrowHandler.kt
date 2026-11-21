@@ -22,6 +22,8 @@ import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantSupportedItemTags
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
+import java.util.Collections
+import java.util.WeakHashMap
 
 /**
  * `tracking_arrow`: arrows home in on nearby mobs, turning a limited number of degrees per tick.
@@ -69,6 +71,10 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 )
 object EnchantTrackingArrowHandler : Listenable {
 
+    /** Arrows that actually carry a tracking level, so the tick does not scan every entity in the world. */
+    private val TRACKING: MutableSet<PersistentProjectileEntity> =
+        Collections.newSetFromMap(WeakHashMap<PersistentProjectileEntity, Boolean>())
+
     @SubscribeEvent
     fun onEntityJoin(e: EntityJoinWorldEvent) {
         if (e.world.isClient) return
@@ -79,6 +85,7 @@ object EnchantTrackingArrowHandler : Listenable {
         val lvl = getItemSpecificEnchantLevel(arrow.firingWeapon(shooter), GeneratedEnchantments.TRACKING_ARROW)
         if (lvl <= 0) return
         (arrow as SimpleTweaksArrow).`simpletweaks$setTrackingLevel`(lvl)
+        TRACKING.add(arrow)
     }
 
     @SubscribeEvent
@@ -88,15 +95,20 @@ object EnchantTrackingArrowHandler : Listenable {
         if (world.isClient) return
         val serverWorld = world as? ServerWorld ?: return
 
-        for (entity in serverWorld.iterateEntities()) {
-            val arrow = entity as? PersistentProjectileEntity ?: continue
+        val arrows = TRACKING.iterator()
+        while (arrows.hasNext()) {
+            val arrow = arrows.next()
+            if (arrow.world !== world) continue
             val state = arrow as SimpleTweaksArrow
 
             val lvl = state.`simpletweaks$getTrackingLevel`()
-            if (lvl <= 0) continue
-            if ((arrow as PersistentProjectileEntityAccessor).`simpletweaks$getInGround`()) continue
-            if (arrow.isRemoved) continue
-            if (arrow.age > 200) continue
+            // A landed/dead arrow never tracks again, so dropping it keeps this loop O(live arrows).
+            if (lvl <= 0 || arrow.isRemoved || arrow.age > 200 ||
+                (arrow as PersistentProjectileEntityAccessor).`simpletweaks$getInGround`()
+            ) {
+                arrows.remove()
+                continue
+            }
 
             val shooter = arrow.owner as? PlayerEntity ?: continue
 

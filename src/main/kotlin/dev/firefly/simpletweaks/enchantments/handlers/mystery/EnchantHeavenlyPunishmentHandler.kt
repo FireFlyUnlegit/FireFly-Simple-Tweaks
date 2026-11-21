@@ -260,7 +260,9 @@ object EnchantHeavenlyPunishmentHandler : Listenable {
         val entity = event.entityLiving
         if (WorldSide.isClient(entity.world)) return
 
-        val data: NbtCompound = entity.data()
+        // Read-only: absent reads as 0 for every key, and this used to allocate a compound per
+        // living entity per tick just to read it.
+        val data: NbtCompound = entityData[entity] ?: return
         val now = entity.world.time
 
         val freezeUntil = data.getLong(NBT_FREEZE_UNTIL)

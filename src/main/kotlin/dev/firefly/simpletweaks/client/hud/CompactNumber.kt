@@ -22,11 +22,15 @@ object CompactNumber {
     fun of(value: Double, places: Int): String {
         if (!value.isFinite()) return "0"
         val abs = abs(value)
-        val unit = UNITS.firstOrNull { abs >= it.first }
-            ?: return BarNumber.of(value, places)
-        val scaled = value / unit.first
+        var index = UNITS.indexOfFirst { abs >= it.first }
+        if (index < 0) return BarNumber.of(value, places)
+
+        // 999 999 rounds to "1000", which would print as `1000k`; climb a unit until the digits fit.
+        while (index > 0 && abs / UNITS[index].first >= 999.995) index--
+
+        val unit = UNITS[index]
         // A suffix already rounds, so two decimals carry the same information as four.
-        return BarNumber.of(scaled, 2) + unit.second
+        return BarNumber.of(value / unit.first, 2) + unit.second
     }
 
     /** Compact only when [enabled] and the value is large enough to need it; plain text otherwise. */

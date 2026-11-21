@@ -69,7 +69,19 @@ import kotlin.math.abs
  */
 object DamageIndicatorHandler : Listenable {
 
-    private val lastRealHealth = mutableMapOf<UUID, Float>()
+    /**
+     * Last sampled health plus the tick it was sampled on.
+     *
+     * `lastSeen` replaces the per-tick "still nearby" sweep: an entry that was not sampled on the previous
+     * tick is treated as absent (`build=devVer.1.0.2`), so physical removal can wait for [SWEEP_INTERVAL]
+     * without any observable difference.
+     */
+    private class HealthState(var health: Float, var lastSeen: Long)
+
+    private val lastRealHealth = HashMap<UUID, HealthState>()
+
+    /** Entities already handled this tick; reused so the tick loop allocates nothing. */
+    private val processedThisTick = HashSet<UUID>()
 
     /**
      * Entities currently below `minHealthChange`, so the suppression probe logs on **entry** only.
@@ -146,6 +158,9 @@ object DamageIndicatorHandler : Listenable {
     /** Increments once per [onServerTickEnd]; the age unit of [Composition.tick]. */
     private var tickCounter = 0L
 
+    /** Ticks between memory sweeps of [lastRealHealth] and [suppressedEntities]. */
+    private const val SWEEP_INTERVAL = 20L
+
     /**
      * Per-entity, per-tick composition buckets.
      *
@@ -162,8 +177,7 @@ object DamageIndicatorHandler : Listenable {
         // Read once per tick; 0 means "no filtering" (the pre-cleanup26 behaviour).
         val minChange = DamageIndicatorConfig.minHealthChange.toFloat()
 
-        val aliveUUIDs = HashSet<UUID>()
-        val processedThisTick = HashSet<UUID>()
+        processedThisTick.clear()
 
         for (world in server.worlds) {
             val playersInWorld = world.players
@@ -175,7 +189,6 @@ object DamageIndicatorHandler : Listenable {
 
                 for (entity in entities) {
                     val uuid = entity.uuid
-                    aliveUUIDs.add(uuid)
 
                     // An entity near two players must only be processed once per tick, otherwise the
                     // second player would see a zero diff and nothing (or a stale diff) would fire.
@@ -183,7 +196,10 @@ object DamageIndicatorHandler : Listenable {
 
                     val currentRealHealth = entity.health + entity.absorptionAmount
                     val currentRealMaxHealth = entity.maxHealth + entity.absorptionAmount
-                    val lastRealHealthValue = lastRealHealth[uuid]
+                    val state = lastRealHealth[uuid]
+                    // Only a sample from the previous tick is a valid baseline; anything older means the
+                    // entity was out of range and must not produce a diff on its way back in.
+                    val lastRealHealthValue = if (state != null && state.lastSeen == tickCounter - 1) state.health else null
 
                     if (lastRealHealthValue != null) {
                         val diff = currentRealHealth - lastRealHealthValue
@@ -314,14 +330,15 @@ object DamageIndicatorHandler : Listenable {
                         }
                     }
 
-                    lastRealHealth[uuid] = currentRealHealth
+                    if (state != null) {
+                        state.health = currentRealHealth
+                        state.lastSeen = tickCounter
+                    } else {
+                        lastRealHealth[uuid] = HealthState(currentRealHealth, tickCounter)
+                    }
                 }
             }
         }
-
-        // Drop entries for entities that are no longer alive/nearby, otherwise the maps grow without
-        // bound over a long session.
-        lastRealHealth.keys.removeAll { it !in aliveUUIDs }
 
         // Composition is per-tick state with a **one tick** allowance (see [Composition.tick]): a bucket
         // filled during tick N is still valid during the scan of tick N+1, because a hit's elemental rider
@@ -329,8 +346,14 @@ object DamageIndicatorHandler : Listenable {
         // stale — keeping it would let a later hit inherit elements it never had and report the wrong
         // split (`build=cleanup63`).
         composition.entries.removeIf { it.value.tick < tickCounter - 1 }
-        suppressedEntities.removeAll { it !in aliveUUIDs }
         tickCounter++
+
+        // Memory-only sweep: [HealthState.lastSeen] already makes a stale entry behave as absent, so this
+        // only bounds the map and can run rarely instead of walking it every tick.
+        if (tickCounter % SWEEP_INTERVAL == 0L) {
+            lastRealHealth.entries.removeIf { it.value.lastSeen < tickCounter - SWEEP_INTERVAL }
+            suppressedEntities.removeIf { it !in lastRealHealth }
+        }
     }
 
     /** 1.12.2 `sendToNearbyPlayers` — everyone within 64 blocks, including the target itself. */

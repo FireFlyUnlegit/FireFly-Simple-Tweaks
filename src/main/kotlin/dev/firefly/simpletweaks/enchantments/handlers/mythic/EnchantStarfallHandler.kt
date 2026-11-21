@@ -200,6 +200,23 @@ object EnchantStarfallHandler : Listenable {
 
         val currentDim = world.registryKey
 
+        // Resolve every target once per tick; this used to be a full-world scan per star.
+        val targets: Map<UUID, LivingEntity> = if (world is ServerWorld) {
+            val wanted = HashSet<UUID>()
+            for (star in stars) if (star.dimension == currentDim) wanted.add(star.targetUUID)
+            if (wanted.isEmpty()) {
+                emptyMap()
+            } else {
+                val found = HashMap<UUID, LivingEntity>(wanted.size)
+                for (entity in world.iterateEntities()) {
+                    if (entity is LivingEntity && entity.uuid in wanted) found[entity.uuid] = entity
+                }
+                found
+            }
+        } else {
+            emptyMap()
+        }
+
         val iter = stars.iterator()
         while (iter.hasNext()) {
             val star = iter.next()
@@ -207,17 +224,8 @@ object EnchantStarfallHandler : Listenable {
 
             if (star.dimension != currentDim) continue
 
-            var target: LivingEntity? = null
-            // 1.12.2 iterated `WorldServer.loadedEntityList`; `iterateEntities()` is the 1.21
-            // equivalent for a server world (the client case returned at the top of this method).
-            if (world is ServerWorld) {
-                for (entity in world.iterateEntities()) {
-                    if (entity is LivingEntity && entity.uuid == star.targetUUID) {
-                        target = entity
-                        break
-                    }
-                }
-            }
+            // 1.12.2 iterated `WorldServer.loadedEntityList`; the map above is the 1.21 equivalent.
+            val target: LivingEntity? = targets[star.targetUUID]
 
             if (target != null && target.isAlive) {
                 val dx = target.x - star.x

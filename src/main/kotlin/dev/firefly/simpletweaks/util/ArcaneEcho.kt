@@ -11,6 +11,7 @@ import net.minecraft.entity.attribute.EntityAttributes
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.registry.entry.RegistryEntry
 import net.minecraft.util.Identifier
+import java.util.Collections
 import java.util.WeakHashMap
 
 /**
@@ -95,11 +96,22 @@ object ArcaneEcho {
         val active: Boolean get() = level > 0
     }
 
-    /** Last computed stats per player; refreshed by [refresh] once every 20 ticks. */
-    private val CACHE = WeakHashMap<PlayerEntity, Stats>()
+    /**
+     * Last computed stats per player; refreshed by [refresh] once every 20 ticks.
+     *
+     * Synchronized (and weak) because the client thread reads it from tooltips and the stats screen while the
+     * integrated server writes it on the same objects in singleplayer.
+     */
+    private val CACHE: MutableMap<PlayerEntity, Stats> =
+        Collections.synchronizedMap(WeakHashMap<PlayerEntity, Stats>())
 
+    /**
+     * Cached on the server, recomputed on the client: `refresh` only runs server-side, so a dedicated-server
+     * client would otherwise show whatever it computed the first time the player was looked at.
+     */
     @JvmStatic
-    fun statsOf(player: PlayerEntity): Stats = CACHE[player] ?: compute(player).also { CACHE[player] = it }
+    fun statsOf(player: PlayerEntity): Stats =
+        if (player.world.isClient) compute(player) else CACHE[player] ?: compute(player).also { CACHE[player] = it }
 
     @JvmStatic
     fun statsOf(units: Int, level: Int): Stats {

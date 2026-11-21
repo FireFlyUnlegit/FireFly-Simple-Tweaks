@@ -283,9 +283,9 @@ data class DamageNumber(
             return CompactNumber.of(value.toDouble(), 2)
         }
         return if (value % 1.0f == 0.0f) {
-            "${value.toInt()}"
+            "${value.toLong()}"
         } else {
-            String.format("%.2f", value)
+            String.format(java.util.Locale.ROOT, "%.2f", value)
         }
     }
 

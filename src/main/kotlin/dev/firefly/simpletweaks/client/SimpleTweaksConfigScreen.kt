@@ -120,7 +120,7 @@ class SimpleTweaksConfigScreen(private val parent: Screen?) :
             fmt: (Double) -> Text,
             raw: (Double) -> String = { value ->
                 if (value == value.toInt().toDouble()) value.toInt().toString()
-                else "%.2f".format(value)
+                else String.format(java.util.Locale.ROOT, "%.2f", value)
             },
         ) {
             val fieldW = FIELD_W
@@ -226,7 +226,7 @@ class SimpleTweaksConfigScreen(private val parent: Screen?) :
                     step = 0.0, min = ConfigBounds.DAMAGE_MIN_HEALTH_CHANGE.start, max = ConfigBounds.DAMAGE_MIN_HEALTH_CHANGE.endInclusive,
                     fmt = {
                         if (it == it.toInt().toDouble()) Text.literal(it.toInt().toString())
-                        else Text.literal("%.1f".format(it))
+                        else Text.literal(String.format(java.util.Locale.ROOT, "%.1f", it))
                     },
                 )
                 boolRow("damageIndicator.symbol", { DamageIndicatorConfig.symbol }) {
@@ -268,13 +268,13 @@ class SimpleTweaksConfigScreen(private val parent: Screen?) :
                     "damageIndicator.scale", { DamageIndicatorConfig.scale },
                     { DamageIndicatorConfig.scale = it },
                     step = 0.0, min = ConfigBounds.DAMAGE_SCALE.start, max = ConfigBounds.DAMAGE_SCALE.endInclusive,
-                    fmt = { Text.literal("%.1f".format(it)) },
+                    fmt = { Text.literal(String.format(java.util.Locale.ROOT, "%.1f", it)) },
                 )
                 numRow(
                     "damageIndicator.yStartFactor", { DamageIndicatorConfig.yStartFactor },
                     { DamageIndicatorConfig.yStartFactor = it },
                     step = 0.0, min = ConfigBounds.DAMAGE_Y_START.start, max = ConfigBounds.DAMAGE_Y_START.endInclusive,
-                    fmt = { Text.literal("%.1f".format(it)) },
+                    fmt = { Text.literal(String.format(java.util.Locale.ROOT, "%.1f", it)) },
                 )
             }
 
