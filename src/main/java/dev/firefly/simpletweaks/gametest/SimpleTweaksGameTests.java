@@ -87,8 +87,8 @@ public class SimpleTweaksGameTests implements FabricGameTest {
         int keys = GeneratedEnchantments.INSTANCE.getKEYS().size();
         int categories = GeneratedEnchantments.INSTANCE.getCATEGORY().size();
         LOGGER.info("[FST-GameTest] generated table: keys={}, categories={}", keys, categories);
-        context.assertEquals(147, keys, "GeneratedEnchantments.KEYS should list all 147 enchantments");
-        context.assertEquals(147, categories, "GeneratedEnchantments.CATEGORY should cover every id");
+        context.assertEquals(169, keys, "GeneratedEnchantments.KEYS should list all 169 enchantments");
+        context.assertEquals(169, categories, "GeneratedEnchantments.CATEGORY should cover every id");
         context.complete();
     }
 
@@ -1498,7 +1498,7 @@ public class SimpleTweaksGameTests implements FabricGameTest {
 
     /**
      * Pins the whole chain: with no entry the attribute is unbounded (not "whatever the field says",
-     * which is what lets a pack mod's 2147483647 ceiling survive), a typed ceiling wins, and clearing it
+     * which is what lets a pack mod's 2169483647 ceiling survive), a typed ceiling wins, and clearing it
      * goes back to unbounded.
      */
     @GameTest(templateName = FabricGameTest.EMPTY_STRUCTURE)
@@ -1523,7 +1523,7 @@ public class SimpleTweaksGameTests implements FabricGameTest {
 
         context.assertEquals(5000.0f, unbounded, "no entry must mean no ceiling, so a 5000 base survives");
         context.assertEquals(4000.0f, capped, "a typed ceiling must squeeze the base back to 4000");
-        context.assertTrue(huge > 2.1474836e9f,
+        context.assertTrue(huge > 2.1694836e9f,
                 "clearing the entry must go past Integer.MAX_VALUE, got " + huge);
 
         context.complete();

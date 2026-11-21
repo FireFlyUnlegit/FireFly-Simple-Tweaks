@@ -17,7 +17,10 @@ enum class EnchantCategory(val color: EnchantColor) {
     ADVANCED_COMMON(EnchantColor.DARK_PURPLE),
     ADVANCED_UNCOMMON(EnchantColor.DARK_PURPLE),
     ADVANCED_RARE(EnchantColor.DARK_PURPLE),
-    ADVANCED_EPIC(EnchantColor.DARK_PURPLE);
+    ADVANCED_EPIC(EnchantColor.DARK_PURPLE),
+    ADVANCED_LEGENDARY(EnchantColor.DARK_PURPLE),
+    ADVANCED_MYTHIC(EnchantColor.DARK_PURPLE),
+    ADVANCED_MYSTERY(EnchantColor.DARK_PURPLE);
     override fun toString() = name.lowercase()
 }
 
