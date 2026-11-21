@@ -132,26 +132,28 @@ object HudBar {
         pos.pop()
     }
 
-    /** `1.09k` / `12.3k` / `4.00M` / `1.20B`: short enough that even a 10-digit pool fits the track. */
-    fun compact(value: Double): String {
-        if (!value.isFinite()) return "0"
-        val abs = kotlin.math.abs(value)
-        val (scaled, suffix) = when {
-            abs >= 1_000_000_000_000.0 -> value / 1_000_000_000_000.0 to "T"
-            abs >= 1_000_000_000.0 -> value / 1_000_000_000.0 to "B"
-            abs >= 1_000_000.0 -> value / 1_000_000.0 to "M"
-            abs >= 1_000.0 -> value / 1_000.0 to "k"
-            else -> value to ""
-        }
-        return BarNumber.of(scaled, if (suffix.isEmpty()) GeneralConfig.barDecimalPlaces.coerceIn(ConfigBounds.BAR_DECIMALS) else 2) + suffix
-    }
+    /**
+     * `1.09k` / `12.3k` / `4.00M` / `1.20B`: short enough that even a 10-digit pool fits the track.
+     *
+     * Always compact — this is the last candidate of every bar, so it exists precisely for the values that
+     * do not fit as plain digits.
+     */
+    fun compact(value: Double): String =
+        CompactNumber.of(value, GeneralConfig.barDecimalPlaces.coerceIn(ConfigBounds.BAR_DECIMALS))
 
     /**
      * A bar number: at most [GeneralConfig.barDecimalPlaces] decimals, trailing zeros dropped, so 0.1 never
      * prints as 0.1000 and whole values stay whole ("20", not "20.00").
+     *
+     * Switches to `k` / `M` above 1 000 when [GeneralConfig.barCompactNumbers] is on; otherwise the bar falls
+     * back to fewer decimals first and only reaches for a suffix when nothing else fits.
      */
     fun number(value: Double): String =
-        BarNumber.of(value, GeneralConfig.barDecimalPlaces.coerceIn(ConfigBounds.BAR_DECIMALS))
+        CompactNumber.format(
+            value,
+            GeneralConfig.barDecimalPlaces.coerceIn(ConfigBounds.BAR_DECIMALS),
+            GeneralConfig.barCompactNumbers,
+        )
 
     private fun lerp(a: Int, b: Int, t: Float): Int {
         fun mix(shift: Int): Int {

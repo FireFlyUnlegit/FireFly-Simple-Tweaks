@@ -102,6 +102,7 @@ object SimpleTweaksConfig {
         GeneralConfig.barHealthHud = s.bool("barHealthHud", true)
         GeneralConfig.barDecimalPlaces = s.int("barDecimalPlaces", 2)
             .coerceIn(ConfigBounds.BAR_DECIMALS)
+        GeneralConfig.barCompactNumbers = s.bool("barCompactNumbers", false)
     }
 
     /**
@@ -147,6 +148,7 @@ object SimpleTweaksConfig {
             .coerceIn(ConfigBounds.DAMAGE_MIN_HEALTH_CHANGE)
         DamageIndicatorConfig.splitElemental = s.bool("splitElemental", false)
         DamageIndicatorConfig.showShadow = s.bool("showShadow", true)
+        DamageIndicatorConfig.compactNumbers = s.bool("compactNumbers", false)
         DamageIndicatorConfig.yStartFactor = s.dbl("yStartFactor", 1.0)
             .coerceIn(ConfigBounds.DAMAGE_Y_START)
     }
@@ -183,6 +185,7 @@ object SimpleTweaksConfig {
             addProperty("noHurtCam", GeneralConfig.noHurtCam)
             addProperty("barHealthHud", GeneralConfig.barHealthHud)
             addProperty("barDecimalPlaces", GeneralConfig.barDecimalPlaces)
+        addProperty("barCompactNumbers", GeneralConfig.barCompactNumbers)
         }
         val mobEnhancement = JsonObject().apply {
             addProperty("enabled", MobEnhancementConfig.enabled)
@@ -205,6 +208,7 @@ object SimpleTweaksConfig {
             addProperty("minHealthChange", DamageIndicatorConfig.minHealthChange)
             addProperty("splitElemental", DamageIndicatorConfig.splitElemental)
             addProperty("showShadow", DamageIndicatorConfig.showShadow)
+        addProperty("compactNumbers", DamageIndicatorConfig.compactNumbers)
             addProperty("yStartFactor", DamageIndicatorConfig.yStartFactor)
         }
         return JsonObject().apply {

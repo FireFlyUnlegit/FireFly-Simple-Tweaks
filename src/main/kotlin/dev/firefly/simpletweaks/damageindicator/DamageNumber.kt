@@ -1,5 +1,6 @@
 package dev.firefly.simpletweaks.damageindicator
 
+import dev.firefly.simpletweaks.client.hud.CompactNumber
 import dev.firefly.simpletweaks.core.config.DamageIndicatorConfig
 import dev.firefly.simpletweaks.network.packets.PacketDamageIndicator
 import dev.firefly.simpletweaks.util.elements.ElementType
@@ -271,7 +272,16 @@ data class DamageNumber(
         return element?.color ?: 0xFF3333
     }
 
+    /**
+     * Whole numbers lose their decimals (`5`, not `5.00`); fractions keep two.
+     *
+     * With `compactNumbers` on, anything at or above 1 000 renders as `1.24k` / `3.10M` instead — the
+     * switch is separate from the HUD bars' one because these numbers are read mid-fight.
+     */
     private fun formatFloat(value: Float): String {
+        if (DamageIndicatorConfig.compactNumbers && kotlin.math.abs(value) >= 1_000f) {
+            return CompactNumber.of(value.toDouble(), 2)
+        }
         return if (value % 1.0f == 0.0f) {
             "${value.toInt()}"
         } else {

@@ -268,6 +268,7 @@ A 100-damage hit: armour 26 → 17 taken; armour 40 → 10 taken.
 - **HUD bars** — health and hunger drawn as bars instead of vanilla icons; the food bar prints
   `food (saturation)` and tints the saturated share of the fill gold
     - Bar numbers take decimals; the maximum number of places is configurable
+    - **Compact numbers**: an opt-in `k`/`M` form (`1.09k`); floating damage numbers have a **separate** switch
 - **Enchantment index** — `/simple_tweaks enchantinfo`, browsable **by rarity** or **by applicable item**
 - **Config screen** — `/simple_tweaks stconfig`, applied live, no restart
 - **Coloured enchantment names** — by rarity; `Infinite Power` cycles a rainbow

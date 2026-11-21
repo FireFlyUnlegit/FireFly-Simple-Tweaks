@@ -95,6 +95,16 @@ object DamageIndicatorConfig {
     var showShadow: Boolean = true
 
     /**
+     * `Compact Numbers` — render `1.24k` / `3.10M` instead of `1240` / `3100000`.
+     *
+     * A separate switch from the bar HUD's [dev.firefly.simpletweaks.core.config.GeneralConfig.barCompactNumbers]:
+     * floating numbers are read at a glance mid-fight, so the shortened form is a taste call, not a fix.
+     * Client-only; read by [dev.firefly.simpletweaks.damageindicator.DamageNumber.formatFloat].
+     */
+    @JvmStatic
+    var compactNumbers: Boolean = false
+
+    /**
      * `yStartFactor` — vertical spawn offset, expressed in **entity heights** above the entity's feet.
      *
      * Range 0.5..2.0, default 1.0 = exactly the top of the hitbox, i.e. the 1.12.2 behaviour.

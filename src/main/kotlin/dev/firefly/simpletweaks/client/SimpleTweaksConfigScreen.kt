@@ -55,7 +55,7 @@ class SimpleTweaksConfigScreen(private val parent: Screen?) :
         /** Height of the page-tab strip under the title. */
         const val TABS_H = 18
         const val TOP = 48
-        const val PAGES = 5
+        const val PAGES = 6
         const val KEY_PREFIX = "gui.simple_tweaks.config."
 
         fun key(name: String): Text = Text.translatable(KEY_PREFIX + name)
@@ -192,6 +192,11 @@ class SimpleTweaksConfigScreen(private val parent: Screen?) :
                 boolRow("noHurtCam", { GeneralConfig.noHurtCam }) {
                     GeneralConfig.noHurtCam = it
                 }
+            }
+
+            5 -> {
+                // HUD page: the bar options moved here when `barCompactNumbers` made the general page
+                // 11 rows, which overlapped the footer at a 240 px logical height.
                 boolRow("barHealthHud", { GeneralConfig.barHealthHud }) {
                     GeneralConfig.barHealthHud = it
                 }
@@ -201,6 +206,9 @@ class SimpleTweaksConfigScreen(private val parent: Screen?) :
                     step = 0.0, min = ConfigBounds.BAR_DECIMALS.first.toDouble(), max = ConfigBounds.BAR_DECIMALS.last.toDouble(),
                     fmt = { Text.literal(it.toInt().toString()) },
                 )
+                boolRow("barCompactNumbers", { GeneralConfig.barCompactNumbers }) {
+                    GeneralConfig.barCompactNumbers = it
+                }
             }
 
             1 -> {
@@ -229,6 +237,9 @@ class SimpleTweaksConfigScreen(private val parent: Screen?) :
                 }
                 boolRow("damageIndicator.showShadow", { DamageIndicatorConfig.showShadow }) {
                     DamageIndicatorConfig.showShadow = it
+                }
+                boolRow("damageIndicator.compactNumbers", { DamageIndicatorConfig.compactNumbers }) {
+                    DamageIndicatorConfig.compactNumbers = it
                 }
                 numRow(
                     "damageIndicator.duration", { DamageIndicatorConfig.duration.toDouble() },
@@ -372,7 +383,8 @@ class SimpleTweaksConfigScreen(private val parent: Screen?) :
         // indicator in the header carries "N/5", so sharing the section title is unambiguous.
         1, 2 -> "section.damage"
         3 -> "section.mob"
-        else -> "section.movement"
+        4 -> "section.movement"
+        else -> "section.hud"
     }
 
     override fun render(context: DrawContext, mouseX: Int, mouseY: Int, delta: Float) {

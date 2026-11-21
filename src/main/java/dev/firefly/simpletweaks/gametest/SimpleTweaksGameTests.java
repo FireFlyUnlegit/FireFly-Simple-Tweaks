@@ -1011,6 +1011,28 @@ public class SimpleTweaksGameTests implements FabricGameTest {
     }
 
     /**
+     * The `barCompactNumbers` / `compactNumbers` switches must only ever <em>shorten</em> a number, and only
+     * above 1 000: a mod that turned `999` into `1.00k` (or dropped the flag on the floor) would look like a
+     * formatting bug in the HUD rather than a settings bug.
+     */
+    @GameTest(templateName = FabricGameTest.EMPTY_STRUCTURE)
+    public void compactNumberSwitchOnlyShortensAboveAThousand(TestContext context) {
+        String[] cases = {
+                dev.firefly.simpletweaks.client.hud.CompactNumber.INSTANCE.format(999.0, 2, true),
+                dev.firefly.simpletweaks.client.hud.CompactNumber.INSTANCE.format(1240.0, 2, true),
+                dev.firefly.simpletweaks.client.hud.CompactNumber.INSTANCE.format(1240.0, 2, false),
+                dev.firefly.simpletweaks.client.hud.CompactNumber.INSTANCE.format(1_500_000.0, 0, true),
+        };
+        String[] expected = {"999", "1.24k", "1240", "1.5M"};
+
+        LOGGER.info("[FST-GameTest] compact number switch: {}", String.join(" / ", cases));
+        for (int i = 0; i < expected.length; i++) {
+            context.assertEquals(expected[i], cases[i], "compact number switch " + i);
+        }
+        context.complete();
+    }
+
+    /**
      * The equipment snapshot must follow equipment, including the swap-away case, and it must not answer
      * for a slot it was not asked about.
      *

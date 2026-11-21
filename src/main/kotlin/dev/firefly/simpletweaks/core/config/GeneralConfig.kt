@@ -108,6 +108,16 @@ object GeneralConfig {
     @JvmStatic
     var barDecimalPlaces: Int = 2
 
+    /**
+     * Prefer `12.3k` / `4.00M` over `12345` once a bar number passes 1 000.
+     *
+     * Off by default: with it off the bar still reaches for a suffix, but only after the smaller-decimal
+     * candidates fail to fit. On, the suffix is the first thing tried. Client-only; read by
+     * [dev.firefly.simpletweaks.client.hud.HudBar.number].
+     */
+    @JvmStatic
+    var barCompactNumbers: Boolean = false
+
     @JvmStatic
     var noHurtCam: Boolean = false
 
