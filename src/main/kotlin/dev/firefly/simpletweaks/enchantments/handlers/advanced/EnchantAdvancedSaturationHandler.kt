@@ -30,6 +30,7 @@ import java.util.UUID
     category = EnchantCategory.ADVANCED_UNCOMMON,
     type = EnchantType.CHESTPLATE,
     maxLevel = 3,
+    ladderBase = 8,
     weight = EnchantItemWeights.ADVANCED_UNCOMMON,
     anvilCost = 8,
     minCostBase = 30,

@@ -18,6 +18,7 @@ import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 import dev.firefly.simpletweaks.util.FireBurn
 import dev.firefly.simpletweaks.util.combatStack
 import dev.firefly.simpletweaks.util.damagesource.damageElemental
+import dev.firefly.simpletweaks.util.damagesource.isAuxiliaryDamage
 import dev.firefly.simpletweaks.util.elements.ElementType
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import net.minecraft.entity.LivingEntity
@@ -32,6 +33,7 @@ import net.minecraft.util.math.Box
     category = EnchantCategory.ADVANCED_RARE,
     type = EnchantType.SWORD,
     maxLevel = 5,
+    ladderBase = 6,
     weight = EnchantItemWeights.ADVANCED_RARE,
     anvilCost = 14,
     minCostBase = 35,
@@ -48,6 +50,7 @@ object EnchantAdvancedFireMasterHandler : Listenable {
     @SubscribeEvent
     fun onLivingHurt(e: LivingHurtEvent) {
         if (e.invalid) return
+        if (e.source.isAuxiliaryDamage()) return
         val player = e.attacker as? PlayerEntity ?: return
         val victim = e.target
         if (victim === player) return

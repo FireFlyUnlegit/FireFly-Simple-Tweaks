@@ -33,6 +33,7 @@ import net.minecraft.util.Identifier
     category = EnchantCategory.ADVANCED_EPIC,
     type = EnchantType.ARMOR,
     maxLevel = 8,
+    ladderBase = 8,
     weight = EnchantItemWeights.ADVANCED_EPIC,
     anvilCost = 10,
     minCostBase = 25,

@@ -18,6 +18,7 @@ import dev.firefly.simpletweaks.util.absorptionHeadroomId
 import dev.firefly.simpletweaks.util.combatStack
 import dev.firefly.simpletweaks.util.damagesource.ModDamageTypes
 import dev.firefly.simpletweaks.util.damagesource.damageElemental
+import dev.firefly.simpletweaks.util.damagesource.isAuxiliaryDamage
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import dev.firefly.simpletweaks.util.grantAbsorption
 import net.minecraft.entity.effect.StatusEffectInstance
@@ -30,6 +31,7 @@ import net.minecraft.entity.player.PlayerEntity
     category = EnchantCategory.ADVANCED_LEGENDARY,
     type = EnchantType.ARMOR,
     maxLevel = 2,
+    ladderBase = 1,
     weight = EnchantItemWeights.ADVANCED_LEGENDARY,
     damagePerLevel = 0.0,
     anvilCost = 12,
@@ -46,6 +48,7 @@ object EnchantAdvancedSoulBoundHandler : Listenable {
     @SubscribeEvent
     fun onLivingDamage(e: LivingDamageEvent) {
         if (e.invalid) return
+        if (e.source.isAuxiliaryDamage()) return
         val player = e.entityLiving as? PlayerEntity ?: return
         var level = 0
         for (slot in EquipmentSlot.entries) {

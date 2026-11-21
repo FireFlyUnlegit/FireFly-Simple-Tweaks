@@ -6,6 +6,7 @@ import dev.firefly.simpletweaks.compat.event.LivingDamageEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.invalid
 import dev.firefly.simpletweaks.core.Listenable
+import dev.firefly.simpletweaks.util.damagesource.isAuxiliaryDamage
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantItemWeights
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
@@ -20,10 +21,11 @@ import net.minecraft.entity.player.PlayerEntity
 /** The advanced form of this enchantment: its top tier plus an effect of its own. */
 @ModEnchantment(
     id = "advanced_skyfall",
-    category = EnchantCategory.ADVANCED_LEGENDARY,
+    category = EnchantCategory.ADVANCED_EPIC,
     type = EnchantType.WEAPON,
     maxLevel = 4,
-    weight = EnchantItemWeights.ADVANCED_LEGENDARY,
+    ladderBase = 3,
+    weight = EnchantItemWeights.ADVANCED_EPIC,
     damagePerLevel = 0.0,
     anvilCost = 16,
     minCostBase = 40,
@@ -39,6 +41,7 @@ object EnchantAdvancedSkyfallHandler : Listenable {
     @SubscribeEvent
     fun onLivingDamage(e: LivingDamageEvent) {
         if (e.invalid) return
+        if (e.source.isAuxiliaryDamage()) return
         val player = e.attacker as? PlayerEntity ?: return
         val victim = e.entityLiving
         if (victim === player) return

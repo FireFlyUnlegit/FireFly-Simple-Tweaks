@@ -27,6 +27,7 @@ import java.util.UUID
     category = EnchantCategory.ADVANCED_EPIC,
     type = EnchantType.CHESTPLATE,
     maxLevel = 5,
+    ladderBase = 3,
     weight = EnchantItemWeights.ADVANCED_EPIC,
     anvilCost = 12,
     minCostBase = 35,

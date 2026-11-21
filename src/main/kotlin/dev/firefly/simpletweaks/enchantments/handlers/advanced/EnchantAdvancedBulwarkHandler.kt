@@ -5,6 +5,7 @@ import dev.firefly.simpletweaks.compat.event.LivingDamageEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.invalid
 import dev.firefly.simpletweaks.core.Listenable
+import dev.firefly.simpletweaks.util.damagesource.isAuxiliaryDamage
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantItemWeights
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
@@ -23,6 +24,7 @@ import net.minecraft.entity.player.PlayerEntity
     category = EnchantCategory.ADVANCED_EPIC,
     type = EnchantType.ARMOR,
     maxLevel = 4,
+    ladderBase = 3,
     weight = EnchantItemWeights.ADVANCED_EPIC,
     anvilCost = 12,
     minCostBase = 35,
@@ -40,6 +42,7 @@ object EnchantAdvancedBulwarkHandler : Listenable {
     @SubscribeEvent
     fun onLivingDamage(e: LivingDamageEvent) {
         if (e.invalid) return
+        if (e.source.isAuxiliaryDamage()) return
         val player = e.entityLiving as? PlayerEntity ?: return
 
         var level = 0

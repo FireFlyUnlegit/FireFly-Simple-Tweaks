@@ -188,17 +188,24 @@ private val ARMOR_TYPES = setOf("ARMOR", "HELMET", "CHESTPLATE", "LEGGINGS", "BO
  * The caller filters out anything the declaration already names by hand (`swift_sneak` keeps its own
  * sneak speed and still gains the package).
  */
-private fun deriveAttributes(category: String, type: String): List<AttrSpec> {
+private fun deriveAttributes(category: String, type: String, ladderBase: Int): List<AttrSpec> {
     val rarity = TIER_RARITY[category] ?: 0
     if (rarity <= 0) return emptyList()
+    // An advanced step counts as `ladderBase + own level` everywhere else (the handler ladder), so its
+    // attribute package has to start where the base form finished instead of restarting at level I.
+    fun entry(attribute: String, per: Double, operation: String): AttrSpec {
+        val step = round3(per)
+        val first = if (ladderBase > 0) round3(per * (ladderBase + 1)) else step
+        return AttrSpec(attribute, step, operation, first)
+    }
     return when {
         type in MINING_TYPES -> listOf(
-            AttrSpec("minecraft:player.block_break_speed", round3(rarity * 0.05), "add_multiplied_base"),
+            entry("minecraft:player.block_break_speed", rarity * 0.05, "add_multiplied_base"),
         )
         type in ARMOR_TYPES -> listOf(
-            AttrSpec("minecraft:generic.max_health", round3(rarity * 0.1), "add_value"),
-            AttrSpec("minecraft:generic.armor", round3(rarity * 0.05), "add_value"),
-            AttrSpec("minecraft:generic.armor_toughness", round3(rarity * 0.05), "add_value"),
+            entry("minecraft:generic.max_health", rarity * 0.1, "add_value"),
+            entry("minecraft:generic.armor", rarity * 0.05, "add_value"),
+            entry("minecraft:generic.armor_toughness", rarity * 0.05, "add_value"),
         )
         else -> emptyList()
     }
@@ -230,6 +237,8 @@ private data class AttrSpec(
     val attribute: String,
     val perLevel: Double,
     val operation: String,
+    /** Amount at level I. Advanced steps shift this up so level I reports the base form's numbers. */
+    val firstLevel: Double = perLevel,
 ) {
     /** `minecraft:generic.max_health` -> `max_health`. */
     val tail: String = attribute.substringAfterLast('.')
@@ -553,7 +562,8 @@ class ModEnchantmentProcessor(
         // Merged, not replaced: a declaration only *adds* to the rarity package. Anything it names itself
         // wins, because two entries for one attribute would share the derived id
         // (`<enchantment>.<attribute tail>`) and vanilla would treat them as one modifier anyway.
-        val derivedAttributes = deriveAttributes(category!!, type!!)
+        val ladderBase = (args["ladderBase"]?.value as? Number)?.toInt() ?: 0
+        val derivedAttributes = deriveAttributes(category!!, type!!, ladderBase)
             .filterNot { derived -> declaredAttributes.any { it.attribute == derived.attribute } }
         if (derivedAttributes.isNotEmpty()) {
             derivedNotes += "$where ($type: ${derivedAttributes.joinToString("/") { it.tail }})"
@@ -806,7 +816,7 @@ class ModEnchantmentProcessor(
             s.attributes.forEachIndexed { i, a ->
                 appendLine("      {")
                 appendLine(
-                    "        \"amount\": { \"type\": \"minecraft:linear\", \"base\": ${a.perLevel}, " +
+                    "        \"amount\": { \"type\": \"minecraft:linear\", \"base\": ${a.firstLevel}, " +
                         "\"per_level_above_first\": ${a.perLevel} },",
                 )
                 appendLine("        \"attribute\": \"${a.attribute}\",")

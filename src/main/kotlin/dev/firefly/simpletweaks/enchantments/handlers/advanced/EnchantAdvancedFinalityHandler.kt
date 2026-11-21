@@ -16,6 +16,7 @@ import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 import dev.firefly.simpletweaks.util.combatStack
 import dev.firefly.simpletweaks.util.damagesource.ModDamageTypes
 import dev.firefly.simpletweaks.util.damagesource.damageElemental
+import dev.firefly.simpletweaks.util.damagesource.isAuxiliaryDamage
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import net.minecraft.entity.player.PlayerEntity
 
@@ -25,6 +26,7 @@ import net.minecraft.entity.player.PlayerEntity
     category = EnchantCategory.ADVANCED_EPIC,
     type = EnchantType.WEAPON,
     maxLevel = 3,
+    ladderBase = 3,
     weight = EnchantItemWeights.ADVANCED_EPIC,
     damagePerLevel = 0.0,
     anvilCost = 14,
@@ -42,6 +44,7 @@ object EnchantAdvancedFinalityHandler : Listenable {
     @SubscribeEvent
     fun onLivingDamage(e: LivingDamageEvent) {
         if (e.invalid) return
+        if (e.source.isAuxiliaryDamage()) return
         val player = e.attacker as? PlayerEntity ?: return
         val victim = e.entityLiving
         if (victim === player) return

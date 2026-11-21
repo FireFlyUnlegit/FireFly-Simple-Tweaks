@@ -18,6 +18,7 @@ import dev.firefly.simpletweaks.util.absorptionHeadroomId
 import dev.firefly.simpletweaks.util.combatStack
 import dev.firefly.simpletweaks.util.damagesource.ModDamageTypes
 import dev.firefly.simpletweaks.util.damagesource.damageElemental
+import dev.firefly.simpletweaks.util.damagesource.isAuxiliaryDamage
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import dev.firefly.simpletweaks.util.grantAbsorption
 import net.minecraft.entity.effect.StatusEffectInstance
@@ -26,10 +27,11 @@ import net.minecraft.entity.player.PlayerEntity
 /** The advanced form of this enchantment: its top tier plus an effect of its own. */
 @ModEnchantment(
     id = "advanced_healing_multiplier",
-    category = EnchantCategory.ADVANCED_UNCOMMON,
-    type = EnchantType.WEAPON,
+    category = EnchantCategory.ADVANCED_LEGENDARY,
+    type = EnchantType.CHESTPLATE,
     maxLevel = 4,
-    weight = EnchantItemWeights.ADVANCED_UNCOMMON,
+    ladderBase = 10,
+    weight = EnchantItemWeights.ADVANCED_LEGENDARY,
     damagePerLevel = 0.0,
     anvilCost = 12,
     minCostBase = 35,
@@ -45,6 +47,7 @@ object EnchantAdvancedHealingMultiplierHandler : Listenable {
     @SubscribeEvent
     fun onLivingDamage(e: LivingDamageEvent) {
         if (e.invalid) return
+        if (e.source.isAuxiliaryDamage()) return
         val player = e.attacker as? PlayerEntity ?: return
         val victim = e.entityLiving
         if (victim === player) return

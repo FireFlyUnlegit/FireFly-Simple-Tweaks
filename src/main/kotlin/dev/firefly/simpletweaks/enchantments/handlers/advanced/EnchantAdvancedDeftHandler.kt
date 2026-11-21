@@ -33,6 +33,7 @@ import net.minecraft.util.Identifier
     category = EnchantCategory.ADVANCED_COMMON,
     type = EnchantType.WEAPON,
     maxLevel = 3,
+    ladderBase = 3,
     weight = EnchantItemWeights.ADVANCED_COMMON,
     anvilCost = 6,
     minCostBase = 30,

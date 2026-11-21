@@ -29,6 +29,7 @@ import net.minecraft.util.math.Box
     category = EnchantCategory.ADVANCED_RARE,
     type = EnchantType.SWORD,
     maxLevel = 4,
+    ladderBase = 3,
     weight = EnchantItemWeights.ADVANCED_RARE,
     damagePerLevel = 0.0,
     anvilCost = 14,

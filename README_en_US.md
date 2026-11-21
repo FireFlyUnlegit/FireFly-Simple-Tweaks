@@ -40,10 +40,12 @@ Current **1.21.1 / Fabric** release: **v2.4.0** (169 enchantments, 17 elemental 
 | UNCOMMON | 13 | MYTHIC | 12 |
 | RARE | 28 | MYSTERY | 14 |
 | EPIC | 34 | UNIQUE | 5 |
-| ADVANCED_COMMON (advanced) | 3 | ADVANCED_RARE (advanced) | 2 |
-| ADVANCED_UNCOMMON (advanced) | 3 | ADVANCED_EPIC (advanced) | 11 |
+| ADVANCED_COMMON (advanced) | 4 | ADVANCED_EPIC (advanced) | 8 |
+| ADVANCED_UNCOMMON (advanced) | 4 | ADVANCED_LEGENDARY (advanced) | 2 |
+| ADVANCED_RARE (advanced) | 6 | ADVANCED_MYTHIC (advanced) | 5 |
+| ADVANCED_MYSTERY (advanced) | 5 |  |  |
 
-**Advanced enchantments** (ADVANCED_*) never come from the enchanting table: a book has to go onto a piece that already has the maxed base form, which that level is then consumed, and the piece counts as ase max + own level from then on (e.g. Advanced Deft I on a weapon behaves like Deft IV).
+**Advanced enchantments** (ADVANCED_*) never come from the enchanting table: a book has to go onto a piece that already has the maxed base form, which that level is then consumed, and the piece counts as base max + own level from then on (e.g. Advanced Deft I on a weapon behaves like Deft IV).
 
 #### 🌈 Elemental system
 

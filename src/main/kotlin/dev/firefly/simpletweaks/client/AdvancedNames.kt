@@ -4,7 +4,7 @@ import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 import net.minecraft.text.Text
 import net.minecraft.util.Formatting
 
-/** `Xxx - 进阶`: the base name keeps its rarity colour, only the ` - 进阶` tail is purple. */
+/** `Xxx [进阶]`: the base name keeps its rarity colour, only the `[进阶]` tail is purple. */
 object AdvancedNames {
     const val PREFIX = "advanced_"
 

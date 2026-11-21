@@ -18,6 +18,7 @@ import dev.firefly.simpletweaks.util.absorptionHeadroomId
 import dev.firefly.simpletweaks.util.combatStack
 import dev.firefly.simpletweaks.util.damagesource.ModDamageTypes
 import dev.firefly.simpletweaks.util.damagesource.damageElemental
+import dev.firefly.simpletweaks.util.damagesource.isAuxiliaryDamage
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import dev.firefly.simpletweaks.util.grantAbsorption
 import net.minecraft.entity.effect.StatusEffectInstance
@@ -27,10 +28,11 @@ import net.minecraft.entity.player.PlayerEntity
 /** The advanced form of this enchantment: its top tier plus an effect of its own. */
 @ModEnchantment(
     id = "advanced_golden_shield",
-    category = EnchantCategory.ADVANCED_RARE,
+    category = EnchantCategory.ADVANCED_EPIC,
     type = EnchantType.ARMOR,
     maxLevel = 5,
-    weight = EnchantItemWeights.ADVANCED_RARE,
+    ladderBase = 3,
+    weight = EnchantItemWeights.ADVANCED_EPIC,
     damagePerLevel = 0.0,
     anvilCost = 12,
     minCostBase = 35,
@@ -46,6 +48,7 @@ object EnchantAdvancedGoldenShieldHandler : Listenable {
     @SubscribeEvent
     fun onLivingDamage(e: LivingDamageEvent) {
         if (e.invalid) return
+        if (e.source.isAuxiliaryDamage()) return
         val player = e.entityLiving as? PlayerEntity ?: return
         var level = 0
         for (slot in EquipmentSlot.entries) {

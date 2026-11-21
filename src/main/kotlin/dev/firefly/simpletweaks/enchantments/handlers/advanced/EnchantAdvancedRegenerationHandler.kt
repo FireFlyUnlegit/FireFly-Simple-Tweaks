@@ -21,6 +21,7 @@ import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
     category = EnchantCategory.ADVANCED_UNCOMMON,
     type = EnchantType.LEGGINGS,
     maxLevel = 5,
+    ladderBase = 8,
     weight = EnchantItemWeights.ADVANCED_UNCOMMON,
     anvilCost = 10,
     minCostBase = 30,

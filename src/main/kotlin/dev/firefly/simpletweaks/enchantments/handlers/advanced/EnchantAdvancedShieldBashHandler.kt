@@ -15,6 +15,7 @@ import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 import dev.firefly.simpletweaks.util.combatStack
 import dev.firefly.simpletweaks.util.damagesource.ModDamageTypes
 import dev.firefly.simpletweaks.util.damagesource.damageElemental
+import dev.firefly.simpletweaks.util.damagesource.isAuxiliaryDamage
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.player.PlayerEntity
@@ -22,10 +23,11 @@ import net.minecraft.entity.player.PlayerEntity
 /** The advanced form of this enchantment: its top tier plus an effect of its own. */
 @ModEnchantment(
     id = "advanced_shield_bash",
-    category = EnchantCategory.ADVANCED_LEGENDARY,
+    category = EnchantCategory.ADVANCED_UNCOMMON,
     type = EnchantType.HELD,
     maxLevel = 3,
-    weight = EnchantItemWeights.ADVANCED_LEGENDARY,
+    ladderBase = 3,
+    weight = EnchantItemWeights.ADVANCED_UNCOMMON,
     damagePerLevel = 0.0,
     anvilCost = 16,
     minCostBase = 40,
@@ -39,6 +41,7 @@ object EnchantAdvancedShieldBashHandler : Listenable {
     @SubscribeEvent
     fun onLivingHurt(e: LivingHurtEvent) {
         if (e.invalid) return
+        if (e.source.isAuxiliaryDamage()) return
         val player = e.entityLiving as? PlayerEntity ?: return
         val attacker = e.source.attacker as? LivingEntity ?: return
         if (attacker === player) return

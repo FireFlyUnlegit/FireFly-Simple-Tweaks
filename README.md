@@ -32,7 +32,7 @@
 
 ### 🧙 自定义附魔系统
 
-**139 种**独特附魔，按稀有度分布：
+**169 种**独特附魔，按稀有度分布：
 
 | 稀有度 | 数量 | 稀有度 | 数量 |
 |--------|------|--------|------|
@@ -40,8 +40,10 @@
 | UNCOMMON（罕见） | 13 | MYTHIC（神话） | 12 |
 | RARE（稀有） | 28 | MYSTERY（神秘） | 14 |
 | EPIC（史诗） | 34 | UNIQUE（唯一） | 5 |
-| ADVANCED_COMMON（进阶·普通） | 3 | ADVANCED_RARE（进阶·稀有） | 2 |
-| ADVANCED_UNCOMMON（进阶·罕见） | 3 | ADVANCED_EPIC（进阶·史诗） | 11 |
+| ADVANCED_COMMON（进阶·普通） | 4 | ADVANCED_EPIC（进阶·史诗） | 8 |
+| ADVANCED_UNCOMMON（进阶·罕见） | 4 | ADVANCED_LEGENDARY（进阶·传说） | 2 |
+| ADVANCED_RARE（进阶·稀有） | 6 | ADVANCED_MYTHIC（进阶·神话） | 5 |
+| ADVANCED_MYSTERY（进阶·神秘） | 5 |  |  |
 
 **进阶附魔**（`ADVANCED_*`）不进附魔台，只能把附魔书打在「已经有满级基础版」的装备上：那一级会被吞掉，此后该件按 `基础版满级 + 自身等级` 计算（例如武器上的「迅捷·进阶 I」视同迅捷 IV）。
 

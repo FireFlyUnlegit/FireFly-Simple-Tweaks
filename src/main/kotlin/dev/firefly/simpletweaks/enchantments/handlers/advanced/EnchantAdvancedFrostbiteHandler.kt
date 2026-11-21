@@ -17,6 +17,7 @@ import dev.firefly.simpletweaks.util.HealLock
 import dev.firefly.simpletweaks.util.combatStack
 import dev.firefly.simpletweaks.util.damagesource.ModDamageTypes
 import dev.firefly.simpletweaks.util.damagesource.damageElemental
+import dev.firefly.simpletweaks.util.damagesource.isAuxiliaryDamage
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import net.minecraft.entity.effect.StatusEffectInstance
 import net.minecraft.entity.effect.StatusEffects
@@ -28,6 +29,7 @@ import net.minecraft.entity.player.PlayerEntity
     category = EnchantCategory.ADVANCED_RARE,
     type = EnchantType.WEAPON,
     maxLevel = 3,
+    ladderBase = 3,
     weight = EnchantItemWeights.ADVANCED_RARE,
     damagePerLevel = 0.0,
     anvilCost = 14,
@@ -45,6 +47,7 @@ object EnchantAdvancedFrostbiteHandler : Listenable {
     @SubscribeEvent
     fun onLivingDamage(e: LivingDamageEvent) {
         if (e.invalid) return
+        if (e.source.isAuxiliaryDamage()) return
         val player = e.attacker as? PlayerEntity ?: return
         val victim = e.entityLiving
         if (victim === player) return

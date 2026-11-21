@@ -20,6 +20,7 @@ import dev.firefly.simpletweaks.util.absorptionHeadroomId
 import dev.firefly.simpletweaks.util.combatStack
 import dev.firefly.simpletweaks.util.damagesource.ModDamageTypes
 import dev.firefly.simpletweaks.util.damagesource.damageElemental
+import dev.firefly.simpletweaks.util.damagesource.isAuxiliaryDamage
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import dev.firefly.simpletweaks.util.grantAbsorption
 import net.minecraft.entity.effect.StatusEffectInstance
@@ -29,10 +30,11 @@ import net.minecraft.entity.player.PlayerEntity
 /** The advanced form of this enchantment: its top tier plus an effect of its own. */
 @ModEnchantment(
     id = "advanced_shockwave_landing",
-    category = EnchantCategory.ADVANCED_LEGENDARY,
+    category = EnchantCategory.ADVANCED_RARE,
     type = EnchantType.ARMOR,
     maxLevel = 4,
-    weight = EnchantItemWeights.ADVANCED_LEGENDARY,
+    ladderBase = 3,
+    weight = EnchantItemWeights.ADVANCED_RARE,
     damagePerLevel = 0.0,
     anvilCost = 12,
     minCostBase = 35,
@@ -48,6 +50,7 @@ object EnchantAdvancedShockwaveLandingHandler : Listenable {
     @SubscribeEvent
     fun onLivingDamage(e: LivingDamageEvent) {
         if (e.invalid) return
+        if (e.source.isAuxiliaryDamage()) return
         val player = e.entityLiving as? PlayerEntity ?: return
         var level = 0
         for (slot in EquipmentSlot.entries) {

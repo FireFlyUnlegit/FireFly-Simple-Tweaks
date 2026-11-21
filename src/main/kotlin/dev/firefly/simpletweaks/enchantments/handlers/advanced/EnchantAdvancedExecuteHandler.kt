@@ -4,6 +4,7 @@ import dev.firefly.simpletweaks.compat.FSTLog
 import java.util.UUID
 import net.minecraft.entity.LivingEntity
 import dev.firefly.simpletweaks.util.damagesource.damageElemental
+import dev.firefly.simpletweaks.util.damagesource.isAuxiliaryDamage
 import dev.firefly.simpletweaks.util.damagesource.ModDamageTypes
 import dev.firefly.simpletweaks.compat.attacker
 import dev.firefly.simpletweaks.compat.event.LivingHurtEvent
@@ -27,6 +28,7 @@ import net.minecraft.entity.player.PlayerEntity
     category = EnchantCategory.ADVANCED_RARE,
     type = EnchantType.SWORD,
     maxLevel = 3,
+    ladderBase = 5,
     weight = EnchantItemWeights.ADVANCED_RARE,
     anvilCost = 10,
     minCostBase = 35,
@@ -43,6 +45,7 @@ object EnchantAdvancedExecuteHandler : Listenable {
     @SubscribeEvent
     fun onLivingHurt(e: LivingHurtEvent) {
         if (e.invalid) return
+        if (e.source.isAuxiliaryDamage()) return
         val player = e.attacker as? PlayerEntity ?: return
         val victim = e.entityLiving
         if (victim === player) return

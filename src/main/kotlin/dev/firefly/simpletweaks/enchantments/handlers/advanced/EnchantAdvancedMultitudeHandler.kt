@@ -34,6 +34,7 @@ import net.minecraft.entity.player.PlayerEntity
     category = EnchantCategory.ADVANCED_MYSTERY,
     type = EnchantType.WEAPON,
     maxLevel = 3,
+    ladderBase = 2,
     weight = EnchantItemWeights.ADVANCED_MYSTERY,
     damagePerLevel = 0.0,
     anvilCost = 12,

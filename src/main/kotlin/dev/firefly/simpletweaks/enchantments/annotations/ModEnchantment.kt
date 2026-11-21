@@ -65,6 +65,7 @@ annotation class ModEnchantment(
     /** Maximum level. */
     val maxLevel: Int,
 
+
     /**
      * Enchanting-table weight. **Defaults to the tier's canonical value** ([WEIGHT_FROM_CATEGORY]):
      * the processor derives it from [category] with the `EnchantItemWeights` curve, so a declaration
@@ -187,5 +188,17 @@ annotation class ModEnchantment(
      * `celestial_blessing`, `heavenly_punishment`) were flipped to generated JSONs then, which is what
      * made the drift above impossible to keep.
      */
+    /**
+     * The max level of the base enchantment this advanced step replaces.
+     *
+     * An advanced item counts as `ladderBase + own level` (see `UpgradeEnchantments.ladderLevel`), so the
+     * derived `minecraft:attributes` package has to start at that offset instead of at level I - without
+     * this an `advanced_echo_shield I` reported *less* health than the `echo_shield V` it came from.
+     * `0` means "not an advanced step": the package starts at level I as usual.
+     *
+     * Declared **last** on purpose: several declarations pass their arguments positionally, so a new
+     * parameter anywhere in the middle silently shifts every one of them.
+     */
+    val ladderBase: Int = 0,
     val jsonEmit: Boolean = true,
 )

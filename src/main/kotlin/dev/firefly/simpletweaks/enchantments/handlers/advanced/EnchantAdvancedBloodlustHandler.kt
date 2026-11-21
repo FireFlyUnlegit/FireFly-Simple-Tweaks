@@ -6,6 +6,7 @@ import dev.firefly.simpletweaks.compat.event.LivingDamageEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.invalid
 import dev.firefly.simpletweaks.core.Listenable
+import dev.firefly.simpletweaks.util.damagesource.isAuxiliaryDamage
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantItemWeights
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
@@ -21,10 +22,11 @@ import net.minecraft.entity.player.PlayerEntity
 /** The advanced form of this enchantment: its top tier plus an effect of its own. */
 @ModEnchantment(
     id = "advanced_bloodlust",
-    category = EnchantCategory.ADVANCED_COMMON,
+    category = EnchantCategory.ADVANCED_UNCOMMON,
     type = EnchantType.WEAPON,
     maxLevel = 3,
-    weight = EnchantItemWeights.ADVANCED_COMMON,
+    ladderBase = 5,
+    weight = EnchantItemWeights.ADVANCED_UNCOMMON,
     damagePerLevel = 0.0,
     anvilCost = 12,
     minCostBase = 35,
@@ -40,6 +42,7 @@ object EnchantAdvancedBloodlustHandler : Listenable {
     @SubscribeEvent
     fun onLivingDamage(e: LivingDamageEvent) {
         if (e.invalid) return
+        if (e.source.isAuxiliaryDamage()) return
         val player = e.attacker as? PlayerEntity ?: return
         val victim = e.entityLiving
         if (victim === player) return

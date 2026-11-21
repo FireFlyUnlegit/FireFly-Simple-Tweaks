@@ -18,6 +18,7 @@ import dev.firefly.simpletweaks.util.absorptionHeadroomId
 import dev.firefly.simpletweaks.util.combatStack
 import dev.firefly.simpletweaks.util.damagesource.ModDamageTypes
 import dev.firefly.simpletweaks.util.damagesource.damageElemental
+import dev.firefly.simpletweaks.util.damagesource.isAuxiliaryDamage
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import dev.firefly.simpletweaks.util.grantAbsorption
 import net.minecraft.entity.effect.StatusEffectInstance
@@ -27,8 +28,9 @@ import net.minecraft.entity.player.PlayerEntity
 @ModEnchantment(
     id = "advanced_midas_touch",
     category = EnchantCategory.ADVANCED_MYSTERY,
-    type = EnchantType.WEAPON,
+    type = EnchantType.TOOL,
     maxLevel = 3,
+    ladderBase = 3,
     weight = EnchantItemWeights.ADVANCED_MYSTERY,
     damagePerLevel = 0.0,
     anvilCost = 12,
@@ -45,6 +47,7 @@ object EnchantAdvancedMidasTouchHandler : Listenable {
     @SubscribeEvent
     fun onLivingDamage(e: LivingDamageEvent) {
         if (e.invalid) return
+        if (e.source.isAuxiliaryDamage()) return
         val player = e.attacker as? PlayerEntity ?: return
         val victim = e.entityLiving
         if (victim === player) return
