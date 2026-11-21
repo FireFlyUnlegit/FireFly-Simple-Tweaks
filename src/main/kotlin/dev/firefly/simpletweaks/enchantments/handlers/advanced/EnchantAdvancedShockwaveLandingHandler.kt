@@ -61,7 +61,7 @@ object EnchantAdvancedShockwaveLandingHandler : Listenable {
         val level = wornLevel(player)
         if (level <= 0) return
         val before = e.amount
-        e.amount *= (1f - 0.03f * level).coerceAtLeast(0f)
+        e.amount *= (1f - 0.03f * level).coerceIn(0.25f, 1f)
         if (before <= 0f) return
         if (!e.source.isIn(DamageTypeTags.IS_FALL)) return
 

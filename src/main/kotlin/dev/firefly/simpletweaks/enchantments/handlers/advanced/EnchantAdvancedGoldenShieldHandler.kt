@@ -44,6 +44,9 @@ import net.minecraft.entity.player.PlayerEntity
 )
 object EnchantAdvancedGoldenShieldHandler : Listenable {
 
+    /** Absorption ceiling: four maxed pieces used to hand out sixty-odd hit points. */
+    private const val MAX_SHIELD = 8f
+
 
     @SubscribeEvent
     fun onLivingDamage(e: LivingDamageEvent) {
@@ -58,10 +61,10 @@ object EnchantAdvancedGoldenShieldHandler : Listenable {
         if (level <= 0) return
         val before = e.amount
         if (player.age % 100 == 0) {
-            val shield = 2f * level
+            val shield = (0.5f * level).coerceAtMost(MAX_SHIELD)
             grantAbsorption(player, absorptionHeadroomId("advanced_golden_shield"), shield, shield)
         }
-        e.amount *= (1f - 0.015f * level).coerceAtLeast(0f)
+        e.amount *= (1f - 0.015f * level).coerceIn(0.25f, 1f)
         FSTLog.log("AdvancedGoldenShieldHandler") { "player=${player.name.string}, level=$level, damage=$before->${e.amount}, outcome=applied" }
     }
 }

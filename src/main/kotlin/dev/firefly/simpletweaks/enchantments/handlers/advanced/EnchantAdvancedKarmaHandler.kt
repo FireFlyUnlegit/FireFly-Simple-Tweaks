@@ -70,7 +70,7 @@ object EnchantAdvancedKarmaHandler : Listenable {
         val level = wornLevel(player)
         if (level <= 0) return
         val before = e.amount
-        e.amount *= (1f - 0.04f * level).coerceAtLeast(0f)
+        e.amount *= (1f - 0.02f * level).coerceIn(0.25f, 1f)
         // What the armour saved is not lost: it is held in karma and paid back on the next swing.
         val saved = before - e.amount
         if (saved > 0f) pool[player.uuid] = (pool[player.uuid] ?: 0f) + saved

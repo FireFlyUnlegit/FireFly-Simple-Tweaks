@@ -62,7 +62,7 @@ object EnchantAdvancedAntiKnockbackHandler : Listenable {
         val before = e.amount
         val source = e.source.attacker as? LivingEntity
         source?.addStatusEffect(StatusEffectInstance(StatusEffects.SLOWNESS, 40, 1))
-        e.amount *= (1f - 0.02f * level).coerceAtLeast(0f)
+        e.amount *= (1f - 0.02f * level).coerceIn(0.25f, 1f)
         FSTLog.log("AdvancedAntiKnockbackHandler") {
             "player=${player.name.string}, level=$level, damage=$before->${e.amount}, outcome=applied"
         }

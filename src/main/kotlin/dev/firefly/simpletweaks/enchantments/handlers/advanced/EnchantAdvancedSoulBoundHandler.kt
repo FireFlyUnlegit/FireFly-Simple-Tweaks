@@ -60,7 +60,7 @@ object EnchantAdvancedSoulBoundHandler : Listenable {
         if (player.health / player.maxHealth < 0.4f) {
             player.heal(0.02f * level * player.maxHealth)
         }
-        e.amount *= (1f - 0.02f * level).coerceAtLeast(0f)
+        e.amount *= (1f - 0.02f * level).coerceIn(0.25f, 1f)
         FSTLog.log("AdvancedSoulBoundHandler") { "player=${player.name.string}, level=$level, damage=$before->${e.amount}, outcome=applied" }
     }
 }

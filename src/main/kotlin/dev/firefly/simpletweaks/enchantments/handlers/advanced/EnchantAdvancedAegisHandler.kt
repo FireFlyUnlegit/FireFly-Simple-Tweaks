@@ -41,7 +41,10 @@ import java.util.UUID
 )
 object EnchantAdvancedAegisHandler : Listenable {
 
-    private const val HEARTS_PER_LEVEL = 2f
+    private const val HEARTS_PER_LEVEL = 0.5f
+    /** Absorption ceiling: four laddered pieces used to hand out absurd pools. */
+    private const val MAX_SHIELD = 8f
+
     private const val GRANT_INTERVAL = 100
 
     private val lastGrant = mutableMapOf<UUID, Int>()
@@ -61,7 +64,7 @@ object EnchantAdvancedAegisHandler : Listenable {
             return
         }
 
-        val headroom = HEARTS_PER_LEVEL * 2f * level
+        val headroom = (HEARTS_PER_LEVEL * 2f * level).coerceAtMost(MAX_SHIELD)
         ensureAbsorptionHeadroom(player, headroomId, headroom)
 
         val last = lastGrant[player.uuid] ?: 0

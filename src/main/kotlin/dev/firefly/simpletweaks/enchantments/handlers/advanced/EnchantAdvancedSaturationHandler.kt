@@ -44,8 +44,11 @@ object EnchantAdvancedSaturationHandler : Listenable {
     /** Ticks between two absorption grants. */
     private const val GRANT_INTERVAL = 100
 
-    /** Hearts granted per level, on every grant. */
-    private const val HEARTS_PER_LEVEL = 1f
+    /** Half a heart per effective level: a thin buffer, not a second health bar. */
+    private const val HEARTS_PER_LEVEL = 0.5f
+
+    /** Hard ceiling on the buffer, whatever the level works out to. */
+    private const val MAX_BUFFER = 4f
 
     private val RULE = UpgradeEnchantments.rules().first { it.upgrade == GeneratedEnchantments.ADVANCED_SATURATION }
 
@@ -73,9 +76,9 @@ object EnchantAdvancedSaturationHandler : Listenable {
         if (p.age - last < GRANT_INTERVAL) return
         lastGrant[p.uuid] = p.age
 
-        val wanted = HEARTS_PER_LEVEL * level * 2f
-        // Never stack: the point is a topped-up shield, not an ever-growing one.
-        if (p.absorptionAmount >= wanted) return
+        val wanted = (HEARTS_PER_LEVEL * level).coerceAtMost(MAX_BUFFER)
+        // Only refill once the previous buffer is gone, otherwise a wearer is never really hurt.
+        if (p.absorptionAmount > 0f) return
         val granted = grantAbsorption(
             p,
             absorptionHeadroomId("advanced_saturation"),

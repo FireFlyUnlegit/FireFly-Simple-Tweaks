@@ -57,7 +57,7 @@ object EnchantAdvancedEchoShieldHandler : Listenable {
         }
         if (level <= 0) return
         val before = e.amount
-        e.amount *= (1f - 0.02f * level).coerceAtLeast(0f)
+        e.amount *= (1f - 0.02f * level).coerceIn(0.25f, 1f)
         val saved = before - e.amount
         val attacker = e.source.attacker as? net.minecraft.entity.LivingEntity
         if (saved > 0f && attacker != null) attacker.damageElemental(player, ModDamageTypes.TRUE_DAMAGE, saved * 0.3f)

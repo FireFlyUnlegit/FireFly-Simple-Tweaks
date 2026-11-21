@@ -61,7 +61,7 @@ object EnchantAdvancedFeatherFallHandler : Listenable {
         if (player.fallDistance > 0f || player.velocity.y < -0.4) {
             player.addStatusEffect(StatusEffectInstance(StatusEffects.SPEED, 40 * level, 0))
         }
-        e.amount *= (1f - 0.15f * level).coerceAtLeast(0f)
+        e.amount *= (1f - 0.15f * level).coerceIn(0.25f, 1f)
         // The softness of the landing becomes a counted shield: one hit, sized by what the ground did not take.
         val saved = before - e.amount
         if (saved > 0f) TempAbsorption.grant(player, saved, 1)
