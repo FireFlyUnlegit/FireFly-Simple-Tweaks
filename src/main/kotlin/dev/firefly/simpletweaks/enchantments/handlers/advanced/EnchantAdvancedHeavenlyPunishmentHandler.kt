@@ -58,15 +58,18 @@ object EnchantAdvancedHeavenlyPunishmentHandler : Listenable {
         val before = e.amount
         val bonus = before * 0.04f * (BASE_LEVEL + level)
         e.amount += bonus
-        // The storm picks *which* reaction happens, never *whether*: lightning is the trigger, and the
-        // partner that makes it react is drawn at random from the three it can combine with.
+        // The storm picks *which* reaction happens, never *whether*: lightning is always the trigger and
+        // the partner is drawn per hit. The partner is only a carrier for the reaction, so the victim's
+        // own aura is put back afterwards -- no random mark is left behind.
         if (bonus > 0f) {
+            val previous = ElementAuras.peek(victim)
             val partner = PARTNERS[ThreadLocalRandom.current().nextInt(PARTNERS.size)]
             ElementAuras.attach(victim, partner, ElementAuras.ULTRA)
             val outcome = ElementMarks.recordAndReact(
                 player, victim, ElementType.LIGHTNING, bonus,
                 units = ElementAuras.ULTRA, forceAttach = true, source = e.source,
             )
+            if (previous != null) ElementAuras.attach(victim, previous.first, previous.second) else ElementAuras.clear(victim)
             FSTLog.log("AdvancedHeavenlyPunishmentHandler") {
                 "player=${player.name.string}, level=$level, partner=$partner, reaction=${outcome.key}, outcome=forced-reaction"
             }
