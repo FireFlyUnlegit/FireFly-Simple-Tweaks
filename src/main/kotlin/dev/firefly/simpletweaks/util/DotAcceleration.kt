@@ -19,6 +19,29 @@ object DotAcceleration {
     /** Vanilla burns once per 20 ticks. */
     private const val FIRE_INTERVAL = 20
 
+    /**
+     * Accumulating cadence for a DoT that fires every [baseTicks] game ticks.
+     *
+     * The phase counts **ticks elapsed**, so one update adds 1; the interval is what `catalyze`
+     * shortens. Adding the interval to the phase instead would make a 1.0x poison fire every tick.
+     */
+    class Cadence(private val baseTicks: Int) {
+        private var phase = 0.0
+
+        /** Advances one tick and reports whether the DoT should fire now. */
+        fun advance(factor: Double): Boolean {
+            val interval = baseTicks / factor.coerceAtLeast(1.0)
+            phase += 1.0
+            if (phase < interval) return false
+            phase -= interval
+            return true
+        }
+
+        fun reset() {
+            phase = 0.0
+        }
+    }
+
     private class Entry(val ref: WeakReference<LivingEntity>) {
         var level = 0
         var ownerUUID: UUID? = null

@@ -114,6 +114,42 @@ public class SimpleTweaksGameTests implements FabricGameTest {
     }
 
     /**
+     * The poison cadence must fire on the 20th tick, not on every tick: the phase counts elapsed
+     * ticks and only the interval is divided by the factor.
+     */
+    @GameTest(templateName = FabricGameTest.EMPTY_STRUCTURE)
+    public void venomCadenceFiresOncePerInterval(TestContext context) {
+        var plain = new DotAcceleration.Cadence(20);
+        int plainFires = 0;
+        int firstFireTick = -1;
+        for (int tick = 1; tick <= 60; tick++) {
+            if (plain.advance(1.0)) {
+                plainFires++;
+                if (firstFireTick < 0) {
+                    firstFireTick = tick;
+                }
+            }
+        }
+
+        var catalysed = new DotAcceleration.Cadence(20);
+        int catalysedFires = 0;
+        for (int tick = 1; tick <= 60; tick++) {
+            if (catalysed.advance(4.0)) {
+                catalysedFires++;
+            }
+        }
+
+        LOGGER.info("[FST-GameTest] venom cadence: first={} (expect 20), plain 60t={} (expect 3), "
+                        + "x4 60t={} (expect 12)",
+                firstFireTick, plainFires, catalysedFires);
+
+        context.assertEquals(20, firstFireTick, "a 1.0x poison must wait a full interval, not tick every tick");
+        context.assertEquals(3, plainFires, "60 ticks at 1.0x is three intervals");
+        context.assertEquals(12, catalysedFires, "a 4.0x poison fires four times as often");
+        context.complete();
+    }
+
+    /**
      * `fire_master` caps the stacked burn at 10 s and turns the remaining burn time into the heat
      * meter: interval shrinks from 20 to 5 ticks, per-tick damage rises from 0.05 to 0.15 per level.
      */

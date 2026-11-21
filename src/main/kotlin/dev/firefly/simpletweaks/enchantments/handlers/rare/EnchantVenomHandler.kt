@@ -102,7 +102,7 @@ object EnchantVenomHandler : Listenable {
         var expireAt: Long = 0L
 
         /** Ticks accumulated toward the next poison tick; `catalyze` makes this grow faster, not the damage. */
-        var phase: Double = 0.0
+        val cadence = DotAcceleration.Cadence(TICK_INTERVAL)
     }
 
     private val venoms = mutableMapOf<UUID, VenomState>()
@@ -160,12 +160,10 @@ object EnchantVenomHandler : Listenable {
             return
         }
 
-        // A fixed `age % 20` cadence cannot be shortened, so the interval is accumulated instead:
-        // `catalyze` grows the phase faster and the tick value below stays untouched.
+        // A fixed `age % 20` cadence cannot be shortened, so elapsed ticks are accumulated instead.
+        // `catalyze` divides the interval; the cadence itself counts ticks (see `DotAcceleration.Cadence`).
         val factor = DotAcceleration.factorOf(entity)
-        state.phase += TICK_INTERVAL / factor
-        if (state.phase < TICK_INTERVAL) return
-        state.phase -= TICK_INTERVAL
+        if (!state.cadence.advance(factor)) return
 
         val damage = damagePerSecond(state)
         if (damage <= 0f) return
