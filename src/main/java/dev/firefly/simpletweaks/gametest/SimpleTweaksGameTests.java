@@ -1454,6 +1454,29 @@ public class SimpleTweaksGameTests implements FabricGameTest {
                         + "finalReduction={} (expect 0.44444445)", top.getHealth(), top.getFinalDamage(), top.getFinalReduction());
         context.complete();
     }
+    /**
+     * `experience_stealer` must pay out per *health removed*, not per damage number: a 100 000 damage hit on
+     * a 100 health mob is one kill, not a thousand.
+     */
+    @GameTest(templateName = FabricGameTest.EMPTY_STRUCTURE)
+    public void experienceStealerPaysPerHealthRemoved(TestContext context) {
+        float smallMob = dev.firefly.simpletweaks.enchantments.handlers.rare.EnchantExperienceStealerHandler.INSTANCE.stolenXp(100f, 100f, 8);
+        float overkill = dev.firefly.simpletweaks.enchantments.handlers.rare.EnchantExperienceStealerHandler.INSTANCE.stolenXp(100_000f, 100f, 8);
+        float chip = dev.firefly.simpletweaks.enchantments.handlers.rare.EnchantExperienceStealerHandler.INSTANCE.stolenXp(10f, 100f, 8);
+        float warden = dev.firefly.simpletweaks.enchantments.handlers.rare.EnchantExperienceStealerHandler.INSTANCE.stolenXp(1024f, 1024f, 8);
+        float unenchanted = dev.firefly.simpletweaks.enchantments.handlers.rare.EnchantExperienceStealerHandler.INSTANCE.stolenXp(100f, 100f, 0);
+
+        LOGGER.info("[FST-GameTest] experience stealer: kill={} overkill={} (expect equal), chip={} (expect 1.2), "
+                        + "warden={} (expect 67.44), level0={} (expect 0)",
+                smallMob, overkill, chip, warden, unenchanted);
+
+        context.assertTrue(Math.abs(smallMob - 12.0f) < 0.01f, "100/100 hp at level 8 must pay 12 xp, got " + smallMob);
+        context.assertTrue(Math.abs(overkill - smallMob) < 0.01f, "overkill must not pay more than a clean kill");
+        context.assertTrue(Math.abs(chip - 1.2f) < 0.01f, "10 of 100 hp must pay 1.2 xp, got " + chip);
+        context.assertTrue(Math.abs(warden - 67.44f) < 0.05f, "a warden kill must pay ~67 xp, got " + warden);
+        context.assertTrue(unenchanted == 0f, "no levels must pay nothing");
+        context.complete();
+    }
     private static void assertTaken(TestContext context, float damage, float armor, float expected) {
         float actual = ArmorCurve.INSTANCE.damageTaken(damage, armor, Math.min(armor, ArmorCurve.VANILLA_CAP));
         LOGGER.info("[FST-GameTest] damage {} armor {} -> taken {} (expected {})",

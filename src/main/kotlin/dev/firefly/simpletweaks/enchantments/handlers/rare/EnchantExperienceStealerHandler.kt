@@ -58,10 +58,15 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
  * | chain arc / holy light / shield bash | **no** | yes |
  * | shield reflection (`reflection`) | **no** | yes |
  *
- * Still not counted: damage with **no player attacker** (fire, fall, mob-on-mob). The XP is computed
- * from `e.amount`, i.e. the value about to be applied *before* armour, so a rider that the i-frame gate
- * later discards can still pay out — the same inaccuracy direct hits have always had, and it errs in
- * the player's favour by a small amount rather than silently dropping an entire damage class.
+* Still not counted: damage with **no player attacker** (fire, fall, mob-on-mob).
+ *
+ * ## Why XP is not proportional to damage any more (`build=devVer.1.0.18`)
+ *
+ * The first cut paid `damage x 0.1 x level`. That was fine while a sword hit for tens of points; once the
+ * mod's own multipliers stacked up it handed out tens of thousands of XP per swing — one warden kill was
+ * worth 48 878 XP, three levels' worth of "instant max level". XP now scales with the **fraction of the
+ * target's health the hit removed** (see [stolenXp]), so a full kill pays "what that mob is worth x 0.25 x
+ * level" no matter how absurd the numbers on the sword get.
  */
 @ModEnchantment(
     id = "experience_stealer",
@@ -78,7 +83,34 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 )
 object EnchantExperienceStealerHandler : Listenable {
 
+    /** Rough XP a mob is worth per point of max health: a zombie lands near 3, a warden near 34. */
+    private const val XP_PER_HEALTH = 0.03f
+
+    /** Floor of the estimate, so a 1-health mob is still worth something. */
+    private const val BASE_KILL_XP = 3f
+
+    /** Share of the estimated kill XP paid out per enchantment level, across a whole kill. */
+    private const val SHARE_PER_LEVEL = 0.25f
+
     private val pendingXp = WeakHashMap<PlayerEntity, Float>()
+
+    /**
+     * XP for one hit: the fraction of the target's health this hit removed, times the XP that target is
+     * roughly worth, times `0.25 x level`.
+     *
+     * Damage-proportional XP was tried first and blew up once the mod's own multipliers grew: a 150 000
+     * damage swing paid `150 000 x 0.1 x level` on **every** rider, so one warden kill handed out ~49 000
+     * XP. Dividing by max health makes the ceiling "a whole kill", which is the only quantity a player can
+     * reason about, and keeps overkill hits from paying more than the mob is worth.
+     */
+    @JvmStatic
+    fun stolenXp(damage: Float, maxHealth: Float, level: Int): Float {
+        if (level <= 0 || maxHealth <= 0f || damage <= 0f) return 0f
+        val share = (damage / maxHealth).coerceIn(0f, 1f)
+        val killXp = BASE_KILL_XP + maxHealth * XP_PER_HEALTH
+        return share * killXp * SHARE_PER_LEVEL * level
+    }
+
 
     @SubscribeEvent
     fun onLivingHurt(e: LivingHurtEvent) {
@@ -89,7 +121,7 @@ object EnchantExperienceStealerHandler : Listenable {
         val lvl = getItemSpecificEnchantLevel(atk.combatStack(e.source), GeneratedEnchantments.EXPERIENCE_STEALER)
         if (lvl <= 0) return
 
-        val raw = e.amount * 0.1f * lvl
+        val raw = stolenXp(e.amount, e.entityLiving.maxHealth, lvl)
         // Logged so "the rider also paid out" is observable rather than inferred: `aux=false` is a real
         // swing, `aux=true` is conversion / reaction / DoT / reflection damage.
         val auxiliary = e.source.isAuxiliaryDamage()
