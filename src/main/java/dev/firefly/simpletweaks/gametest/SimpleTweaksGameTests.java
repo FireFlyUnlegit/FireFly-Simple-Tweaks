@@ -854,6 +854,11 @@ public class SimpleTweaksGameTests implements FabricGameTest {
 
         context.assertFalse(stillCreative, "infinite_power must never come out of a loot function");
         context.assertEquals(2, venom, "the ordinary enchantment must survive the strip");
+
+        boolean strippedAgain = dev.firefly.simpletweaks.util.LootEnchantmentGuard.stripInPlace(stripped);
+        LOGGER.info("[FST-GameTest] loot guard second pass: stripped={} (expect false)", strippedAgain);
+        context.assertFalse(strippedAgain, "a clean stack must not be rewritten on every sweep");
+
         context.complete();
     }
 

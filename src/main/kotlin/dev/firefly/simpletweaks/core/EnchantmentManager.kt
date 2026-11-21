@@ -5,6 +5,7 @@ import dev.firefly.simpletweaks.compat.ForgeEventBus
 import dev.firefly.simpletweaks.enchantments.EnchantmentMeta
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 import dev.firefly.simpletweaks.enchantments.handlers.element.ElementEnchantments
+import dev.firefly.simpletweaks.enchantments.handlers.mythic.infinitepower.CreativeEnchantmentSweep
 import dev.firefly.simpletweaks.enchantments.handlers.mythic.infinitepower.FlightHandler
 import dev.firefly.simpletweaks.enchantments.handlers.mythic.infinitepower.ForgeHandler
 import dev.firefly.simpletweaks.enchantments.handlers.mythic.infinitepower.SoulBindHandler
@@ -22,7 +23,7 @@ import net.minecraft.registry.RegistryKey
  *    → **deleted**. Since 1.21 enchantments are data-driven (JSON files under
  *    `data/simple_tweaks/enchantment/`), there is nothing to register in code and no registry event
  *    to listen for.
- *  - `handlerList` (55 handlers) → kept here, minus the handlers the phase-2.5 analysis removed.
+ *  - `handlerList` (56 handlers) → kept here, minus the handlers the phase-2.5 analysis removed.
  *
  * Registration is just [initHandlers]; `SimpleTweaks` calls it from `onInitialize`.
  */
@@ -138,6 +139,10 @@ object EnchantmentManager {
         47 to ForgeHandler,
         48 to SoulBindHandler,
         49 to ToolHandler,
+        // Backstop for the same enchantment: strips `infinite_power` from a survival player's inventory when it
+        // arrived by a path the loot functions do not cover (a mod writing the component directly, `/data`).
+        // Numbered after the aura handlers so the sweep never runs before them in the same tick.
+        59 to CreativeEnchantmentSweep,
         // --- mystery ---
         // CelestialBlessing is the mod's largest handler and the only one that uses the network
         // layer (ring packet + mana sync) plus the config's `enabledSpecialParticles`.
