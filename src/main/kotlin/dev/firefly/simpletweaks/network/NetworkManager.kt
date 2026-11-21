@@ -5,6 +5,7 @@ import dev.firefly.simpletweaks.core.AdvancedEnchantMode
 import dev.firefly.simpletweaks.network.packets.PacketAdvancedEnchantMode
 import dev.firefly.simpletweaks.network.packets.PacketCelestialRing
 import dev.firefly.simpletweaks.network.packets.PacketDamageIndicator
+import net.minecraft.screen.EnchantmentScreenHandler
 import dev.firefly.simpletweaks.network.packets.PacketLaser
 import dev.firefly.simpletweaks.network.packets.PacketManaPoolSync
 import dev.firefly.simpletweaks.network.packets.PacketMobLevel

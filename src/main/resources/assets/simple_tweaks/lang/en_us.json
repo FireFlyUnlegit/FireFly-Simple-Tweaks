@@ -183,6 +183,8 @@
   "gui.simple_tweaks.enchant_info.advanced.open_hint": "Click to open the advanced catalogue",
   "gui.simple_tweaks.enchant_table.advanced_off": "Advanced: off",
   "gui.simple_tweaks.enchant_table.advanced_on": "Advanced: on",
+  "gui.simple_tweaks.enchant_table.advanced_hint": "Shift+click an offer: toggle advanced mode",
+  "gui.simple_tweaks.enchant_table.advanced_cost": "Needs %1$s levels / %2$s lapis",
   "gui.simple_tweaks.enchant_info.applies_to": "Applies to: %s",
   "gui.simple_tweaks.enchant_info.applies_to.armor": "Any Armor",
   "gui.simple_tweaks.enchant_info.applies_to.boots": "Boots",

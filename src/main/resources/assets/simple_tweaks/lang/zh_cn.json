@@ -183,6 +183,8 @@
   "gui.simple_tweaks.enchant_info.advanced.open_hint": "点击查看进阶附魔",
   "gui.simple_tweaks.enchant_table.advanced_off": "高级附魔：关",
   "gui.simple_tweaks.enchant_table.advanced_on": "高级附魔：开",
+  "gui.simple_tweaks.enchant_table.advanced_hint": "Shift+点击档位：切换高级附魔",
+  "gui.simple_tweaks.enchant_table.advanced_cost": "需求 %1$s 级 · %2$s 青金石",
   "gui.simple_tweaks.enchant_info.applies_to": "适用:%s",
   "gui.simple_tweaks.enchant_info.applies_to.armor": "任意盔甲",
   "gui.simple_tweaks.enchant_info.applies_to.boots": "靴子",
