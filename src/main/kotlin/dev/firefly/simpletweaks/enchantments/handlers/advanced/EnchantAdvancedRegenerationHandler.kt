@@ -46,7 +46,8 @@ object EnchantAdvancedRegenerationHandler : Listenable {
         val missing = player.maxHealth - player.health
         if (missing > 0f) {
             // Rapid mending while hurt, and it stops the moment the bar is full.
-            player.heal(minOf(missing, level.toFloat()))
+            // Direct write: bypasses the healing bonus, which used to multiply every trickle tick (uild=devVer.1.0.6).
+            player.health = (player.health + minOf(missing, level.toFloat())).coerceAtMost(player.maxHealth)
         } else {
             // At full health the same trickle is banked as hits, not wasted.
             if (TempAbsorption.peek(player) == null) TempAbsorption.grant(player, 2f * level, 1)

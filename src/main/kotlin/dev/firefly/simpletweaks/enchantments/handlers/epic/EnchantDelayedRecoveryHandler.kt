@@ -123,7 +123,8 @@ object EnchantDelayedRecoveryHandler : Listenable {
             heal.amount -= tickAmount
             heal.ticksLeft--
 
-            p.heal(tickAmount)
+            // Direct write: the delayed trickle must not be amplified by the healing bonus (uild=devVer.1.0.6).
+            p.health = (p.health + tickAmount).coerceAtMost(p.maxHealth)
 
             if (heal.amount <= 0.001f || heal.ticksLeft <= 0) {
                 iter.remove()

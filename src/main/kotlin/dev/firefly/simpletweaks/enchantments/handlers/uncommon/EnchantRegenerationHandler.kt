@@ -67,7 +67,8 @@ object EnchantRegenerationHandler : Listenable {
         if (counter >= interval) {
             val heal = maxOf(lvl / 2f, p.maxHealth * 0.00125f * lvl)
             val healthBefore = p.health
-            p.heal(heal)
+            // Direct write: a per-tick trickle must not be multiplied by the healing bonus (uild=devVer.1.0.6).
+            p.health = (p.health + heal).coerceAtMost(p.maxHealth)
             regenCounter[uuid] = 0
             FSTLog.log("Regeneration") {
                 "player=${p.name.string}, lvl=$lvl, interval=$interval, heal=$heal, " +
