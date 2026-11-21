@@ -36,10 +36,11 @@ Current **1.21.1 / Fabric** release: **v2.3.0** (137 enchantments, 17 elemental 
 
 | Rarity | Count | Rarity | Count |
 |--------|-------|--------|-------|
-| COMMON | 13 | LEGENDARY | 18 |
+| COMMON | 13 | LEGENDARY | 16 |
 | UNCOMMON | 13 | MYTHIC | 12 |
 | RARE | 28 | MYSTERY | 14 |
 | EPIC | 34 | UNIQUE | 5 |
+| UPGRADED_EPIC | 2 | | |
 
 #### 🌈 Elemental system
 
@@ -188,9 +189,9 @@ A 100-damage hit: armour 26 → 17 taken; armour 40 → 10 taken.
 | Damage Limiter | medium hits are clamped to a fraction of max health, lethal hits pass through |
 | Resilience | more reduction the lower your health; four armours at III with 10% health reaches 84% |
 | Vitality | increases max health |
-| Greater Vitality | the legendary Vitality: **+8 health** per level plus **+25** for every ten levels, then x(1 + 1.5% x level); counts the four armour slots together, up to about **+672 health** |
+| Greater Vitality | the **upgraded** Vitality: only an enchanted book used on armour that already holds Vitality X can add it, consuming that X; the piece then counts as **10 + its own level**. **+8 health** per level plus **+25** per ten levels, then x(1 + 1.5% x ladder levels across the four slots), up to **+1848 health** for a full set |
 | Extra Armor | grants armour and toughness |
-| Greater Armor | the legendary Extra Armor: **+3.5 armour and +2.8 toughness** per level, then x(1 + 1.5% x level); counts the four armour slots together, up to about **+166 armour and +133 toughness** |
+| Greater Armor | the **upgraded** Extra Armor: only an enchanted book used on armour that already holds Extra Armor VIII can add it, consuming that VIII; the piece then counts as **8 + its own level**. **+3.5 armour and +2.8 toughness** per level, then x(1 + 1.5% x ladder levels across the four slots), up to about **+439 armour and +351 toughness** for a full set |
 | Anti Knockback | increases knockback resistance |
 | Damage Reduction | percentage damage reduction |
 | Death Protection | consumes one level to survive a lethal hit and grants absorption |

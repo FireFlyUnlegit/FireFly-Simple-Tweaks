@@ -1,10 +1,15 @@
 package dev.firefly.simpletweaks.mixin;
 
 import dev.firefly.simpletweaks.core.config.GeneralConfig;
+import dev.firefly.simpletweaks.util.UpgradeEnchantments;
+import net.minecraft.item.ItemStack;
 import net.minecraft.screen.AnvilScreenHandler;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Constant;
+import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyConstant;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
  * Port of 1.12.2 {@code MixinContainerRepair#modifyMaxAnvilCost} — the
@@ -77,5 +82,25 @@ public abstract class AnvilScreenHandlerMixin {
     )
     private int simpletweaks$maxAnvilCost(int original) {
         return GeneralConfig.getDisableAnvilCostLimit() ? GeneralConfig.getMaxAnvilCost() : original;
+    }
+
+    /**
+     * The upgrade ladder's anvil half.
+     *
+     * Vanilla happily merges an advanced enchantment book into any item, and leaves the base
+     * enchantment sitting next to it. This rewrites the finished result instead of re-implementing the
+     * merge: an advanced enchantment survives only if it came from the book slot onto an item that
+     * already held its base at the maximum level, and the base is consumed when it does.
+     */
+    @Inject(method = "updateResult", at = @At("RETURN"))
+    private void simpletweaks$enforceUpgradeLadder(CallbackInfo ci) {
+        AnvilScreenHandler self = (AnvilScreenHandler) (Object) this;
+        ItemStack result = self.getSlot(2).getStack();
+        if (result.isEmpty()) {
+            return;
+        }
+        // The stacks are mutated in place, so the slot keeps pointing at the same object.
+        UpgradeEnchantments.INSTANCE.sanitizeAnvilResult(
+                result, self.getSlot(0).getStack(), self.getSlot(1).getStack());
     }
 }

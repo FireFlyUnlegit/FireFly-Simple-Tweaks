@@ -151,7 +151,7 @@ class EnchantInfoScreen(private val parent: Screen?) :
      */
     private val categoryRows: List<List<String>> = listOf(
         listOf("common", "uncommon", "rare", "epic", "legendary"),
-        listOf("unique", "mythic", "mystery"),
+        listOf("mythic", "mystery", "unique", "upgraded_epic"),
     )
 
     /**
@@ -168,6 +168,7 @@ class EnchantInfoScreen(private val parent: Screen?) :
         "legendary" to (Items.YELLOW_WOOL to Formatting.GOLD),
         "mythic" to (Items.RED_WOOL to Formatting.DARK_RED),
         "mystery" to (Items.LIGHT_BLUE_WOOL to Formatting.AQUA),
+        "upgraded_epic" to (Items.PURPLE_WOOL to Formatting.DARK_PURPLE),
     )
 
     /** One category icon's screen position, computed once so rendering and hit-testing cannot drift. */

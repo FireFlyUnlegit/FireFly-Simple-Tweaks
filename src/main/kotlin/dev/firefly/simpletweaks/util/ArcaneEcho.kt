@@ -150,7 +150,9 @@ object ArcaneEcho {
             val component = stack.get(DataComponentTypes.ENCHANTMENTS) ?: continue
             for (entry in component.enchantments) {
                 if (entry.matchesKey(GeneratedEnchantments.ARCANE_ECHO)) continue
-                total += component.getLevel(entry)
+                // An upgraded enchantment counts as its base's maximum level plus its own (a single
+                // greater_vitality I is eleven levels) — that is what makes the upgrade ladder pay here.
+                total += UpgradeEnchantments.echoLevelOf(entry, component.getLevel(entry))
             }
         }
         return total

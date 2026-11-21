@@ -2,8 +2,8 @@ package dev.firefly.simpletweaks.gametest;
 
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments;
 import dev.firefly.simpletweaks.enchantments.handlers.mythic.EnchantDevourHandler;
-import dev.firefly.simpletweaks.enchantments.handlers.legendary.EnchantGreaterArmorHandler;
-import dev.firefly.simpletweaks.enchantments.handlers.legendary.EnchantGreaterVitalityHandler;
+import dev.firefly.simpletweaks.enchantments.handlers.advanced.EnchantGreaterArmorHandler;
+import dev.firefly.simpletweaks.enchantments.handlers.advanced.EnchantGreaterVitalityHandler;
 import dev.firefly.simpletweaks.util.mobs.LevelledMob;
 import dev.firefly.simpletweaks.util.ArcaneEcho;
 import dev.firefly.simpletweaks.util.ArmorCurve;
@@ -11,6 +11,12 @@ import dev.firefly.simpletweaks.util.DotAcceleration;
 import dev.firefly.simpletweaks.util.FireBurn;
 import dev.firefly.simpletweaks.util.PlayerPower;
 import dev.firefly.simpletweaks.util.ShotWeapon;
+import dev.firefly.simpletweaks.util.UpgradeEnchantments;
+import dev.firefly.simpletweaks.SimpleTweaks;
+import net.minecraft.enchantment.Enchantment;
+import net.minecraft.registry.RegistryKey;
+import net.minecraft.registry.RegistryKeys;
+import net.minecraft.registry.entry.RegistryEntry;
 import dev.firefly.simpletweaks.util.mobs.MobLevels;
 import net.fabricmc.fabric.api.gametest.v1.FabricGameTest;
 import net.minecraft.entity.AreaEffectCloudEntity;
@@ -1567,32 +1573,101 @@ public class SimpleTweaksGameTests implements FabricGameTest {
     }
 
     @GameTest(templateName = FabricGameTest.EMPTY_STRUCTURE)
-    public void greaterVitalityScalesAsALegendaryStep(TestContext context) {
-        double full = EnchantGreaterVitalityHandler.modifierValue(40);
+    public void greaterVitalityScalesAsAnUpgradedStep(TestContext context) {
+        double full = EnchantGreaterVitalityHandler.modifierValue(80);
         double ten = EnchantGreaterVitalityHandler.modifierValue(10);
 
         LOGGER.info("[FST-GameTest] greater vitality: full=" + full + " ten=" + ten);
 
-        context.assertTrue(Math.abs(full - 672.0) < 1.0e-9, "(8 x 40 + 25 x 4) x 1.6 = 672, got " + full);
+        // Four pieces at II count 10 + 10 = 20 ladder levels each, i.e. 80 in total.
+        context.assertTrue(Math.abs(full - 1848.0) < 1.0e-9, "(8 x 80 + 25 x 8) x 2.2 = 1848, got " + full);
         context.assertTrue(Math.abs(ten - 120.75) < 1.0e-9, "(8 x 10 + 25) x 1.15 = 120.75, got " + ten);
-        context.assertTrue(full > 2.0 * 280.0, "a full Greater Vitality set must beat Vitality by a wide margin");
         context.assertEquals(1.0, EnchantGreaterVitalityHandler.scaleFor(0), "no levels means no scaling");
 
         context.complete();
     }
 
     @GameTest(templateName = FabricGameTest.EMPTY_STRUCTURE)
-    public void greaterArmorScalesAsALegendaryStep(TestContext context) {
-        double armor = EnchantGreaterArmorHandler.armorValue(32);
-        double toughness = EnchantGreaterArmorHandler.toughnessValue(32);
+    public void greaterArmorScalesAsAnUpgradedStep(TestContext context) {
+        double armor = EnchantGreaterArmorHandler.armorValue(64);
+        double toughness = EnchantGreaterArmorHandler.toughnessValue(64);
 
         LOGGER.info("[FST-GameTest] greater armor: armor=" + armor + " toughness=" + toughness);
 
-        context.assertTrue(Math.abs(armor - 165.76) < 1.0e-9, "3.5 x 32 x 1.48 = 165.76, got " + armor);
-        context.assertTrue(Math.abs(toughness - 132.608) < 1.0e-9, "2.8 x 32 x 1.48 = 132.608, got " + toughness);
+        context.assertTrue(Math.abs(armor - 439.04) < 1.0e-9, "3.5 x 64 x 1.96 = 439.04, got " + armor);
+        context.assertTrue(Math.abs(toughness - 351.232) < 1.0e-9, "2.8 x 64 x 1.96 = 351.232, got " + toughness);
         context.assertEquals(0.0, EnchantGreaterArmorHandler.armorValue(0), "no levels means no armour");
         context.assertEquals(1.0, EnchantGreaterArmorHandler.scaleFor(0), "no levels means no scaling");
 
         context.complete();
+    }
+
+    @GameTest(templateName = FabricGameTest.EMPTY_STRUCTURE)
+    public void upgradeLadderReplacesItsBase(TestContext context) {
+        UpgradeEnchantments.Rule rule = UpgradeEnchantments.INSTANCE
+                .ruleOf(key("greater_vitality"));
+        if (rule == null) {
+            context.throwGameTestException("greater_vitality must sit on the upgrade ladder");
+            return;
+        }
+
+        ItemStack base = new ItemStack(Items.DIAMOND_CHESTPLATE);
+        base.addEnchantment(
+                entry(context, "vitality"),
+                10);
+        ItemStack upgraded = new ItemStack(Items.DIAMOND_CHESTPLATE);
+        upgraded.addEnchantment(
+                entry(context, "greater_vitality"),
+                1);
+
+        int baseLadder = UpgradeEnchantments.INSTANCE.ladderLevel(base, rule);
+        int upgradeLadder = UpgradeEnchantments.INSTANCE.ladderLevel(upgraded, rule);
+        int echo = UpgradeEnchantments.INSTANCE.echoLevel(key("greater_vitality"), 1);
+
+        LOGGER.info("[FST-GameTest] upgrade ladder: base=" + baseLadder + " upgraded=" + upgradeLadder
+                + " echo=" + echo);
+
+        context.assertEquals(10, baseLadder, "vitality X alone is 10 ladder levels");
+        context.assertEquals(11, upgradeLadder, "greater_vitality I replaces vitality X and adds one");
+        context.assertEquals(11, echo, "Arcane Echo sees eleven levels");
+
+        // A book may climb the ladder only when the item already holds the base at its maximum.
+        ItemStack bookSlot = new ItemStack(Items.ENCHANTED_BOOK);
+        bookSlot.addEnchantment(
+                entry(context, "greater_vitality"),
+                1);
+        ItemStack tooLow = new ItemStack(Items.DIAMOND_CHESTPLATE);
+        tooLow.addEnchantment(
+                entry(context, "vitality"),
+                3);
+        ItemStack illegal = tooLow.copy();
+        illegal.addEnchantment(
+                entry(context, "greater_vitality"),
+                1);
+        UpgradeEnchantments.INSTANCE.sanitizeAnvilResult(illegal, tooLow, bookSlot);
+        int illegalLevel = UpgradeEnchantments.INSTANCE.ladderLevel(illegal, rule);
+
+        ItemStack legal = base.copy();
+        legal.addEnchantment(
+                entry(context, "greater_vitality"),
+                1);
+        UpgradeEnchantments.INSTANCE.sanitizeAnvilResult(legal, base, bookSlot);
+        int legalLevel = UpgradeEnchantments.INSTANCE.ladderLevel(legal, rule);
+
+        LOGGER.info("[FST-GameTest] upgrade ladder anvil: illegal=" + illegalLevel + " legal=" + legalLevel);
+
+        context.assertEquals(3, illegalLevel, "vitality III must not be upgraded by a book");
+        context.assertEquals(11, legalLevel, "vitality X is upgraded and consumed");
+
+        context.complete();
+    }
+
+    private static RegistryEntry<Enchantment> entry(TestContext context, String id) {
+        return context.getWorld().getRegistryManager().get(RegistryKeys.ENCHANTMENT)
+                .getEntry(key(id)).orElseThrow();
+    }
+
+    private static RegistryKey<Enchantment> key(String id) {
+        return RegistryKey.of(RegistryKeys.ENCHANTMENT, Identifier.of(SimpleTweaks.MOD_ID, id));
     }
 }

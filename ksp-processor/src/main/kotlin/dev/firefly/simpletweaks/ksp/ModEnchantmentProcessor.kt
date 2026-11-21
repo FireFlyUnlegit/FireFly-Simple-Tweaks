@@ -119,6 +119,7 @@ private val TIER_WEIGHTS = mapOf(
     "LEGENDARY" to 1,
     "MYTHIC" to 1,
     "MYSTERY" to 1,
+    "UPGRADED_EPIC" to 1,
 )
 
 /** 1.12.2 rarity per category, from `EnchantmentCategories` in the reference project. */
@@ -131,6 +132,7 @@ private val TIER_RARITY = mapOf(
     "LEGENDARY" to 4,
     "MYTHIC" to 5,
     "MYSTERY" to 6,
+    "UPGRADED_EPIC" to 4,
 )
 
 private fun tierWeight(category: String): Int = TIER_WEIGHTS[category] ?: 1

@@ -13,7 +13,8 @@ enum class EnchantCategory(val color: EnchantColor) {
     LEGENDARY(EnchantColor.GOLD),
     MYTHIC(EnchantColor.DARK_RED),
     MYSTERY(EnchantColor.AQUA),
-    UNIQUE(EnchantColor.WHITE);
+    UNIQUE(EnchantColor.WHITE),
+    UPGRADED_EPIC(EnchantColor.DARK_PURPLE);
     override fun toString() = name.lowercase()
 }
 
@@ -33,7 +34,8 @@ enum class EnchantColor(val formatting: Formatting?) {
     GOLD(Formatting.GOLD),
     DARK_RED(Formatting.DARK_RED),
     AQUA(Formatting.AQUA),
-    WHITE(Formatting.WHITE);
+    WHITE(Formatting.WHITE),
+    DARK_PURPLE(Formatting.DARK_PURPLE);
 
     override fun toString() = name.lowercase()
 }

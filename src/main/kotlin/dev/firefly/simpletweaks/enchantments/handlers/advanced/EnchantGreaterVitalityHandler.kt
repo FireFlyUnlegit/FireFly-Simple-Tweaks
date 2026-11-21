@@ -1,4 +1,4 @@
-package dev.firefly.simpletweaks.enchantments.handlers.legendary
+package dev.firefly.simpletweaks.enchantments.handlers.advanced
 
 import dev.firefly.simpletweaks.SimpleTweaks
 import dev.firefly.simpletweaks.compat.FSTLog
@@ -14,29 +14,28 @@ import dev.firefly.simpletweaks.enchantments.annotations.EnchantSupportedItemTag
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
-import dev.firefly.simpletweaks.util.getArmorEnchantLevel
+import dev.firefly.simpletweaks.util.UpgradeEnchantments
 import dev.firefly.simpletweaks.util.syncAttributes
+import net.minecraft.entity.EquipmentSlot
 import net.minecraft.entity.attribute.EntityAttributeModifier
 import net.minecraft.entity.attribute.EntityAttributes
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.util.Identifier
 
 /**
- * 旺盛生机 — the legendary step above `vitality`, which is EPIC and capped at 10.
+ * 旺盛生机 — the advanced step above `vitality`.
  *
- * `t` is the total level across the four armour slots. The same stair-step shape as Vitality, with
- * taller steps: `8t + 25⌊t/10⌋`, then `×(1 + 0.015t)`. At `t = 40` (four pieces, ten levels each) that
- * is `+672` max health against Vitality's `+280`; the two stack, because they are different modifiers.
- *
- * The tick compares the modifier already on the entity instead of caching the applied level, so it is
- * allocation-free once the value is right (see the spark note in `EnchantVitalityHandler`).
+ * It is not a second source of the same bonus: it *replaces* Vitality at level X (see
+ * [UpgradeEnchantments] for how the anvil enforces that). A piece carrying `greater_vitality I` counts
+ * as eleven levels on the ladder — the ten of the Vitality it consumed plus its own one — which is also
+ * what Arcane Echo sees.
  */
 @ModEnchantment(
     id = "greater_vitality",
-    category = EnchantCategory.LEGENDARY,
+    category = EnchantCategory.UPGRADED_EPIC,
     type = EnchantType.ARMOR,
     maxLevel = 10,
-    weight = EnchantItemWeights.LEGENDARY,
+    weight = EnchantItemWeights.UPGRADED_EPIC,
     anvilCost = 10,
     minCostBase = 20,
     minCostPerLevel = 15,
@@ -47,8 +46,9 @@ import net.minecraft.util.Identifier
 object EnchantGreaterVitalityHandler : Listenable {
 
     private val MODIFIER_ID: Identifier = Identifier.of(SimpleTweaks.MOD_ID, "greater_vitality")
+    private val RULE = UpgradeEnchantments.rules().first { it.upgrade == GeneratedEnchantments.GREATER_VITALITY }
 
-    /** Base max-health amount for [total] levels, before the second-order term. */
+    /** Base max-health amount for [total] ladder levels, before the second-order term. */
     @JvmStatic
     fun bonusFor(total: Int): Double = total * 8.0 + (total / 10) * 25.0
 
@@ -56,7 +56,7 @@ object EnchantGreaterVitalityHandler : Listenable {
     @JvmStatic
     fun scaleFor(total: Int): Double = 1.0 + 0.015 * total
 
-    /** What the modifier holds for [total] levels. */
+    /** What the modifier holds for [total] ladder levels. */
     @JvmStatic
     fun modifierValue(total: Int): Double = bonusFor(total) * scaleFor(total)
 
@@ -67,7 +67,7 @@ object EnchantGreaterVitalityHandler : Listenable {
         if (WorldSide.isClient(p.world)) return
 
         val attr = p.getAttributeInstance(EntityAttributes.GENERIC_MAX_HEALTH) ?: return
-        val total = p.getArmorEnchantLevel(GeneratedEnchantments.GREATER_VITALITY)
+        val total = ladderTotal(p)
         val hasModifier = attr.getModifier(MODIFIER_ID) != null
 
         if (total <= 0 && !hasModifier) return
@@ -79,13 +79,11 @@ object EnchantGreaterVitalityHandler : Listenable {
                 EntityAttributeModifier(MODIFIER_ID, modifierValue(total), EntityAttributeModifier.Operation.ADD_VALUE)
             )
             FSTLog.log("GreaterVitality") {
-                "player=${p.name.string}, totalLvl=$total, bonus=${bonusFor(total)}, " +
+                "player=${p.name.string}, ladderLvl=$total, bonus=${bonusFor(total)}, " +
                     "modifier=${modifierValue(total)}, outcome=applied"
             }
         } else {
-            FSTLog.log("GreaterVitality") {
-                "player=${p.name.string}, totalLvl=$total, outcome=removed"
-            }
+            FSTLog.log("GreaterVitality") { "player=${p.name.string}, ladderLvl=0, outcome=removed" }
         }
         p.syncAttributes()
 
@@ -105,5 +103,15 @@ object EnchantGreaterVitalityHandler : Listenable {
 
     private fun clearModifier(p: PlayerEntity) {
         p.getAttributeInstance(EntityAttributes.GENERIC_MAX_HEALTH)?.removeModifier(MODIFIER_ID)
+    }
+
+    /** Sum of the four armour pieces on the upgrade ladder. */
+    private fun ladderTotal(p: PlayerEntity): Int {
+        var total = 0
+        for (slot in EquipmentSlot.entries) {
+            if (slot.type != EquipmentSlot.Type.HUMANOID_ARMOR) continue
+            total += UpgradeEnchantments.ladderLevel(p.getEquippedStack(slot), RULE)
+        }
+        return total
     }
 }
