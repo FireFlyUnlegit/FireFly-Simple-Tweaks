@@ -22,7 +22,7 @@ import net.minecraft.entity.player.PlayerEntity
     id = "advanced_execute",
     category = EnchantCategory.ADVANCED_RARE,
     type = EnchantType.SWORD,
-    maxLevel = 4,
+    maxLevel = 3,
     weight = EnchantItemWeights.ADVANCED_RARE,
     anvilCost = 10,
     minCostBase = 35,

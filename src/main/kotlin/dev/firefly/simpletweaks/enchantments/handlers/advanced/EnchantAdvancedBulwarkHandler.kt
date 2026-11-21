@@ -22,7 +22,7 @@ import net.minecraft.entity.player.PlayerEntity
     id = "advanced_bulwark",
     category = EnchantCategory.ADVANCED_EPIC,
     type = EnchantType.ARMOR,
-    maxLevel = 3,
+    maxLevel = 4,
     weight = EnchantItemWeights.ADVANCED_EPIC,
     anvilCost = 12,
     minCostBase = 35,

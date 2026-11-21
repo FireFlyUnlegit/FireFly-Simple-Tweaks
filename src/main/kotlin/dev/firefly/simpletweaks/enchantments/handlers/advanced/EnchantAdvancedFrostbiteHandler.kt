@@ -28,7 +28,7 @@ import net.minecraft.entity.player.PlayerEntity
     id = "advanced_frostbite",
     category = EnchantCategory.ADVANCED_RARE,
     type = EnchantType.WEAPON,
-    maxLevel = 4,
+    maxLevel = 3,
     weight = EnchantItemWeights.ADVANCED_RARE,
     damagePerLevel = 0.0,
     anvilCost = 12,

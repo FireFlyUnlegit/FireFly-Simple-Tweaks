@@ -29,7 +29,7 @@ import net.minecraft.entity.player.PlayerEntity
     id = "advanced_golden_shield",
     category = EnchantCategory.ADVANCED_RARE,
     type = EnchantType.ARMOR,
-    maxLevel = 4,
+    maxLevel = 5,
     weight = EnchantItemWeights.ADVANCED_RARE,
     damagePerLevel = 0.0,
     anvilCost = 12,

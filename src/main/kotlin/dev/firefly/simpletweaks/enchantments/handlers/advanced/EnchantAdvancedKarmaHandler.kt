@@ -29,7 +29,7 @@ import net.minecraft.entity.player.PlayerEntity
     id = "advanced_karma",
     category = EnchantCategory.ADVANCED_MYSTERY,
     type = EnchantType.ARMOR,
-    maxLevel = 5,
+    maxLevel = 4,
     weight = EnchantItemWeights.ADVANCED_MYSTERY,
     damagePerLevel = 0.0,
     anvilCost = 12,

@@ -28,7 +28,7 @@ import net.minecraft.entity.player.PlayerEntity
     id = "advanced_shield_bash",
     category = EnchantCategory.ADVANCED_LEGENDARY,
     type = EnchantType.WEAPON,
-    maxLevel = 5,
+    maxLevel = 3,
     weight = EnchantItemWeights.ADVANCED_LEGENDARY,
     damagePerLevel = 0.0,
     anvilCost = 12,

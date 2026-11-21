@@ -28,7 +28,7 @@ import net.minecraft.entity.player.PlayerEntity
     id = "advanced_midas_touch",
     category = EnchantCategory.ADVANCED_MYSTERY,
     type = EnchantType.WEAPON,
-    maxLevel = 5,
+    maxLevel = 3,
     weight = EnchantItemWeights.ADVANCED_MYSTERY,
     damagePerLevel = 0.0,
     anvilCost = 12,

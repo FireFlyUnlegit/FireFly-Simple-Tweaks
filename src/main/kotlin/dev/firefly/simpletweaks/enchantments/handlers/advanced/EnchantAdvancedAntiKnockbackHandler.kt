@@ -29,7 +29,7 @@ import net.minecraft.entity.player.PlayerEntity
     id = "advanced_anti_knockback",
     category = EnchantCategory.ADVANCED_UNCOMMON,
     type = EnchantType.ARMOR,
-    maxLevel = 4,
+    maxLevel = 2,
     weight = EnchantItemWeights.ADVANCED_UNCOMMON,
     damagePerLevel = 0.0,
     anvilCost = 12,

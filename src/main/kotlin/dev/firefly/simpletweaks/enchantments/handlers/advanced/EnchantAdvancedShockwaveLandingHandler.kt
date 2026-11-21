@@ -29,7 +29,7 @@ import net.minecraft.entity.player.PlayerEntity
     id = "advanced_shockwave_landing",
     category = EnchantCategory.ADVANCED_LEGENDARY,
     type = EnchantType.ARMOR,
-    maxLevel = 5,
+    maxLevel = 4,
     weight = EnchantItemWeights.ADVANCED_LEGENDARY,
     damagePerLevel = 0.0,
     anvilCost = 12,
