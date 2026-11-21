@@ -27,7 +27,9 @@ import net.minecraft.nbt.NbtCompound
  * 吞噬 — kills feed the weapon; the stacks are **stored on the item**, not on the player.
  *
  * ## The number
- * `+2 %` final damage per stack, cap `5 × level` stacks (III = 15 stacks = `+30 %`). Dying halves them.
+ * `+8 %` final damage per stack, cap `5 × level` stacks (III = 15 stacks = `+120 %`). Dying halves them.
+ * A kill adds `1 + ⌊victim max health / 256⌋` stacks, clamped to `+3`, so eating a boss feeds the weapon
+ * several times faster than eating a chicken — the cap stays fixed either way.
  *
  * ## Why item NBT (author's choice from the two options offered)
  * "The sword ate those kills" is the fantasy: swapping to a different weapon swaps the growth, and the
@@ -68,10 +70,22 @@ object EnchantDevourHandler : Listenable {
     const val KEY = "simple_tweaks:devour_stacks"
 
     /** Final-damage bonus per stack. */
-    const val BONUS_PER_STACK = 0.02f
+    const val BONUS_PER_STACK = 0.08f
 
     /** Stacks a full level can hold: `5 × level`. */
     const val STACKS_PER_LEVEL = 5
+
+    /** Victim max health that feeds one extra stack; a 1 024-health mob gives four. */
+    const val HEALTH_PER_EXTRA_STACK = 256f
+
+    /** Stacks one kill is worth, before the cap: `1 + ⌊maxHealth / 256⌋`, clamped to `1..4`. */
+    @JvmStatic
+    fun stacksGained(maxHealth: Float): Int =
+        1 + (maxHealth / HEALTH_PER_EXTRA_STACK).toInt().coerceIn(0, 3)
+
+    /** Damage multiplier for [stacks] stacks (`1.0` when there are none). */
+    @JvmStatic
+    fun multiplierFor(stacks: Int): Float = 1f + BONUS_PER_STACK * stacks.coerceAtLeast(0)
 
     /** Level from [stack], or 0 when it does not carry the enchantment. */
     private fun levelOf(stack: ItemStack): Int =
@@ -104,7 +118,7 @@ object EnchantDevourHandler : Listenable {
         if (stacks <= 0) return
 
         val before = e.amount
-        e.amount *= 1f + BONUS_PER_STACK * stacks
+        e.amount *= multiplierFor(stacks)
 
         FSTLog.log("Devour") {
             "attacker=${player.name.string}, target=${e.entityLiving.type.name.string}, " +
@@ -146,11 +160,14 @@ object EnchantDevourHandler : Listenable {
             }
             return
         }
-        storeStacks(weapon, before + 1)
+        val gained = stacksGained(victim.maxHealth)
+        val after = minOf(before + gained, cap)
+        storeStacks(weapon, after)
 
         FSTLog.log("Devour") {
-            "player=${killer.name.string}, victim=${victim.type.name.string}, lvl=$level, " +
-                "stacks=$before->${before + 1}, cap=$cap, outcome=stack-gained"
+            "player=${killer.name.string}, victim=${victim.type.name.string}, " +
+                "victimMaxHealth=${victim.maxHealth}, lvl=$level, " +
+                "stacks=$before->$after (+$gained), cap=$cap, outcome=stack-gained"
         }
     }
 }

@@ -397,7 +397,7 @@
   "enchantment.simple_tweaks.first_strike": "First Strike",
   "enchantment.simple_tweaks.first_strike.desc": "The first hit on a target that is still at full health deals +12%%-per-level damage",
   "enchantment.simple_tweaks.devour": "Devour",
-  "enchantment.simple_tweaks.devour.desc": "Every kill feeds the weapon by one stack: +2%% final damage per stack, up to 5 x level stacks (III = 15 stacks, +30%%). Dying halves them. The stacks stay on the weapon, not on the player",
+  "enchantment.simple_tweaks.devour.desc": "Every kill feeds the weapon: +8%% final damage per stack, up to 5 x level stacks (III = 15 stacks, +120%%). Bigger victims feed faster: a kill grants 1 + victim max health / 256 stacks (at most 4). Dying halves them. The stacks stay on the weapon, not on the player",
   "enchantment.simple_tweaks.multitude": "Multitude",
   "enchantment.simple_tweaks.multitude.desc": "A reaction you trigger has a 15%% + 10%%-per-level chance to be replicated onto every other enemy within 6 + 2 x level blocks: they all receive the trigger element and the reaction's own damage",
   "enchantment.simple_tweaks.karma": "Karma",

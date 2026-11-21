@@ -1,6 +1,7 @@
 package dev.firefly.simpletweaks.gametest;
 
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments;
+import dev.firefly.simpletweaks.enchantments.handlers.mythic.EnchantDevourHandler;
 import dev.firefly.simpletweaks.util.mobs.LevelledMob;
 import dev.firefly.simpletweaks.util.ArcaneEcho;
 import dev.firefly.simpletweaks.util.ArmorCurve;
@@ -1536,6 +1537,29 @@ public class SimpleTweaksGameTests implements FabricGameTest {
         context.assertTrue(Math.abs(doubled - 3.0) < 1.0e-9, "two +100 % factors are x4, not +200 %, got " + doubled);
         context.assertTrue(Math.abs(nested - 5.0) < 1.0e-9, "a further +50 % makes x6 total, i.e. a +500 % bonus, got " + nested);
         context.assertTrue(Math.abs(heavenly - 3.0) < 1.0e-9, "level 2 pays two extra swings, so x3, got " + heavenly);
+
+        context.complete();
+    }
+
+    @GameTest(templateName = FabricGameTest.EMPTY_STRUCTURE)
+    public void devourFeedsByVictimSizeWithinAFixedCap(TestContext context) {
+        int chicken = EnchantDevourHandler.stacksGained(4.0f);
+        int zombie = EnchantDevourHandler.stacksGained(20.0f);
+        int warden = EnchantDevourHandler.stacksGained(1024.0f);
+        int giant = EnchantDevourHandler.stacksGained(100_000.0f);
+        float full = EnchantDevourHandler.multiplierFor(15);
+        float none = EnchantDevourHandler.multiplierFor(0);
+
+        LOGGER.info("[FST-GameTest] devour: chicken=" + chicken + " zombie=" + zombie
+                + " warden=" + warden + " giant=" + giant
+                + " full=x" + full + " none=x" + none);
+
+        context.assertEquals(1, chicken, "a 4-health chicken is one stack");
+        context.assertEquals(1, zombie, "a 20-health zombie is still one stack");
+        context.assertEquals(4, warden, "1024 health is 1 + 4, clamped to 4");
+        context.assertEquals(4, giant, "no victim feeds more than four stacks");
+        context.assertTrue(Math.abs(full - 2.2f) < 1.0e-5, "15 stacks at 8 % is x2.2, got " + full);
+        context.assertEquals(1.0f, none, "no stacks is no bonus");
 
         context.complete();
     }

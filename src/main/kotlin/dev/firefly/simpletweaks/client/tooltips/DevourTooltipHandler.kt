@@ -40,5 +40,5 @@ object DevourTooltipHandler {
 
     /** `2`, `30`, `7.5` — never `30.0` / `24.000002`. */
     private fun formatPercent(value: Float): String =
-        "%.1f".format(value).removeSuffix(".0")
+        String.format(java.util.Locale.ROOT, "%.1f", value).removeSuffix(".0")
 }

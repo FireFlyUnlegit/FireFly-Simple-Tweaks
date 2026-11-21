@@ -75,14 +75,14 @@ object EnchantVitalityHandler : Listenable {
         val total = totalLevel(p)
         val hasModifier = attr.getModifier(MODIFIER_ID) != null
 
+        // Fast path: the modifier already holds the value this tick would write. `expected` MUST come from
+        // the same expression as the write below — comparing against a value that forgot the decade bonus
+        // made the check fail for every player with 10+ levels, which removed, rebuilt and re-synced the
+        // attribute modifier every single tick (spark: `EntityAttributeModifier.<init>` 0.14 % of the server
+        // thread, `build=devVer.1.0.20`).
         if (total > 0 && hasModifier) {
             val existingAmount = p.attributes.getModifierValue(EntityAttributes.GENERIC_MAX_HEALTH, MODIFIER_ID)
-            // The stored modifier is `bonus + percentage`; comparing it to `bonus` alone was never equal, so
-            // the modifier was removed and re-added (plus a full attribute sync) every tick (`build=cleanup63`).
-            val bonus = total * 4.0
-            val percentage = bonus * 0.01 * total
-            val expected = bonus + percentage
-            if (existingAmount == expected) return
+            if (existingAmount == modifierValue(total)) return
         }
         if (total <= 0 && !hasModifier) return
 
@@ -90,7 +90,7 @@ object EnchantVitalityHandler : Listenable {
         if (total > 0) {
             val bonus = total * 4.0 + (total / 10) * 10.0
             val percentage = bonus * 0.01 * total
-            attr.addPersistentModifier(EntityAttributeModifier(MODIFIER_ID, bonus + percentage, EntityAttributeModifier.Operation.ADD_VALUE))
+            attr.addPersistentModifier(EntityAttributeModifier(MODIFIER_ID, modifierValue(total), EntityAttributeModifier.Operation.ADD_VALUE))
             FSTLog.log("Vitality") {
                 "player=${p.name.string}, totalLvl=$total, hadModifier=$hasModifier, bonus=$bonus, " +
                     "percentage=$percentage, modifier=${bonus + percentage}, outcome=applied"
@@ -122,8 +122,16 @@ object EnchantVitalityHandler : Listenable {
         p.getAttributeInstance(EntityAttributes.GENERIC_MAX_HEALTH)?.removeModifier(MODIFIER_ID)
     }
 
-    private fun totalLevel(p: PlayerEntity): Int {
-        var total = 0
+    /**
+     * The max-health amount Vitality writes for [total] levels. Both the fast-path comparison and the
+     * modifier write go through this one expression, so they can never drift apart again.
+     */
+    private fun modifierValue(total: Int): Double {
+        val bonus = total * 4.0 + (total / 10) * 10.0
+        return bonus + bonus * 0.01 * total
+    }
+
+    private fun totalLevel(p: PlayerEntity): Int {        var total = 0
         for (slot in EquipmentSlot.entries) {
             if (slot.type != EquipmentSlot.Type.HUMANOID_ARMOR) continue
             total += getItemSpecificEnchantLevel(p.getEquippedStack(slot), GeneratedEnchantments.VITALITY)
