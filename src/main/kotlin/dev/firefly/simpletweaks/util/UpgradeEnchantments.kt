@@ -43,6 +43,12 @@ object UpgradeEnchantments {
         Rule(GeneratedEnchantments.ADVANCED_FIRE_MASTER, GeneratedEnchantments.FIRE_MASTER, 6),
         Rule(GeneratedEnchantments.ADVANCED_FEATHER_FALL, GeneratedEnchantments.FEATHER_FALL, 4),
         Rule(GeneratedEnchantments.ADVANCED_SATURATION, GeneratedEnchantments.SATURATION, 8),
+        Rule(GeneratedEnchantments.ADVANCED_AEGIS, GeneratedEnchantments.AEGIS, 3),
+        Rule(GeneratedEnchantments.ADVANCED_BULWARK, GeneratedEnchantments.BULWARK, 3),
+        Rule(GeneratedEnchantments.ADVANCED_EXECUTE, GeneratedEnchantments.EXECUTE, 5),
+        Rule(GeneratedEnchantments.ADVANCED_FINALITY, GeneratedEnchantments.FINALITY, 3),
+        Rule(GeneratedEnchantments.ADVANCED_REGENERATION, GeneratedEnchantments.REGENERATION, 8),
+        Rule(GeneratedEnchantments.ADVANCED_VENOM, GeneratedEnchantments.VENOM, 3),
     )
 
     @JvmStatic

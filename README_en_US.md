@@ -203,6 +203,12 @@ A 100-damage hit: armour 26 → 17 taken; armour 40 → 10 taken.
 | Death Protection | consumes one level to survive a lethal hit and grants absorption |
 | Bulwark | final damage you take is reduced by **1% x level** (up to 3%), **multiplying** with Arcane Echo's final reduction |
 | Advanced Saturation | **Advanced** form: a book on a chestplate that already carries Saturation VIII, consuming that VIII. Counts as **8 + its own level**. Hunger and saturation stay full, and the overflow becomes `level` hearts of absorption every five seconds |
+| Advanced Aegis | **Advanced**: consumes Aegis III, then counts as **3 + level**. Absorption ceiling `2 x level x (3 + level)`, refilled by `2 x level` hearts every five seconds |
+| Advanced Bulwark | **Advanced**: consumes Bulwark III, then counts as **3 + level**. Incoming damage reduced by `1% x (3 + level)`, `0.5% x level` of it healed back |
+| Advanced Execute | **Advanced**: consumes Execute V, then counts as **5 + level**. Extra `1% x (5 + level)` of the victim missing health |
+| Advanced Finality | **Advanced**: consumes Finality III, then counts as **3 + level**. Final damage `+1% x (3 + level)`, another `+2% x level` against full-health targets |
+| Advanced Regeneration | **Advanced**: consumes Regeneration VIII, then counts as **8 + level**. VIII cadence, faster the more health is missing (5% per level) |
+| Advanced Venom | **Advanced**: consumes Venom III, then counts as **3 + level**. Hits poison for `60 x (3 + level)` ticks, already poisoned targets take `+5% x level` |
 | Immortal | chance to fully ignore a hit, plus several consecutive hits after it triggers |
 | Soul Bound | items are kept on death and return to your inventory |
 | Saturation | slowly restores hunger and saturation |
