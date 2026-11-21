@@ -131,7 +131,8 @@ object EnchantVitalityHandler : Listenable {
         return bonus + bonus * 0.01 * total
     }
 
-    private fun totalLevel(p: PlayerEntity): Int {        var total = 0
+    private fun totalLevel(p: PlayerEntity): Int {
+        var total = 0
         for (slot in EquipmentSlot.entries) {
             if (slot.type != EquipmentSlot.Type.HUMANOID_ARMOR) continue
             total += getItemSpecificEnchantLevel(p.getEquippedStack(slot), GeneratedEnchantments.VITALITY)

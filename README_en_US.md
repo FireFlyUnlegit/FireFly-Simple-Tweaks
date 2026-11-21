@@ -12,7 +12,7 @@
 
 A Minecraft mod I build for fun: new enchantments, new mechanics and better combat feedback for vanilla.
 
-Current **1.21.1 / Fabric** release: **v2.3.0** (135 enchantments, 17 elemental reactions, aura gauges, reworked armour curve).
+Current **1.21.1 / Fabric** release: **v2.3.0** (137 enchantments, 17 elemental reactions, aura gauges, reworked armour curve).
 
 ## 🌿 Branches
 
@@ -32,11 +32,11 @@ Current **1.21.1 / Fabric** release: **v2.3.0** (135 enchantments, 17 elemental 
 
 ### 🧙 Custom enchantments
 
-**135** unique enchantments, split by rarity:
+**137** unique enchantments, split by rarity:
 
 | Rarity | Count | Rarity | Count |
 |--------|-------|--------|-------|
-| COMMON | 13 | LEGENDARY | 16 |
+| COMMON | 13 | LEGENDARY | 18 |
 | UNCOMMON | 13 | MYTHIC | 12 |
 | RARE | 28 | MYSTERY | 14 |
 | EPIC | 34 | UNIQUE | 5 |
@@ -188,7 +188,9 @@ A 100-damage hit: armour 26 → 17 taken; armour 40 → 10 taken.
 | Damage Limiter | medium hits are clamped to a fraction of max health, lethal hits pass through |
 | Resilience | more reduction the lower your health; four armours at III with 10% health reaches 84% |
 | Vitality | increases max health |
+| Greater Vitality | the legendary Vitality: **+8 health** per level plus **+25** for every ten levels, then x(1 + 1.5% x level); counts the four armour slots together, up to about **+672 health** |
 | Extra Armor | grants armour and toughness |
+| Greater Armor | the legendary Extra Armor: **+3.5 armour and +2.8 toughness** per level, then x(1 + 1.5% x level); counts the four armour slots together, up to about **+166 armour and +133 toughness** |
 | Anti Knockback | increases knockback resistance |
 | Damage Reduction | percentage damage reduction |
 | Death Protection | consumes one level to survive a lethal hit and grants absorption |

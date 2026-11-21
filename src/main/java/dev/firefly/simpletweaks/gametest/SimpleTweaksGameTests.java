@@ -2,6 +2,8 @@ package dev.firefly.simpletweaks.gametest;
 
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments;
 import dev.firefly.simpletweaks.enchantments.handlers.mythic.EnchantDevourHandler;
+import dev.firefly.simpletweaks.enchantments.handlers.legendary.EnchantGreaterArmorHandler;
+import dev.firefly.simpletweaks.enchantments.handlers.legendary.EnchantGreaterVitalityHandler;
 import dev.firefly.simpletweaks.util.mobs.LevelledMob;
 import dev.firefly.simpletweaks.util.ArcaneEcho;
 import dev.firefly.simpletweaks.util.ArmorCurve;
@@ -78,8 +80,8 @@ public class SimpleTweaksGameTests implements FabricGameTest {
         int keys = GeneratedEnchantments.INSTANCE.getKEYS().size();
         int categories = GeneratedEnchantments.INSTANCE.getCATEGORY().size();
         LOGGER.info("[FST-GameTest] generated table: keys={}, categories={}", keys, categories);
-        context.assertEquals(135, keys, "GeneratedEnchantments.KEYS should list all 135 enchantments");
-        context.assertEquals(135, categories, "GeneratedEnchantments.CATEGORY should cover every id");
+        context.assertEquals(137, keys, "GeneratedEnchantments.KEYS should list all 137 enchantments");
+        context.assertEquals(137, categories, "GeneratedEnchantments.CATEGORY should cover every id");
         context.complete();
     }
 
@@ -1560,6 +1562,36 @@ public class SimpleTweaksGameTests implements FabricGameTest {
         context.assertEquals(4, giant, "no victim feeds more than four stacks");
         context.assertTrue(Math.abs(full - 2.2f) < 1.0e-5, "15 stacks at 8 % is x2.2, got " + full);
         context.assertEquals(1.0f, none, "no stacks is no bonus");
+
+        context.complete();
+    }
+
+    @GameTest(templateName = FabricGameTest.EMPTY_STRUCTURE)
+    public void greaterVitalityScalesAsALegendaryStep(TestContext context) {
+        double full = EnchantGreaterVitalityHandler.modifierValue(40);
+        double ten = EnchantGreaterVitalityHandler.modifierValue(10);
+
+        LOGGER.info("[FST-GameTest] greater vitality: full=" + full + " ten=" + ten);
+
+        context.assertTrue(Math.abs(full - 672.0) < 1.0e-9, "(8 x 40 + 25 x 4) x 1.6 = 672, got " + full);
+        context.assertTrue(Math.abs(ten - 120.75) < 1.0e-9, "(8 x 10 + 25) x 1.15 = 120.75, got " + ten);
+        context.assertTrue(full > 2.0 * 280.0, "a full Greater Vitality set must beat Vitality by a wide margin");
+        context.assertEquals(1.0, EnchantGreaterVitalityHandler.scaleFor(0), "no levels means no scaling");
+
+        context.complete();
+    }
+
+    @GameTest(templateName = FabricGameTest.EMPTY_STRUCTURE)
+    public void greaterArmorScalesAsALegendaryStep(TestContext context) {
+        double armor = EnchantGreaterArmorHandler.armorValue(32);
+        double toughness = EnchantGreaterArmorHandler.toughnessValue(32);
+
+        LOGGER.info("[FST-GameTest] greater armor: armor=" + armor + " toughness=" + toughness);
+
+        context.assertTrue(Math.abs(armor - 165.76) < 1.0e-9, "3.5 x 32 x 1.48 = 165.76, got " + armor);
+        context.assertTrue(Math.abs(toughness - 132.608) < 1.0e-9, "2.8 x 32 x 1.48 = 132.608, got " + toughness);
+        context.assertEquals(0.0, EnchantGreaterArmorHandler.armorValue(0), "no levels means no armour");
+        context.assertEquals(1.0, EnchantGreaterArmorHandler.scaleFor(0), "no levels means no scaling");
 
         context.complete();
     }
