@@ -117,10 +117,9 @@ class SimpleTweaksClient : ClientModInitializer {
                 "+ mob levels and mob elements with [Lv.N] tags + per-element damage numbers + HUD bars " +
                 "+ every command under /simple_tweaks (alias /fst) " +
                 "+ game tests (./gradlew runGametest) " +
-                "+ per-attribute min/max overrides (config screen, page 6) + finality, bulwark, " +
-                "elemental surge and reaction surge + a combined damage-modifier section in /fst stats " +
-                "+ advanced forms of four lower tiers, book-only above their base, behind the book slot in /fst enchantinfo " +
-                "(v2.4.0, build=devVer.1.0.11)",
+                "+ an advanced mode in the enchanting table + 34 advanced forms, book-only above their base " +
+                "+ configurable attribute min/max + /fst stats and /fst enchantinfo " +
+                "(v2.4.0, build=devVer.1.0.12)",
             SimpleTweaks.NAME,
             enchantmentCount,
         )
