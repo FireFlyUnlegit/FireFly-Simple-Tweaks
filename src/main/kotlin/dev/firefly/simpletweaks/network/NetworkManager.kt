@@ -1,6 +1,8 @@
 package dev.firefly.simpletweaks.network
 
 import dev.firefly.simpletweaks.enchantments.handlers.mythic.EnchantInfinitePowerHandler
+import dev.firefly.simpletweaks.core.AdvancedEnchantMode
+import dev.firefly.simpletweaks.network.packets.PacketAdvancedEnchantMode
 import dev.firefly.simpletweaks.network.packets.PacketCelestialRing
 import dev.firefly.simpletweaks.network.packets.PacketDamageIndicator
 import dev.firefly.simpletweaks.network.packets.PacketLaser
@@ -79,6 +81,8 @@ object NetworkManager {
         PayloadTypeRegistry.playS2C().register(PacketMobLevel.ID, PacketMobLevel.CODEC)
         // InfinitePower laser — the project's FIRST C2S payload. See docs/infinite-power-deferred.md §9.
         PayloadTypeRegistry.playC2S().register(PacketLaser.ID, PacketLaser.CODEC)
+        // Enchanting table advanced mode: the client toggles it, the server enforces the cost.
+        PayloadTypeRegistry.playC2S().register(PacketAdvancedEnchantMode.ID, PacketAdvancedEnchantMode.CODEC)
     }
 
     /**
@@ -94,6 +98,13 @@ object NetworkManager {
      * not from the packet — which is why [PacketLaser] carries no player id at all.
      */
     fun registerServerReceivers() {
+        ServerPlayNetworking.registerGlobalReceiver(PacketAdvancedEnchantMode.ID) { payload, context ->
+            val player = context.player()
+            player.server.execute {
+                AdvancedEnchantMode.setOn(player, payload.enabled)
+                AdvancedEnchantMode.setAdvancedHandler(player.currentScreenHandler, payload.enabled)
+            }
+        }
         ServerPlayNetworking.registerGlobalReceiver(PacketLaser.ID) { payload, context ->
             val player = context.player()
             player.server.execute {

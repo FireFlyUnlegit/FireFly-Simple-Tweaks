@@ -84,12 +84,21 @@ object UpgradeEnchantments {
         levelIn(stack.get(DataComponentTypes.STORED_ENCHANTMENTS), key),
     )
 
+    /** True when the stack is a book (the advanced form is allowed on any book). */
+    @JvmStatic
+    fun isBook(stack: ItemStack): Boolean =
+        stack.isOf(Items.BOOK) || stack.isOf(Items.ENCHANTED_BOOK)
+
+    /** True when this stack already carries the base form at its own max level. */
+    @JvmStatic
+    fun baseAtMax(stack: ItemStack, rule: Rule): Boolean =
+        levelOf(stack, rule.base) >= rule.baseMaxLevel
+
     /**
      * The level the upgrade ladder sees on [stack]: an upgrade reports `baseMax + level`, the base
      * enchantment reports its own level, and only the higher of the two counts (the base is stripped
      * when the upgrade lands, so this only matters for a half-migrated stack).
      */
-    @JvmStatic
     fun ladderLevel(stack: ItemStack, rule: Rule): Int {
         val base = levelOf(stack, rule.base)
         val upgrade = levelOf(stack, rule.upgrade)

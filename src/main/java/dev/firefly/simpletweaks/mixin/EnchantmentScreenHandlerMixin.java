@@ -2,6 +2,18 @@ package dev.firefly.simpletweaks.mixin;
 
 import dev.firefly.simpletweaks.compat.FSTLog;
 import dev.firefly.simpletweaks.core.EnchantTableGate;
+import dev.firefly.simpletweaks.core.AdvancedEnchantMode;
+import dev.firefly.simpletweaks.util.UpgradeEnchantments;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
+import net.minecraft.enchantment.Enchantment;
+import net.minecraft.enchantment.EnchantmentLevelEntry;
+import net.minecraft.registry.DynamicRegistryManager;
+import net.minecraft.registry.Registry;
+import net.minecraft.registry.RegistryKeys;
+import net.minecraft.registry.entry.RegistryEntry;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import net.minecraft.component.ComponentType;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.ItemEnchantmentsComponent;
@@ -187,5 +199,127 @@ public abstract class EnchantmentScreenHandlerMixin {
             LOGGER.info("[enchant-table] re-enchant on {}: replaced {} existing enchantment(s)",
                     Registries.ITEM.getId(stack.getItem()), old.getEnchantments().size());
         }
+    }
+    /**
+     * (4) Advanced mode, offer side: mark the roll so {@code getPossibleEntries}'s post-processing
+     * skips the "at most one simple_tweaks enchantment" cap, then append one advanced entry when the
+     * stack may legally carry it (a book always may; equipment only when the base form is already at
+     * its own max level).
+     */
+    @Inject(method = "generateEnchantments", at = @At("HEAD"))
+    private void simpletweaks$beginAdvancedRoll(DynamicRegistryManager registryManager, ItemStack stack,
+            int level, int slot, CallbackInfoReturnable<List<EnchantmentLevelEntry>> cir) {
+        AdvancedEnchantMode.INSTANCE.beginRoll(AdvancedEnchantMode.INSTANCE.isAdvancedHandler(this));
+    }
+
+    @Inject(method = "generateEnchantments", at = @At("RETURN"), cancellable = true)
+    private void simpletweaks$advancedOffer(DynamicRegistryManager registryManager, ItemStack stack,
+            int level, int slot, CallbackInfoReturnable<List<EnchantmentLevelEntry>> cir) {
+        boolean advanced = AdvancedEnchantMode.INSTANCE.inAdvancedRoll();
+        AdvancedEnchantMode.INSTANCE.endRoll();
+        if (!advanced || stack.isEmpty()) {
+            return;
+        }
+        List<EnchantmentLevelEntry> base = cir.getReturnValue();
+        if (base == null) {
+            return;
+        }
+        List<EnchantmentLevelEntry> list = new ArrayList<>(base);
+        if (!simpletweaks$appendAdvanced(registryManager, stack, list)) {
+            return;
+        }
+        cir.setReturnValue(list);
+    }
+
+    private static boolean simpletweaks$appendAdvanced(DynamicRegistryManager registryManager, ItemStack stack,
+            List<EnchantmentLevelEntry> list) {
+        Registry<Enchantment> registry = registryManager.get(RegistryKeys.ENCHANTMENT);
+        List<UpgradeEnchantments.Rule> eligible = new ArrayList<>();
+        for (UpgradeEnchantments.Rule rule : UpgradeEnchantments.INSTANCE.rules()) {
+            boolean allowed = UpgradeEnchantments.INSTANCE.isBook(stack)
+                    || UpgradeEnchantments.INSTANCE.baseAtMax(stack, rule);
+            if (!allowed) {
+                continue;
+            }
+            boolean already = false;
+            for (EnchantmentLevelEntry entry : list) {
+                if (entry.enchantment.matchesKey(rule.getUpgrade())) {
+                    already = true;
+                    break;
+                }
+            }
+            if (!already) {
+                eligible.add(rule);
+            }
+        }
+        if (eligible.isEmpty() || ThreadLocalRandom.current().nextFloat() > 0.6f) {
+            return false;
+        }
+        UpgradeEnchantments.Rule rule = eligible.get(ThreadLocalRandom.current().nextInt(eligible.size()));
+        RegistryEntry<Enchantment> entry = registry.getEntry(rule.getUpgrade()).orElse(null);
+        if (entry == null) {
+            return false;
+        }
+        list.add(new EnchantmentLevelEntry(entry, 1));
+        return true;
+    }
+
+    /**
+     * (5) Advanced mode, cost side. Vanilla charges {@code slot + 1} levels and as many lapis; advanced
+     * mode charges the number printed next to the button and a third of it in lapis.
+     *
+     * <p>The guard has to run in {@code onButtonClick} (HEAD) as well: vanilla's own lapis check only
+     * compares against {@code slot + 1}, so a player holding three lapis would otherwise pass the check
+     * and have ten decremented from a stack of three.
+     */
+    @Inject(method = "onButtonClick", at = @At("HEAD"), cancellable = true)
+    private void simpletweaks$advancedCostGate(PlayerEntity player, int id, CallbackInfoReturnable<Boolean> cir) {
+        if (!AdvancedEnchantMode.INSTANCE.isAdvancedHandler(this)) {
+            return;
+        }
+        int power = ((EnchantmentScreenHandler) (Object) this).enchantmentPower[id];
+        if (power <= 0 || player.isCreative()) {
+            return;
+        }
+        ItemStack lapis = ((EnchantmentScreenHandler) (Object) this).getSlot(1).getStack();
+        int need = AdvancedEnchantMode.INSTANCE.lapisCost(power);
+        int levels = AdvancedEnchantMode.INSTANCE.xpCost(power);
+        if (lapis.isEmpty() || lapis.getCount() < need || player.experienceLevel < levels) {
+            cir.setReturnValue(false);
+        }
+    }
+
+    @Redirect(
+            method = APPLY_METHOD,
+            at = @At(value = "INVOKE",
+                    target = "Lnet/minecraft/entity/player/PlayerEntity;applyEnchantmentCosts(Lnet/minecraft/item/ItemStack;I)V")
+    )
+    private void simpletweaks$advancedXpCost(PlayerEntity player, ItemStack stack, int level) {
+        player.applyEnchantmentCosts(stack, simpletweaks$advancedCost(level));
+    }
+
+    @Redirect(
+            method = APPLY_METHOD,
+            at = @At(value = "INVOKE",
+                    target = "Lnet/minecraft/item/ItemStack;decrementUnlessCreative(ILnet/minecraft/entity/LivingEntity;)V")
+    )
+    private void simpletweaks$advancedLapisCost(ItemStack lapis, int amount, net.minecraft.entity.LivingEntity owner) {
+        int levels = simpletweaks$advancedCost(amount);
+        int lapisCost = AdvancedEnchantMode.INSTANCE.isAdvancedHandler(this)
+                ? AdvancedEnchantMode.INSTANCE.lapisCost(levels)
+                : amount;
+        lapis.decrementUnlessCreative(lapisCost, owner);
+    }
+
+    private int simpletweaks$advancedCost(int vanillaLevel) {
+        if (!AdvancedEnchantMode.INSTANCE.isAdvancedHandler(this)) {
+            return vanillaLevel;
+        }
+        int slot = vanillaLevel - 1;
+        int[] power = ((EnchantmentScreenHandler) (Object) this).enchantmentPower;
+        if (slot < 0 || slot >= power.length || power[slot] <= 0) {
+            return vanillaLevel;
+        }
+        return AdvancedEnchantMode.INSTANCE.xpCost(power[slot]);
     }
 }

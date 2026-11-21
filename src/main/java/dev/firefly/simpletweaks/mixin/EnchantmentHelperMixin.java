@@ -2,6 +2,7 @@ package dev.firefly.simpletweaks.mixin;
 
 import dev.firefly.simpletweaks.SimpleTweaks;
 import dev.firefly.simpletweaks.core.EnchantTableGate;
+import dev.firefly.simpletweaks.core.AdvancedEnchantMode;
 import dev.firefly.simpletweaks.util.UpgradeEnchantments;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.enchantment.EnchantmentHelper;
@@ -256,7 +257,9 @@ public abstract class EnchantmentHelperMixin {
         boolean changed = false;
 
         changed |= simpletweaks$ensureMinEnchants(random, stack, level, list, possible);
-        changed |= simpletweaks$capModEnchants(random, stack, list, possible);
+        if (!AdvancedEnchantMode.INSTANCE.inAdvancedRoll()) {
+            changed |= simpletweaks$capModEnchants(random, stack, list, possible);
+        }
         // Upgrade-ladder rule: the table may hand out the advanced enchantment on a book, never on an
         // item. `build=devVer.1.0.22`.
         changed |= UpgradeEnchantments.INSTANCE.filterTableOffers(list, stack);

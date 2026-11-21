@@ -11,6 +11,7 @@ import dev.firefly.simpletweaks.util.DotAcceleration;
 import dev.firefly.simpletweaks.util.FireBurn;
 import dev.firefly.simpletweaks.util.PlayerPower;
 import dev.firefly.simpletweaks.util.ShotWeapon;
+import dev.firefly.simpletweaks.core.AdvancedEnchantMode;
 import dev.firefly.simpletweaks.util.UpgradeEnchantments;
 import dev.firefly.simpletweaks.SimpleTweaks;
 import net.minecraft.enchantment.Enchantment;
@@ -1602,6 +1603,19 @@ public class SimpleTweaksGameTests implements FabricGameTest {
         context.complete();
     }
 
+    @GameTest(templateName = FabricGameTest.EMPTY_STRUCTURE)
+    public void advancedEnchantModeChargesTheDisplayedPower(TestContext context) {
+        int cheap = AdvancedEnchantMode.lapisCost(1);
+        int mid = AdvancedEnchantMode.lapisCost(30);
+        int huge = AdvancedEnchantMode.lapisCost(300);
+        LOGGER.info("[FST-GameTest] advanced cost: xp(30)={} lapis: cheap={} mid={} huge={} (expect 30/1/10/64)",
+                AdvancedEnchantMode.xpCost(30), cheap, mid, huge);
+        context.assertTrue(AdvancedEnchantMode.xpCost(30) == 30, "xp cost should equal the power");
+        context.assertTrue(cheap == 1, "one level costs one lapis");
+        context.assertTrue(mid == 10, "thirty levels cost ten lapis");
+        context.assertTrue(huge == 64, "the lapis cost is capped at a stack");
+        context.complete();
+    }
     @GameTest(templateName = FabricGameTest.EMPTY_STRUCTURE)
     public void upgradeLadderReplacesItsBase(TestContext context) {
         UpgradeEnchantments.Rule rule = UpgradeEnchantments.INSTANCE

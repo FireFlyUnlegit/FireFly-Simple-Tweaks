@@ -277,6 +277,7 @@ A 100-damage hit: armour 26 → 17 taken; armour 40 → 10 taken.
     - **Split by element**: one hit becomes **one number per element** (non-elemental / water / lightning / reaction),
       fanned horizontally and **staggered vertically** so they never overlap (random position, not attached to the entity)
     - **Reaction labels**: a reaction prints its name and the damage it dealt above the target, e.g. `Conduct (-28.30)`
+- **Advanced enchanting**: a toggle in the enchanting table removes the one-enchantment cap and adds advanced forms to the pool; prices follow the displayed power (XP = power, lapis = power / 3, capped at 64).
 - **HUD bars** — health and hunger drawn as bars instead of vanilla icons; the food bar prints
   `food (saturation)` and tints the saturated share of the fill gold
     - Bar numbers take decimals; the maximum number of places is configurable
