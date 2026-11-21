@@ -48,6 +48,11 @@ object ArcaneEcho {
     private const val ELEMENT_PER_UNIT = 0.0025
     private const val REACTION_PER_UNIT = 0.0035
 
+    // Multipliers rather than flat numbers: final damage scales what is dealt, final reduction divides
+    // what is taken (so it approaches immunity without ever reaching it and needs no ceiling).
+    private const val FINAL_DAMAGE_PER_UNIT = 0.004
+    private const val FINAL_REDUCTION_PER_UNIT = 0.003
+
     private const val MOVE_SPEED_CAP = 0.20
 
     private val HEALTH_ID = Identifier.of(SimpleTweaks.MOD_ID, "arcane_echo_health")
@@ -73,6 +78,8 @@ object ArcaneEcho {
         val damageReduction: Double,
         val element: Double,
         val reaction: Double,
+        val finalDamage: Double,
+        val finalReduction: Double,
     ) {
         val active: Boolean get() = level > 0
     }
@@ -100,6 +107,8 @@ object ArcaneEcho {
             damageReduction = DAMAGE_REDUCTION_PER_UNIT * scale,
             element = ELEMENT_PER_UNIT * scale,
             reaction = REACTION_PER_UNIT * scale,
+            finalDamage = FINAL_DAMAGE_PER_UNIT * scale,
+            finalReduction = FINAL_REDUCTION_PER_UNIT * scale,
         )
     }
 

@@ -77,16 +77,31 @@ object PlayerPower {
         EquipmentSlot.FEET,
     )
 
+    /** The four terms behind [of], so `/fst stats` can show where the number comes from. */
+    data class Parts(
+        val armor: Double,
+        val health: Double,
+        val attack: Double,
+        val enchants: Double,
+        val enchantCount: Int,
+    ) {
+        val total: Double get() = armor + health + attack + enchants
+    }
+
     /** @see PlayerPower */
     @JvmStatic
-    fun of(player: PlayerEntity): Double {
+    fun of(player: PlayerEntity): Double = partsOf(player).total
+
+    /** @see PlayerPower */
+    @JvmStatic
+    fun partsOf(player: PlayerEntity): Parts {
         val armor = (player.armor / ARMOR_REFERENCE).coerceAtLeast(0.0)
         val health = ((player.maxHealth - 20.0f) / HEALTH_REFERENCE).coerceAtLeast(0.0)
         val attack = (
             player.getAttributeValue(EntityAttributes.GENERIC_ATTACK_DAMAGE) / ATTACK_REFERENCE
             ).coerceAtLeast(0.0)
-        val enchants = enchantScore(player) / ENCHANT_SCORE_REFERENCE
-        return armor + health + attack + enchants
+        val (score, count) = enchantScoreOf(player)
+        return Parts(armor, health, attack, score / ENCHANT_SCORE_REFERENCE, count)
     }
 
     /**
@@ -112,7 +127,7 @@ object PlayerPower {
      * across five pieces is a stronger loadout than three level-3 rolls, and raw levels cannot tell them
      * apart.
      */
-    private fun enchantScore(player: PlayerEntity): Double {
+    private fun enchantScoreOf(player: PlayerEntity): Pair<Double, Int> {
         var score = 0.0
         var count = 0
         for (slot in SLOTS) {
@@ -129,6 +144,6 @@ object PlayerPower {
         if (count > BREADTH_FREE) {
             score += (count - BREADTH_FREE) * BREADTH_PER_ENCHANT
         }
-        return score
+        return score to count
     }
 }

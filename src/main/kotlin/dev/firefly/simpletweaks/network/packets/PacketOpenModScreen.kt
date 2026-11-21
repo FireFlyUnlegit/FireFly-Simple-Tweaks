@@ -42,6 +42,9 @@ class PacketOpenModScreen(val screen: Int) : CustomPayload {
         /** [dev.firefly.simpletweaks.client.EnchantInfoScreen]. */
         const val ENCHANT_INDEX = 1
 
+        /** [dev.firefly.simpletweaks.client.StatsScreen]. */
+        const val STATS = 2
+
         val ID: CustomPayload.Id<PacketOpenModScreen> =
             CustomPayload.Id(Identifier.of(SimpleTweaks.MOD_ID, "open_mod_screen"))
 

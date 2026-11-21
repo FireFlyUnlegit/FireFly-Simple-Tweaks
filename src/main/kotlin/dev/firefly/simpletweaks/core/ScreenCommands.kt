@@ -34,11 +34,13 @@ object ScreenCommands {
 
     private val CONFIG_NAMES = listOf("stconfig")
     private val INDEX_NAMES = listOf("enchantinfo", "ei", "enchinfo")
+    private val STATS_NAMES = listOf("stats", "st")
 
     /** Attaches all four names to [root] and returns it, so the caller can keep chaining. */
     fun attach(root: LiteralArgumentBuilder<ServerCommandSource>): LiteralArgumentBuilder<ServerCommandSource> {
         for (name in CONFIG_NAMES) root.then(screen(name, PacketOpenModScreen.CONFIG))
         for (name in INDEX_NAMES) root.then(screen(name, PacketOpenModScreen.ENCHANT_INDEX))
+        for (name in STATS_NAMES) root.then(screen(name, PacketOpenModScreen.STATS))
         return root
     }
 

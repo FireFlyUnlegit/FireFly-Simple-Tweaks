@@ -51,15 +51,42 @@ object EnchantArcaneEchoHandler : Listenable {
     @SubscribeEvent(priority = 40)
     fun onLivingDamage(e: LivingDamageEvent) {
         if (e.invalid) return
-        val victim = e.entityLiving as? PlayerEntity ?: return
-        if (WorldSide.isClient(victim.world)) return
-        val stats = ArcaneEcho.statsOf(victim)
-        if (!stats.active || stats.damageReduction <= 0.0) return
+        if (WorldSide.isClient(e.entityLiving.world)) return
+        amplifyDealt(e)
+        mitigateTaken(e)
+    }
+
+    /** Outgoing side: final damage scales the hit that is about to land. */
+    private fun amplifyDealt(e: LivingDamageEvent) {
+        val attacker = e.source.attacker as? PlayerEntity ?: return
+        if (attacker === e.entityLiving) return
+        val stats = ArcaneEcho.statsOf(attacker)
+        if (!stats.active || stats.finalDamage <= 0.0) return
         val before = e.amount
-        e.amount = (e.amount - stats.damageReduction.toFloat()).coerceAtLeast(0f)
+        e.amount = (e.amount * (1.0 + stats.finalDamage)).toFloat()
+        FSTLog.log("ArcaneEcho") {
+            "attacker=${attacker.name.string}, level=${stats.level}, " +
+                "final=${"%.2f".format(stats.finalDamage)}, amount=$before->${e.amount}, outcome=amplified"
+        }
+    }
+
+    /** Incoming side: percentage reduction first, then the flat term. */
+    private fun mitigateTaken(e: LivingDamageEvent) {
+        val victim = e.entityLiving as? PlayerEntity ?: return
+        val stats = ArcaneEcho.statsOf(victim)
+        if (!stats.active) return
+        val before = e.amount
+        if (stats.finalReduction > 0.0) {
+            e.amount = (e.amount / (1.0 + stats.finalReduction)).toFloat()
+        }
+        if (stats.damageReduction > 0.0) {
+            e.amount = (e.amount - stats.damageReduction.toFloat()).coerceAtLeast(0f)
+        }
+        if (e.amount == before) return
         FSTLog.log("ArcaneEcho") {
             "victim=${victim.name.string}, level=${stats.level}, units=${stats.units}, " +
-                "flat=${"%.2f".format(stats.damageReduction)}, amount=$before->${e.amount}, outcome=absorbed"
+                "final=${"%.2f".format(stats.finalReduction)}, flat=${"%.2f".format(stats.damageReduction)}, " +
+                "amount=$before->${e.amount}, outcome=mitigated"
         }
     }
 

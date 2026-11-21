@@ -1333,6 +1333,12 @@ public class SimpleTweaksGameTests implements FabricGameTest {
                 "elemental bonus must no longer cap (0.0025 x 400 x 3 = 3.0), got " + maxed.getElement());
         context.assertTrue(Math.abs(maxed.getReaction() - 4.2) < 0.001,
                 "reaction bonus must no longer cap (0.0035 x 400 x 3 = 4.2), got " + maxed.getReaction());
+        context.assertTrue(Math.abs(mid.getFinalDamage() - 0.60) < 0.001,
+                "final damage must be 0.004 x 50 x 3 = 0.6, got " + mid.getFinalDamage());
+        context.assertTrue(Math.abs(mid.getFinalReduction() - 0.45) < 0.001,
+                "final reduction must be 0.003 x 50 x 3 = 0.45, got " + mid.getFinalReduction());
+        LOGGER.info("[FST-GameTest] arcane echo final: damage={} (expect 0.6) reduction={} (expect 0.45)",
+                mid.getFinalDamage(), mid.getFinalReduction());
         context.complete();
     }
 

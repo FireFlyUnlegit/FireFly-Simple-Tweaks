@@ -7,6 +7,7 @@ import dev.firefly.simpletweaks.client.ClientManaPoolCache
 import dev.firefly.simpletweaks.client.ClientScreenOpener
 import dev.firefly.simpletweaks.client.EnchantInfoScreen
 import dev.firefly.simpletweaks.client.SimpleTweaksConfigScreen
+import dev.firefly.simpletweaks.client.StatsScreen
 import dev.firefly.simpletweaks.network.packets.PacketMobLevel
 import dev.firefly.simpletweaks.util.mobs.MobLevelSync
 import dev.firefly.simpletweaks.network.packets.PacketOpenModScreen
@@ -116,7 +117,7 @@ class SimpleTweaksClient : ClientModInitializer {
                 "+ mob levels and mob elements with [Lv.N] tags + per-element damage numbers + HUD bars " +
                 "+ every command under /simple_tweaks (alias /fst) " +
                 "+ game tests (./gradlew runGametest) " +
-                "(v2.3.0, build=devVer.1.0.4)",
+                "(v2.3.0, build=devVer.1.0.5)",
             SimpleTweaks.NAME,
             enchantmentCount,
         )
@@ -156,6 +157,9 @@ class SimpleTweaksClient : ClientModInitializer {
                     }
                     PacketOpenModScreen.ENCHANT_INDEX -> {
                         ClientScreenOpener.queue(EnchantInfoScreen(parent)); true
+                    }
+                    PacketOpenModScreen.STATS -> {
+                        ClientScreenOpener.queue(StatsScreen(parent)); true
                     }
                     else -> false
                 }
