@@ -30,7 +30,7 @@ public abstract class EnchantmentScreenMixin extends HandledScreen<EnchantmentSc
             AdvancedEnchantMode.INSTANCE.setClientOn(on);
             ClientPlayNetworking.send(new PacketAdvancedEnchantMode(on));
             button.setMessage(label());
-        }).dimensions(this.x + 176 - width - 4, this.y + 166 - 22, width, 18).build());
+        }).dimensions(this.x + 176 - width - 2, this.y - 20, width, 18).build());
     }
 
     private Text label() {
