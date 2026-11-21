@@ -832,6 +832,32 @@ public class SimpleTweaksGameTests implements FabricGameTest {
     }
 
     /**
+     * `enchant_with_levels` / `enchant_randomly` roll from the whole enchantment registry when a loot table
+     * leaves `options` out, so the creative-only enchantment can end up in a chest. Both loot functions hand
+     * their result through the guard; this pins the strip and the "everything else survives" side.
+     */
+    @GameTest(templateName = FabricGameTest.EMPTY_STRUCTURE)
+    public void lootGuardStripsCreativeOnlyEnchantments(TestContext context) {
+        var registry = context.getWorld().getRegistryManager()
+                .get(net.minecraft.registry.RegistryKeys.ENCHANTMENT);
+        var stack = new net.minecraft.item.ItemStack(net.minecraft.item.Items.DIAMOND_SWORD);
+        stack.addEnchantment(enchantmentByPath(registry, "infinite_power"), 1);
+        stack.addEnchantment(enchantmentByPath(registry, "venom"), 2);
+
+        var stripped = dev.firefly.simpletweaks.util.LootEnchantmentGuard.strip(stack);
+        var left = stripped.get(net.minecraft.component.DataComponentTypes.ENCHANTMENTS);
+        boolean stillCreative = left != null && left.getEnchantments().stream()
+                .anyMatch(entry -> entry.matchesKey(enchantmentKeyByPath("infinite_power")));
+        int venom = left == null ? 0 : left.getLevel(enchantmentByPath(registry, "venom"));
+
+        LOGGER.info("[FST-GameTest] loot guard: creative={}, venom={} (expect false/2)", stillCreative, venom);
+
+        context.assertFalse(stillCreative, "infinite_power must never come out of a loot function");
+        context.assertEquals(2, venom, "the ordinary enchantment must survive the strip");
+        context.complete();
+    }
+
+    /**
      * The mob-level announce bookkeeping must collapse the two seams' duplicate into one packet.
      *
      * <p>{@code MobLevelTracker} and {@code MobSpawnEnhancer} both announce the same level on the normal

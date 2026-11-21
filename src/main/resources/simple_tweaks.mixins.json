@@ -12,6 +12,8 @@
     "BowItemArrowLooseMixin",
     "EnchantmentHelperMixin",
     "EnchantmentScreenHandlerMixin",
+    "EnchantRandomlyLootFunctionMixin",
+    "EnchantWithLevelsLootFunctionMixin",
     "EntityDamageMixin",
     "EntityDisplayNameMixin",
     "EntityFallDamageMixin",
