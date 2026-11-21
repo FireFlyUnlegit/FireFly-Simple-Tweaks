@@ -277,7 +277,7 @@ A 100-damage hit: armour 26 → 17 taken; armour 40 → 10 taken.
     - Bar numbers take decimals; the maximum number of places is configurable
     - **Compact numbers**: an opt-in `k`/`M` form (`1.09k`) that climbs through `B / T / P / E / Z / Y` and falls back to `1.2e27` past that (so ten billion health reads `10.0B`, never a wall of digits); floating damage numbers have a **separate** switch
     - **Attribute bounds**: page 6 of the config screen sets a min/max per attribute — **the default ceiling is "no ceiling"** (a value like `1.0E10` really is in force, not blocked at 2.1 billion), a blank min keeps vanilla; typing a number wins, `∞` = 3.4E38, `↺` clears that row. Applies immediately, no restart, and AttributeFix can no longer override it
-- **Enchantment index** — `/simple_tweaks enchantinfo`, browsable **by rarity** or **by applicable item**
+- **Enchantment index** — `/simple_tweaks enchantinfo`, browsable **by rarity** or **by applicable item**; the book in the first slot flips it to the advanced catalogue
 - **Config screen** — `/simple_tweaks stconfig`, applied live, no restart
 - **Coloured enchantment names** — by rarity; `Infinite Power` cycles a rainbow
 - **Hit particle suppression / anvil cost removal / auto sprint / no hurt camera shake** — all toggleable

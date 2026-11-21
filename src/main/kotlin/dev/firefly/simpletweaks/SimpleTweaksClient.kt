@@ -119,8 +119,8 @@ class SimpleTweaksClient : ClientModInitializer {
                 "+ game tests (./gradlew runGametest) " +
                 "+ per-attribute min/max overrides (config screen, page 6) + finality, bulwark, " +
                 "elemental surge and reaction surge + a combined damage-modifier section in /fst stats " +
-                "+ upgraded epic greater vitality and greater armour, book-only above their base " +
-                "(v2.3.0, build=devVer.1.0.22)",
+                "+ upgraded epic greater vitality and greater armour, book-only above their base, behind the book slot in /fst enchantinfo " +
+                "(v2.3.0, build=devVer.1.0.23)",
             SimpleTweaks.NAME,
             enchantmentCount,
         )
