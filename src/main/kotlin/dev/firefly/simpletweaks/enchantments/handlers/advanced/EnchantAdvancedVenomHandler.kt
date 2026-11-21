@@ -55,11 +55,13 @@ object EnchantAdvancedVenomHandler : Listenable {
         victim.addStatusEffect(
             net.minecraft.entity.effect.StatusEffectInstance(
                 net.minecraft.entity.effect.StatusEffects.POISON,
-                40 * level,
-                0,
+                60 * level,
+                (level - 1).coerceAtLeast(0),
             ),
         )
         if (poisoned) {
+            // A body that is already poisoned takes it worse: the venom finds the wound it made.
+            e.amount *= 1f + 0.10f * level
             ElementAuras.attach(victim, ElementType.NATURE, ElementAuras.STRONG)
         }
         FSTLog.log("AdvancedVenomHandler") {
@@ -88,8 +90,8 @@ object EnchantAdvancedVenomHandler : Listenable {
             candidate.addStatusEffect(
                 net.minecraft.entity.effect.StatusEffectInstance(
                     net.minecraft.entity.effect.StatusEffects.POISON,
-                    20 * level,
-                    0,
+                    30 * level,
+                    (level - 1).coerceAtLeast(0),
                 ),
             )
             ElementAuras.attach(candidate, ElementType.NATURE, ElementAuras.WEAK)

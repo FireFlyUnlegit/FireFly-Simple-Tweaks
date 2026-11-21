@@ -58,7 +58,7 @@ object EnchantAdvancedImmortalHandler : Listenable {
 
         val now = player.world.time
         val last = spent[player.uuid] ?: Long.MIN_VALUE
-        val ready = now - last >= COOLDOWN_TICKS
+        val ready = now - last >= COOLDOWN_TICKS / level.coerceAtLeast(1)
         val before = e.amount
         if (ready) {
             spent[player.uuid] = now

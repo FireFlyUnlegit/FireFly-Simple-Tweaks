@@ -40,7 +40,7 @@ import net.minecraft.entity.player.PlayerEntity
 )
 object EnchantAdvancedExecuteHandler : Listenable {
 
-    private const val PER_LEVEL = 0.01f
+    private const val PER_LEVEL = 0.02f
 
     @SubscribeEvent
     fun onLivingHurt(e: LivingHurtEvent) {

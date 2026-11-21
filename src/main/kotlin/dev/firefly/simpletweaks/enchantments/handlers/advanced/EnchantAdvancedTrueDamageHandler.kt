@@ -53,7 +53,7 @@ object EnchantAdvancedTrueDamageHandler : Listenable {
         val level = getItemSpecificEnchantLevel(player.combatStack(e.source), GeneratedEnchantments.ADVANCED_TRUE_DAMAGE)
         if (level <= 0) return
         val before = e.amount
-        val bonus = 0.02f * level * e.amount
+        val bonus = 0.05f * level * e.amount
         e.amount += bonus
         victim.damageElemental(player, ModDamageTypes.TRUE_DAMAGE, bonus * 0.5f)
         FSTLog.log("AdvancedTrueDamageHandler") { "player=${player.name.string}, level=$level, damage=$before->${e.amount}, outcome=applied" }

@@ -39,7 +39,7 @@ import java.util.UUID
 )
 object EnchantAdvancedDevourHandler : Listenable {
 
-    private const val SWINGS_PER_BITE = 5
+    private const val SWINGS_PER_BITE = 3
 
     private val swings = java.util.Collections.synchronizedMap(HashMap<UUID, Int>())
 
@@ -61,7 +61,7 @@ object EnchantAdvancedDevourHandler : Listenable {
         swings[player.uuid] = 0
 
         // Every fifth swing the stored hunger bites: an unavoidable chunk scaled by the hit itself.
-        val bite = e.amount * 0.05f * level
+        val bite = e.amount * 0.08f * level
         if (bite <= 0f) return
         val landed = victim.damageElemental(player, ModDamageTypes.TRUE_DAMAGE, bite)
         FSTLog.log("AdvancedDevourHandler") {

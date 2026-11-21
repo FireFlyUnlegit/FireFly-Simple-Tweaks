@@ -48,7 +48,7 @@ object EnchantAdvancedAntiKnockbackHandler : Listenable {
 
 
     /** Knockback resistance added per stack of the ladder; vanilla clamps the attribute at 1.0. */
-    private const val RESISTANCE_PER_LEVEL = 0.15
+    private const val RESISTANCE_PER_LEVEL = 0.35
 
     private val RESISTANCE_ID = Identifier.of(SimpleTweaks.MOD_ID, "advanced_anti_knockback")
 

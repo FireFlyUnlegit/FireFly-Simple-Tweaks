@@ -58,7 +58,7 @@ object EnchantAdvancedFleetfootHandler : Listenable {
         if (level <= 0) return
         val before = e.amount
         if (player.isSprinting) player.addStatusEffect(StatusEffectInstance(StatusEffects.SPEED, 30, 1))
-        e.amount *= (1f - 0.015f * level).coerceIn(0.25f, 1f)
+        e.amount *= (1f - 0.04f * level).coerceIn(0.35f, 1f)
         FSTLog.log("AdvancedFleetfootHandler") { "player=${player.name.string}, level=$level, damage=$before->${e.amount}, outcome=applied" }
     }
 }

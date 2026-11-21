@@ -32,7 +32,7 @@ import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
     order = 78,
 )
 object EnchantAdvancedRegenerationHandler : Listenable {
-    private const val PERIOD = 40
+    private const val PERIOD = 20
 
     @SubscribeEvent
     fun onPlayerTick(e: TickEvent.PlayerTickEvent) {
@@ -47,7 +47,7 @@ object EnchantAdvancedRegenerationHandler : Listenable {
         if (missing > 0f) {
             // Rapid mending while hurt, and it stops the moment the bar is full.
             // Direct write: bypasses the healing bonus, which used to multiply every trickle tick (uild=devVer.1.0.6).
-            player.health = (player.health + minOf(missing, level.toFloat())).coerceAtMost(player.maxHealth)
+            player.health = (player.health + minOf(missing, 2f * level)).coerceAtMost(player.maxHealth)
         } else {
             // At full health the same trickle is banked as hits, not wasted.
             if (TempAbsorption.peek(player) == null) TempAbsorption.grant(player, 2f * level, 1)

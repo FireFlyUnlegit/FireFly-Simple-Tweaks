@@ -81,7 +81,7 @@ object EnchantAdvancedStarfallHandler : Listenable {
         }
 
         hits.remove(victim.uuid)
-        val burst = e.amount * 0.05f * level
+        val burst = e.amount * 0.25f * level
         val landed = victim.damageElemental(player, ModDamageTypes.STAR, burst)
         if (world is ServerWorld) {
             world.spawnParticles(ParticleTypes.FIREWORK, victim.x, victim.y + 0.6, victim.z, 24, 0.35, 0.45, 0.35, 0.12)

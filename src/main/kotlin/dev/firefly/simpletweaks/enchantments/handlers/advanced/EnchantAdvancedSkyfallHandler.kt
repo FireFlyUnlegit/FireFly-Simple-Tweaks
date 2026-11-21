@@ -60,7 +60,7 @@ object EnchantAdvancedSkyfallHandler : Listenable {
         val drop = player.fallDistance.coerceIn(0f, FALL_CAP)
         if (drop < MIN_FALL && player.isOnGround) return
         val before = e.amount
-        e.amount *= 1f + 0.06f * level * (1f + drop)
+        e.amount *= 1f + 0.15f * level * (1f + drop)
 
         val world = player.world
         if (world is ServerWorld) world.spawnParticles(ParticleTypes.CLOUD, victim.x, victim.y + 0.2, victim.z, 16, 0.35, 0.1, 0.35, 0.05)
