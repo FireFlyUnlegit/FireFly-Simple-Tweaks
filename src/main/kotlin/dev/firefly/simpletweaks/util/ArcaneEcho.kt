@@ -48,10 +48,14 @@ object ArcaneEcho {
     private const val ELEMENT_PER_UNIT = 0.0025
     private const val REACTION_PER_UNIT = 0.0035
 
-    // Multipliers rather than flat numbers: final damage scales what is dealt, final reduction divides
-    // what is taken (so it approaches immunity without ever reaching it and needs no ceiling).
-    private const val FINAL_DAMAGE_PER_UNIT = 0.004
+    // Final damage is a plain multiplier on what is dealt.
+    private const val FINAL_DAMAGE_PER_UNIT = 0.002
+
+    // Final reduction is a *rating*, not a percentage: the share that actually applies is
+    // rating / (rating + half), which approaches 100% asymptotically and therefore needs no ceiling.
+    // At `half` the share is exactly 50% (0.003 x units x level = 1.8 -> 50%).
     private const val FINAL_REDUCTION_PER_UNIT = 0.003
+    private const val FINAL_REDUCTION_HALF = 1.8
 
     private const val MOVE_SPEED_CAP = 0.20
 
@@ -93,6 +97,7 @@ object ArcaneEcho {
     @JvmStatic
     fun statsOf(units: Int, level: Int): Stats {
         val scale = units.toDouble() * level
+        val reductionRating = FINAL_REDUCTION_PER_UNIT * scale
         return Stats(
             units = units,
             level = level,
@@ -108,7 +113,7 @@ object ArcaneEcho {
             element = ELEMENT_PER_UNIT * scale,
             reaction = REACTION_PER_UNIT * scale,
             finalDamage = FINAL_DAMAGE_PER_UNIT * scale,
-            finalReduction = FINAL_REDUCTION_PER_UNIT * scale,
+            finalReduction = reductionRating / (reductionRating + FINAL_REDUCTION_HALF),
         )
     }
 

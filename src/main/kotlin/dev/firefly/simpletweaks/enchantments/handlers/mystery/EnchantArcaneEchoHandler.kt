@@ -70,14 +70,14 @@ object EnchantArcaneEchoHandler : Listenable {
         }
     }
 
-    /** Incoming side: percentage reduction first, then the flat term. */
+    /** Incoming side: saturating percentage reduction first, then the flat term. */
     private fun mitigateTaken(e: LivingDamageEvent) {
         val victim = e.entityLiving as? PlayerEntity ?: return
         val stats = ArcaneEcho.statsOf(victim)
         if (!stats.active) return
         val before = e.amount
         if (stats.finalReduction > 0.0) {
-            e.amount = (e.amount / (1.0 + stats.finalReduction)).toFloat()
+            e.amount = (e.amount * (1.0 - stats.finalReduction)).toFloat()
         }
         if (stats.damageReduction > 0.0) {
             e.amount = (e.amount - stats.damageReduction.toFloat()).coerceAtLeast(0f)

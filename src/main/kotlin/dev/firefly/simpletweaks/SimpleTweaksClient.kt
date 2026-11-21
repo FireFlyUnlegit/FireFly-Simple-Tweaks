@@ -117,7 +117,7 @@ class SimpleTweaksClient : ClientModInitializer {
                 "+ mob levels and mob elements with [Lv.N] tags + per-element damage numbers + HUD bars " +
                 "+ every command under /simple_tweaks (alias /fst) " +
                 "+ game tests (./gradlew runGametest) " +
-                "(v2.3.0, build=devVer.1.0.5)",
+                "(v2.3.0, build=devVer.1.0.6)",
             SimpleTweaks.NAME,
             enchantmentCount,
         )
