@@ -13,11 +13,17 @@ import dev.firefly.simpletweaks.enchantments.annotations.EnchantSupportedItemTag
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
+import dev.firefly.simpletweaks.util.FireBurn
+import dev.firefly.simpletweaks.util.absorptionHeadroomId
 import dev.firefly.simpletweaks.util.combatStack
+import dev.firefly.simpletweaks.util.damagesource.ModDamageTypes
+import dev.firefly.simpletweaks.util.damagesource.damageElemental
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
-import net.minecraft.entity.EquipmentSlot
+import dev.firefly.simpletweaks.util.grantAbsorption
+import net.minecraft.entity.effect.StatusEffectInstance
+import net.minecraft.entity.effect.StatusEffects
 import net.minecraft.entity.player.PlayerEntity
-/** The advanced form of `shield_bash`: its top tier plus a further share of damage dealt. */
+/** The advanced form of this enchantment: its top tier plus an effect of its own. */
 @ModEnchantment(
     id = "advanced_shield_bash",
     category = EnchantCategory.ADVANCED_LEGENDARY,
@@ -35,17 +41,18 @@ import net.minecraft.entity.player.PlayerEntity
 object EnchantAdvancedShieldBashHandler : Listenable {
 
     private const val BASE_LEVEL = 3
-    private const val PER_LEVEL = 0.03f
 
     @SubscribeEvent
     fun onLivingDamage(e: LivingDamageEvent) {
         if (e.invalid) return
         val player = e.attacker as? PlayerEntity ?: return
-        if (e.entityLiving === player) return
+        val victim = e.entityLiving
+        if (victim === player) return
         val level = getItemSpecificEnchantLevel(player.combatStack(e.source), GeneratedEnchantments.ADVANCED_SHIELD_BASH)
         if (level <= 0) return
         val before = e.amount
-        e.amount *= 1f + PER_LEVEL * (BASE_LEVEL + level)
-        FSTLog.log("AdvancedShieldBashHandler") { "player=${player.name.string}, level=$level, damage=$before->${e.amount}, outcome=amplified" }
+        e.amount *= 1f + 0.03f * (BASE_LEVEL + level)
+        if (player.isBlocking) victim.addStatusEffect(StatusEffectInstance(StatusEffects.WEAKNESS, 60, 1))
+        FSTLog.log("AdvancedShieldBashHandler") { "player=${player.name.string}, level=$level, damage=$before->${e.amount}, outcome=applied" }
     }
 }

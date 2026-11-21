@@ -13,11 +13,17 @@ import dev.firefly.simpletweaks.enchantments.annotations.EnchantSupportedItemTag
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
+import dev.firefly.simpletweaks.util.FireBurn
+import dev.firefly.simpletweaks.util.absorptionHeadroomId
 import dev.firefly.simpletweaks.util.combatStack
+import dev.firefly.simpletweaks.util.damagesource.ModDamageTypes
+import dev.firefly.simpletweaks.util.damagesource.damageElemental
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
-import net.minecraft.entity.EquipmentSlot
+import dev.firefly.simpletweaks.util.grantAbsorption
+import net.minecraft.entity.effect.StatusEffectInstance
+import net.minecraft.entity.effect.StatusEffects
 import net.minecraft.entity.player.PlayerEntity
-/** The advanced form of `skyfall`: its top tier plus a further share of damage dealt. */
+/** The advanced form of this enchantment: its top tier plus an effect of its own. */
 @ModEnchantment(
     id = "advanced_skyfall",
     category = EnchantCategory.ADVANCED_LEGENDARY,
@@ -35,17 +41,18 @@ import net.minecraft.entity.player.PlayerEntity
 object EnchantAdvancedSkyfallHandler : Listenable {
 
     private const val BASE_LEVEL = 3
-    private const val PER_LEVEL = 0.03f
 
     @SubscribeEvent
     fun onLivingDamage(e: LivingDamageEvent) {
         if (e.invalid) return
         val player = e.attacker as? PlayerEntity ?: return
-        if (e.entityLiving === player) return
+        val victim = e.entityLiving
+        if (victim === player) return
         val level = getItemSpecificEnchantLevel(player.combatStack(e.source), GeneratedEnchantments.ADVANCED_SKYFALL)
         if (level <= 0) return
         val before = e.amount
-        e.amount *= 1f + PER_LEVEL * (BASE_LEVEL + level)
-        FSTLog.log("AdvancedSkyfallHandler") { "player=${player.name.string}, level=$level, damage=$before->${e.amount}, outcome=amplified" }
+        val drop = if (player.fallDistance > 1.5f) 2f else 1f
+        e.amount *= 1f + 0.03f * (BASE_LEVEL + level) * drop
+        FSTLog.log("AdvancedSkyfallHandler") { "player=${player.name.string}, level=$level, damage=$before->${e.amount}, outcome=applied" }
     }
 }

@@ -13,17 +13,25 @@ import dev.firefly.simpletweaks.enchantments.annotations.EnchantSupportedItemTag
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
+import dev.firefly.simpletweaks.util.FireBurn
+import dev.firefly.simpletweaks.util.absorptionHeadroomId
 import dev.firefly.simpletweaks.util.combatStack
+import dev.firefly.simpletweaks.util.damagesource.ModDamageTypes
+import dev.firefly.simpletweaks.util.damagesource.damageElemental
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
+import dev.firefly.simpletweaks.util.grantAbsorption
+import net.minecraft.entity.effect.StatusEffectInstance
+import net.minecraft.entity.effect.StatusEffects
 import net.minecraft.entity.EquipmentSlot
 import net.minecraft.entity.player.PlayerEntity
-/** The advanced form of `anti_knockback`: its top tier plus a further share of damage taken. */
+/** The advanced form of this enchantment: its top tier plus an effect of its own. */
 @ModEnchantment(
     id = "advanced_anti_knockback",
     category = EnchantCategory.ADVANCED_UNCOMMON,
     type = EnchantType.ARMOR,
     maxLevel = 3,
     weight = EnchantItemWeights.ADVANCED_UNCOMMON,
+    damagePerLevel = 0.0,
     anvilCost = 12,
     minCostBase = 35,
     minCostPerLevel = 15,
@@ -34,7 +42,6 @@ import net.minecraft.entity.player.PlayerEntity
 object EnchantAdvancedAntiKnockbackHandler : Listenable {
 
     private const val BASE_LEVEL = 2
-    private const val PER_LEVEL = 0.02f
 
     @SubscribeEvent
     fun onLivingDamage(e: LivingDamageEvent) {
@@ -47,7 +54,9 @@ object EnchantAdvancedAntiKnockbackHandler : Listenable {
         }
         if (level <= 0) return
         val before = e.amount
-        e.amount *= (1f - PER_LEVEL * (BASE_LEVEL + level)).coerceAtLeast(0f)
-        FSTLog.log("AdvancedAntiKnockbackHandler") { "player=${player.name.string}, level=$level, damage=$before->${e.amount}, outcome=reduced" }
+        val source = e.source.attacker as? net.minecraft.entity.LivingEntity
+        source?.addStatusEffect(StatusEffectInstance(StatusEffects.SLOWNESS, 40, 1))
+        e.amount *= (1f - 0.02f * (BASE_LEVEL + level)).coerceAtLeast(0f)
+        FSTLog.log("AdvancedAntiKnockbackHandler") { "player=${player.name.string}, level=$level, damage=$before->${e.amount}, outcome=applied" }
     }
 }

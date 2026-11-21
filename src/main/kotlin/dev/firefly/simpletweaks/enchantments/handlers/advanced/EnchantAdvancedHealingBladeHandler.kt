@@ -13,41 +13,48 @@ import dev.firefly.simpletweaks.enchantments.annotations.EnchantSupportedItemTag
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
+import dev.firefly.simpletweaks.util.FireBurn
+import dev.firefly.simpletweaks.util.absorptionHeadroomId
 import dev.firefly.simpletweaks.util.combatStack
+import dev.firefly.simpletweaks.util.damagesource.ModDamageTypes
+import dev.firefly.simpletweaks.util.damagesource.damageElemental
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
-import net.minecraft.entity.EquipmentSlot
+import dev.firefly.simpletweaks.util.grantAbsorption
+import net.minecraft.entity.effect.StatusEffectInstance
+import net.minecraft.entity.effect.StatusEffects
 import net.minecraft.entity.player.PlayerEntity
-/** The advanced form of `healing_blade`: its top tier plus a further share of damage taken. */
+/** The advanced form of this enchantment: its top tier plus an effect of its own. */
 @ModEnchantment(
     id = "advanced_healing_blade",
     category = EnchantCategory.ADVANCED_MYTHIC,
-    type = EnchantType.ARMOR,
+    type = EnchantType.WEAPON,
     maxLevel = 3,
     weight = EnchantItemWeights.ADVANCED_MYTHIC,
+    damagePerLevel = 0.0,
     anvilCost = 12,
     minCostBase = 35,
     minCostPerLevel = 15,
-    supportedItems = EnchantSupportedItemTags.ARMOR,
-    slots = [EnchantSlot.ARMOR],
+    supportedItems = EnchantSupportedItemTags.WEAPON,
+    slots = [EnchantSlot.MAINHAND],
     order = 98,
 )
 object EnchantAdvancedHealingBladeHandler : Listenable {
 
     private const val BASE_LEVEL = 8
-    private const val PER_LEVEL = 0.015f
 
     @SubscribeEvent
     fun onLivingDamage(e: LivingDamageEvent) {
         if (e.invalid) return
-        val player = e.entityLiving as? PlayerEntity ?: return
-        var level = 0
-        for (slot in EquipmentSlot.entries) {
-            if (slot.type != EquipmentSlot.Type.HUMANOID_ARMOR) continue
-            level += getItemSpecificEnchantLevel(player.getEquippedStack(slot), GeneratedEnchantments.ADVANCED_HEALING_BLADE)
-        }
+        val player = e.attacker as? PlayerEntity ?: return
+        val victim = e.entityLiving
+        if (victim === player) return
+        val level = getItemSpecificEnchantLevel(player.combatStack(e.source), GeneratedEnchantments.ADVANCED_HEALING_BLADE)
         if (level <= 0) return
         val before = e.amount
-        e.amount *= (1f - PER_LEVEL * (BASE_LEVEL + level)).coerceAtLeast(0f)
-        FSTLog.log("AdvancedHealingBladeHandler") { "player=${player.name.string}, level=$level, damage=$before->${e.amount}, outcome=reduced" }
+        e.amount *= 1f + 0.01f * (BASE_LEVEL + level)
+        val heal = 0.03f * level * e.amount
+        player.heal(heal)
+        grantAbsorption(player, absorptionHeadroomId("advanced_healing_blade"), heal * 0.5f, heal * 0.5f)
+        FSTLog.log("AdvancedHealingBladeHandler") { "player=${player.name.string}, level=$level, damage=$before->${e.amount}, outcome=applied" }
     }
 }

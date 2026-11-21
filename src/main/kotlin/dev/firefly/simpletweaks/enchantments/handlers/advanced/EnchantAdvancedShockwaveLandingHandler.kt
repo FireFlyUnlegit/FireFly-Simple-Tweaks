@@ -13,17 +13,25 @@ import dev.firefly.simpletweaks.enchantments.annotations.EnchantSupportedItemTag
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
+import dev.firefly.simpletweaks.util.FireBurn
+import dev.firefly.simpletweaks.util.absorptionHeadroomId
 import dev.firefly.simpletweaks.util.combatStack
+import dev.firefly.simpletweaks.util.damagesource.ModDamageTypes
+import dev.firefly.simpletweaks.util.damagesource.damageElemental
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
+import dev.firefly.simpletweaks.util.grantAbsorption
+import net.minecraft.entity.effect.StatusEffectInstance
+import net.minecraft.entity.effect.StatusEffects
 import net.minecraft.entity.EquipmentSlot
 import net.minecraft.entity.player.PlayerEntity
-/** The advanced form of `shockwave_landing`: its top tier plus a further share of damage taken. */
+/** The advanced form of this enchantment: its top tier plus an effect of its own. */
 @ModEnchantment(
     id = "advanced_shockwave_landing",
     category = EnchantCategory.ADVANCED_LEGENDARY,
     type = EnchantType.ARMOR,
     maxLevel = 3,
     weight = EnchantItemWeights.ADVANCED_LEGENDARY,
+    damagePerLevel = 0.0,
     anvilCost = 12,
     minCostBase = 35,
     minCostPerLevel = 15,
@@ -34,7 +42,6 @@ import net.minecraft.entity.player.PlayerEntity
 object EnchantAdvancedShockwaveLandingHandler : Listenable {
 
     private const val BASE_LEVEL = 3
-    private const val PER_LEVEL = 0.03f
 
     @SubscribeEvent
     fun onLivingDamage(e: LivingDamageEvent) {
@@ -47,7 +54,8 @@ object EnchantAdvancedShockwaveLandingHandler : Listenable {
         }
         if (level <= 0) return
         val before = e.amount
-        e.amount *= (1f - PER_LEVEL * (BASE_LEVEL + level)).coerceAtLeast(0f)
-        FSTLog.log("AdvancedShockwaveLandingHandler") { "player=${player.name.string}, level=$level, damage=$before->${e.amount}, outcome=reduced" }
+        e.amount *= (1f - 0.03f * (BASE_LEVEL + level)).coerceAtLeast(0f)
+        player.addStatusEffect(StatusEffectInstance(StatusEffects.RESISTANCE, 40, 0))
+        FSTLog.log("AdvancedShockwaveLandingHandler") { "player=${player.name.string}, level=$level, damage=$before->${e.amount}, outcome=applied" }
     }
 }
