@@ -38,10 +38,10 @@ object ArcaneEcho {
     // Per enchantment level × effective level. Only the two terms that change how the game *feels*
     // (attack rhythm, walking speed) carry a ceiling; everything else is allowed to grow.
     //
-    // With ten levels the driver is `units x level x 0.25`, so a maxed set (units ~60, level X) lands
-    // on the numbers a level-III set used to produce: health +18, attack +6, element +38 %, reaction
-    // +53 %, final damage +30 %. Ten levels climb to the old ceiling instead of blowing past it.
-    private const val SCALE_PER_LEVEL = 0.25
+    // With ten levels the driver is `units x level x 0.35`, so a maxed set (units ~60, level X) lands at
+    // health +25.2, attack +8.4, element +52.5 %, reaction +73.5 %, final damage +42 % — about 1.4x what
+    // a level-III set used to produce, which is the "still too weak" pass.
+    private const val SCALE_PER_LEVEL = 0.35
     private const val HEALTH_PER_UNIT = 0.12
     private const val ARMOR_PER_UNIT = 0.08
     private const val TOUGHNESS_PER_UNIT = 0.03

@@ -11,6 +11,7 @@ import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.attribute.EntityAttributeInstance
 import net.minecraft.entity.attribute.EntityAttributeModifier
 import net.minecraft.entity.attribute.EntityAttributes
+import net.minecraft.entity.damage.DamageSource
 import net.minecraft.entity.effect.StatusEffectInstance
 import net.minecraft.entity.effect.StatusEffects
 import net.minecraft.entity.player.PlayerEntity
@@ -192,7 +193,7 @@ object ElementMarks {
         // No reaction: this hit becomes the new aura (same element refreshes, different replaces).
         ElementAuras.attach(target, element, units)
         if (isQuickened && (element == ElementType.NATURE || element == ElementType.LIGHTNING)) {
-            flat = quickenBonus(attacker, target, reactionKey = null)
+            flat = quickenBonus(attacker, target, reactionKey = null, source = source)
             if (flat > 0f && attacker != null) {
                 ElementCombat.enqueueElemental(attacker, target, element, flat)
             }
@@ -270,7 +271,7 @@ object ElementMarks {
                 }
             } else {
                 TRANSFORMATIVE_AT[target] = now
-                flat = transformativeDamage(attacker, reaction.transformativeCoeff) * resonance
+                flat = transformativeDamage(attacker, reaction.transformativeCoeff, source) * resonance
                 if (flat > 0f && attacker != null) {
                     ElementCombat.enqueueElemental(attacker, target, reaction.trigger, flat)
                 }
@@ -364,19 +365,28 @@ object ElementMarks {
         if (attacker == null) 0
         else getItemSpecificEnchantLevel(attacker.chestplate, GeneratedEnchantments.ELEMENTAL_CATALYST)
 
-    private fun transformativeDamage(attacker: PlayerEntity?, coeff: Float): Float {
+    private fun transformativeDamage(attacker: PlayerEntity?, coeff: Float, source: DamageSource?): Float {
         val power = reactionPower(attacker)
         val base = TRANSFORMATIVE_BASE + power * TRANSFORMATIVE_PER_POWER
         val mastery = attacker?.let { ElementCombat.masteryLevel(it.mainHandStack) } ?: 0
-        return base * coeff * (1f + TRANSFORMATIVE_MASTERY_PER_LEVEL * mastery) * echoMultiplier(attacker)
+        return base * coeff * (1f + TRANSFORMATIVE_MASTERY_PER_LEVEL * mastery) * reactionMultiplier(attacker, source)
     }
 
-    /** `arcane_echo`'s share of reaction damage; `1` with no attacker. */
-    private fun echoMultiplier(attacker: PlayerEntity?): Float =
-        if (attacker == null) 1f else (1.0 + ArcaneEcho.statsOf(attacker).reaction).toFloat()
+    /**
+     * Reaction damage multipliers that depend on what the player is holding: `arcane_echo` reads the
+     * player, `reaction_surge` reads the weapon that landed the hit (the arrow, when one did).
+     */
+    private fun reactionMultiplier(attacker: PlayerEntity?, source: DamageSource?): Float {
+        if (attacker == null) return 1f
+        val echo = 1.0 + ArcaneEcho.statsOf(attacker).reaction
+        val surge = getItemSpecificEnchantLevel(attacker.combatStack(source), GeneratedEnchantments.REACTION_SURGE)
+        return (echo * (1.0 + SURGE_PER_LEVEL * surge)).toFloat()
+    }
+
+    private const val SURGE_PER_LEVEL = 0.01
 
     /** Flat damage a nature/lightning hit gains while the target is 激化 (quicken) state. */
-    private fun quickenBonus(attacker: PlayerEntity?, target: LivingEntity, reactionKey: String?): Float {
+    private fun quickenBonus(attacker: PlayerEntity?, target: LivingEntity, reactionKey: String?, source: DamageSource?): Float {
         val power = reactionPower(attacker)
         val base = QUICKEN_BASE + power * QUICKEN_PER_POWER
         val mastery = attacker?.let { ElementCombat.masteryLevel(it.mainHandStack) } ?: 0
@@ -384,7 +394,7 @@ object ElementMarks {
             "reaction=quicken-bonus, target=${target.type.name.string}, power=${"%.2f".format(power)}, " +
                 "base=${"%.2f".format(base)}, trigger=${reactionKey ?: "none"}, outcome=quickened-hit"
         }
-        return base * (1f + TRANSFORMATIVE_MASTERY_PER_LEVEL * mastery) * echoMultiplier(attacker)
+        return base * (1f + TRANSFORMATIVE_MASTERY_PER_LEVEL * mastery) * reactionMultiplier(attacker, source)
     }
 
     // ------------------------------------------------------------------ constants
