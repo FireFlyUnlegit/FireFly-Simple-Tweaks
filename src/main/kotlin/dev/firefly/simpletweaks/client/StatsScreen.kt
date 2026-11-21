@@ -65,6 +65,9 @@ class StatsScreen(private val parent: Screen?) : Screen(Text.translatable(TITLE)
             lines += Line(Text.translatable("gui.simple_tweaks.stats.arcane.flat", num(echo.damageReduction)), 0, WHITE)
             lines += Line(Text.translatable("gui.simple_tweaks.stats.arcane.element", percent(echo.element)), 0, WHITE)
             lines += Line(Text.translatable("gui.simple_tweaks.stats.arcane.reaction", percent(echo.reaction)), 0, WHITE)
+        lines += Line(Text.translatable("gui.simple_tweaks.stats.arcane.ranged", percent(echo.rangedDamage)), 0, WHITE)
+        lines += Line(Text.translatable("gui.simple_tweaks.stats.arcane.healing", percent(echo.healing)), 0, WHITE)
+        lines += Line(Text.translatable("gui.simple_tweaks.stats.arcane.mining", percent(echo.miningSpeed)), 0, WHITE)
         }
 
         lines += Line(Text.translatable("gui.simple_tweaks.stats.hint").formatted(Formatting.DARK_GRAY), 0, GREY)

@@ -4,6 +4,7 @@ import dev.firefly.simpletweaks.compat.FSTLog
 import dev.firefly.simpletweaks.compat.WorldSide
 import dev.firefly.simpletweaks.compat.invalid
 import dev.firefly.simpletweaks.compat.event.LivingDamageEvent
+import dev.firefly.simpletweaks.compat.event.LivingHealEvent
 import dev.firefly.simpletweaks.compat.event.PlayerEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.event.TickEvent
@@ -15,6 +16,7 @@ import dev.firefly.simpletweaks.enchantments.annotations.EnchantSupportedItemTag
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 import dev.firefly.simpletweaks.util.ArcaneEcho
+import dev.firefly.simpletweaks.util.ArrowDamageSeam
 import net.minecraft.entity.player.PlayerEntity
 
 /**
@@ -38,6 +40,29 @@ object EnchantArcaneEchoHandler : Listenable {
 
     /** Enchantment sums change only on gear edits; a per-tick scan of six stacks is unnecessary. */
     private const val REFRESH_INTERVAL_TICKS = 20
+
+    override fun init() {
+        // Bow damage has exactly one seam (see ArrowDamageSeam): register, do not patch the arrow.
+        ArrowDamageSeam.register { _, arrow ->
+            val shooter = arrow.owner as? PlayerEntity
+            val stats = if (shooter == null) null else ArcaneEcho.statsOf(shooter)
+            if (stats == null || !stats.active) 1.0f else (1.0 + stats.rangedDamage).toFloat()
+        }
+    }
+
+    @SubscribeEvent
+    fun onLivingHeal(e: LivingHealEvent) {
+        val player = e.entityLiving as? PlayerEntity ?: return
+        if (WorldSide.isClient(player.world)) return
+        val stats = ArcaneEcho.statsOf(player)
+        if (!stats.active || stats.healing <= 0.0 || e.amount <= 0f) return
+        val before = e.amount
+        e.amount = (e.amount * (1.0 + stats.healing)).toFloat()
+        FSTLog.log("ArcaneEcho") {
+            "player=${player.name.string}, level=${stats.level}, healing=${"%.3f".format(stats.healing)}, " +
+                "amount=$before->${e.amount}, outcome=healed"
+        }
+    }
 
     @SubscribeEvent
     fun onPlayerTick(e: TickEvent.PlayerTickEvent) {

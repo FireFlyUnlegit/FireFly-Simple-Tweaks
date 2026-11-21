@@ -39,6 +39,7 @@ object ArcaneEchoTooltipHandler {
             lines.add(Text.translatable("gui.simple_tweaks.arcane_echo.utility", num(stats.knockback), num(stats.luck)).formatted(Formatting.GRAY))
             lines.add(Text.translatable("gui.simple_tweaks.arcane_echo.damage", num(stats.damageReduction), num(stats.element * 100), num(stats.reaction * 100)).formatted(Formatting.GRAY))
             lines.add(Text.translatable("gui.simple_tweaks.arcane_echo.final", num(stats.finalDamage * 100), num(stats.finalReduction * 100)).formatted(Formatting.GRAY))
+            lines.add(Text.translatable("gui.simple_tweaks.arcane_echo.extra", num(stats.rangedDamage * 100), num(stats.healing * 100), num(stats.miningSpeed * 100)).formatted(Formatting.GRAY))
         }
     }
 

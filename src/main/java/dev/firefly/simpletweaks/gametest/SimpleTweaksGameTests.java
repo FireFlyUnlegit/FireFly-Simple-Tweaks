@@ -1337,7 +1337,14 @@ public class SimpleTweaksGameTests implements FabricGameTest {
                 "final damage must be 0.002 x 50 x 3 = 0.3, got " + mid.getFinalDamage());
         context.assertTrue(Math.abs(mid.getFinalReduction() - 0.20) < 0.001,
                 "final reduction must saturate: 0.45 / (0.45 + 1.8) = 0.2, got " + mid.getFinalReduction());
-        LOGGER.info("[FST-GameTest] arcane echo final: damage={} (expect 0.3) reduction={} (expect 0.2)",
+        context.assertTrue(Math.abs(mid.getRangedDamage() - 0.225) < 0.001,
+                "ranged damage must be 0.0015 x 50 x 3 = 0.225, got " + mid.getRangedDamage());
+        context.assertTrue(Math.abs(mid.getHealing() - 0.375) < 0.001,
+                "healing must be 0.0025 x 50 x 3 = 0.375, got " + mid.getHealing());
+        context.assertTrue(Math.abs(mid.getMiningSpeed() - 0.15) < 0.001,
+                "mining speed must be 0.001 x 50 x 3 = 0.15, got " + mid.getMiningSpeed());
+        LOGGER.info("[FST-GameTest] arcane echo extra: ranged={} (expect 0.225) healing={} (expect 0.375) mining={} (expect 0.15)",
+                mid.getRangedDamage(), mid.getHealing(), mid.getMiningSpeed());        LOGGER.info("[FST-GameTest] arcane echo final: damage={} (expect 0.3) reduction={} (expect 0.2)",
                 mid.getFinalDamage(), mid.getFinalReduction());
         context.complete();
     }

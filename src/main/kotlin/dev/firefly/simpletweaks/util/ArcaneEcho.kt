@@ -47,6 +47,9 @@ object ArcaneEcho {
     private const val DAMAGE_REDUCTION_PER_UNIT = 0.05
     private const val ELEMENT_PER_UNIT = 0.0025
     private const val REACTION_PER_UNIT = 0.0035
+    private const val RANGED_PER_UNIT = 0.0015
+    private const val HEALING_PER_UNIT = 0.0025
+    private const val MINING_PER_UNIT = 0.0010
 
     // Final damage is a plain multiplier on what is dealt.
     private const val FINAL_DAMAGE_PER_UNIT = 0.002
@@ -67,6 +70,7 @@ object ArcaneEcho {
     private val MOVE_SPEED_ID = Identifier.of(SimpleTweaks.MOD_ID, "arcane_echo_move_speed")
     private val KNOCKBACK_ID = Identifier.of(SimpleTweaks.MOD_ID, "arcane_echo_knockback")
     private val LUCK_ID = Identifier.of(SimpleTweaks.MOD_ID, "arcane_echo_luck")
+    private val MINING_ID = Identifier.of(SimpleTweaks.MOD_ID, "arcane_echo_mining")
 
     data class Stats(
         val units: Int,
@@ -84,6 +88,9 @@ object ArcaneEcho {
         val reaction: Double,
         val finalDamage: Double,
         val finalReduction: Double,
+        val rangedDamage: Double,
+        val healing: Double,
+        val miningSpeed: Double,
     ) {
         val active: Boolean get() = level > 0
     }
@@ -114,6 +121,9 @@ object ArcaneEcho {
             reaction = REACTION_PER_UNIT * scale,
             finalDamage = FINAL_DAMAGE_PER_UNIT * scale,
             finalReduction = reductionRating / (reductionRating + FINAL_REDUCTION_HALF),
+            rangedDamage = RANGED_PER_UNIT * scale,
+            healing = HEALING_PER_UNIT * scale,
+            miningSpeed = MINING_PER_UNIT * scale,
         )
     }
 
@@ -169,6 +179,7 @@ object ArcaneEcho {
         changed = apply(player, EntityAttributes.GENERIC_MOVEMENT_SPEED, MOVE_SPEED_ID, stats.moveSpeed, EntityAttributeModifier.Operation.ADD_MULTIPLIED_BASE) || changed
         changed = apply(player, EntityAttributes.GENERIC_KNOCKBACK_RESISTANCE, KNOCKBACK_ID, stats.knockback, EntityAttributeModifier.Operation.ADD_VALUE) || changed
         changed = apply(player, EntityAttributes.GENERIC_LUCK, LUCK_ID, stats.luck, EntityAttributeModifier.Operation.ADD_VALUE) || changed
+        changed = apply(player, EntityAttributes.PLAYER_BLOCK_BREAK_SPEED, MINING_ID, stats.miningSpeed, EntityAttributeModifier.Operation.ADD_MULTIPLIED_TOTAL) || changed
 
         if (!changed) return
         player.syncAttributes()
@@ -190,6 +201,7 @@ object ArcaneEcho {
         remove(player, EntityAttributes.GENERIC_MOVEMENT_SPEED, MOVE_SPEED_ID)
         remove(player, EntityAttributes.GENERIC_KNOCKBACK_RESISTANCE, KNOCKBACK_ID)
         remove(player, EntityAttributes.GENERIC_LUCK, LUCK_ID)
+        remove(player, EntityAttributes.PLAYER_BLOCK_BREAK_SPEED, MINING_ID)
     }
 
     private fun apply(
