@@ -19,6 +19,7 @@ import dev.firefly.simpletweaks.util.combatStack
 import dev.firefly.simpletweaks.util.damagesource.ModDamageTypes
 import dev.firefly.simpletweaks.util.damagesource.damageElemental
 import dev.firefly.simpletweaks.util.damagesource.isAuxiliaryDamage
+import dev.firefly.simpletweaks.util.UpgradeEnchantments
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import dev.firefly.simpletweaks.util.grantAbsorption
 import net.minecraft.entity.effect.StatusEffectInstance
@@ -43,7 +44,6 @@ import net.minecraft.entity.player.PlayerEntity
 )
 object EnchantAdvancedGoldenShieldHandler : Listenable {
 
-    private const val BASE_LEVEL = 3
 
     @SubscribeEvent
     fun onLivingDamage(e: LivingDamageEvent) {
@@ -53,15 +53,15 @@ object EnchantAdvancedGoldenShieldHandler : Listenable {
         var level = 0
         for (slot in EquipmentSlot.entries) {
             if (slot.type != EquipmentSlot.Type.HUMANOID_ARMOR) continue
-            level += getItemSpecificEnchantLevel(player.getEquippedStack(slot), GeneratedEnchantments.ADVANCED_GOLDEN_SHIELD)
+            level += UpgradeEnchantments.ladderLevelOf(player.getEquippedStack(slot), GeneratedEnchantments.ADVANCED_GOLDEN_SHIELD)
         }
         if (level <= 0) return
         val before = e.amount
         if (player.age % 100 == 0) {
-            val shield = 2f * (BASE_LEVEL + level)
+            val shield = 2f * level
             grantAbsorption(player, absorptionHeadroomId("advanced_golden_shield"), shield, shield)
         }
-        e.amount *= (1f - 0.015f * (BASE_LEVEL + level)).coerceAtLeast(0f)
+        e.amount *= (1f - 0.015f * level).coerceAtLeast(0f)
         FSTLog.log("AdvancedGoldenShieldHandler") { "player=${player.name.string}, level=$level, damage=$before->${e.amount}, outcome=applied" }
     }
 }

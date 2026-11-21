@@ -19,6 +19,7 @@ import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 import dev.firefly.simpletweaks.util.combatStack
+import dev.firefly.simpletweaks.util.UpgradeEnchantments
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import net.minecraft.entity.player.PlayerEntity
 
@@ -39,7 +40,6 @@ import net.minecraft.entity.player.PlayerEntity
 )
 object EnchantAdvancedExecuteHandler : Listenable {
 
-    private const val BASE_LEVEL = 5
     private const val PER_LEVEL = 0.01f
 
     @SubscribeEvent
@@ -50,7 +50,7 @@ object EnchantAdvancedExecuteHandler : Listenable {
         val victim = e.entityLiving
         if (victim === player) return
 
-        val level = getItemSpecificEnchantLevel(player.combatStack(e.source), GeneratedEnchantments.ADVANCED_EXECUTE)
+        val level = UpgradeEnchantments.ladderLevelOf(player.combatStack(e.source), GeneratedEnchantments.ADVANCED_EXECUTE)
         if (level <= 0) return
 
         val lost = victim.maxHealth - victim.health
@@ -62,7 +62,7 @@ object EnchantAdvancedExecuteHandler : Listenable {
             e.amount = 0f
             victim.damageElemental(player, ModDamageTypes.TRUE_DAMAGE, before * (1f + 0.15f * level))
         } else {
-            e.amount += lost * PER_LEVEL * (BASE_LEVEL + level)
+            e.amount += lost * PER_LEVEL * level
         }
         FSTLog.log("AdvancedExecute") {
             "player=${player.name.string}, level=$level, lost=$lost, damage=$before->${e.amount}, outcome=finished"

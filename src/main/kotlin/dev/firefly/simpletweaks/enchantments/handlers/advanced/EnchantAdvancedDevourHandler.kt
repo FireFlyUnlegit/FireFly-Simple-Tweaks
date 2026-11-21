@@ -17,6 +17,7 @@ import dev.firefly.simpletweaks.util.combatStack
 import dev.firefly.simpletweaks.util.damagesource.ModDamageTypes
 import dev.firefly.simpletweaks.util.damagesource.damageElemental
 import dev.firefly.simpletweaks.util.damagesource.isAuxiliaryDamage
+import dev.firefly.simpletweaks.util.UpgradeEnchantments
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import net.minecraft.entity.player.PlayerEntity
 import java.util.UUID
@@ -50,7 +51,7 @@ object EnchantAdvancedDevourHandler : Listenable {
         val player = e.attacker as? PlayerEntity ?: return
         val victim = e.entityLiving
         if (victim === player) return
-        val level = getItemSpecificEnchantLevel(player.combatStack(e.source), GeneratedEnchantments.ADVANCED_DEVOUR)
+        val level = UpgradeEnchantments.ladderLevelOf(player.combatStack(e.source), GeneratedEnchantments.ADVANCED_DEVOUR)
         if (level <= 0) return
 
         val count = (swings[player.uuid] ?: 0) + 1

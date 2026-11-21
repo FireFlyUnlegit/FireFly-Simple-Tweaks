@@ -135,6 +135,18 @@ object UpgradeEnchantments {
         val upgrade = levelOf(stack, rule.upgrade)
         return if (upgrade > 0) maxOf(base, rule.baseMaxLevel + upgrade) else base
     }
+    /**
+     * The ladder level for [upgrade] on [stack], or `0` when that upgrade is not there.
+     *
+     * Handlers for an advanced enchantment must use this instead of the raw component level:
+     * the upgrade means "a maxed base plus its own level", so `advanced_healing_blade III` has to
+     * behave like `healing_blade XI`, not like `healing_blade III`.
+     */
+    @JvmStatic
+    fun ladderLevelOf(stack: ItemStack, upgrade: RegistryKey<Enchantment>): Int {
+        val rule = RULES.firstOrNull { it.upgrade == upgrade } ?: return 0
+        return if (levelOf(stack, rule.upgrade) > 0) ladderLevel(stack, rule) else 0
+    }
 
     /**
      * Enforces the anvil half of the ladder on the result vanilla just computed.

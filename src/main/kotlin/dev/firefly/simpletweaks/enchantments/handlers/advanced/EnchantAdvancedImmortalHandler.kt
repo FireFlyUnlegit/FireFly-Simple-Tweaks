@@ -14,6 +14,7 @@ import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 import dev.firefly.simpletweaks.util.damagesource.isAuxiliaryDamage
+import dev.firefly.simpletweaks.util.UpgradeEnchantments
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import net.minecraft.entity.EquipmentSlot
 import net.minecraft.entity.effect.StatusEffectInstance
@@ -39,7 +40,6 @@ import java.util.UUID
 )
 object EnchantAdvancedImmortalHandler : Listenable {
 
-    private const val BASE_LEVEL = 1
 
     /** One save per minute — without this the wearer is simply un-killable. */
     private const val COOLDOWN_TICKS = 1200L
@@ -79,10 +79,7 @@ object EnchantAdvancedImmortalHandler : Listenable {
         var level = 0
         for (slot in EquipmentSlot.entries) {
             if (slot.type != EquipmentSlot.Type.HUMANOID_ARMOR) continue
-            level += getItemSpecificEnchantLevel(
-                player.getEquippedStack(slot),
-                GeneratedEnchantments.ADVANCED_IMMORTAL,
-            )
+            level += UpgradeEnchantments.ladderLevelOf(player.getEquippedStack(slot), GeneratedEnchantments.ADVANCED_IMMORTAL)
         }
         return level
     }

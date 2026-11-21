@@ -19,6 +19,7 @@ import dev.firefly.simpletweaks.util.combatStack
 import dev.firefly.simpletweaks.util.damagesource.ModDamageTypes
 import dev.firefly.simpletweaks.util.damagesource.damageElemental
 import dev.firefly.simpletweaks.util.damagesource.isAuxiliaryDamage
+import dev.firefly.simpletweaks.util.UpgradeEnchantments
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import dev.firefly.simpletweaks.util.grantAbsorption
 import net.minecraft.entity.effect.StatusEffectInstance
@@ -42,7 +43,6 @@ import net.minecraft.entity.player.PlayerEntity
 )
 object EnchantAdvancedTrueDamageHandler : Listenable {
 
-    private const val BASE_LEVEL = 7
 
     @SubscribeEvent
     fun onLivingDamage(e: LivingDamageEvent) {
@@ -51,10 +51,10 @@ object EnchantAdvancedTrueDamageHandler : Listenable {
         val player = e.attacker as? PlayerEntity ?: return
         val victim = e.entityLiving
         if (victim === player) return
-        val level = getItemSpecificEnchantLevel(player.combatStack(e.source), GeneratedEnchantments.ADVANCED_TRUE_DAMAGE)
+        val level = UpgradeEnchantments.ladderLevelOf(player.combatStack(e.source), GeneratedEnchantments.ADVANCED_TRUE_DAMAGE)
         if (level <= 0) return
         val before = e.amount
-        val bonus = 0.02f * (BASE_LEVEL + level) * e.amount
+        val bonus = 0.02f * level * e.amount
         e.amount += bonus
         victim.damageElemental(player, ModDamageTypes.TRUE_DAMAGE, bonus * 0.5f)
         FSTLog.log("AdvancedTrueDamageHandler") { "player=${player.name.string}, level=$level, damage=$before->${e.amount}, outcome=applied" }

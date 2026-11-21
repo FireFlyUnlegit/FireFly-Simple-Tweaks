@@ -13,6 +13,7 @@ import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 import dev.firefly.simpletweaks.util.TempAbsorption
+import dev.firefly.simpletweaks.util.UpgradeEnchantments
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 
 /** The advanced form of this enchantment: its top tier plus an effect of its own. */
@@ -40,7 +41,7 @@ object EnchantAdvancedRegenerationHandler : Listenable {
         val player = e.player
         if (WorldSide.isClient(player.world)) return
         if (player.age % PERIOD != 0) return
-        val level = getItemSpecificEnchantLevel(player.getEquippedStack(net.minecraft.entity.EquipmentSlot.LEGS), GeneratedEnchantments.ADVANCED_REGENERATION)
+        val level = UpgradeEnchantments.ladderLevelOf(player.getEquippedStack(net.minecraft.entity.EquipmentSlot.LEGS), GeneratedEnchantments.ADVANCED_REGENERATION)
         if (level <= 0) return
 
         val missing = player.maxHealth - player.health

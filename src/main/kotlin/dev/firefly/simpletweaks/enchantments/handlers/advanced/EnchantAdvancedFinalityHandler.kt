@@ -17,6 +17,7 @@ import dev.firefly.simpletweaks.util.combatStack
 import dev.firefly.simpletweaks.util.damagesource.ModDamageTypes
 import dev.firefly.simpletweaks.util.damagesource.damageElemental
 import dev.firefly.simpletweaks.util.damagesource.isAuxiliaryDamage
+import dev.firefly.simpletweaks.util.UpgradeEnchantments
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import net.minecraft.entity.player.PlayerEntity
 
@@ -38,7 +39,6 @@ import net.minecraft.entity.player.PlayerEntity
 )
 object EnchantAdvancedFinalityHandler : Listenable {
 
-    private const val BASE_LEVEL = 3
     private const val FINISHER_FRACTION = 0.20f
 
     @SubscribeEvent
@@ -48,11 +48,11 @@ object EnchantAdvancedFinalityHandler : Listenable {
         val player = e.attacker as? PlayerEntity ?: return
         val victim = e.entityLiving
         if (victim === player) return
-        val level = getItemSpecificEnchantLevel(player.combatStack(e.source), GeneratedEnchantments.ADVANCED_FINALITY)
+        val level = UpgradeEnchantments.ladderLevelOf(player.combatStack(e.source), GeneratedEnchantments.ADVANCED_FINALITY)
         if (level <= 0) return
 
         val before = e.amount
-        e.amount *= 1f + 0.01f * (BASE_LEVEL + level)
+        e.amount *= 1f + 0.01f * level
         if (victim.getHealth() >= victim.getMaxHealth()) e.amount *= 1f + 0.02f * level
 
         // Below the line the blade stops haggling with armour: the remainder is simply true damage.

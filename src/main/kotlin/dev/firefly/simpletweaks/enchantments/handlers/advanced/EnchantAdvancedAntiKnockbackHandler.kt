@@ -16,6 +16,7 @@ import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 import dev.firefly.simpletweaks.util.damagesource.isAuxiliaryDamage
+import dev.firefly.simpletweaks.util.UpgradeEnchantments
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import net.minecraft.entity.EquipmentSlot
 import net.minecraft.entity.LivingEntity
@@ -45,7 +46,6 @@ import net.minecraft.util.Identifier
 )
 object EnchantAdvancedAntiKnockbackHandler : Listenable {
 
-    private const val BASE_LEVEL = 2
 
     /** Knockback resistance added per stack of the ladder; vanilla clamps the attribute at 1.0. */
     private const val RESISTANCE_PER_LEVEL = 0.15
@@ -62,7 +62,7 @@ object EnchantAdvancedAntiKnockbackHandler : Listenable {
         val before = e.amount
         val source = e.source.attacker as? LivingEntity
         source?.addStatusEffect(StatusEffectInstance(StatusEffects.SLOWNESS, 40, 1))
-        e.amount *= (1f - 0.02f * (BASE_LEVEL + level)).coerceAtLeast(0f)
+        e.amount *= (1f - 0.02f * level).coerceAtLeast(0f)
         FSTLog.log("AdvancedAntiKnockbackHandler") {
             "player=${player.name.string}, level=$level, damage=$before->${e.amount}, outcome=applied"
         }
@@ -88,10 +88,7 @@ object EnchantAdvancedAntiKnockbackHandler : Listenable {
         var level = 0
         for (slot in EquipmentSlot.entries) {
             if (slot.type != EquipmentSlot.Type.HUMANOID_ARMOR) continue
-            level += getItemSpecificEnchantLevel(
-                player.getEquippedStack(slot),
-                GeneratedEnchantments.ADVANCED_ANTI_KNOCKBACK,
-            )
+            level += UpgradeEnchantments.ladderLevelOf(player.getEquippedStack(slot), GeneratedEnchantments.ADVANCED_ANTI_KNOCKBACK)
         }
         return level
     }

@@ -20,6 +20,7 @@ import dev.firefly.simpletweaks.util.combatStack
 import dev.firefly.simpletweaks.util.damagesource.ModDamageTypes
 import dev.firefly.simpletweaks.util.damagesource.damageElemental
 import dev.firefly.simpletweaks.util.damagesource.isAuxiliaryDamage
+import dev.firefly.simpletweaks.util.UpgradeEnchantments
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import dev.firefly.simpletweaks.util.grantAbsorption
 import net.minecraft.entity.effect.StatusEffectInstance
@@ -44,7 +45,6 @@ import net.minecraft.entity.player.PlayerEntity
 )
 object EnchantAdvancedFeatherFallHandler : Listenable {
 
-    private const val BASE_LEVEL = 4
 
     @SubscribeEvent
     fun onLivingDamage(e: LivingDamageEvent) {
@@ -54,14 +54,14 @@ object EnchantAdvancedFeatherFallHandler : Listenable {
         var level = 0
         for (slot in EquipmentSlot.entries) {
             if (slot.type != EquipmentSlot.Type.HUMANOID_ARMOR) continue
-            level += getItemSpecificEnchantLevel(player.getEquippedStack(slot), GeneratedEnchantments.ADVANCED_FEATHER_FALL)
+            level += UpgradeEnchantments.ladderLevelOf(player.getEquippedStack(slot), GeneratedEnchantments.ADVANCED_FEATHER_FALL)
         }
         if (level <= 0) return
         val before = e.amount
         if (player.fallDistance > 0f || player.velocity.y < -0.4) {
             player.addStatusEffect(StatusEffectInstance(StatusEffects.SPEED, 40 * level, 0))
         }
-        e.amount *= (1f - 0.15f * (BASE_LEVEL + level)).coerceAtLeast(0f)
+        e.amount *= (1f - 0.15f * level).coerceAtLeast(0f)
         // The softness of the landing becomes a counted shield: one hit, sized by what the ground did not take.
         val saved = before - e.amount
         if (saved > 0f) TempAbsorption.grant(player, saved, 1)

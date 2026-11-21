@@ -23,6 +23,7 @@ import dev.firefly.simpletweaks.util.absorptionHeadroomId
 import dev.firefly.simpletweaks.util.combatStack
 import dev.firefly.simpletweaks.util.damagesource.ModDamageTypes
 import dev.firefly.simpletweaks.util.damagesource.damageElemental
+import dev.firefly.simpletweaks.util.UpgradeEnchantments
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import dev.firefly.simpletweaks.util.grantAbsorption
 import net.minecraft.entity.effect.StatusEffectInstance
@@ -46,7 +47,6 @@ import net.minecraft.entity.player.PlayerEntity
 )
 object EnchantAdvancedMultitudeHandler : Listenable {
 
-    private const val BASE_LEVEL = 2
     private const val BASE_RADIUS = 6.0
     private const val RADIUS_PER_LEVEL = 2.0
 
@@ -65,7 +65,7 @@ object EnchantAdvancedMultitudeHandler : Listenable {
     ) {
         val player = attacker as? PlayerEntity ?: return
         if (player.world.isClient) return
-        val level = getItemSpecificEnchantLevel(player.mainHandStack, GeneratedEnchantments.ADVANCED_MULTITUDE)
+        val level = UpgradeEnchantments.ladderLevelOf(player.mainHandStack, GeneratedEnchantments.ADVANCED_MULTITUDE)
         if (level <= 0) return
         val current = depth.get()
         // `maxLevel` copies: layer 0 is the original reaction, layers 1..level are the copies.

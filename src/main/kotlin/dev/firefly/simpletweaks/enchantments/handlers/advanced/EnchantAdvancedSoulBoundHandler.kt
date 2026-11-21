@@ -19,6 +19,7 @@ import dev.firefly.simpletweaks.util.combatStack
 import dev.firefly.simpletweaks.util.damagesource.ModDamageTypes
 import dev.firefly.simpletweaks.util.damagesource.damageElemental
 import dev.firefly.simpletweaks.util.damagesource.isAuxiliaryDamage
+import dev.firefly.simpletweaks.util.UpgradeEnchantments
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import dev.firefly.simpletweaks.util.grantAbsorption
 import net.minecraft.entity.effect.StatusEffectInstance
@@ -43,7 +44,6 @@ import net.minecraft.entity.player.PlayerEntity
 )
 object EnchantAdvancedSoulBoundHandler : Listenable {
 
-    private const val BASE_LEVEL = 1
 
     @SubscribeEvent
     fun onLivingDamage(e: LivingDamageEvent) {
@@ -53,14 +53,14 @@ object EnchantAdvancedSoulBoundHandler : Listenable {
         var level = 0
         for (slot in EquipmentSlot.entries) {
             if (slot.type != EquipmentSlot.Type.HUMANOID_ARMOR) continue
-            level += getItemSpecificEnchantLevel(player.getEquippedStack(slot), GeneratedEnchantments.ADVANCED_SOUL_BOUND)
+            level += UpgradeEnchantments.ladderLevelOf(player.getEquippedStack(slot), GeneratedEnchantments.ADVANCED_SOUL_BOUND)
         }
         if (level <= 0) return
         val before = e.amount
         if (player.health / player.maxHealth < 0.4f) {
-            player.heal(0.02f * (BASE_LEVEL + level) * player.maxHealth)
+            player.heal(0.02f * level * player.maxHealth)
         }
-        e.amount *= (1f - 0.02f * (BASE_LEVEL + level)).coerceAtLeast(0f)
+        e.amount *= (1f - 0.02f * level).coerceAtLeast(0f)
         FSTLog.log("AdvancedSoulBoundHandler") { "player=${player.name.string}, level=$level, damage=$before->${e.amount}, outcome=applied" }
     }
 }

@@ -15,6 +15,7 @@ import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 import dev.firefly.simpletweaks.util.damagesource.ModDamageTypes
 import dev.firefly.simpletweaks.util.damagesource.damageElemental
 import dev.firefly.simpletweaks.util.damagesource.isAuxiliaryDamage
+import dev.firefly.simpletweaks.util.UpgradeEnchantments
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import net.minecraft.entity.EquipmentSlot
 import net.minecraft.entity.LivingEntity
@@ -42,7 +43,6 @@ import java.util.UUID
 )
 object EnchantAdvancedShockwaveLandingHandler : Listenable {
 
-    private const val BASE_LEVEL = 3
 
     /** The shockwave is about landing, so it only answers fall damage. */
     private const val COOLDOWN_TICKS = 40L
@@ -61,7 +61,7 @@ object EnchantAdvancedShockwaveLandingHandler : Listenable {
         val level = wornLevel(player)
         if (level <= 0) return
         val before = e.amount
-        e.amount *= (1f - 0.03f * (BASE_LEVEL + level)).coerceAtLeast(0f)
+        e.amount *= (1f - 0.03f * level).coerceAtLeast(0f)
         if (before <= 0f) return
         if (!e.source.isIn(DamageTypeTags.IS_FALL)) return
 
@@ -70,7 +70,7 @@ object EnchantAdvancedShockwaveLandingHandler : Listenable {
         if (now - last < COOLDOWN_TICKS) return
         lastBlast[player.uuid] = now
 
-        val blast = (before * 0.25f * (BASE_LEVEL + level)).coerceAtMost(before * MAX_BLAST_FACTOR)
+        val blast = (before * 0.25f * level).coerceAtMost(before * MAX_BLAST_FACTOR)
         val nearby = player.world.getOtherEntities(player, player.boundingBox.expand(3.0)) { other ->
             other is LivingEntity && other !== player && other.isAlive && other !is PlayerEntity
         }
@@ -85,10 +85,7 @@ object EnchantAdvancedShockwaveLandingHandler : Listenable {
         var level = 0
         for (slot in EquipmentSlot.entries) {
             if (slot.type != EquipmentSlot.Type.HUMANOID_ARMOR) continue
-            level += getItemSpecificEnchantLevel(
-                player.getEquippedStack(slot),
-                GeneratedEnchantments.ADVANCED_SHOCKWAVE_LANDING,
-            )
+            level += UpgradeEnchantments.ladderLevelOf(player.getEquippedStack(slot), GeneratedEnchantments.ADVANCED_SHOCKWAVE_LANDING)
         }
         return level
     }

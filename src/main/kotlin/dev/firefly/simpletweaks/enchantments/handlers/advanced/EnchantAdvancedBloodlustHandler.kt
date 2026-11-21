@@ -16,6 +16,7 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 import dev.firefly.simpletweaks.util.TempAbsorption
 import dev.firefly.simpletweaks.util.combatStack
+import dev.firefly.simpletweaks.util.UpgradeEnchantments
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import net.minecraft.entity.player.PlayerEntity
 
@@ -37,7 +38,6 @@ import net.minecraft.entity.player.PlayerEntity
 )
 object EnchantAdvancedBloodlustHandler : Listenable {
 
-    private const val BASE_LEVEL = 5
 
     @SubscribeEvent
     fun onLivingDamage(e: LivingDamageEvent) {
@@ -46,14 +46,14 @@ object EnchantAdvancedBloodlustHandler : Listenable {
         val player = e.attacker as? PlayerEntity ?: return
         val victim = e.entityLiving
         if (victim === player) return
-        val level = getItemSpecificEnchantLevel(player.combatStack(e.source), GeneratedEnchantments.ADVANCED_BLOODLUST)
+        val level = UpgradeEnchantments.ladderLevelOf(player.combatStack(e.source), GeneratedEnchantments.ADVANCED_BLOODLUST)
         if (level <= 0) return
         val before = e.amount
         val missing = 1f - (player.health / player.maxHealth).coerceIn(0f, 1f)
-        e.amount *= 1f + 0.02f * (BASE_LEVEL + level) * (0.5f + missing)
+        e.amount *= 1f + 0.02f * level * (0.5f + missing)
 
         // Drains a share of the swing; anything above the health bar becomes a one-hit shield.
-        val drain = before * 0.012f * (BASE_LEVEL + level)
+        val drain = before * 0.012f * level
         val room = player.maxHealth - player.health
         val healed = minOf(drain, room).coerceAtLeast(0f)
         if (healed > 0f) player.heal(healed)

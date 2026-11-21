@@ -19,6 +19,7 @@ import dev.firefly.simpletweaks.util.combatStack
 import dev.firefly.simpletweaks.util.damagesource.ModDamageTypes
 import dev.firefly.simpletweaks.util.damagesource.damageElemental
 import dev.firefly.simpletweaks.util.damagesource.isAuxiliaryDamage
+import dev.firefly.simpletweaks.util.UpgradeEnchantments
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import dev.firefly.simpletweaks.util.grantAbsorption
 import net.minecraft.entity.effect.StatusEffectInstance
@@ -43,7 +44,6 @@ import net.minecraft.entity.player.PlayerEntity
 )
 object EnchantAdvancedFleetfootHandler : Listenable {
 
-    private const val BASE_LEVEL = 3
 
     @SubscribeEvent
     fun onLivingDamage(e: LivingDamageEvent) {
@@ -53,12 +53,12 @@ object EnchantAdvancedFleetfootHandler : Listenable {
         var level = 0
         for (slot in EquipmentSlot.entries) {
             if (slot.type != EquipmentSlot.Type.HUMANOID_ARMOR) continue
-            level += getItemSpecificEnchantLevel(player.getEquippedStack(slot), GeneratedEnchantments.ADVANCED_FLEETFOOT)
+            level += UpgradeEnchantments.ladderLevelOf(player.getEquippedStack(slot), GeneratedEnchantments.ADVANCED_FLEETFOOT)
         }
         if (level <= 0) return
         val before = e.amount
         if (player.isSprinting) player.addStatusEffect(StatusEffectInstance(StatusEffects.SPEED, 30, 1))
-        e.amount *= (1f - 0.015f * (BASE_LEVEL + level)).coerceAtLeast(0f)
+        e.amount *= (1f - 0.015f * level).coerceAtLeast(0f)
         FSTLog.log("AdvancedFleetfootHandler") { "player=${player.name.string}, level=$level, damage=$before->${e.amount}, outcome=applied" }
     }
 }

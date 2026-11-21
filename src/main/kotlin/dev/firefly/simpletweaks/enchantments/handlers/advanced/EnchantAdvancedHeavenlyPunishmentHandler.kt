@@ -23,6 +23,7 @@ import dev.firefly.simpletweaks.util.combatStack
 import dev.firefly.simpletweaks.util.damagesource.ModDamageTypes
 import dev.firefly.simpletweaks.util.damagesource.damageElemental
 import dev.firefly.simpletweaks.util.damagesource.isAuxiliaryDamage
+import dev.firefly.simpletweaks.util.UpgradeEnchantments
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import dev.firefly.simpletweaks.util.grantAbsorption
 import net.minecraft.entity.effect.StatusEffectInstance
@@ -46,7 +47,6 @@ import net.minecraft.entity.player.PlayerEntity
 )
 object EnchantAdvancedHeavenlyPunishmentHandler : Listenable {
 
-    private const val BASE_LEVEL = 4
     private val PARTNERS = arrayOf(ElementType.WATER, ElementType.FROST, ElementType.NATURE)
 
     @SubscribeEvent
@@ -56,10 +56,10 @@ object EnchantAdvancedHeavenlyPunishmentHandler : Listenable {
         val player = e.attacker as? PlayerEntity ?: return
         val victim = e.entityLiving
         if (victim === player) return
-        val level = getItemSpecificEnchantLevel(player.combatStack(e.source), GeneratedEnchantments.ADVANCED_HEAVENLY_PUNISHMENT)
+        val level = UpgradeEnchantments.ladderLevelOf(player.combatStack(e.source), GeneratedEnchantments.ADVANCED_HEAVENLY_PUNISHMENT)
         if (level <= 0) return
         val before = e.amount
-        val bonus = before * 0.04f * (BASE_LEVEL + level)
+        val bonus = before * 0.04f * level
         e.amount += bonus
         // The storm picks *which* reaction happens, never *whether*: lightning is always the trigger and
         // the partner is drawn per hit. The partner is only a carrier for the reaction, so the victim's

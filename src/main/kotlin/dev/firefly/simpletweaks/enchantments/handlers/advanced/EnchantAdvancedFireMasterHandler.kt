@@ -21,6 +21,7 @@ import dev.firefly.simpletweaks.util.combatStack
 import dev.firefly.simpletweaks.util.damagesource.damageElemental
 import dev.firefly.simpletweaks.util.damagesource.isAuxiliaryDamage
 import dev.firefly.simpletweaks.util.elements.ElementType
+import dev.firefly.simpletweaks.util.UpgradeEnchantments
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.effect.StatusEffectInstance
@@ -55,7 +56,7 @@ object EnchantAdvancedFireMasterHandler : Listenable {
         val player = e.attacker as? PlayerEntity ?: return
         val victim = e.target
         if (victim === player) return
-        val level = getItemSpecificEnchantLevel(player.combatStack(e.source), GeneratedEnchantments.ADVANCED_FIRE_MASTER)
+        val level = UpgradeEnchantments.ladderLevelOf(player.combatStack(e.source), GeneratedEnchantments.ADVANCED_FIRE_MASTER)
         if (level <= 0) return
 
         val burnLevel = BASE_BURN_LEVEL + level
@@ -76,7 +77,7 @@ object EnchantAdvancedFireMasterHandler : Listenable {
         val dying = e.entityLiving
         if (dying.fireTicks <= 0) return
         val player = e.source.attacker as? PlayerEntity ?: return
-        val level = getItemSpecificEnchantLevel(player.combatStack(e.source), GeneratedEnchantments.ADVANCED_FIRE_MASTER)
+        val level = UpgradeEnchantments.ladderLevelOf(player.combatStack(e.source), GeneratedEnchantments.ADVANCED_FIRE_MASTER)
         if (level <= 0) return
 
         // A burning corpse vents its remaining heat onto everything around it.

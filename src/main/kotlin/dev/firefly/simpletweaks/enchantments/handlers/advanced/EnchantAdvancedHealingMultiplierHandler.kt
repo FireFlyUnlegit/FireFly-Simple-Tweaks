@@ -19,6 +19,7 @@ import dev.firefly.simpletweaks.util.combatStack
 import dev.firefly.simpletweaks.util.damagesource.ModDamageTypes
 import dev.firefly.simpletweaks.util.damagesource.damageElemental
 import dev.firefly.simpletweaks.util.damagesource.isAuxiliaryDamage
+import dev.firefly.simpletweaks.util.UpgradeEnchantments
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import dev.firefly.simpletweaks.util.grantAbsorption
 import net.minecraft.entity.effect.StatusEffectInstance
@@ -42,7 +43,6 @@ import net.minecraft.entity.player.PlayerEntity
 )
 object EnchantAdvancedHealingMultiplierHandler : Listenable {
 
-    private const val BASE_LEVEL = 10
 
     @SubscribeEvent
     fun onLivingDamage(e: LivingDamageEvent) {
@@ -51,10 +51,10 @@ object EnchantAdvancedHealingMultiplierHandler : Listenable {
         val player = e.attacker as? PlayerEntity ?: return
         val victim = e.entityLiving
         if (victim === player) return
-        val level = getItemSpecificEnchantLevel(player.combatStack(e.source), GeneratedEnchantments.ADVANCED_HEALING_MULTIPLIER)
+        val level = UpgradeEnchantments.ladderLevelOf(player.combatStack(e.source), GeneratedEnchantments.ADVANCED_HEALING_MULTIPLIER)
         if (level <= 0) return
         val before = e.amount
-        val heal = 0.01f * (BASE_LEVEL + level) * e.amount
+        val heal = 0.01f * level * e.amount
         grantAbsorption(player, absorptionHeadroomId("advanced_healing_multiplier"), heal, heal)
         FSTLog.log("AdvancedHealingMultiplierHandler") { "player=${player.name.string}, level=$level, damage=$before->${e.amount}, outcome=applied" }
     }

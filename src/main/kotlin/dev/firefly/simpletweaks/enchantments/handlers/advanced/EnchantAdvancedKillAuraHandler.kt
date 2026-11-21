@@ -21,6 +21,7 @@ import dev.firefly.simpletweaks.util.combatStack
 import dev.firefly.simpletweaks.util.damagesource.ModDamageTypes
 import dev.firefly.simpletweaks.util.damagesource.damageElemental
 import dev.firefly.simpletweaks.util.damagesource.isAuxiliaryDamage
+import dev.firefly.simpletweaks.util.UpgradeEnchantments
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import dev.firefly.simpletweaks.util.grantAbsorption
 import net.minecraft.entity.effect.StatusEffectInstance
@@ -44,7 +45,6 @@ import net.minecraft.entity.player.PlayerEntity
 )
 object EnchantAdvancedKillAuraHandler : Listenable {
 
-    private const val BASE_LEVEL = 6
 
     @SubscribeEvent
     fun onLivingDamage(e: LivingDamageEvent) {
@@ -53,7 +53,7 @@ object EnchantAdvancedKillAuraHandler : Listenable {
         val player = e.attacker as? PlayerEntity ?: return
         val victim = e.entityLiving
         if (victim === player) return
-        val level = getItemSpecificEnchantLevel(player.combatStack(e.source), GeneratedEnchantments.ADVANCED_KILL_AURA)
+        val level = UpgradeEnchantments.ladderLevelOf(player.combatStack(e.source), GeneratedEnchantments.ADVANCED_KILL_AURA)
         if (level <= 0) return
         val before = e.amount
         // The aura keeps swinging: bleed `level` extra targets for a fraction of this hit.

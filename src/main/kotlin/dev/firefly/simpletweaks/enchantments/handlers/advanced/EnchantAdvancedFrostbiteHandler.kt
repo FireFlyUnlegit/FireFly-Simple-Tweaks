@@ -18,6 +18,7 @@ import dev.firefly.simpletweaks.util.combatStack
 import dev.firefly.simpletweaks.util.damagesource.ModDamageTypes
 import dev.firefly.simpletweaks.util.damagesource.damageElemental
 import dev.firefly.simpletweaks.util.damagesource.isAuxiliaryDamage
+import dev.firefly.simpletweaks.util.UpgradeEnchantments
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import net.minecraft.entity.effect.StatusEffectInstance
 import net.minecraft.entity.effect.StatusEffects
@@ -41,7 +42,6 @@ import net.minecraft.entity.player.PlayerEntity
 )
 object EnchantAdvancedFrostbiteHandler : Listenable {
 
-    private const val BASE_LEVEL = 3
     private const val FREEZE_TICKS = 40L
 
     @SubscribeEvent
@@ -51,13 +51,13 @@ object EnchantAdvancedFrostbiteHandler : Listenable {
         val player = e.attacker as? PlayerEntity ?: return
         val victim = e.entityLiving
         if (victim === player) return
-        val level = getItemSpecificEnchantLevel(player.combatStack(e.source), GeneratedEnchantments.ADVANCED_FROSTBITE)
+        val level = UpgradeEnchantments.ladderLevelOf(player.combatStack(e.source), GeneratedEnchantments.ADVANCED_FROSTBITE)
         if (level <= 0) return
 
         val before = e.amount
         val chilled = victim.getStatusEffect(StatusEffects.SLOWNESS) != null
         victim.addStatusEffect(StatusEffectInstance(StatusEffects.SLOWNESS, 60, 1))
-        e.amount *= 1f + 0.02f * (BASE_LEVEL + level) * (if (chilled) 2f else 1f)
+        e.amount *= 1f + 0.02f * level * (if (chilled) 2f else 1f)
 
         // Hitting something already chilled freezes the wound shut: no healing, and a brittle crack.
         if (chilled) {

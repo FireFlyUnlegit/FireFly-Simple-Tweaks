@@ -18,6 +18,7 @@ import dev.firefly.simpletweaks.util.absorptionHeadroomId
 import dev.firefly.simpletweaks.util.chestplate
 import dev.firefly.simpletweaks.util.ensureAbsorptionHeadroom
 import dev.firefly.simpletweaks.util.TempAbsorption
+import dev.firefly.simpletweaks.util.UpgradeEnchantments
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import dev.firefly.simpletweaks.util.grantAbsorption
 import dev.firefly.simpletweaks.util.removeAbsorptionHeadroom
@@ -40,7 +41,6 @@ import java.util.UUID
 )
 object EnchantAdvancedAegisHandler : Listenable {
 
-    private const val BASE_LEVEL = 3
     private const val HEARTS_PER_LEVEL = 2f
     private const val GRANT_INTERVAL = 100
 
@@ -53,7 +53,7 @@ object EnchantAdvancedAegisHandler : Listenable {
         val player = e.player
         if (WorldSide.isClient(player.world)) return
 
-        val level = getItemSpecificEnchantLevel(player.chestplate, GeneratedEnchantments.ADVANCED_AEGIS)
+        val level = UpgradeEnchantments.ladderLevelOf(player.chestplate, GeneratedEnchantments.ADVANCED_AEGIS)
         val headroomId = absorptionHeadroomId("advanced_aegis")
         if (level <= 0) {
             lastGrant.remove(player.uuid)
@@ -61,7 +61,7 @@ object EnchantAdvancedAegisHandler : Listenable {
             return
         }
 
-        val headroom = HEARTS_PER_LEVEL * 2f * (BASE_LEVEL + level)
+        val headroom = HEARTS_PER_LEVEL * 2f * level
         ensureAbsorptionHeadroom(player, headroomId, headroom)
 
         val last = lastGrant[player.uuid] ?: 0

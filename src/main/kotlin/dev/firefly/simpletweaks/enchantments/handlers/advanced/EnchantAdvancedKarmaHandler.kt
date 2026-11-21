@@ -17,6 +17,7 @@ import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 import dev.firefly.simpletweaks.util.damagesource.ModDamageTypes
 import dev.firefly.simpletweaks.util.damagesource.damageElemental
 import dev.firefly.simpletweaks.util.damagesource.isAuxiliaryDamage
+import dev.firefly.simpletweaks.util.UpgradeEnchantments
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import net.minecraft.entity.EquipmentSlot
 import net.minecraft.entity.player.PlayerEntity
@@ -40,7 +41,6 @@ import java.util.UUID
 )
 object EnchantAdvancedKarmaHandler : Listenable {
 
-    private const val BASE_LEVEL = 4
 
     /** Damage the armour refused, waiting to be spent. */
     private val pool = java.util.Collections.synchronizedMap(HashMap<UUID, Float>())
@@ -70,7 +70,7 @@ object EnchantAdvancedKarmaHandler : Listenable {
         val level = wornLevel(player)
         if (level <= 0) return
         val before = e.amount
-        e.amount *= (1f - 0.04f * (BASE_LEVEL + level)).coerceAtLeast(0f)
+        e.amount *= (1f - 0.04f * level).coerceAtLeast(0f)
         // What the armour saved is not lost: it is held in karma and paid back on the next swing.
         val saved = before - e.amount
         if (saved > 0f) pool[player.uuid] = (pool[player.uuid] ?: 0f) + saved
@@ -88,10 +88,7 @@ object EnchantAdvancedKarmaHandler : Listenable {
         var level = 0
         for (slot in EquipmentSlot.entries) {
             if (slot.type != EquipmentSlot.Type.HUMANOID_ARMOR) continue
-            level += getItemSpecificEnchantLevel(
-                player.getEquippedStack(slot),
-                GeneratedEnchantments.ADVANCED_KARMA,
-            )
+            level += UpgradeEnchantments.ladderLevelOf(player.getEquippedStack(slot), GeneratedEnchantments.ADVANCED_KARMA)
         }
         return level
     }

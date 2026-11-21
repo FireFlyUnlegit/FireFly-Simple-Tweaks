@@ -58,7 +58,7 @@ object EnchantAdvancedSaturationHandler : Listenable {
         val p = e.player
         if (WorldSide.isClient(p.world)) return
 
-        val level = getItemSpecificEnchantLevel(p.chestplate, GeneratedEnchantments.ADVANCED_SATURATION)
+        val level = UpgradeEnchantments.ladderLevelOf(p.chestplate, GeneratedEnchantments.ADVANCED_SATURATION)
         if (level <= 0) {
             lastGrant.remove(p.uuid)
             removeAbsorptionHeadroom(p, absorptionHeadroomId("advanced_saturation"))

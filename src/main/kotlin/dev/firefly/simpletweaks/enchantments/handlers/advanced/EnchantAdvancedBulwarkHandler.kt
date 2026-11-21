@@ -14,6 +14,7 @@ import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 import dev.firefly.simpletweaks.util.TempAbsorption
+import dev.firefly.simpletweaks.util.UpgradeEnchantments
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import net.minecraft.entity.EquipmentSlot
 import net.minecraft.entity.player.PlayerEntity
@@ -35,7 +36,6 @@ import net.minecraft.entity.player.PlayerEntity
 )
 object EnchantAdvancedBulwarkHandler : Listenable {
 
-    private const val BASE_LEVEL = 3
     private const val PER_LEVEL = 0.01f
     private const val HEAL_SHARE_PER_LEVEL = 0.005f
 
@@ -48,12 +48,12 @@ object EnchantAdvancedBulwarkHandler : Listenable {
         var level = 0
         for (slot in EquipmentSlot.entries) {
             if (slot.type != EquipmentSlot.Type.HUMANOID_ARMOR) continue
-            level += getItemSpecificEnchantLevel(player.getEquippedStack(slot), GeneratedEnchantments.ADVANCED_BULWARK)
+            level += UpgradeEnchantments.ladderLevelOf(player.getEquippedStack(slot), GeneratedEnchantments.ADVANCED_BULWARK)
         }
         if (level <= 0) return
 
         val before = e.amount
-        e.amount *= (1f - PER_LEVEL * (BASE_LEVEL + level)).coerceAtLeast(0f)
+        e.amount *= (1f - PER_LEVEL * level).coerceAtLeast(0f)
         val saved = before - e.amount
         if (saved > 0f) TempAbsorption.grant(player, saved * 0.5f, level.coerceIn(1, 2))
         FSTLog.log("AdvancedBulwark") {

@@ -14,6 +14,7 @@ import dev.firefly.simpletweaks.enchantments.annotations.EnchantSupportedItemTag
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
+import dev.firefly.simpletweaks.util.UpgradeEnchantments
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import dev.firefly.simpletweaks.util.syncAttributes
 import net.minecraft.entity.attribute.EntityAttributeModifier
@@ -61,7 +62,7 @@ object EnchantAdvancedDeftHandler : Listenable {
         val player = e.player
         if (WorldSide.isClient(player.world)) return
 
-        val level = getItemSpecificEnchantLevel(player.mainHandStack, GeneratedEnchantments.ADVANCED_DEFT)
+        val level = UpgradeEnchantments.ladderLevelOf(player.mainHandStack, GeneratedEnchantments.ADVANCED_DEFT)
         val expectedSpeed =
             if (level <= 0) 0.0 else (BASE_ATTACK_SPEED + level * ATTACK_SPEED_PER_LEVEL).toDouble()
         val expectedKnockback = if (level <= 0) 0.0 else level * KNOCKBACK_PER_LEVEL

@@ -19,6 +19,7 @@ import dev.firefly.simpletweaks.util.combatStack
 import dev.firefly.simpletweaks.util.damagesource.ModDamageTypes
 import dev.firefly.simpletweaks.util.damagesource.damageElemental
 import dev.firefly.simpletweaks.util.damagesource.isAuxiliaryDamage
+import dev.firefly.simpletweaks.util.UpgradeEnchantments
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import dev.firefly.simpletweaks.util.grantAbsorption
 import net.minecraft.entity.effect.StatusEffectInstance
@@ -43,7 +44,6 @@ import net.minecraft.entity.player.PlayerEntity
 )
 object EnchantAdvancedEchoShieldHandler : Listenable {
 
-    private const val BASE_LEVEL = 5
 
     @SubscribeEvent
     fun onLivingDamage(e: LivingDamageEvent) {
@@ -53,11 +53,11 @@ object EnchantAdvancedEchoShieldHandler : Listenable {
         var level = 0
         for (slot in EquipmentSlot.entries) {
             if (slot.type != EquipmentSlot.Type.HUMANOID_ARMOR) continue
-            level += getItemSpecificEnchantLevel(player.getEquippedStack(slot), GeneratedEnchantments.ADVANCED_ECHO_SHIELD)
+            level += UpgradeEnchantments.ladderLevelOf(player.getEquippedStack(slot), GeneratedEnchantments.ADVANCED_ECHO_SHIELD)
         }
         if (level <= 0) return
         val before = e.amount
-        e.amount *= (1f - 0.02f * (BASE_LEVEL + level)).coerceAtLeast(0f)
+        e.amount *= (1f - 0.02f * level).coerceAtLeast(0f)
         val saved = before - e.amount
         val attacker = e.source.attacker as? net.minecraft.entity.LivingEntity
         if (saved > 0f && attacker != null) attacker.damageElemental(player, ModDamageTypes.TRUE_DAMAGE, saved * 0.3f)
