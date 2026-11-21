@@ -68,6 +68,7 @@ object SimpleTweaksConfig {
         readGeneral(root.objectOrEmpty("general"))
         readMobEnhancement(root.objectOrEmpty("mobEnhancement"))
         readDamageIndicator(root.objectOrEmpty("damageIndicator"))
+        readAttributeCaps(root.objectOrEmpty("attributeCaps"))
 
         save()
 
@@ -153,6 +154,28 @@ object SimpleTweaksConfig {
             .coerceIn(ConfigBounds.DAMAGE_Y_START)
     }
 
+    /** Per-attribute bound overrides; absent attribute = vanilla limits. */
+    private fun readAttributeCaps(s: JsonObject) {
+        AttributeCapConfig.clear()
+        for ((id, element) in s.entrySet()) {
+            val obj = element.takeIf { it.isJsonObject }?.asJsonObject ?: continue
+            val min = obj.get("min")?.takeIf { it.isJsonPrimitive }?.asDouble
+            val max = obj.get("max")?.takeIf { it.isJsonPrimitive }?.asDouble
+            AttributeCapConfig.put(id, AttributeCapConfig.Cap(min, max))
+        }
+    }
+
+    private fun attributeCaps(): JsonObject {
+        val out = JsonObject()
+        for ((id, cap) in AttributeCapConfig.all()) {
+            out.add(id, JsonObject().apply {
+                cap.min?.let { addProperty("min", it) }
+                cap.max?.let { addProperty("max", it) }
+            })
+        }
+        return out
+    }
+
     // ------------------------------------------------------------------ write
 
     /**
@@ -215,6 +238,7 @@ object SimpleTweaksConfig {
             add("general", general)
             add("mobEnhancement", mobEnhancement)
             add("damageIndicator", indicator)
+            add("attributeCaps", attributeCaps())
         }
     }
 

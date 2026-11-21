@@ -269,6 +269,7 @@ A 100-damage hit: armour 26 → 17 taken; armour 40 → 10 taken.
   `food (saturation)` and tints the saturated share of the fill gold
     - Bar numbers take decimals; the maximum number of places is configurable
     - **Compact numbers**: an opt-in `k`/`M` form (`1.09k`); floating damage numbers have a **separate** switch
+    - **Attribute bounds**: page 6 of the config screen lets you set a min/max per attribute (blank = vanilla, `∞` = Float max). Applies immediately, no restart, no AttributeFix needed
 - **Enchantment index** — `/simple_tweaks enchantinfo`, browsable **by rarity** or **by applicable item**
 - **Config screen** — `/simple_tweaks stconfig`, applied live, no restart
 - **Coloured enchantment names** — by rarity; `Infinite Power` cycles a rainbow

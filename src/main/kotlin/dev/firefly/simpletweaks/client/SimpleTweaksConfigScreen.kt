@@ -209,6 +209,15 @@ class SimpleTweaksConfigScreen(private val parent: Screen?) :
                 boolRow("barCompactNumbers", { GeneralConfig.barCompactNumbers }) {
                     GeneralConfig.barCompactNumbers = it
                 }
+                // The attribute bounds are a list of their own (one row per attribute), so this row is a
+                // door rather than a field.
+                addDrawableChild(
+                    ButtonWidget.builder(key("attributeCaps.open")) {
+                        client?.setScreen(AttributeCapsScreen(this))
+                    }.dimensions(x0 + ROW_W - FIELD_W, y + 1, FIELD_W, ROW_H - 6).build(),
+                )
+                rows.add(LabelRow(key("attributeCaps"), y))
+                y += ROW_H
             }
 
             1 -> {
