@@ -152,6 +152,7 @@ A 100-damage hit: armour 26 → 17 taken; armour 40 → 10 taken.
 | True Damage | part of the damage ignores armour |
 | Fire Master | every hit applies burning, stacking up to 10 s; the longer the remaining burn, the faster and harder the extra ticks (down to one per 5 ticks) |
 | Advanced Fire Master | **advanced** form: book only, onto a sword that already has Fire Master VI, consuming that level; counts as **6 + own level**. Hits burn at that level, you get the matching fire resistance, and targets already burning take +2% x level |
+| Advanced Feather Fall | **Advanced** form: a book on boots that already carry Feather Fall IV, consuming that IV. Counts as **4 + its own level**. Fall damage is reduced by `20% x (4 + level)` (immune from I), and a landing grants Speed II for `2 x level` seconds |
 | Finality | **final damage +1% x level** on every hit (up to +3%), multiplying with Arcane Echo's final damage |
 | Elemental Surge | **elemental damage +1% x level** you deal (up to +3%), covering conversions, reaction riders and aura splashes |
 | Reaction Surge | **reaction damage +1% x level** you trigger (up to +3%), using the weapon that landed the hit (the bow, for arrows) |
@@ -201,6 +202,7 @@ A 100-damage hit: armour 26 → 17 taken; armour 40 → 10 taken.
 | Damage Reduction | percentage damage reduction |
 | Death Protection | consumes one level to survive a lethal hit and grants absorption |
 | Bulwark | final damage you take is reduced by **1% x level** (up to 3%), **multiplying** with Arcane Echo's final reduction |
+| Advanced Saturation | **Advanced** form: a book on a chestplate that already carries Saturation VIII, consuming that VIII. Counts as **8 + its own level**. Hunger and saturation stay full, and the overflow becomes `level` hearts of absorption every five seconds |
 | Immortal | chance to fully ignore a hit, plus several consecutive hits after it triggers |
 | Soul Bound | items are kept on death and return to your inventory |
 | Saturation | slowly restores hunger and saturation |

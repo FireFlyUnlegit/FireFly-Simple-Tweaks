@@ -41,6 +41,8 @@ object UpgradeEnchantments {
         Rule(GeneratedEnchantments.GREATER_ARMOR, GeneratedEnchantments.EXTRA_ARMOR, 8),
         Rule(GeneratedEnchantments.ADVANCED_DEFT, GeneratedEnchantments.DEFT, 3),
         Rule(GeneratedEnchantments.ADVANCED_FIRE_MASTER, GeneratedEnchantments.FIRE_MASTER, 6),
+        Rule(GeneratedEnchantments.ADVANCED_FEATHER_FALL, GeneratedEnchantments.FEATHER_FALL, 4),
+        Rule(GeneratedEnchantments.ADVANCED_SATURATION, GeneratedEnchantments.SATURATION, 8),
     )
 
     @JvmStatic
