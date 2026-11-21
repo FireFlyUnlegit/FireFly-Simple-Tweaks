@@ -1,6 +1,11 @@
 package dev.firefly.simpletweaks.enchantments.handlers.advanced
 
 import dev.firefly.simpletweaks.compat.FSTLog
+import net.minecraft.entity.LivingEntity
+import dev.firefly.simpletweaks.util.elements.ReactionSeam
+import dev.firefly.simpletweaks.util.elements.ElementType
+import dev.firefly.simpletweaks.util.elements.ElementMarks
+import dev.firefly.simpletweaks.util.elements.ElementAuras
 import dev.firefly.simpletweaks.compat.attacker
 import dev.firefly.simpletweaks.compat.event.LivingDamageEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
@@ -41,18 +46,52 @@ import net.minecraft.entity.player.PlayerEntity
 object EnchantAdvancedMultitudeHandler : Listenable {
 
     private const val BASE_LEVEL = 2
+    private const val BASE_RADIUS = 6.0
+    private const val RADIUS_PER_LEVEL = 2.0
 
-    @SubscribeEvent
-    fun onLivingDamage(e: LivingDamageEvent) {
-        if (e.invalid) return
-        val player = e.attacker as? PlayerEntity ?: return
-        val victim = e.entityLiving
-        if (victim === player) return
-        val level = getItemSpecificEnchantLevel(player.combatStack(e.source), GeneratedEnchantments.ADVANCED_MULTITUDE)
+    /** How deep the current copy chain already is; `0` outside a copy. */
+    private val depth = ThreadLocal.withInitial { 0 }
+
+    override fun init() {
+        ReactionSeam.register { attacker, target, element, outcome -> chain(attacker, target, element, outcome.flatDamage) }
+    }
+
+    private fun chain(
+        attacker: LivingEntity?,
+        target: LivingEntity,
+        element: ElementType,
+        flatDamage: Float,
+    ) {
+        val player = attacker as? PlayerEntity ?: return
+        if (player.world.isClient) return
+        val level = getItemSpecificEnchantLevel(player.mainHandStack, GeneratedEnchantments.ADVANCED_MULTITUDE)
         if (level <= 0) return
-        val before = e.amount
-        e.amount *= 1f + 0.05f * (BASE_LEVEL + level)
-        victim.addStatusEffect(StatusEffectInstance(StatusEffects.SLOWNESS, 60, 2))
-        FSTLog.log("AdvancedMultitudeHandler") { "player=${player.name.string}, level=$level, damage=$before->${e.amount}, outcome=applied" }
+        val current = depth.get()
+        // `maxLevel` copies: layer 0 is the original reaction, layers 1..level are the copies.
+        if (current >= level) return
+        if (depth.get() >= level) return
+        val radius = BASE_RADIUS + RADIUS_PER_LEVEL * level
+        depth.set(current + 1)
+        try {
+            val others = player.world.getOtherEntities(player, target.boundingBox.expand(radius)) { candidate ->
+                candidate is LivingEntity && candidate !== target && candidate !== player &&
+                    candidate.isAlive && candidate !is PlayerEntity
+            }
+            for (other in others) {
+                val living = other as? LivingEntity ?: continue
+                ElementAuras.attach(living, element, ElementAuras.ULTRA)
+                ElementMarks.recordAndReact(
+                    player, living, element, flatDamage,
+                    units = ElementAuras.ULTRA, forceAttach = true,
+                )
+            }
+            if (others.isNotEmpty()) {
+                FSTLog.log("AdvancedMultitude") {
+                    "player=${player.name.string}, level=$level, layer=${current + 1}, copied=${others.size}, outcome=chained"
+                }
+            }
+        } finally {
+            depth.set(current)
+        }
     }
 }

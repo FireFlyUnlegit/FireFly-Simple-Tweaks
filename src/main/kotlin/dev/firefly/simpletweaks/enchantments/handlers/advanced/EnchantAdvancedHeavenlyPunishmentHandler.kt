@@ -1,6 +1,7 @@
 package dev.firefly.simpletweaks.enchantments.handlers.advanced
 
 import dev.firefly.simpletweaks.compat.FSTLog
+import java.util.concurrent.ThreadLocalRandom
 import dev.firefly.simpletweaks.compat.attacker
 import dev.firefly.simpletweaks.compat.event.LivingDamageEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
@@ -14,6 +15,9 @@ import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 import dev.firefly.simpletweaks.util.FireBurn
+import dev.firefly.simpletweaks.util.elements.ElementType
+import dev.firefly.simpletweaks.util.elements.ElementMarks
+import dev.firefly.simpletweaks.util.elements.ElementAuras
 import dev.firefly.simpletweaks.util.absorptionHeadroomId
 import dev.firefly.simpletweaks.util.combatStack
 import dev.firefly.simpletweaks.util.damagesource.ModDamageTypes
@@ -41,6 +45,7 @@ import net.minecraft.entity.player.PlayerEntity
 object EnchantAdvancedHeavenlyPunishmentHandler : Listenable {
 
     private const val BASE_LEVEL = 4
+    private val PARTNERS = arrayOf(ElementType.WATER, ElementType.FROST, ElementType.NATURE)
 
     @SubscribeEvent
     fun onLivingDamage(e: LivingDamageEvent) {
@@ -51,7 +56,21 @@ object EnchantAdvancedHeavenlyPunishmentHandler : Listenable {
         val level = getItemSpecificEnchantLevel(player.combatStack(e.source), GeneratedEnchantments.ADVANCED_HEAVENLY_PUNISHMENT)
         if (level <= 0) return
         val before = e.amount
-        e.amount *= 1f + 0.04f * (BASE_LEVEL + level)
+        val bonus = before * 0.04f * (BASE_LEVEL + level)
+        e.amount += bonus
+        // The storm picks *which* reaction happens, never *whether*: lightning is the trigger, and the
+        // partner that makes it react is drawn at random from the three it can combine with.
+        if (bonus > 0f) {
+            val partner = PARTNERS[ThreadLocalRandom.current().nextInt(PARTNERS.size)]
+            ElementAuras.attach(victim, partner, ElementAuras.ULTRA)
+            val outcome = ElementMarks.recordAndReact(
+                player, victim, ElementType.LIGHTNING, bonus,
+                units = ElementAuras.ULTRA, forceAttach = true, source = e.source,
+            )
+            FSTLog.log("AdvancedHeavenlyPunishmentHandler") {
+                "player=${player.name.string}, level=$level, partner=$partner, reaction=${outcome.key}, outcome=forced-reaction"
+            }
+        }
         victim.addStatusEffect(StatusEffectInstance(StatusEffects.GLOWING, 100, 0))
         FSTLog.log("AdvancedHeavenlyPunishmentHandler") { "player=${player.name.string}, level=$level, damage=$before->${e.amount}, outcome=applied" }
     }
