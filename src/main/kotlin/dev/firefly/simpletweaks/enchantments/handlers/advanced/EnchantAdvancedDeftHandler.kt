@@ -64,7 +64,7 @@ object EnchantAdvancedDeftHandler : Listenable {
 
         val level = getItemSpecificEnchantLevel(player.mainHandStack, GeneratedEnchantments.ADVANCED_DEFT)
         val expectedSpeed =
-            if (level <= 0) 0.0 else (BASE_ATTACK_SPEED + level * ATTACK_SPEED_PER_LEVEL).toDouble()
+            if (level <= 0) 0.0 else (level * ATTACK_SPEED_PER_LEVEL).toDouble()
         val expectedKnockback = if (level <= 0) 0.0 else level * KNOCKBACK_PER_LEVEL
 
         val changed = apply(

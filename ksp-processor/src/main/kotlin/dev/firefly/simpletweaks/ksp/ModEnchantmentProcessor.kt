@@ -264,6 +264,8 @@ private data class Spec(
      */
     val exclusiveSet: String,
     val damagePerLevel: Double,
+    /** Flat damage at the advanced step's first level (ladderBase + 1), so an upgrade never loses melee damage. */
+    val damageBase: Double,
     val attributes: List<AttrSpec>,
     /** Registration position; `Int.MAX_VALUE` means "append last". See `@ModEnchantment.order`. */
     val order: Int,
@@ -584,6 +586,7 @@ class ModEnchantmentProcessor(
             maxCostPerLevel = number("maxCostPerLevel", 0),
             exclusiveSet = normaliseExclusiveSet(text("exclusiveSet"), where, decl),
             damagePerLevel = damagePerLevel,
+            damageBase = if (ladderBase > 0) round3(damagePerLevel * (ladderBase + 1)) else damagePerLevel,
             attributes = attributes,
             order = number("order", Int.MAX_VALUE),
             // Defaults to true here as well as in the annotation: an omitted argument may or may not appear
@@ -804,7 +807,7 @@ class ModEnchantmentProcessor(
             appendLine("          \"type\": \"minecraft:add\",")
             appendLine("          \"value\": {")
             appendLine("            \"type\": \"minecraft:linear\",")
-            appendLine("            \"base\": ${s.damagePerLevel},")
+            appendLine("            \"base\": ${s.damageBase},")
             appendLine("            \"per_level_above_first\": ${s.damagePerLevel}")
             appendLine("          }")
             appendLine("        }")

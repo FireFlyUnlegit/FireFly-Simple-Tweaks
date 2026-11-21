@@ -37,7 +37,7 @@ import net.minecraft.entity.player.PlayerEntity
     anvilCost = 12,
     minCostBase = 35,
     minCostPerLevel = 15,
-    supportedItems = EnchantSupportedItemTags.WEAPON,
+    supportedItems = EnchantSupportedItemTags.MINING,
     slots = [EnchantSlot.MAINHAND],
     order = 103,
 )

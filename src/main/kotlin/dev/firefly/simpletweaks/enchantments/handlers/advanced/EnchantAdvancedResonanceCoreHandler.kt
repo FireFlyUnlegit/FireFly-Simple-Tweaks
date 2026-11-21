@@ -53,7 +53,7 @@ object EnchantAdvancedResonanceCoreHandler : Listenable {
         // The core refuses to wait for a reaction: it eats whatever element is already there and
         // spends it as raw damage, so nothing is left for the reaction table to fire on.
         val before = e.amount
-        ElementAuras.clear(victim)
+        // The aura stays: the base core stacks on it and must not be starved.
         val burst = before * 0.06f * level
         val landed = victim.damageElemental(player, ModDamageTypes.TRUE_DAMAGE, burst)
         FSTLog.log("AdvancedResonanceCoreHandler") {

@@ -52,9 +52,9 @@ object EnchantAdvancedBulwarkHandler : Listenable {
         }
         if (level <= 0) return
 
+        // The reduction itself is the base form's job; this one banks a share of it as a shield.
         val before = e.amount
-        e.amount *= (1f - PER_LEVEL * level).coerceIn(0.25f, 1f)
-        val saved = before - e.amount
+        val saved = before * PER_LEVEL * level
         if (saved > 0f) TempAbsorption.grant(player, saved * 0.5f, level.coerceIn(1, 2))
         FSTLog.log("AdvancedBulwark") {
             "player=${player.name.string}, level=$level, damage=$before->${e.amount}, outcome=reduced"

@@ -15,7 +15,7 @@ import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 import dev.firefly.simpletweaks.util.FireBurn
 import dev.firefly.simpletweaks.util.absorptionHeadroomId
-import dev.firefly.simpletweaks.util.combatStack
+import dev.firefly.simpletweaks.util.chestplate
 import dev.firefly.simpletweaks.util.damagesource.ModDamageTypes
 import dev.firefly.simpletweaks.util.damagesource.damageElemental
 import dev.firefly.simpletweaks.util.damagesource.isAuxiliaryDamage
@@ -51,7 +51,7 @@ object EnchantAdvancedHealingMultiplierHandler : Listenable {
         val player = e.attacker as? PlayerEntity ?: return
         val victim = e.entityLiving
         if (victim === player) return
-        val level = getItemSpecificEnchantLevel(player.combatStack(e.source), GeneratedEnchantments.ADVANCED_HEALING_MULTIPLIER)
+        val level = getItemSpecificEnchantLevel(player.chestplate, GeneratedEnchantments.ADVANCED_HEALING_MULTIPLIER)
         if (level <= 0) return
         val before = e.amount
         val heal = 0.01f * level * e.amount

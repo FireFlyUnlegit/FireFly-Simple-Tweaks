@@ -51,7 +51,7 @@ object EnchantAdvancedFinalityHandler : Listenable {
         if (level <= 0) return
 
         val before = e.amount
-        e.amount *= 1f + 0.01f * level
+        // The base form already multiplies final damage; this one only adds the full-health clause.
         if (victim.getHealth() >= victim.getMaxHealth()) e.amount *= 1f + 0.02f * level
 
         // Below the line the blade stops haggling with armour: the remainder is simply true damage.

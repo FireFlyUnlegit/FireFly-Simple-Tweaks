@@ -65,9 +65,6 @@ object EnchantAdvancedSaturationHandler : Listenable {
             return
         }
 
-        val food = p.hungerManager
-        if (food.foodLevel < 20) food.foodLevel = 20
-        if (food.saturationLevel < 10f) food.saturationLevel = 10f
 
         val last = lastGrant[p.uuid] ?: 0
         if (p.age - last < GRANT_INTERVAL) return

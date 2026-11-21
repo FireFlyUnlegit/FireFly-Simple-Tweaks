@@ -23,6 +23,7 @@ import dev.firefly.simpletweaks.util.damagesource.isAuxiliaryDamage
 import dev.firefly.simpletweaks.util.UpgradeEnchantments
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import dev.firefly.simpletweaks.util.grantAbsorption
+import net.minecraft.registry.tag.DamageTypeTags
 import net.minecraft.entity.effect.StatusEffectInstance
 import net.minecraft.entity.effect.StatusEffects
 import net.minecraft.entity.EquipmentSlot
@@ -57,6 +58,7 @@ object EnchantAdvancedFeatherFallHandler : Listenable {
             level += getItemSpecificEnchantLevel(player.getEquippedStack(slot), GeneratedEnchantments.ADVANCED_FEATHER_FALL)
         }
         if (level <= 0) return
+        if (!e.source.isIn(DamageTypeTags.IS_FALL)) return
         val before = e.amount
         if (player.fallDistance > 0f || player.velocity.y < -0.4) {
             player.addStatusEffect(StatusEffectInstance(StatusEffects.SPEED, 40 * level, 0))

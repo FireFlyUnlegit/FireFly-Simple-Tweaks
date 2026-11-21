@@ -15,6 +15,7 @@ import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 import dev.firefly.simpletweaks.util.UpgradeEnchantments
+import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import dev.firefly.simpletweaks.util.syncAttributes
 import net.minecraft.entity.EquipmentSlot
 import net.minecraft.entity.attribute.EntityAttributeModifier
@@ -111,7 +112,7 @@ object EnchantGreaterVitalityHandler : Listenable {
         var total = 0
         for (slot in EquipmentSlot.entries) {
             if (slot.type != EquipmentSlot.Type.HUMANOID_ARMOR) continue
-            total += UpgradeEnchantments.ladderLevel(p.getEquippedStack(slot), RULE)
+            total += getItemSpecificEnchantLevel(p.getEquippedStack(slot), GeneratedEnchantments.GREATER_VITALITY)
         }
         return total
     }

@@ -59,14 +59,12 @@ object EnchantAdvancedFireMasterHandler : Listenable {
         val level = getItemSpecificEnchantLevel(player.combatStack(e.source), GeneratedEnchantments.ADVANCED_FIRE_MASTER)
         if (level <= 0) return
 
-        val burnLevel = BASE_BURN_LEVEL + level
+        // Igniting, fire resistance and self-extinguishing come from the base form; only the
+        // punish-the-burning clause is new here.
         if (victim.fireTicks > 0) e.amount *= 1f + 0.02f * level
-        FireBurn.ignite(victim, burnLevel, player)
-        player.addStatusEffect(StatusEffectInstance(StatusEffects.FIRE_RESISTANCE, burnLevel * 20, 0))
-        if (player.fireTicks > 0) player.extinguish()
 
         FSTLog.log("AdvancedFireMasterHandler") {
-            "player=${player.name.string}, level=$level, burn=$burnLevel, outcome=ignited"
+            "player=${player.name.string}, level=$level, outcome=punished-burning"
         }
     }
 
