@@ -17,8 +17,8 @@ object CompactNumber {
      * Suffix table, highest first: the first entry the value reaches decides the unit.
      *
      * The ladder is the SI one past `T`, because a modded health pool at 1e15 has to print as `1.00P`, not
-     * `1000T`. `E` (exa) is the one ambiguous entry — mitigated by the mantissa always carrying two decimals,
-     * while the scientific fallback below uses one and a lowercase `e`.
+     * `1000T`. Beyond `Y` there is nothing left, so those values keep a `Y` mantissa unless scientific
+     * notation is switched on — see [of].
      */
     private val UNITS = listOf(
         1_000_000_000_000_000_000_000_000.0 to "Y",
@@ -31,14 +31,19 @@ object CompactNumber {
         1_000.0 to "k",
     )
 
-    /** Past this the smallest suffix would print four digits of mantissa, so switch to `1.2e27` instead. */
-    private const val SCIENTIFIC_FLOOR = 1_000_000_000_000_000_000_000_000_000.0
-
-    /** Always compact when it can be: below 1 000 the value simply has no suffix. */
-    fun of(value: Double, places: Int): String {
+    /**
+     * Always compact when it can be: below 1 000 the value simply has no suffix.
+     *
+     * [scientific] swaps the whole ladder for `1.24e3` style text; it is a user setting rather than something
+     * this function decides, because `E` (exa) and `e` (exponent) are easy to confuse on screen.
+     */
+    @JvmOverloads
+    fun of(value: Double, places: Int, scientific: Boolean = false): String {
         if (!value.isFinite()) return "0"
         val abs = abs(value)
-        if (abs >= SCIENTIFIC_FLOOR) return scientific(value)
+        if (scientific && abs >= 1_000.0) return scientificOf(value)
+        // Past `Y` there is no unit left, so those values have to fall back to an exponent either way.
+        if (abs >= 1_000_000_000_000_000_000_000_000_000.0) return scientificOf(value)
         var index = UNITS.indexOfFirst { abs >= it.first }
         if (index < 0) return BarNumber.of(value, places)
 
@@ -51,20 +56,21 @@ object CompactNumber {
     }
 
     /** Compact only when [enabled] and the value is large enough to need it; plain text otherwise. */
-    fun format(value: Double, places: Int, enabled: Boolean): String {
+    @JvmOverloads
+    fun format(value: Double, places: Int, enabled: Boolean, scientific: Boolean = false): String {
         if (!enabled || !value.isFinite() || abs(value) < 1_000.0) return BarNumber.of(value, places)
-        return of(value, places)
+        return of(value, places, scientific)
     }
 
-    /** `3.4e38` — one decimal keeps it inside the same 6–7 characters the suffixed forms use. */
-    private fun scientific(value: Double): String {
+    /** `1.24e3` / `3.4e38` — two decimals keep it inside the characters the suffixed forms use. */
+    private fun scientificOf(value: Double): String {
         var exponent = floor(log10(abs(value))).toInt()
         var mantissa = value / 10.0.pow(exponent)
-        // Rounding 9.96 up would print "10e38"; carry it into the exponent instead.
-        if (abs(mantissa) >= 9.95) {
+        // Rounding 9.996 up would print "10e3"; carry it into the exponent instead.
+        if (abs(mantissa) >= 9.995) {
             mantissa /= 10.0
             exponent += 1
         }
-        return BarNumber.of(mantissa, 1) + "e" + exponent
+        return BarNumber.of(mantissa, 2) + "e" + exponent
     }
 }

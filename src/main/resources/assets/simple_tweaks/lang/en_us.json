@@ -140,6 +140,7 @@
   "gui.simple_tweaks.config.barHealthHud": "Health bar instead of vanilla hearts",
   "gui.simple_tweaks.config.barDecimalPlaces": "Bar numbers: max decimal places",
   "gui.simple_tweaks.config.barCompactNumbers": "Prefer k/M in bar numbers",
+  "gui.simple_tweaks.config.compactScientific": "Use scientific notation (1.24e3)",
   "gui.simple_tweaks.config.attributeCaps": "Attribute bounds",
   "gui.simple_tweaks.config.attributeCaps.open": "Edit...",
   "gui.simple_tweaks.attribute_caps.title": "Attribute bounds",

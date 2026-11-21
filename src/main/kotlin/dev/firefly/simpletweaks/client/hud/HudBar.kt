@@ -139,7 +139,7 @@ object HudBar {
      * do not fit as plain digits.
      */
     fun compact(value: Double): String =
-        CompactNumber.of(value, GeneralConfig.barDecimalPlaces.coerceIn(ConfigBounds.BAR_DECIMALS))
+        CompactNumber.of(value, GeneralConfig.barDecimalPlaces.coerceIn(ConfigBounds.BAR_DECIMALS), GeneralConfig.compactScientific)
 
     /**
      * A bar number: at most [GeneralConfig.barDecimalPlaces] decimals, trailing zeros dropped, so 0.1 never
@@ -153,6 +153,7 @@ object HudBar {
             value,
             GeneralConfig.barDecimalPlaces.coerceIn(ConfigBounds.BAR_DECIMALS),
             GeneralConfig.barCompactNumbers,
+            GeneralConfig.compactScientific,
         )
 
     /** One decimal, trailing zeros dropped: first fallback when the configured precision overflows. */

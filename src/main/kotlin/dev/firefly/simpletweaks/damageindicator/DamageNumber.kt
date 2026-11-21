@@ -2,6 +2,7 @@ package dev.firefly.simpletweaks.damageindicator
 
 import dev.firefly.simpletweaks.client.hud.CompactNumber
 import dev.firefly.simpletweaks.core.config.DamageIndicatorConfig
+import dev.firefly.simpletweaks.core.config.GeneralConfig
 import dev.firefly.simpletweaks.network.packets.PacketDamageIndicator
 import dev.firefly.simpletweaks.util.elements.ElementType
 import net.minecraft.entity.Entity
@@ -280,7 +281,7 @@ data class DamageNumber(
      */
     private fun formatFloat(value: Float): String {
         if (DamageIndicatorConfig.compactNumbers && kotlin.math.abs(value) >= 1_000f) {
-            return CompactNumber.of(value.toDouble(), 2)
+            return CompactNumber.of(value.toDouble(), 2, GeneralConfig.compactScientific)
         }
         return if (value % 1.0f == 0.0f) {
             "${value.toLong()}"

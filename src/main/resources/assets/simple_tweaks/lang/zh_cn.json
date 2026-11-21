@@ -140,6 +140,7 @@
   "gui.simple_tweaks.config.barHealthHud": "血量显示为条状（关掉回到原版心形）",
   "gui.simple_tweaks.config.barDecimalPlaces": "条状数值：最多小数位",
   "gui.simple_tweaks.config.barCompactNumbers": "条状数值优先用 k/M 缩写",
+  "gui.simple_tweaks.config.compactScientific": "缩写改用科学计数法（1.24e3）",
   "gui.simple_tweaks.config.attributeCaps": "属性上下限",
   "gui.simple_tweaks.config.attributeCaps.open": "配置…",
   "gui.simple_tweaks.attribute_caps.title": "属性上下限",

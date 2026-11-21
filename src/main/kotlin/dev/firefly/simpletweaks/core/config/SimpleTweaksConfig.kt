@@ -104,6 +104,7 @@ object SimpleTweaksConfig {
         GeneralConfig.barDecimalPlaces = s.int("barDecimalPlaces", 2)
             .coerceIn(ConfigBounds.BAR_DECIMALS)
         GeneralConfig.barCompactNumbers = s.bool("barCompactNumbers", false)
+        GeneralConfig.compactScientific = s.bool("compactScientific", false)
     }
 
     /**
@@ -209,6 +210,7 @@ object SimpleTweaksConfig {
             addProperty("barHealthHud", GeneralConfig.barHealthHud)
             addProperty("barDecimalPlaces", GeneralConfig.barDecimalPlaces)
         addProperty("barCompactNumbers", GeneralConfig.barCompactNumbers)
+        addProperty("compactScientific", GeneralConfig.compactScientific)
         }
         val mobEnhancement = JsonObject().apply {
             addProperty("enabled", MobEnhancementConfig.enabled)

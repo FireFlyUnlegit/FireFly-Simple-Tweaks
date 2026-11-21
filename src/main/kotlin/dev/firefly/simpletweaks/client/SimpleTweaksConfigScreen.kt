@@ -209,6 +209,9 @@ class SimpleTweaksConfigScreen(private val parent: Screen?) :
                 boolRow("barCompactNumbers", { GeneralConfig.barCompactNumbers }) {
                     GeneralConfig.barCompactNumbers = it
                 }
+                boolRow("compactScientific", { GeneralConfig.compactScientific }) {
+                    GeneralConfig.compactScientific = it
+                }
                 // The attribute bounds are a list of their own (one row per attribute), so this row is a
                 // door rather than a field.
                 addDrawableChild(

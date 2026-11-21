@@ -1114,8 +1114,10 @@ public class SimpleTweaksGameTests implements FabricGameTest {
                 dev.firefly.simpletweaks.client.hud.CompactNumber.INSTANCE.of(1_500_000_000_000.0, 2),
                 dev.firefly.simpletweaks.client.hud.CompactNumber.INSTANCE.of(2.0e18, 2),
                 dev.firefly.simpletweaks.client.hud.CompactNumber.INSTANCE.of(3.4e38, 2),
+                dev.firefly.simpletweaks.client.hud.CompactNumber.INSTANCE.of(1_240.0, 2, true),
+                dev.firefly.simpletweaks.client.hud.CompactNumber.INSTANCE.of(3.4e38, 2, true),
         };
-        String[] expected = {"999", "1.24k", "1240", "1.5M", "1M", "1B", "1.5T", "2E", "3.4e38"};
+        String[] expected = {"999", "1.24k", "1240", "1.5M", "1M", "1B", "1.5T", "2E", "3.4e38", "1.24e3", "3.4e38"};
 
         LOGGER.info("[FST-GameTest] compact number switch: {}", String.join(" / ", cases));
         for (int i = 0; i < expected.length; i++) {
