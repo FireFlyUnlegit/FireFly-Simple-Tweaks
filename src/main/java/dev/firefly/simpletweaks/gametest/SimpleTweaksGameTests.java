@@ -863,6 +863,38 @@ public class SimpleTweaksGameTests implements FabricGameTest {
     }
 
     /**
+     * Both loot mixins hand their result back through {@code CallbackInfoReturnable#setReturnValue}. Without
+     * {@code cancellable = true} on the injection that call throws {@code CancellationException: The call
+     * method_522 is not cancellable}; the packet handler swallows it as "Failed to handle packet" and the chest
+     * simply opens empty. Running the real loot function is the only way to see that from a test.
+     */
+    @GameTest(templateName = FabricGameTest.EMPTY_STRUCTURE)
+    public void lootFunctionStripInjectionIsCancellable(TestContext context) {
+        var world = context.getWorld();
+        var parameters = new net.minecraft.loot.context.LootContextParameterSet.Builder(world)
+                .add(net.minecraft.loot.context.LootContextParameters.ORIGIN, net.minecraft.util.math.Vec3d.ZERO)
+                .build(net.minecraft.loot.context.LootContextTypes.CHEST);
+        var lootContext = new net.minecraft.loot.context.LootContext.Builder(parameters)
+                .random(net.minecraft.util.math.random.Random.create(7L))
+                .build(java.util.Optional.empty());
+
+        var levels = (net.minecraft.loot.function.EnchantWithLevelsLootFunction)
+                new net.minecraft.loot.function.EnchantWithLevelsLootFunction.Builder(
+                        net.minecraft.loot.provider.number.ConstantLootNumberProvider.create(30.0f)).build();
+        var randomly = (net.minecraft.loot.function.EnchantRandomlyLootFunction)
+                new net.minecraft.loot.function.EnchantRandomlyLootFunction.Builder().build();
+
+        var first = levels.process(new ItemStack(Items.DIAMOND_SWORD), lootContext);
+        var second = randomly.process(new ItemStack(Items.DIAMOND_SWORD), lootContext);
+        LOGGER.info("[FST-GameTest] loot functions ran: levels={}, random={}, (expect both to return a sword)",
+                first.getItem(), second.getItem());
+
+        context.assertEquals(Items.DIAMOND_SWORD, first.getItem(), "enchant_with_levels must survive the guard");
+        context.assertEquals(Items.DIAMOND_SWORD, second.getItem(), "enchant_randomly must survive the guard");
+        context.complete();
+    }
+
+    /**
      * The mob-level announce bookkeeping must collapse the two seams' duplicate into one packet.
      *
      * <p>{@code MobLevelTracker} and {@code MobSpawnEnhancer} both announce the same level on the normal
