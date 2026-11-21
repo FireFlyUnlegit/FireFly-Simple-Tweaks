@@ -12,7 +12,7 @@
 
 A Minecraft mod I build for fun: new enchantments, new mechanics and better combat feedback for vanilla.
 
-Current **1.21.1 / Fabric** release: **v2.3.0** (131 enchantments, 17 elemental reactions, aura gauges, reworked armour curve).
+Current **1.21.1 / Fabric** release: **v2.3.0** (132 enchantments, 17 elemental reactions, aura gauges, reworked armour curve).
 
 ## 🌿 Branches
 
@@ -32,7 +32,7 @@ Current **1.21.1 / Fabric** release: **v2.3.0** (131 enchantments, 17 elemental 
 
 ### 🧙 Custom enchantments
 
-**131** unique enchantments, split by rarity:
+**132** unique enchantments, split by rarity:
 
 | Rarity | Count | Rarity | Count |
 |--------|-------|--------|-------|
@@ -147,6 +147,7 @@ A 100-damage hit: armour 26 → 17 taken; armour 40 → 10 taken.
 | Combo | shortens the target's post-hit i-frames (−10% per level), **fully cancelled at level 10** — the only enchantment in this mod that touches i-frames |
 | True Damage | part of the damage ignores armour |
 | Fire Master | every hit applies burning, stacking up to 10 s; the longer the remaining burn, the faster and harder the extra ticks (down to one per 5 ticks) |
+| Finality | **final damage +1% x level** on every hit (up to +3%), multiplying with Arcane Echo's final damage |
 | Catalyze | targets you hit resolve damage over time `1 + level` times faster for 5 s: venom ticks keep their value and simply land more often, and a burning target takes `level` extra fire damage every 20 ticks |
 | Heavenly Punishment | big final-damage boost; weakens, roots, suppresses attack speed and calls down lightning |
 | Starfall | arrows summon a meteor that hunts the target and explodes on impact |
@@ -255,7 +256,7 @@ A 100-damage hit: armour 26 → 17 taken; armour 40 → 10 taken.
 | **Blessing of the Star** | your **frost reactions** (Melt / Vanish / Overload / Eclipse / Freeze / Brittle) resolve an extra `15% + 10% × level` (III = 45%) as **stellar damage**: **always crits** (×1.5) and splashes 50% of it to other enemies within 4 blocks. **Amplifying reactions (Melt / Vanish) count too**: the base is the extra damage the multiplier added, and it triggers **Starprism** — the splash is **not** reduced (100%) and everyone it hits is fractured |
 | **Blessing of the Sun** | your **fire / light reactions** (Sanctify / Scorch / Annihilation / Burning / Extinguish / Quicken) resolve an extra `20% + 10% × level` (III = 50%) as **solar damage**: ignores armour, **never crits**, but **+50% against the undead**. This whole family is output: Sanctify → **Radiance** (the same solar instance lands again after 1 s); Scorch → **Sear** (15% per second for 5 s); Annihilation → **Doom** (marked 6 s — if it dies, enemies within 5 blocks take 60% of that instance); Burning → **Scorched Ground** (6 s, 10% per second to enemies within 3 blocks); Extinguish → **Embers** (three bursts in half a second, 50% each, 150% total); Quicken → **Corona** (all solar damage ×1.75 for 6 s, this one included). **Quicken deals no damage of its own and is still allowed through** (Corona opens anyway); amplifying reactions are scaled from the extra damage they added |
 | **Elemental Supremacy** | (1) your **highest** elemental affinity also defends against **all seven** elements (maximum, never summed). (2) its **own mitigation zone**: `4.5% × total level` (**90%** at 20 levels), applied separately from the affinity and multiplied with it — 80% × 90% = **98%**, never 100%. (3) every attack carries an extra `5%` of its damage as an elemental conversion (the hit itself is not reduced), once per 10 total levels (2 at a full set), random element, can start a reaction. (4) every elemental reaction that hits you is remembered, capacity = total level ÷ 2 (max 10); your **next attack** replays all of them (each re-based on 40% of that hit). (5) attachment and reaction ICDs are shortened by `1 − total level ÷ 20` — both collapse to **1 tick** at a full set. (6) **Counter**: every elemental hit you take is answered by the element that counters it, attached to the attacker at **0.5 units** (an active hit applies 1), reflecting `4% × total level` of that hit (80% at a full set) as that element, and locking the attacker's healing for `total level` ticks (**1 s** at a full set) — the reflection runs on the auxiliary channel, so it can react and ignores armour but never re-enters on-hit; not triggered when the attacker also wears Elemental Supremacy |
-| **Arcane Echo** | converts the **total enchantment levels of your six equipment slots (both hands + four armour pieces)** into a whole block of bonuses: max health `+0.12/level`, armour `+0.08`, toughness `+0.03`, attack damage `+0.04`, attack speed `+0.12%/level`, movement speed `+0.08%` (**the only capped one: 20%**), knockback resistance `+0.15%`, luck `+0.015`, **flat damage reduction `−0.05/level`**, **final damage `+0.2%/level`**, **final reduction via `rating/(rating+1.8)`** (rating = `0.3% x level`; approaches but never reaches 100%), plus **elemental damage +0.25%/level**, **reaction damage +0.35%/level**, **ranged (bow/crossbow) damage +0.15%/level**, **healing received +0.25%/level** and **mining speed +0.1%/level** — everything except move speed is **uncapped**, limited only by your total enchantment levels. The **effective level is the lowest** Arcane Echo you wear (chest I + sword II = level I), and its **own level does not count towards the total** (no self-feeding). Fits **swords / axes / maces / bows / crossbows / any armour**; the tooltip lists the live numbers, and `/fst stats` shows the same figures |
+| **Arcane Echo** | turns the **total enchantment levels of your six slots (both hands + four armour pieces)** into a block of bonuses. Strength = `total x level x 0.25`, multiplied by each coefficient: max health `0.12`, armour `0.08`, toughness `0.03`, attack damage `0.04`, attack speed `0.12%`, movement speed `0.08%` (**the only capped one: 20%**), knockback resistance `0.15%`, luck `0.015`, **flat damage reduction `0.05`**, **final damage `0.2%`**, **final reduction via `rating/(rating+1.8)`** (rating = `0.3% x strength`; approaches 100% but never reaches it), **elemental damage `0.25%`**, **reaction damage `0.35%`**, **ranged (bow/crossbow) damage `0.15%`**, **healing received `0.25%`** and **mining speed `0.1%`** — everything except move speed is **uncapped**. Max **level 10**: a "60 total + level X" set lands exactly on what a level-III set used to give (+18 health, +6 attack, +30% final damage, +37.5% elemental, +52.5% reaction) — ten levels stretch the climb, not the ceiling. The **effective level is the lowest** Arcane Echo you wear (chest I + sword II = level I) and its **own level does not count** towards the total. Fits **swords / axes / maces / bows / crossbows / any armour**; the tooltip lists the live numbers and `/fst stats` shows the same figures |
 
 ### 🎮 Client features
 

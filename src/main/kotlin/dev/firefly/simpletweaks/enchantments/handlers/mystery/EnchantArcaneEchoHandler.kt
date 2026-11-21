@@ -27,7 +27,7 @@ import net.minecraft.entity.player.PlayerEntity
     id = "arcane_echo",
     category = EnchantCategory.MYSTERY,
     type = EnchantType.EQUIPMENT,
-    maxLevel = 3,
+    maxLevel = 10,
     weight = EnchantItemWeights.MYSTERY,
     anvilCost = 18,
     minCostBase = 50,

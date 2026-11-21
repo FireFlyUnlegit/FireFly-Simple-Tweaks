@@ -77,8 +77,8 @@ public class SimpleTweaksGameTests implements FabricGameTest {
         int keys = GeneratedEnchantments.INSTANCE.getKEYS().size();
         int categories = GeneratedEnchantments.INSTANCE.getCATEGORY().size();
         LOGGER.info("[FST-GameTest] generated table: keys={}, categories={}", keys, categories);
-        context.assertEquals(131, keys, "GeneratedEnchantments.KEYS should list all 131 enchantments");
-        context.assertEquals(131, categories, "GeneratedEnchantments.CATEGORY should cover every id");
+        context.assertEquals(132, keys, "GeneratedEnchantments.KEYS should list all 132 enchantments");
+        context.assertEquals(132, categories, "GeneratedEnchantments.CATEGORY should cover every id");
         context.complete();
     }
 
@@ -1396,45 +1396,55 @@ public class SimpleTweaksGameTests implements FabricGameTest {
     public void arcaneEchoScalesWithEnchantmentLevelsAndCaps(TestContext context) {
         ArcaneEcho.Stats idle = ArcaneEcho.statsOf(0, 0);
         ArcaneEcho.Stats mid = ArcaneEcho.statsOf(50, 3);
+        ArcaneEcho.Stats top = ArcaneEcho.statsOf(60, 10);
         ArcaneEcho.Stats maxed = ArcaneEcho.statsOf(400, 3);
 
-        LOGGER.info("[FST-GameTest] arcane echo: idle active={} (expect false); mid health={} (expect 18.0) "
-                        + "element={} (expect 0.375) reaction={} (expect 0.525); maxed attackSpeed={} (expect 1.44) "
-                        + "moveSpeed={} (expect 0.2) flat={} (expect 60.0) element={} (expect 3.0) reaction={} (expect 4.2)",
+        LOGGER.info("[FST-GameTest] arcane echo: idle active={} (expect false); mid health={} (expect 4.5) "
+                        + "element={} (expect 0.09375) reaction={} (expect 0.13125); maxed attackSpeed={} (expect 0.36) "
+                        + "moveSpeed={} (expect 0.2) flat={} (expect 15.0) element={} (expect 0.75) reaction={} (expect 1.05)",
                 idle.getActive(), mid.getHealth(), mid.getElement(), mid.getReaction(),
                 maxed.getAttackSpeed(), maxed.getMoveSpeed(), maxed.getDamageReduction(),
                 maxed.getElement(), maxed.getReaction());
 
         context.assertTrue(!idle.getActive(), "no arcane_echo level must mean no bonus at all");
-        context.assertTrue(Math.abs(mid.getHealth() - 18.0) < 0.001,
-                "50 units at level III must give 18 max health, got " + mid.getHealth());
-        context.assertTrue(Math.abs(mid.getElement() - 0.375) < 0.001,
-                "50 units at level III must give +37.5% elemental, got " + mid.getElement());
-        context.assertTrue(Math.abs(mid.getReaction() - 0.525) < 0.001,
-                "50 units at level III must give +52.5% reaction, got " + mid.getReaction());
-        context.assertTrue(Math.abs(maxed.getAttackSpeed() - 1.44) < 0.001,
-                "attack speed must no longer cap (0.0012 x 400 x 3 = 1.44), got " + maxed.getAttackSpeed());
+        context.assertTrue(Math.abs(mid.getHealth() - 4.5) < 0.001,
+                "50 units at level III must give 4.5 max health, got " + mid.getHealth());
+        context.assertTrue(Math.abs(mid.getElement() - 0.09375) < 0.001,
+                "50 units at level III must give +9.375% elemental, got " + mid.getElement());
+        context.assertTrue(Math.abs(mid.getReaction() - 0.13125) < 0.001,
+                "50 units at level III must give +13.125% reaction, got " + mid.getReaction());
+        // 60 units at level X is the reference "maxed" set: it must land on what a level-III set used
+        // to give (18 health, +30% final damage), so ten levels widen the climb, not the ceiling.
+        context.assertTrue(Math.abs(top.getHealth() - 18.0) < 0.001,
+                "60 units at level X must give 18 max health, got " + top.getHealth());
+        context.assertTrue(Math.abs(top.getFinalDamage() - 0.30) < 0.001,
+                "60 units at level X must give +30% final damage, got " + top.getFinalDamage());
+        context.assertTrue(Math.abs(top.getFinalReduction() - 0.20) < 0.001,
+                "60 units at level X must give 20% final reduction, got " + top.getFinalReduction());
+        context.assertTrue(Math.abs(top.getAttackSpeed() - 0.18) < 0.001,
+                "60 units at level X must give +18% attack speed, got " + top.getAttackSpeed());
+        context.assertTrue(Math.abs(maxed.getAttackSpeed() - 0.36) < 0.001,
+                "attack speed must not cap (0.0012 x 400 x 3 x 0.25 = 0.36), got " + maxed.getAttackSpeed());
         context.assertTrue(Math.abs(maxed.getMoveSpeed() - 0.20) < 0.001,
                 "movement speed must still cap at 20%, got " + maxed.getMoveSpeed());
-        context.assertTrue(Math.abs(maxed.getDamageReduction() - 60.0) < 0.001,
-                "flat damage reduction must no longer cap (0.05 x 400 x 3 = 60), got " + maxed.getDamageReduction());
-        context.assertTrue(Math.abs(maxed.getElement() - 3.0) < 0.001,
-                "elemental bonus must no longer cap (0.0025 x 400 x 3 = 3.0), got " + maxed.getElement());
-        context.assertTrue(Math.abs(maxed.getReaction() - 4.2) < 0.001,
-                "reaction bonus must no longer cap (0.0035 x 400 x 3 = 4.2), got " + maxed.getReaction());
-        context.assertTrue(Math.abs(mid.getFinalDamage() - 0.30) < 0.001,
-                "final damage must be 0.002 x 50 x 3 = 0.3, got " + mid.getFinalDamage());
-        context.assertTrue(Math.abs(mid.getFinalReduction() - 0.20) < 0.001,
-                "final reduction must saturate: 0.45 / (0.45 + 1.8) = 0.2, got " + mid.getFinalReduction());
-        context.assertTrue(Math.abs(mid.getRangedDamage() - 0.225) < 0.001,
-                "ranged damage must be 0.0015 x 50 x 3 = 0.225, got " + mid.getRangedDamage());
-        context.assertTrue(Math.abs(mid.getHealing() - 0.375) < 0.001,
-                "healing must be 0.0025 x 50 x 3 = 0.375, got " + mid.getHealing());
-        context.assertTrue(Math.abs(mid.getMiningSpeed() - 0.15) < 0.001,
-                "mining speed must be 0.001 x 50 x 3 = 0.15, got " + mid.getMiningSpeed());
-        LOGGER.info("[FST-GameTest] arcane echo extra: ranged={} (expect 0.225) healing={} (expect 0.375) mining={} (expect 0.15)",
-                mid.getRangedDamage(), mid.getHealing(), mid.getMiningSpeed());        LOGGER.info("[FST-GameTest] arcane echo final: damage={} (expect 0.3) reduction={} (expect 0.2)",
-                mid.getFinalDamage(), mid.getFinalReduction());
+        context.assertTrue(Math.abs(maxed.getDamageReduction() - 15.0) < 0.001,
+                "flat damage reduction must not cap (0.05 x 400 x 3 x 0.25 = 15), got " + maxed.getDamageReduction());
+        context.assertTrue(Math.abs(maxed.getElement() - 0.75) < 0.001,
+                "elemental bonus must not cap (0.0025 x 400 x 3 x 0.25 = 0.75), got " + maxed.getElement());
+        context.assertTrue(Math.abs(maxed.getReaction() - 1.05) < 0.001,
+                "reaction bonus must not cap (0.0035 x 400 x 3 x 0.25 = 1.05), got " + maxed.getReaction());
+        context.assertTrue(Math.abs(mid.getFinalDamage() - 0.075) < 0.001,
+                "final damage must be 0.002 x 50 x 3 x 0.25 = 0.075, got " + mid.getFinalDamage());
+        context.assertTrue(Math.abs(mid.getFinalReduction() - 0.0588235) < 0.001,
+                "final reduction must saturate: 0.1125 / (0.1125 + 1.8), got " + mid.getFinalReduction());
+        context.assertTrue(Math.abs(mid.getRangedDamage() - 0.05625) < 0.001,
+                "ranged damage must be 0.0015 x 50 x 3 x 0.25 = 0.05625, got " + mid.getRangedDamage());
+        context.assertTrue(Math.abs(mid.getHealing() - 0.09375) < 0.001,
+                "healing must be 0.0025 x 50 x 3 x 0.25 = 0.09375, got " + mid.getHealing());
+        context.assertTrue(Math.abs(mid.getMiningSpeed() - 0.0375) < 0.001,
+                "mining speed must be 0.001 x 50 x 3 x 0.25 = 0.0375, got " + mid.getMiningSpeed());
+        LOGGER.info("[FST-GameTest] arcane echo maxed: health={} (expect 18.0) finalDamage={} (expect 0.3) "
+                        + "finalReduction={} (expect 0.2)", top.getHealth(), top.getFinalDamage(), top.getFinalReduction());
         context.complete();
     }
 
