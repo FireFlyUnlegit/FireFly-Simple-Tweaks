@@ -28,7 +28,7 @@ import net.minecraft.entity.player.PlayerEntity
     id = "advanced_healing_multiplier",
     category = EnchantCategory.ADVANCED_UNCOMMON,
     type = EnchantType.WEAPON,
-    maxLevel = 3,
+    maxLevel = 4,
     weight = EnchantItemWeights.ADVANCED_UNCOMMON,
     damagePerLevel = 0.0,
     anvilCost = 12,

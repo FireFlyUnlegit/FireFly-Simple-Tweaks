@@ -28,7 +28,7 @@ import net.minecraft.entity.player.PlayerEntity
     id = "advanced_skyfall",
     category = EnchantCategory.ADVANCED_LEGENDARY,
     type = EnchantType.WEAPON,
-    maxLevel = 3,
+    maxLevel = 5,
     weight = EnchantItemWeights.ADVANCED_LEGENDARY,
     damagePerLevel = 0.0,
     anvilCost = 12,

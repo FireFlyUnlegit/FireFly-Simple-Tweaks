@@ -29,7 +29,7 @@ import net.minecraft.entity.player.PlayerEntity
     id = "advanced_echo_shield",
     category = EnchantCategory.ADVANCED_MYTHIC,
     type = EnchantType.ARMOR,
-    maxLevel = 3,
+    maxLevel = 5,
     weight = EnchantItemWeights.ADVANCED_MYTHIC,
     damagePerLevel = 0.0,
     anvilCost = 12,

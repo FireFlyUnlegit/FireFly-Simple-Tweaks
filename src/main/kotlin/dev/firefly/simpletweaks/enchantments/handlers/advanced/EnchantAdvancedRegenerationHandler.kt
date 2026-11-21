@@ -22,7 +22,7 @@ import java.util.UUID
     id = "advanced_regeneration",
     category = EnchantCategory.ADVANCED_UNCOMMON,
     type = EnchantType.LEGGINGS,
-    maxLevel = 3,
+    maxLevel = 4,
     weight = EnchantItemWeights.ADVANCED_UNCOMMON,
     anvilCost = 8,
     minCostBase = 32,

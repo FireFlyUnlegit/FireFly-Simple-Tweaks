@@ -29,7 +29,7 @@ import java.util.UUID
     id = "advanced_saturation",
     category = EnchantCategory.ADVANCED_UNCOMMON,
     type = EnchantType.CHESTPLATE,
-    maxLevel = 3,
+    maxLevel = 4,
     weight = EnchantItemWeights.ADVANCED_UNCOMMON,
     anvilCost = 8,
     minCostBase = 30,

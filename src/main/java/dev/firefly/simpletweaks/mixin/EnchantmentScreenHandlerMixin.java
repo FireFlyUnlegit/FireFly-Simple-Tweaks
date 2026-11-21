@@ -4,6 +4,7 @@ import dev.firefly.simpletweaks.compat.FSTLog;
 import dev.firefly.simpletweaks.core.EnchantTableGate;
 import dev.firefly.simpletweaks.core.AdvancedEnchantMode;
 import dev.firefly.simpletweaks.client.AdvancedOffers;
+import dev.firefly.simpletweaks.util.AdvancedLevels;
 import dev.firefly.simpletweaks.util.UpgradeEnchantments;
 import java.util.ArrayList;
 import java.util.List;
@@ -336,7 +337,7 @@ public abstract class EnchantmentScreenHandlerMixin {
             UpgradeEnchantments.Rule rule = eligible.get(added);
             RegistryEntry<Enchantment> entry = registry.getEntry(rule.getUpgrade()).orElse(null);
             if (entry != null) {
-                list.add(new EnchantmentLevelEntry(entry, 1));
+                list.add(new EnchantmentLevelEntry(entry, AdvancedLevels.pick(entry.value().getMaxLevel())));
             }
         }
         return Math.max(0, wanted - count);

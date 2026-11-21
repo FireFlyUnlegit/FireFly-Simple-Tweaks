@@ -21,6 +21,7 @@ import net.minecraft.registry.entry.RegistryEntry;
 import dev.firefly.simpletweaks.util.mobs.MobLevels;
 import net.fabricmc.fabric.api.gametest.v1.FabricGameTest;
 import net.minecraft.entity.AreaEffectCloudEntity;
+import dev.firefly.simpletweaks.util.TempAbsorption;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.attribute.EntityAttributeModifier;
 import net.minecraft.entity.attribute.EntityAttributes;
@@ -1690,4 +1691,23 @@ public class SimpleTweaksGameTests implements FabricGameTest {
     private static RegistryKey<Enchantment> key(String id) {
         return RegistryKey.of(RegistryKeys.ENCHANTMENT, Identifier.of(SimpleTweaks.MOD_ID, id));
     }
-}
+
+    @GameTest(templateName = FabricGameTest.EMPTY_STRUCTURE)
+    public void tempAbsorptionSpendsChargesAndValue(TestContext context) {
+        net.minecraft.server.world.ServerWorld world = context.getWorld();
+        ZombieEntity zombie = new ZombieEntity(EntityType.ZOMBIE, world);
+        zombie.refreshPositionAndAngles(0.5, 64, 0.5, 0, 0);
+        TempAbsorption.clear(zombie);
+        TempAbsorption.grant(zombie, 10.0f, 2);
+        float first = TempAbsorption.absorb(zombie, 4.0f);
+        float second = TempAbsorption.absorb(zombie, 100.0f);
+        float third = TempAbsorption.absorb(zombie, 5.0f);
+        var left = TempAbsorption.peek(zombie);
+        LOGGER.info("[FST-GameTest] temp absorption: first=" + first + ", second=" + second
+            + ", third=" + third + ", left=" + left + " (expect 4/6/0/null)");
+        context.assertTrue(Math.abs(first - 4.0f) < 1e-4, "first hit should take 4: " + first);
+        context.assertTrue(Math.abs(second - 6.0f) < 1e-4, "second hit should take 6: " + second);
+        context.assertTrue(Math.abs(third) < 1e-4, "depleted shield absorbs nothing: " + third);
+        context.assertTrue(left == null, "shield should be gone once its value runs out");
+        context.complete();
+    }}

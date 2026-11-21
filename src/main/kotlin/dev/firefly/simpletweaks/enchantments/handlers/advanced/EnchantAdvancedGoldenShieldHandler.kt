@@ -14,6 +14,7 @@ import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 import dev.firefly.simpletweaks.util.FireBurn
+import dev.firefly.simpletweaks.util.TempAbsorption
 import dev.firefly.simpletweaks.util.absorptionHeadroomId
 import dev.firefly.simpletweaks.util.combatStack
 import dev.firefly.simpletweaks.util.damagesource.ModDamageTypes
@@ -29,7 +30,7 @@ import net.minecraft.entity.player.PlayerEntity
     id = "advanced_golden_shield",
     category = EnchantCategory.ADVANCED_RARE,
     type = EnchantType.ARMOR,
-    maxLevel = 3,
+    maxLevel = 4,
     weight = EnchantItemWeights.ADVANCED_RARE,
     damagePerLevel = 0.0,
     anvilCost = 12,
@@ -56,7 +57,7 @@ object EnchantAdvancedGoldenShieldHandler : Listenable {
         val before = e.amount
         if (player.age % 100 == 0) {
             val shield = 2f * (BASE_LEVEL + level)
-            grantAbsorption(player, absorptionHeadroomId("advanced_golden_shield"), shield, shield)
+            TempAbsorption.grant(player, 2f * (BASE_LEVEL + level), 1)
         }
         e.amount *= (1f - 0.015f * (BASE_LEVEL + level)).coerceAtLeast(0f)
         FSTLog.log("AdvancedGoldenShieldHandler") { "player=${player.name.string}, level=$level, damage=$before->${e.amount}, outcome=applied" }

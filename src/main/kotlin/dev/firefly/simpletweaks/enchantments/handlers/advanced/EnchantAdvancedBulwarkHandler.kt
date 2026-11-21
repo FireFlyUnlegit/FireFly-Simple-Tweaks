@@ -12,6 +12,7 @@ import dev.firefly.simpletweaks.enchantments.annotations.EnchantSupportedItemTag
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
+import dev.firefly.simpletweaks.util.TempAbsorption
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import net.minecraft.entity.EquipmentSlot
 import net.minecraft.entity.player.PlayerEntity
@@ -51,7 +52,7 @@ object EnchantAdvancedBulwarkHandler : Listenable {
         val before = e.amount
         e.amount *= (1f - PER_LEVEL * (BASE_LEVEL + level)).coerceAtLeast(0f)
         val saved = before - e.amount
-        if (saved > 0f) player.heal(saved * HEAL_SHARE_PER_LEVEL * level)
+        if (saved > 0f) TempAbsorption.grant(player, saved * 0.5f, level.coerceIn(1, 2))
         FSTLog.log("AdvancedBulwark") {
             "player=${player.name.string}, level=$level, damage=$before->${e.amount}, outcome=reduced"
         }

@@ -143,6 +143,8 @@ object EnchantmentManager {
         // arrived by a path the loot functions do not cover (a mod writing the component directly, `/data`).
         // Numbered after the aura handlers so the sweep never runs before them in the same tick.
         59 to CreativeEnchantmentSweep,
+        // Counted shield: spends charges before any flat reduction sees the hit.
+        60 to dev.firefly.simpletweaks.enchantments.handlers.common.TempAbsorptionHandler,
         // --- mystery ---
         // CelestialBlessing is the mod's largest handler and the only one that uses the network
         // layer (ring packet + mana sync) plus the config's `enabledSpecialParticles`.

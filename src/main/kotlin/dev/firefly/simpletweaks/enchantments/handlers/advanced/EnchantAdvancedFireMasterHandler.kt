@@ -32,7 +32,7 @@ import net.minecraft.entity.player.PlayerEntity
     id = "advanced_fire_master",
     category = EnchantCategory.ADVANCED_RARE,
     type = EnchantType.SWORD,
-    maxLevel = 3,
+    maxLevel = 4,
     weight = EnchantItemWeights.ADVANCED_RARE,
     anvilCost = 10,
     minCostBase = 30,

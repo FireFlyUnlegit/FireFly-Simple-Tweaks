@@ -29,7 +29,7 @@ import net.minecraft.entity.player.PlayerEntity
     id = "advanced_immortal",
     category = EnchantCategory.ADVANCED_LEGENDARY,
     type = EnchantType.ARMOR,
-    maxLevel = 3,
+    maxLevel = 5,
     weight = EnchantItemWeights.ADVANCED_LEGENDARY,
     damagePerLevel = 0.0,
     anvilCost = 12,

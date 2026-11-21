@@ -14,6 +14,7 @@ import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 import dev.firefly.simpletweaks.util.FireBurn
+import dev.firefly.simpletweaks.util.TempAbsorption
 import dev.firefly.simpletweaks.util.absorptionHeadroomId
 import dev.firefly.simpletweaks.util.combatStack
 import dev.firefly.simpletweaks.util.damagesource.ModDamageTypes
@@ -58,6 +59,11 @@ object EnchantAdvancedFeatherFallHandler : Listenable {
             player.addStatusEffect(StatusEffectInstance(StatusEffects.SPEED, 40 * level, 0))
         }
         e.amount *= (1f - 0.15f * (BASE_LEVEL + level)).coerceAtLeast(0f)
-        FSTLog.log("AdvancedFeatherFallHandler") { "player=${player.name.string}, level=$level, damage=$before->${e.amount}, outcome=applied" }
+        // The softness of the landing becomes a counted shield: one hit, sized by what the ground did not take.
+        val saved = before - e.amount
+        if (saved > 0f) TempAbsorption.grant(player, saved, 1)
+        FSTLog.log("AdvancedFeatherFallHandler") {
+            "player=${player.name.string}, level=$level, damage=$before->${e.amount}, shield=$saved, outcome=applied"
+        }
     }
 }
