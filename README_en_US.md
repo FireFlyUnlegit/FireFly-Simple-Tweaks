@@ -12,7 +12,7 @@
 
 A Minecraft mod I build for fun: new enchantments, new mechanics and better combat feedback for vanilla.
 
-Current **1.21.1 / Fabric** release: **v2.3.0** (137 enchantments, 17 elemental reactions, aura gauges, reworked armour curve).
+Current **1.21.1 / Fabric** release: **v2.3.0** (139 enchantments, 17 elemental reactions, aura gauges, reworked armour curve).
 
 ## 🌿 Branches
 
@@ -32,7 +32,7 @@ Current **1.21.1 / Fabric** release: **v2.3.0** (137 enchantments, 17 elemental 
 
 ### 🧙 Custom enchantments
 
-**137** unique enchantments, split by rarity:
+**139** unique enchantments, split by rarity:
 
 | Rarity | Count | Rarity | Count |
 |--------|-------|--------|-------|
@@ -40,7 +40,10 @@ Current **1.21.1 / Fabric** release: **v2.3.0** (137 enchantments, 17 elemental 
 | UNCOMMON | 13 | MYTHIC | 12 |
 | RARE | 28 | MYSTERY | 14 |
 | EPIC | 34 | UNIQUE | 5 |
-| UPGRADED_EPIC | 2 | | |
+| ADVANCED_COMMON (advanced) | 1 | ADVANCED_RARE (advanced) | 1 |
+| ADVANCED_UNCOMMON (advanced) | 0 | ADVANCED_EPIC (advanced) | 2 |
+
+**Advanced enchantments** (ADVANCED_*) never come from the enchanting table: a book has to go onto a piece that already has the maxed base form, which that level is then consumed, and the piece counts as ase max + own level from then on (e.g. Advanced Deft I on a weapon behaves like Deft IV).
 
 #### 🌈 Elemental system
 
@@ -148,6 +151,7 @@ A 100-damage hit: armour 26 → 17 taken; armour 40 → 10 taken.
 | Combo | shortens the target's post-hit i-frames (−10% per level), **fully cancelled at level 10** — the only enchantment in this mod that touches i-frames |
 | True Damage | part of the damage ignores armour |
 | Fire Master | every hit applies burning, stacking up to 10 s; the longer the remaining burn, the faster and harder the extra ticks (down to one per 5 ticks) |
+| Advanced Fire Master | **advanced** form: book only, onto a sword that already has Fire Master VI, consuming that level; counts as **6 + own level**. Hits burn at that level, you get the matching fire resistance, and targets already burning take +2% x level |
 | Finality | **final damage +1% x level** on every hit (up to +3%), multiplying with Arcane Echo's final damage |
 | Elemental Surge | **elemental damage +1% x level** you deal (up to +3%), covering conversions, reaction riders and aura splashes |
 | Reaction Surge | **reaction damage +1% x level** you trigger (up to +3%), using the weapon that landed the hit (the bow, for arrows) |
@@ -177,6 +181,7 @@ A 100-damage hit: armour 26 → 17 taken; armour 40 → 10 taken.
 | Riposte | after being hit in melee, your next hit within **3 s** deals `+15% × level`, then the charge is spent (no combo multiplier, applies to final damage) |
 | First Strike | the first hit on a target that is **still at full health** deals `+12% × level` (IV = +48%); never twice on the same target |
 | Deft | attack speed `+8%/level` (III = +24%), shortening the swing interval from 0.625 s to 0.504 s |
+| Advanced Deft | **advanced** form: book only, onto a weapon that already has Deft III, consuming that level; the piece then counts as **3 + own level**. Attack speed +24% plus +10% per level, and 5% x level knockback resistance |
 
 #### 🛡️ Defence
 
@@ -256,7 +261,7 @@ A 100-damage hit: armour 26 → 17 taken; armour 40 → 10 taken.
 | **Quake** | interrupts a target that is **using an item** (bow draw / shield / potion / food) and puts that item on a 1 s cooldown |
 | **Devour** | every kill feeds **this weapon**: **+8% final damage** per stack, up to `5 × level` stacks (III = 15 = +120%); a kill grants `1 + victim max health / 256` stacks (at most 4), so big prey feeds it faster; **dying drops half**. Stacks live in the item's NBT — a new weapon starts over, and the tooltip shows the current count |
 | **Multitude** | a reaction you trigger has a `15% + 10% × level` chance to be **replicated** onto every other enemy within `6 + 2 × level` blocks: each of them receives **the trigger element** and **the reaction's own damage** (unlike Elemental Spread — that one only attaches aura) |
-| **Karma** | every **attack you land** (elemental conversions / reactions / venom riders do not count) **resets** the karma pool to `20% + 10% × effective level` of that hit. The pool lasts `⌊5 + effective level⌋` s and cancels incoming damage at **1:1** (the value before armour reduction), for at most `⌊effective level⌋` hits, then it is gone. **Four armour pieces at IV = base maxLevel 16**; effective level = sum of all four ÷ 4 (so stuffing 16 into one piece is still worth one set) |
+| **Karma** | every **attack you land** (elemental conversions / reactions / venom riders do not count) **resets** the karma pool to `20% + 10% × effective level` of that hit. The pool lasts `⌊5 + effective level⌋` s and cancels incoming damage at **1:1** (the value before armour reduction), for at most `⌊effective level⌋` hits, then it is gone. **Max IV per piece**; effective level = sum of all four ÷ 4, capped at 4 (so stuffing 16 into one piece is still worth one set) |
 | **Resonance Core** | every elemental reaction you trigger adds one Resonance stack to the target (cap `2 + level`, III = 5 stacks, 10 s). Each stack makes your **elemental damage** against it `+4%` (5 stacks = +20%); once full, your next elemental hit is a **guaranteed crit (×2.4)** and consumes every stack |
 | **Blessing of the Moon** | your **water reactions** (Vaporize / Conduct / Bloom / Purify) resolve an extra `20% + 10% × level` (III = 50%) as **lunar damage**: ignores armour, can crit (`15% + 10% × level` chance, ×1.5), and adds a Moonlight stack (max 5, 10 s, +5% lunar damage each). **Amplifying reactions (Vaporize) count too**: the base is the extra damage the multiplier added, and it triggers **Moontide** — the mist lasts twice as long, every other enemy within 3 blocks is misted too, and Moonlight jumps by 2 |
 | **Blessing of the Star** | your **frost reactions** (Melt / Vanish / Overload / Eclipse / Freeze / Brittle) resolve an extra `15% + 10% × level` (III = 45%) as **stellar damage**: **always crits** (×1.5) and splashes 50% of it to other enemies within 4 blocks. **Amplifying reactions (Melt / Vanish) count too**: the base is the extra damage the multiplier added, and it triggers **Starprism** — the splash is **not** reduced (100%) and everyone it hits is fractured |

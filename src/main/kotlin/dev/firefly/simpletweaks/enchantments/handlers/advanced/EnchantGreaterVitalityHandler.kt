@@ -32,10 +32,10 @@ import net.minecraft.util.Identifier
  */
 @ModEnchantment(
     id = "greater_vitality",
-    category = EnchantCategory.UPGRADED_EPIC,
+    category = EnchantCategory.ADVANCED_EPIC,
     type = EnchantType.ARMOR,
     maxLevel = 10,
-    weight = EnchantItemWeights.UPGRADED_EPIC,
+    weight = EnchantItemWeights.ADVANCED_EPIC,
     anvilCost = 10,
     minCostBase = 20,
     minCostPerLevel = 15,

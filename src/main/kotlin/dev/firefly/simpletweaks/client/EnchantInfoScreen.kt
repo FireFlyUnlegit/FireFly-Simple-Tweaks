@@ -166,7 +166,12 @@ class EnchantInfoScreen(private val parent: Screen?) :
      */
     private val categoryRows: List<List<String>> = listOf(
         listOf("common", "uncommon", "rare", "epic", "legendary"),
-        listOf("mythic", "mystery", "unique", "upgraded_epic"),
+        listOf("mythic", "mystery", "unique"),
+    )
+
+    /** Rows shown while the advanced catalogue is on; one row per advanced tier. */
+    private val advancedRows: List<List<String>> = listOf(
+        listOf("advanced_common", "advanced_uncommon", "advanced_rare", "advanced_epic"),
     )
 
     /**
@@ -183,7 +188,10 @@ class EnchantInfoScreen(private val parent: Screen?) :
         "legendary" to (Items.YELLOW_WOOL to Formatting.GOLD),
         "mythic" to (Items.RED_WOOL to Formatting.DARK_RED),
         "mystery" to (Items.LIGHT_BLUE_WOOL to Formatting.AQUA),
-        "upgraded_epic" to (Items.PURPLE_WOOL to Formatting.DARK_PURPLE),
+        "advanced_common" to (Items.PURPLE_WOOL to Formatting.DARK_PURPLE),
+        "advanced_uncommon" to (Items.PURPLE_WOOL to Formatting.DARK_PURPLE),
+        "advanced_rare" to (Items.PURPLE_WOOL to Formatting.DARK_PURPLE),
+        "advanced_epic" to (Items.PURPLE_WOOL to Formatting.DARK_PURPLE),
     )
 
     /** One category icon's screen position, computed once so rendering and hit-testing cannot drift. */
@@ -202,13 +210,23 @@ class EnchantInfoScreen(private val parent: Screen?) :
         return out
     }
 
-    /** Icon rows for the current [mode]; the first cell is always the advanced-catalogue switch. */
-    private fun currentRows(): List<List<String>> {
-        val groups = visibleGroups()
-        val cells = listOf(ADVANCED_TAB) + groups
-        val cols = if (mode == Mode.RARITY) RARITY_COLS else ITEM_COLS
-        return cells.chunked(cols)
-    }
+    /** Icon rows for the current [mode]; the advanced switch is a separate corner widget. */
+    private fun currentRows(): List<List<String>> =
+        visibleGroups().chunked(if (mode == Mode.RARITY) RARITY_COLS else ITEM_COLS)
+
+    /**
+     * Top-left corner slot of the panel, outside the grid.
+     *
+     * The switch deliberately does **not** occupy a cell: taking index 0 shifted every icon one
+     * position whenever the mode changed, and the first group's icon changed identity between the
+     * two views. A corner widget keeps the grid identical in both modes.
+     */
+    private fun advancedTabX(): Int = guiLeft + 6
+
+    private fun advancedTabY(): Int = guiTop + 4
+
+    private fun advancedTabHit(mx: Int, my: Int): Boolean =
+        mx in advancedTabX() until advancedTabX() + 16 && my in advancedTabY() until advancedTabY() + 16
 
     /** Panel height for the main menu, so the toggle line always sits under the last row. */
     private fun mainPanelHeight(): Int = MAIN_TITLE_H + currentRows().size * 18 + TOGGLE_H
@@ -244,7 +262,7 @@ class EnchantInfoScreen(private val parent: Screen?) :
      * exists as an upgrade step does not sit next to the enchantments it is built from.
      */
     private fun isAdvanced(id: String): Boolean =
-        GeneratedEnchantments.CATEGORY[id] == EnchantCategory.UPGRADED_EPIC
+        GeneratedEnchantments.CATEGORY[id]?.name?.startsWith("ADVANCED_") == true
 
     /**
      * Groups to show, in display order, **with empty ones dropped**.
@@ -253,8 +271,11 @@ class EnchantInfoScreen(private val parent: Screen?) :
      * item group with no enchantments is simply noise, so those are filtered out.
      */
     private fun visibleGroups(): List<String> =
-        if (mode == Mode.RARITY) categoryRows.flatten().filter { idsOf(it).isNotEmpty() }
-        else itemGroups.map { it.first }.filter { idsOf(it).isNotEmpty() }
+        if (mode == Mode.RARITY) {
+            (if (advancedOnly) advancedRows else categoryRows).flatten().filter { idsOf(it).isNotEmpty() }
+        } else {
+            itemGroups.map { it.first }.filter { idsOf(it).isNotEmpty() }
+        }
 
     /** Icon shown for one group. */
     private fun groupIcon(group: String): ItemStack = when (mode) {
@@ -367,7 +388,7 @@ class EnchantInfoScreen(private val parent: Screen?) :
 
         var hovered: Slot? = null
         for (slot in slots) {
-            val stack = if (slot.category == ADVANCED_TAB) advancedTabIcon() else groupIcon(slot.category)
+            val stack = groupIcon(slot.category)
             context.drawItem(stack, slot.x, slot.y)
             context.drawItemInSlot(this.textRenderer, stack, slot.x, slot.y)
 
@@ -376,33 +397,39 @@ class EnchantInfoScreen(private val parent: Screen?) :
             }
         }
 
+        // Corner widget, drawn last so the panel background cannot cover it.
+        val book = advancedTabIcon()
+        context.drawItem(book, advancedTabX(), advancedTabY())
+        context.drawItemInSlot(this.textRenderer, book, advancedTabX(), advancedTabY())
+
+        if (advancedTabHit(mouseX, mouseY)) {
+            context.drawTooltip(
+                this.textRenderer,
+                listOf(
+                    Text.translatable(advancedTabLabel()).formatted(Formatting.LIGHT_PURPLE),
+                    Text.empty(),
+                    Text.translatable(advancedTabHint()).formatted(Formatting.YELLOW),
+                ),
+                mouseX, mouseY,
+            )
+            return
+        }
+
         hovered?.let { slot ->
-            if (slot.category == ADVANCED_TAB) {
-                context.drawTooltip(
-                    this.textRenderer,
-                    listOf(
-                        Text.translatable(advancedTabLabel()).formatted(Formatting.LIGHT_PURPLE),
-                        Text.empty(),
-                        Text.translatable(advancedTabHint()).formatted(Formatting.YELLOW),
-                    ),
-                    mouseX, mouseY,
-                )
-            } else {
-                val count = idsOf(slot.category).size
-                val colour = groupColor(slot.category)
-                context.drawTooltip(
-                    this.textRenderer,
-                    listOf(
-                        groupLabel(slot.category).formatted(colour),
-                        Text.translatable("gui.simple_tweaks.enchant_info.count", count)
-                            .formatted(Formatting.GRAY),
-                        Text.empty(),
-                        Text.translatable("gui.simple_tweaks.enchant_info.click_hint")
-                            .formatted(Formatting.YELLOW),
-                    ),
-                    mouseX, mouseY,
-                )
-            }
+            val count = idsOf(slot.category).size
+            val colour = groupColor(slot.category)
+            context.drawTooltip(
+                this.textRenderer,
+                listOf(
+                    groupLabel(slot.category).formatted(colour),
+                    Text.translatable("gui.simple_tweaks.enchant_info.count", count)
+                        .formatted(Formatting.GRAY),
+                    Text.empty(),
+                    Text.translatable("gui.simple_tweaks.enchant_info.click_hint")
+                        .formatted(Formatting.YELLOW),
+                ),
+                mouseX, mouseY,
+            )
         }
 
         // "Switch view" line. Clicking it (or pressing Tab) flips rarity <-> applicable items.
@@ -603,20 +630,20 @@ class EnchantInfoScreen(private val parent: Screen?) :
         val my = mouseY.toInt()
 
         if (selected == null) {
+            if (advancedTabHit(mx, my)) {
+                advancedOnly = !advancedOnly
+                clearAndInit()
+                return true
+            }
             if (toggleHit(mx, my)) {
                 toggleMode()
                 return true
             }
             for (slot in slots) {
                 if (mx in slot.x until slot.x + 16 && my in slot.y until slot.y + 16) {
-                    if (slot.category == ADVANCED_TAB) {
-                        advancedOnly = !advancedOnly
-                        clearAndInit()
-                    } else {
-                        selected = slot.category
-                        page = 0
-                        clearAndInit()
-                    }
+                    selected = slot.category
+                    page = 0
+                    clearAndInit()
                     return true
                 }
             }

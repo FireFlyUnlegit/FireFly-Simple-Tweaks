@@ -111,6 +111,32 @@ object EnchantExperienceStealerHandler : Listenable {
         return share * killXp * SHARE_PER_LEVEL * level
     }
 
+    /**
+     * The same payout with the health share **not** clamped, i.e. including overkill.
+     *
+     * Overkill is real damage and the player who lands a 5 000-damage hit on a 1 024-health mob did
+     * deal it, so it is worth XP — but only a little more: [onLivingHurt] spends this difference under
+     * a one-level budget, so a ridiculous hit cannot jump the bar by hundreds of levels.
+     */
+    @JvmStatic
+    fun stolenXpUncapped(damage: Float, maxHealth: Float, level: Int): Float {
+        if (level <= 0 || maxHealth <= 0f || damage <= 0f) return 0f
+        val share = damage / maxHealth
+        val killXp = BASE_KILL_XP + maxHealth * XP_PER_HEALTH
+        return share * killXp * SHARE_PER_LEVEL * level
+    }
+
+    /** XP still missing for the player's *next* level, in the vanilla curve. */
+    @JvmStatic
+    fun xpToNextLevel(level: Int, progress: Float): Float {
+        val need = when {
+            level >= 30 -> 112 + (level - 30) * 9
+            level >= 15 -> 37 + (level - 15) * 5
+            else -> 7 + level * 2
+        }.toFloat()
+        return (need - progress * need).coerceAtLeast(0f)
+    }
+
 
     @SubscribeEvent
     fun onLivingHurt(e: LivingHurtEvent) {
@@ -121,7 +147,10 @@ object EnchantExperienceStealerHandler : Listenable {
         val lvl = getItemSpecificEnchantLevel(atk.combatStack(e.source), GeneratedEnchantments.EXPERIENCE_STEALER)
         if (lvl <= 0) return
 
-        val raw = stolenXp(e.amount, e.entityLiving.maxHealth, lvl)
+        val targetMax = e.entityLiving.maxHealth
+        val raw = stolenXp(e.amount, targetMax, lvl)
+        // Overkill: everything above `max health` is extra, paid under a one-level budget below.
+        val extra = (stolenXpUncapped(e.amount, targetMax, lvl) - raw).coerceAtLeast(0f)
         // Logged so "the rider also paid out" is observable rather than inferred: `aux=false` is a real
         // swing, `aux=true` is conversion / reaction / DoT / reflection damage.
         val auxiliary = e.source.isAuxiliaryDamage()
@@ -137,6 +166,21 @@ object EnchantExperienceStealerHandler : Listenable {
                 }
             } else {
                 pendingXp[atk] = acc
+            }
+
+            if (extra > 0f) {
+                // The base payout may already have crossed several levels; overkill may add **one**
+                // more, never more than that, however absurd the damage was.
+                val allowance = xpToNextLevel(atk.experienceLevel, atk.experienceProgress)
+                val bonus = extra.coerceAtMost(allowance).toInt()
+                if (bonus > 0) {
+                    atk.addExperience(bonus)
+                    FSTLog.log("ExperienceStealer") {
+                        "attacker=${atk.name.string}, target=${e.entityLiving.name.string}, " +
+                            "overkill=$extra, allowance=$allowance, gained=$bonus, " +
+                            "level=${atk.experienceLevel}"
+                    }
+                }
             }
         }
 

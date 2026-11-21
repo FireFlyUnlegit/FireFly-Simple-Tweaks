@@ -52,7 +52,7 @@ private val ATTRIBUTE_OPERATIONS = setOf("add_value", "add_multiplied_base", "ad
  * the two checks are deliberately separate — folding an id into this set would compare it against
  * `Meta.category` and silently match nothing.
  */
-private val NOT_IN_ENCHANTING_TABLE_CATEGORIES = setOf("mystery", "unique")
+private val NOT_IN_ENCHANTING_TABLE_CATEGORIES = setOf("mystery", "unique", "advanced_common", "advanced_uncommon", "advanced_rare", "advanced_epic")
 
 /**
  * The one enchantment excluded from the enchanting table by id.
@@ -119,7 +119,10 @@ private val TIER_WEIGHTS = mapOf(
     "LEGENDARY" to 1,
     "MYTHIC" to 1,
     "MYSTERY" to 1,
-    "UPGRADED_EPIC" to 1,
+    "ADVANCED_COMMON" to 1,
+    "ADVANCED_UNCOMMON" to 1,
+    "ADVANCED_RARE" to 1,
+    "ADVANCED_EPIC" to 1,
 )
 
 /** 1.12.2 rarity per category, from `EnchantmentCategories` in the reference project. */
@@ -132,7 +135,10 @@ private val TIER_RARITY = mapOf(
     "LEGENDARY" to 4,
     "MYTHIC" to 5,
     "MYSTERY" to 6,
-    "UPGRADED_EPIC" to 4,
+    "ADVANCED_COMMON" to 4,
+    "ADVANCED_UNCOMMON" to 4,
+    "ADVANCED_RARE" to 4,
+    "ADVANCED_EPIC" to 4,
 )
 
 private fun tierWeight(category: String): Int = TIER_WEIGHTS[category] ?: 1

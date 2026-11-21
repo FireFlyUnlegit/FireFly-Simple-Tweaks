@@ -30,10 +30,10 @@ import net.minecraft.util.Identifier
  */
 @ModEnchantment(
     id = "greater_armor",
-    category = EnchantCategory.UPGRADED_EPIC,
+    category = EnchantCategory.ADVANCED_EPIC,
     type = EnchantType.ARMOR,
     maxLevel = 8,
-    weight = EnchantItemWeights.UPGRADED_EPIC,
+    weight = EnchantItemWeights.ADVANCED_EPIC,
     anvilCost = 10,
     minCostBase = 25,
     minCostPerLevel = 15,

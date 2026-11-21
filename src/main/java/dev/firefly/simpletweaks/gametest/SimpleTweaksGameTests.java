@@ -86,8 +86,8 @@ public class SimpleTweaksGameTests implements FabricGameTest {
         int keys = GeneratedEnchantments.INSTANCE.getKEYS().size();
         int categories = GeneratedEnchantments.INSTANCE.getCATEGORY().size();
         LOGGER.info("[FST-GameTest] generated table: keys={}, categories={}", keys, categories);
-        context.assertEquals(137, keys, "GeneratedEnchantments.KEYS should list all 137 enchantments");
-        context.assertEquals(137, categories, "GeneratedEnchantments.CATEGORY should cover every id");
+        context.assertEquals(139, keys, "GeneratedEnchantments.KEYS should list all 139 enchantments");
+        context.assertEquals(139, categories, "GeneratedEnchantments.CATEGORY should cover every id");
         context.complete();
     }
 

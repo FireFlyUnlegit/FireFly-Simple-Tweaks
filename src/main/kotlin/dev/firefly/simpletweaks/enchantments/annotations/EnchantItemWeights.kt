@@ -80,5 +80,8 @@ object EnchantItemWeights {
     const val LEGENDARY = 1
     const val MYTHIC = 1
     const val MYSTERY = 1
-    const val UPGRADED_EPIC = 1
+    const val ADVANCED_COMMON = 1
+    const val ADVANCED_UNCOMMON = 1
+    const val ADVANCED_RARE = 1
+    const val ADVANCED_EPIC = 1
 }

@@ -39,6 +39,8 @@ object UpgradeEnchantments {
     private val RULES: List<Rule> = listOf(
         Rule(GeneratedEnchantments.GREATER_VITALITY, GeneratedEnchantments.VITALITY, 10),
         Rule(GeneratedEnchantments.GREATER_ARMOR, GeneratedEnchantments.EXTRA_ARMOR, 8),
+        Rule(GeneratedEnchantments.ADVANCED_DEFT, GeneratedEnchantments.DEFT, 3),
+        Rule(GeneratedEnchantments.ADVANCED_FIRE_MASTER, GeneratedEnchantments.FIRE_MASTER, 6),
     )
 
     @JvmStatic

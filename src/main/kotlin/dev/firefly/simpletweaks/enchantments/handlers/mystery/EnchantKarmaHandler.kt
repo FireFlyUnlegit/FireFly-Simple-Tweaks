@@ -33,18 +33,17 @@ import java.util.WeakHashMap
  *
  * At effective level IV: `60 %` of your swing, `9 s` life, up to `4` hits.
  *
- * ## Why `maxLevel = 16` — "one full set" (`build=cleanup78`)
- * The enchantment is per-piece, so the ceiling the numbers are designed against is **four pieces at IV**
- * = 16. Declaring 16 as the enchantment's own `max_level` means a perfect set is *exactly* a max-level
- * enchantment instead of four items pretending to be level 4, and `/fst enchant <target> karma 16 armor`
- * is the natural "give me a full set" command.
+ * ## Why `maxLevel = 4` (`build=devVer.1.0.24`)
+ * The enchantment is per-piece, so its own ceiling is **IV** — the level the numbers are designed
+ * against per piece. It used to declare 16, which let a single item roll XVI from an enchanting table
+ * roll or `/fst enchant @s karma 16`: the formula still divided the sum by [PIECES], so the effect was
+ * capped at IV, but the item read as a level-16 enchantment, and the tooltip said so.
  *
- * The **equipped level is the sum** across the four pieces, clamped to [MAX_LEVEL], and every formula
- * uses `sum / `[PIECES] — i.e. the *effective* level is still `0..4`. Two consequences worth stating:
+ * The **equipped level is the sum** across the four pieces, clamped to [MAX_LEVEL] (16 = four pieces at
+ * IV), and every formula uses `sum / `[PIECES] — i.e. the *effective* level is `0..4`:
  *
  * - Four pieces at IV (`4 × 4 = 16`) gives effective `4` — the designed maximum.
- * - One piece forced to 16 also gives effective `4`, not 16. Deliberate: otherwise a single command
- *   would hand out `0.20 + 0.10 × 16 = 180 %` of a swing and 16 free hits, which is 3× the design.
+ * - One piece at IV only gives effective `1`, so a full set is required for the top-end numbers.
  *
  * ## Why an **armour** enchantment at all
  * The first version was `MAINHAND`-only. In the author's test session it was installed with
@@ -73,7 +72,7 @@ import java.util.WeakHashMap
     id = "karma",
     category = EnchantCategory.MYSTERY,
     type = EnchantType.ARMOR,
-    maxLevel = 16,
+    maxLevel = 4,
     weight = EnchantItemWeights.MYSTERY,
     anvilCost = 18,
     minCostBase = 50,
