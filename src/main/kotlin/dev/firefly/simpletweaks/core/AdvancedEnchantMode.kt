@@ -63,6 +63,10 @@ object AdvancedEnchantMode {
         enabled.remove(player.uuid)
     }
 
+    /** Advanced entries one roll may print: one per 30 power, so 64 power allows two. */
+    @JvmStatic
+    fun advancedBudget(power: Int): Int = power.coerceAtLeast(0) / 30
+
     /** XP levels a roll costs. `power` is the number shown next to the button. */
     @JvmStatic
     fun xpCost(power: Int): Int = power.coerceAtLeast(1)

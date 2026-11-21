@@ -244,9 +244,10 @@ public abstract class EnchantmentScreenHandlerMixin {
             return;
         }
         List<EnchantmentLevelEntry> list = new ArrayList<>(base);
-        simpletweaks$appendAdvanced(registryManager, stack, list);
+        // Advanced picks are capped at power / 30; every pick the cap refuses turns into a normal one.
+        int converted = simpletweaks$appendAdvanced(registryManager, stack, list, AdvancedEnchantMode.INSTANCE.advancedBudget(level));
         // Advanced mode guarantees power / 12 entries, so a 64-power roll is never a single line.
-        int minimum = level / 12;
+        int minimum = level / 12 + converted;
         if (list.size() < minimum) {
             simpletweaks$appendExtraNormals(registryManager, stack, list, minimum - list.size());
         }
@@ -299,8 +300,11 @@ public abstract class EnchantmentScreenHandlerMixin {
             pool.remove(index);
         }
     }
-    private static boolean simpletweaks$appendAdvanced(DynamicRegistryManager registryManager, ItemStack stack,
-            List<EnchantmentLevelEntry> list) {
+    private static int simpletweaks$appendAdvanced(DynamicRegistryManager registryManager, ItemStack stack,
+            List<EnchantmentLevelEntry> list, int cap) {
+        if (cap <= 0) {
+            return 0;
+        }
         Registry<Enchantment> registry = registryManager.get(RegistryKeys.ENCHANTMENT);
         List<UpgradeEnchantments.Rule> eligible = new ArrayList<>();
         for (UpgradeEnchantments.Rule rule : UpgradeEnchantments.INSTANCE.rules()) {
@@ -321,10 +325,13 @@ public abstract class EnchantmentScreenHandlerMixin {
             }
         }
         if (eligible.isEmpty() || ThreadLocalRandom.current().nextFloat() > 0.45f) {
-            return false;
+            return 0;
         }
+        // The roll wants `wanted` picks, the power / 30 cap allows `cap`; the difference is returned so the
+        // caller can turn it into ordinary picks.
+        int wanted = Math.min(eligible.size(), 1 + eligible.size() / 6);
+        int count = Math.min(wanted, cap);
         java.util.Collections.shuffle(eligible, ThreadLocalRandom.current());
-        int count = Math.min(eligible.size(), 1 + eligible.size() / 6);
         for (int added = 0; added < count; added++) {
             UpgradeEnchantments.Rule rule = eligible.get(added);
             RegistryEntry<Enchantment> entry = registry.getEntry(rule.getUpgrade()).orElse(null);
@@ -332,7 +339,8 @@ public abstract class EnchantmentScreenHandlerMixin {
                 list.add(new EnchantmentLevelEntry(entry, 1));
             }
         }
-        return true;    }
+        return Math.max(0, wanted - count);
+    }
 
     /**
      * (5) Advanced mode, cost side. Vanilla charges {@code slot + 1} levels and as many lapis; advanced

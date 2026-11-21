@@ -1610,6 +1610,12 @@ public class SimpleTweaksGameTests implements FabricGameTest {
         int huge = AdvancedEnchantMode.lapisCost(300);
         LOGGER.info("[FST-GameTest] advanced cost: xp(30)={} lapis: cheap={} mid={} huge={} (expect 30/1/10/64)",
                 AdvancedEnchantMode.xpCost(30), cheap, mid, huge);
+        LOGGER.info("[FST-GameTest] advanced budget: 29={} 30={} 64={} (expect 0/1/2)",
+                AdvancedEnchantMode.advancedBudget(29), AdvancedEnchantMode.advancedBudget(30),
+                AdvancedEnchantMode.advancedBudget(64));
+        context.assertTrue(AdvancedEnchantMode.advancedBudget(29) == 0, "under 30 power no advanced entry fits");
+        context.assertTrue(AdvancedEnchantMode.advancedBudget(30) == 1, "thirty power allows one");
+        context.assertTrue(AdvancedEnchantMode.advancedBudget(64) == 2, "sixty-four allows two");
         context.assertTrue(AdvancedEnchantMode.xpCost(30) == 30, "xp cost should equal the power");
         context.assertTrue(cheap == 1, "one level costs one lapis");
         context.assertTrue(mid == 10, "thirty levels cost ten lapis");
