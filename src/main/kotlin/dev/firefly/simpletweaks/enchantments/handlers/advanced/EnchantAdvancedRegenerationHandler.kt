@@ -32,10 +32,6 @@ import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
     order = 78,
 )
 object EnchantAdvancedRegenerationHandler : Listenable {
-
-    /** Ceiling for the banked trickle, so a high level cannot act as a second health bar. */
-    private const val MAX_TRICKLE = 4f
-
     private const val PERIOD = 40
 
     @SubscribeEvent
@@ -53,7 +49,7 @@ object EnchantAdvancedRegenerationHandler : Listenable {
             player.heal(minOf(missing, level.toFloat()))
         } else {
             // At full health the same trickle is banked as hits, not wasted.
-            if (TempAbsorption.peek(player) == null) TempAbsorption.grant(player, (2f * level).coerceAtMost(MAX_TRICKLE), 1)
+            if (TempAbsorption.peek(player) == null) TempAbsorption.grant(player, 2f * level, 1)
         }
 
         FSTLog.log("AdvancedRegenerationHandler") {
