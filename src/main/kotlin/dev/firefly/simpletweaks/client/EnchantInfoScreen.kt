@@ -172,6 +172,7 @@ class EnchantInfoScreen(private val parent: Screen?) :
     /** Rows shown while the advanced catalogue is on; one row per advanced tier. */
     private val advancedRows: List<List<String>> = listOf(
         listOf("advanced_common", "advanced_uncommon", "advanced_rare", "advanced_epic"),
+        listOf("advanced_legendary", "advanced_mythic", "advanced_mystery"),
     )
 
     /**
@@ -192,6 +193,9 @@ class EnchantInfoScreen(private val parent: Screen?) :
         "advanced_uncommon" to (Items.LIME_WOOL to Formatting.GREEN),
         "advanced_rare" to (Items.LIGHT_BLUE_WOOL to Formatting.BLUE),
         "advanced_epic" to (Items.PURPLE_WOOL to Formatting.DARK_PURPLE),
+        "advanced_legendary" to (Items.ORANGE_WOOL to Formatting.GOLD),
+        "advanced_mythic" to (Items.BROWN_WOOL to Formatting.DARK_RED),
+        "advanced_mystery" to (Items.CYAN_WOOL to Formatting.AQUA),
     )
 
     /** One category icon's screen position, computed once so rendering and hit-testing cannot drift. */
