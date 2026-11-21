@@ -1111,8 +1111,11 @@ public class SimpleTweaksGameTests implements FabricGameTest {
                 dev.firefly.simpletweaks.client.hud.CompactNumber.INSTANCE.format(1_500_000.0, 0, true),
                 dev.firefly.simpletweaks.client.hud.CompactNumber.INSTANCE.of(999_999.0, 2),
                 dev.firefly.simpletweaks.client.hud.CompactNumber.INSTANCE.of(999_999_999.0, 2),
+                dev.firefly.simpletweaks.client.hud.CompactNumber.INSTANCE.of(1_500_000_000_000.0, 2),
+                dev.firefly.simpletweaks.client.hud.CompactNumber.INSTANCE.of(2.0e18, 2),
+                dev.firefly.simpletweaks.client.hud.CompactNumber.INSTANCE.of(3.4e38, 2),
         };
-        String[] expected = {"999", "1.24k", "1240", "1.5M", "1M", "1B"};
+        String[] expected = {"999", "1.24k", "1240", "1.5M", "1M", "1B", "1.5T", "2E", "3.4e38"};
 
         LOGGER.info("[FST-GameTest] compact number switch: {}", String.join(" / ", cases));
         for (int i = 0; i < expected.length; i++) {
@@ -1399,55 +1402,56 @@ public class SimpleTweaksGameTests implements FabricGameTest {
         ArcaneEcho.Stats top = ArcaneEcho.statsOf(60, 10);
         ArcaneEcho.Stats maxed = ArcaneEcho.statsOf(400, 3);
 
-        LOGGER.info("[FST-GameTest] arcane echo: idle active={} (expect false); mid health={} (expect 6.3) "
-                        + "element={} (expect 0.13125) reaction={} (expect 0.18375); maxed attackSpeed={} (expect 0.504) "
-                        + "moveSpeed={} (expect 0.2) flat={} (expect 21.0) element={} (expect 1.05) reaction={} (expect 1.47)",
+        LOGGER.info("[FST-GameTest] arcane echo: idle active={} (expect false); mid health={} (expect 14.4) "
+                        + "element={} (expect 0.3) reaction={} (expect 0.42); maxed attackSpeed={} (expect 1.152) "
+                        + "moveSpeed={} (expect 0.2) flat={} (expect 48.0) element={} (expect 2.4) reaction={} (expect 3.36)",
                 idle.getActive(), mid.getHealth(), mid.getElement(), mid.getReaction(),
                 maxed.getAttackSpeed(), maxed.getMoveSpeed(), maxed.getDamageReduction(),
                 maxed.getElement(), maxed.getReaction());
 
         context.assertTrue(!idle.getActive(), "no arcane_echo level must mean no bonus at all");
-        context.assertTrue(Math.abs(mid.getHealth() - 6.3) < 0.001,
-                "50 units at level III must give 6.3 max health, got " + mid.getHealth());
-        context.assertTrue(Math.abs(mid.getElement() - 0.13125) < 0.001,
-                "50 units at level III must give +13.125% elemental, got " + mid.getElement());
-        context.assertTrue(Math.abs(mid.getReaction() - 0.18375) < 0.001,
-                "50 units at level III must give +18.375% reaction, got " + mid.getReaction());
-        // 60 units at level X is the reference "maxed" set: with the 0.35 curve it lands 1.4x above what a
-        // level-III set used to give, so ten levels widen the climb toward a higher ceiling.
-        context.assertTrue(Math.abs(top.getHealth() - 25.2) < 0.001,
-                "60 units at level X must give 25.2 max health, got " + top.getHealth());
-        context.assertTrue(Math.abs(top.getFinalDamage() - 0.42) < 0.001,
-                "60 units at level X must give +42% final damage, got " + top.getFinalDamage());
-        context.assertTrue(Math.abs(top.getFinalReduction() - 0.2592593) < 0.001,
-                "60 units at level X must give 25.93% final reduction, got " + top.getFinalReduction());
-        context.assertTrue(Math.abs(top.getAttackSpeed() - 0.252) < 0.001,
-                "60 units at level X must give +25.2% attack speed, got " + top.getAttackSpeed());
-        context.assertTrue(Math.abs(maxed.getAttackSpeed() - 0.504) < 0.001,
-                "attack speed must not cap (0.0012 x 400 x 3 x 0.35 = 0.504), got " + maxed.getAttackSpeed());
+        context.assertTrue(Math.abs(mid.getHealth() - 14.4) < 0.001,
+                "50 units at level III must give 14.4 max health, got " + mid.getHealth());
+        context.assertTrue(Math.abs(mid.getElement() - 0.3) < 0.001,
+                "50 units at level III must give +30% elemental, got " + mid.getElement());
+        context.assertTrue(Math.abs(mid.getReaction() - 0.42) < 0.001,
+                "50 units at level III must give +42% reaction, got " + mid.getReaction());
+        // 60 units at level X is the reference "maxed" set: the 0.8 curve puts ten levels well above what a
+        // level-III set used to give, so the climb pays off toward the ceiling.
+        context.assertTrue(Math.abs(top.getHealth() - 57.6) < 0.001,
+                "60 units at level X must give 57.6 max health, got " + top.getHealth());
+        context.assertTrue(Math.abs(top.getFinalDamage() - 0.96) < 0.001,
+                "60 units at level X must give +96% final damage, got " + top.getFinalDamage());
+        context.assertTrue(Math.abs(top.getFinalReduction() - 0.44444445) < 0.001,
+                "60 units at level X must give 44.44% final reduction, got " + top.getFinalReduction());
+        context.assertTrue(Math.abs(top.getAttackSpeed() - 0.576) < 0.001,
+                "60 units at level X must give +57.6% attack speed, got " + top.getAttackSpeed());
+        context.assertTrue(Math.abs(maxed.getAttackSpeed() - 1.152) < 0.001,
+                "attack speed must not cap (0.0012 x 400 x 3 x 0.8 = 1.152), got " + maxed.getAttackSpeed());
         context.assertTrue(Math.abs(maxed.getMoveSpeed() - 0.20) < 0.001,
                 "movement speed must still cap at 20%, got " + maxed.getMoveSpeed());
-        context.assertTrue(Math.abs(maxed.getDamageReduction() - 21.0) < 0.001,
-                "flat damage reduction must not cap (0.05 x 400 x 3 x 0.35 = 21), got " + maxed.getDamageReduction());
-        context.assertTrue(Math.abs(maxed.getElement() - 1.05) < 0.001,
-                "elemental bonus must not cap (0.0025 x 400 x 3 x 0.35 = 1.05), got " + maxed.getElement());
-        context.assertTrue(Math.abs(maxed.getReaction() - 1.47) < 0.001,
-                "reaction bonus must not cap (0.0035 x 400 x 3 x 0.35 = 1.47), got " + maxed.getReaction());
-        context.assertTrue(Math.abs(mid.getFinalDamage() - 0.105) < 0.001,
-                "final damage must be 0.002 x 50 x 3 x 0.35 = 0.105, got " + mid.getFinalDamage());
-        context.assertTrue(Math.abs(mid.getFinalReduction() - 0.0804598) < 0.001,
-                "final reduction must saturate: 0.1575 / (0.1575 + 1.8), got " + mid.getFinalReduction());
-        context.assertTrue(Math.abs(mid.getRangedDamage() - 0.07875) < 0.001,
-                "ranged damage must be 0.0015 x 50 x 3 x 0.35 = 0.07875, got " + mid.getRangedDamage());
-        context.assertTrue(Math.abs(mid.getHealing() - 0.13125) < 0.001,
-                "healing must be 0.0025 x 50 x 3 x 0.35 = 0.13125, got " + mid.getHealing());
-        context.assertTrue(Math.abs(mid.getMiningSpeed() - 0.0525) < 0.001,
-                "mining speed must be 0.001 x 50 x 3 x 0.35 = 0.0525, got " + mid.getMiningSpeed());
-        LOGGER.info("[FST-GameTest] arcane echo maxed: health={} (expect 25.2) finalDamage={} (expect 0.42) "
-                        + "finalReduction={} (expect 0.2592593)", top.getHealth(), top.getFinalDamage(), top.getFinalReduction());
+        context.assertTrue(Math.abs(maxed.getDamageReduction() - 48.0) < 0.001,
+                "flat damage reduction must not cap (0.05 x 400 x 3 x 0.8 = 48), got " + maxed.getDamageReduction());
+        context.assertTrue(Math.abs(maxed.getElement() - 2.4) < 0.001,
+                "elemental bonus must not cap (0.0025 x 400 x 3 x 0.8 = 2.4), got " + maxed.getElement());
+        context.assertTrue(Math.abs(maxed.getReaction() - 3.36) < 0.001,
+                "reaction bonus must not cap (0.0035 x 400 x 3 x 0.8 = 3.36), got " + maxed.getReaction());
+        context.assertTrue(Math.abs(mid.getFinalDamage() - 0.24) < 0.001,
+                "final damage must be 0.002 x 50 x 3 x 0.8 = 0.24, got " + mid.getFinalDamage());
+        context.assertTrue(Math.abs(mid.getFinalReduction() - 0.16666667) < 0.001,
+                "final reduction must saturate: 0.36 / (0.36 + 1.8), got " + mid.getFinalReduction());
+        context.assertTrue(Math.abs(mid.getRangedDamage() - 0.18) < 0.001,
+                "ranged damage must be 0.0015 x 50 x 3 x 0.8 = 0.18, got " + mid.getRangedDamage());
+        context.assertTrue(Math.abs(mid.getHealing() - 0.3) < 0.001,
+                "healing must be 0.0025 x 50 x 3 x 0.8 = 0.3, got " + mid.getHealing());
+        context.assertTrue(Math.abs(mid.getMiningSpeed() - 0.12) < 0.001,
+                "mining speed must be 0.001 x 50 x 3 x 0.8 = 0.12, got " + mid.getMiningSpeed());
+        context.assertTrue(Math.abs(top.getAttack() - 24.0) < 0.001,
+                "attack must be 0.05 x 60 x 10 x 0.8 = 24, got " + top.getAttack());
+        LOGGER.info("[FST-GameTest] arcane echo maxed: health={} (expect 57.6) finalDamage={} (expect 0.96) "
+                        + "finalReduction={} (expect 0.44444445)", top.getHealth(), top.getFinalDamage(), top.getFinalReduction());
         context.complete();
     }
-
     private static void assertTaken(TestContext context, float damage, float armor, float expected) {
         float actual = ArmorCurve.INSTANCE.damageTaken(damage, armor, Math.min(armor, ArmorCurve.VANILLA_CAP));
         LOGGER.info("[FST-GameTest] damage {} armor {} -> taken {} (expected {})",
