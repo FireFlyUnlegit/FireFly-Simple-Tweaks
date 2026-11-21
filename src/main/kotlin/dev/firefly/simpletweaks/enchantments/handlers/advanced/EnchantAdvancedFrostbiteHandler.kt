@@ -13,16 +13,15 @@ import dev.firefly.simpletweaks.enchantments.annotations.EnchantSupportedItemTag
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
-import dev.firefly.simpletweaks.util.FireBurn
-import dev.firefly.simpletweaks.util.absorptionHeadroomId
+import dev.firefly.simpletweaks.util.HealLock
 import dev.firefly.simpletweaks.util.combatStack
 import dev.firefly.simpletweaks.util.damagesource.ModDamageTypes
 import dev.firefly.simpletweaks.util.damagesource.damageElemental
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
-import dev.firefly.simpletweaks.util.grantAbsorption
 import net.minecraft.entity.effect.StatusEffectInstance
 import net.minecraft.entity.effect.StatusEffects
 import net.minecraft.entity.player.PlayerEntity
+
 /** The advanced form of this enchantment: its top tier plus an effect of its own. */
 @ModEnchantment(
     id = "advanced_frostbite",
@@ -31,7 +30,7 @@ import net.minecraft.entity.player.PlayerEntity
     maxLevel = 3,
     weight = EnchantItemWeights.ADVANCED_RARE,
     damagePerLevel = 0.0,
-    anvilCost = 12,
+    anvilCost = 14,
     minCostBase = 35,
     minCostPerLevel = 15,
     supportedItems = EnchantSupportedItemTags.WEAPON,
@@ -41,6 +40,7 @@ import net.minecraft.entity.player.PlayerEntity
 object EnchantAdvancedFrostbiteHandler : Listenable {
 
     private const val BASE_LEVEL = 3
+    private const val FREEZE_TICKS = 40L
 
     @SubscribeEvent
     fun onLivingDamage(e: LivingDamageEvent) {
@@ -50,10 +50,25 @@ object EnchantAdvancedFrostbiteHandler : Listenable {
         if (victim === player) return
         val level = getItemSpecificEnchantLevel(player.combatStack(e.source), GeneratedEnchantments.ADVANCED_FROSTBITE)
         if (level <= 0) return
+
         val before = e.amount
-        val slowed = victim.getStatusEffect(StatusEffects.SLOWNESS) != null
+        val chilled = victim.getStatusEffect(StatusEffects.SLOWNESS) != null
         victim.addStatusEffect(StatusEffectInstance(StatusEffects.SLOWNESS, 60, 1))
-        e.amount *= 1f + 0.02f * (BASE_LEVEL + level) * (if (slowed) 2f else 1f)
-        FSTLog.log("AdvancedFrostbiteHandler") { "player=${player.name.string}, level=$level, damage=$before->${e.amount}, outcome=applied" }
+        e.amount *= 1f + 0.02f * (BASE_LEVEL + level) * (if (chilled) 2f else 1f)
+
+        // Hitting something already chilled freezes the wound shut: no healing, and a brittle crack.
+        if (chilled) {
+            HealLock.lock(victim, FREEZE_TICKS)
+            val shatter = before * 0.04f * level
+            val landed = victim.damageElemental(player, ModDamageTypes.TRUE_DAMAGE, shatter)
+            FSTLog.log("AdvancedFrostbiteHandler") {
+                "player=${player.name.string}, level=$level, shatter=$shatter, landed=$landed, outcome=frozen"
+            }
+            return
+        }
+
+        FSTLog.log("AdvancedFrostbiteHandler") {
+            "player=${player.name.string}, level=$level, damage=$before->${e.amount}, outcome=chilled"
+        }
     }
 }

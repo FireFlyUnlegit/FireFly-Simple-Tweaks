@@ -2,7 +2,7 @@ package dev.firefly.simpletweaks.enchantments.handlers.advanced
 
 import dev.firefly.simpletweaks.compat.FSTLog
 import dev.firefly.simpletweaks.compat.attacker
-import dev.firefly.simpletweaks.compat.event.LivingHurtEvent
+import dev.firefly.simpletweaks.compat.event.LivingDamageEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.invalid
 import dev.firefly.simpletweaks.core.Listenable
@@ -14,19 +14,24 @@ import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 import dev.firefly.simpletweaks.util.combatStack
+import dev.firefly.simpletweaks.util.damagesource.ModDamageTypes
+import dev.firefly.simpletweaks.util.damagesource.damageElemental
+import dev.firefly.simpletweaks.util.elements.ElementAuras
+import dev.firefly.simpletweaks.util.elements.ElementType
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
-import net.minecraft.entity.effect.StatusEffectInstance
-import net.minecraft.entity.effect.StatusEffects
+import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.player.PlayerEntity
+import net.minecraft.util.math.Box
 
-/** The advanced form of `venom`: poison on hit, and extra damage against an already poisoned target. */
+/** The advanced form of this enchantment: its top tier plus an effect of its own. */
 @ModEnchantment(
     id = "advanced_venom",
     category = EnchantCategory.ADVANCED_RARE,
     type = EnchantType.SWORD,
     maxLevel = 4,
     weight = EnchantItemWeights.ADVANCED_RARE,
-    anvilCost = 10,
+    damagePerLevel = 0.0,
+    anvilCost = 14,
     minCostBase = 35,
     minCostPerLevel = 15,
     supportedItems = EnchantSupportedItemTags.SWORD,
@@ -35,25 +40,62 @@ import net.minecraft.entity.player.PlayerEntity
 )
 object EnchantAdvancedVenomHandler : Listenable {
 
-    private const val BASE_LEVEL = 3
-    private const val TICKS_PER_LEVEL = 60
-    private const val BONUS_PER_LEVEL = 0.05f
+    private const val CLOUD_RADIUS = 4.0
 
     @SubscribeEvent
-    fun onLivingHurt(e: LivingHurtEvent) {
+    fun onLivingHurt(e: dev.firefly.simpletweaks.compat.event.LivingHurtEvent) {
         if (e.invalid) return
         val player = e.attacker as? PlayerEntity ?: return
         val victim = e.entityLiving
         if (victim === player) return
-
         val level = getItemSpecificEnchantLevel(player.combatStack(e.source), GeneratedEnchantments.ADVANCED_VENOM)
         if (level <= 0) return
+        val poisoned = victim.getStatusEffect(net.minecraft.entity.effect.StatusEffects.POISON) != null
+        victim.addStatusEffect(
+            net.minecraft.entity.effect.StatusEffectInstance(
+                net.minecraft.entity.effect.StatusEffects.POISON,
+                40 * (3 + level),
+                0,
+            ),
+        )
+        if (poisoned) {
+            ElementAuras.attach(victim, ElementType.NATURE, ElementAuras.STRONG)
+        }
+        FSTLog.log("AdvancedVenomHandler") {
+            "player=${player.name.string}, level=$level, poisoned=$poisoned, outcome=injected"
+        }
+    }
 
-        val poisoned = victim.hasStatusEffect(StatusEffects.POISON)
-        if (poisoned) e.amount *= 1f + BONUS_PER_LEVEL * level
-        victim.addStatusEffect(StatusEffectInstance(StatusEffects.POISON, TICKS_PER_LEVEL * (BASE_LEVEL + level), 0))
-        FSTLog.log("AdvancedVenom") {
-            "player=${player.name.string}, level=$level, poisoned=$poisoned, damage=${e.amount}, outcome=poisoned"
+    @SubscribeEvent
+    fun onLivingDeath(e: dev.firefly.simpletweaks.compat.event.LivingDeathEvent) {
+        val dying = e.entityLiving
+        val player = e.source?.attacker as? PlayerEntity ?: return
+        val level = getItemSpecificEnchantLevel(player.combatStack(e.source), GeneratedEnchantments.ADVANCED_VENOM)
+        if (level <= 0) return
+        if (dying.getStatusEffect(net.minecraft.entity.effect.StatusEffects.POISON) == null) return
+
+        // A poisoned corpse bursts: everything in reach breathes it in.
+        val box = Box(
+            dying.x - CLOUD_RADIUS, dying.y - CLOUD_RADIUS, dying.z - CLOUD_RADIUS,
+            dying.x + CLOUD_RADIUS, dying.y + CLOUD_RADIUS, dying.z + CLOUD_RADIUS,
+        )
+        val nearby = dying.world.getEntitiesByClass(LivingEntity::class.java, box) {
+            it.isAlive && it !== dying && it !== player && !it.isTeammate(player)
+        }
+        var hit = 0
+        for (candidate in nearby) {
+            candidate.addStatusEffect(
+                net.minecraft.entity.effect.StatusEffectInstance(
+                    net.minecraft.entity.effect.StatusEffects.POISON,
+                    20 * (3 + level),
+                    0,
+                ),
+            )
+            ElementAuras.attach(candidate, ElementType.NATURE, ElementAuras.WEAK)
+            hit++
+        }
+        FSTLog.log("AdvancedVenomHandler") {
+            "player=${player.name.string}, level=$level, hit=$hit, outcome=cloud"
         }
     }
 }

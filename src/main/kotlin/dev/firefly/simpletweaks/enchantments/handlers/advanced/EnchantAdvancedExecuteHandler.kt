@@ -1,6 +1,10 @@
 package dev.firefly.simpletweaks.enchantments.handlers.advanced
 
 import dev.firefly.simpletweaks.compat.FSTLog
+import java.util.UUID
+import net.minecraft.entity.LivingEntity
+import dev.firefly.simpletweaks.util.damagesource.damageElemental
+import dev.firefly.simpletweaks.util.damagesource.ModDamageTypes
 import dev.firefly.simpletweaks.compat.attacker
 import dev.firefly.simpletweaks.compat.event.LivingHurtEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
@@ -50,7 +54,13 @@ object EnchantAdvancedExecuteHandler : Listenable {
         if (lost <= 0f) return
 
         val before = e.amount
-        e.amount += lost * PER_LEVEL * (BASE_LEVEL + level)
+        if (victim.health / victim.maxHealth <= 0.3f) {
+            // A finished target is past the point of armour: the whole hit is dealt as true damage.
+            e.amount = 0f
+            victim.damageElemental(player, ModDamageTypes.TRUE_DAMAGE, before * (1f + 0.15f * level))
+        } else {
+            e.amount += lost * PER_LEVEL * (BASE_LEVEL + level)
+        }
         FSTLog.log("AdvancedExecute") {
             "player=${player.name.string}, level=$level, lost=$lost, damage=$before->${e.amount}, outcome=finished"
         }

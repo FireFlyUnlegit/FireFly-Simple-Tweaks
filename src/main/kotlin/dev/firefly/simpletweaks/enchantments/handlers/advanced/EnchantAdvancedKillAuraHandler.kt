@@ -1,6 +1,8 @@
 package dev.firefly.simpletweaks.enchantments.handlers.advanced
 
 import dev.firefly.simpletweaks.compat.FSTLog
+import java.util.UUID
+import net.minecraft.entity.LivingEntity
 import dev.firefly.simpletweaks.compat.attacker
 import dev.firefly.simpletweaks.compat.event.LivingDamageEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
@@ -51,8 +53,17 @@ object EnchantAdvancedKillAuraHandler : Listenable {
         val level = getItemSpecificEnchantLevel(player.combatStack(e.source), GeneratedEnchantments.ADVANCED_KILL_AURA)
         if (level <= 0) return
         val before = e.amount
-        e.amount *= 1f + 0.02f * (BASE_LEVEL + level)
-        if (victim.health / victim.maxHealth < 0.3f) e.amount *= 1.5f
+        // The aura keeps swinging: bleed `level` extra targets for a fraction of this hit.
+        val nearby = player.world.getOtherEntities(player, victim.boundingBox.expand(4.0)) { other ->
+            other is LivingEntity && other !== victim && other !== player && other.isAlive && other !is PlayerEntity
+        }
+        var struck = 0
+        for (other in nearby) {
+            if (struck >= level) break
+            (other as LivingEntity).damageElemental(player, ModDamageTypes.TRUE_DAMAGE, before * 0.25f)
+            struck++
+        }
+        if (struck > 0) player.addStatusEffect(StatusEffectInstance(StatusEffects.SPEED, 20, 0))
         FSTLog.log("AdvancedKillAuraHandler") { "player=${player.name.string}, level=$level, damage=$before->${e.amount}, outcome=applied" }
     }
 }

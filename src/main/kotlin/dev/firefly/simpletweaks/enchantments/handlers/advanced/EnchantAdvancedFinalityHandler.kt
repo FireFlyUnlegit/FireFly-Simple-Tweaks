@@ -14,10 +14,12 @@ import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 import dev.firefly.simpletweaks.util.combatStack
+import dev.firefly.simpletweaks.util.damagesource.ModDamageTypes
+import dev.firefly.simpletweaks.util.damagesource.damageElemental
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import net.minecraft.entity.player.PlayerEntity
 
-/** The advanced form of `finality`: the III bonus plus a little more against untouched targets. */
+/** The advanced form of this enchantment: its top tier plus an effect of its own. */
 @ModEnchantment(
     id = "advanced_finality",
     category = EnchantCategory.ADVANCED_EPIC,
@@ -25,18 +27,17 @@ import net.minecraft.entity.player.PlayerEntity
     maxLevel = 3,
     weight = EnchantItemWeights.ADVANCED_EPIC,
     damagePerLevel = 0.0,
-    anvilCost = 12,
-    minCostBase = 35,
-    minCostPerLevel = 15,
+    anvilCost = 14,
+    minCostBase = 40,
+    minCostPerLevel = 20,
     supportedItems = EnchantSupportedItemTags.WEAPON,
     slots = [EnchantSlot.MAINHAND],
-    order = 77,
+    order = 96,
 )
 object EnchantAdvancedFinalityHandler : Listenable {
 
     private const val BASE_LEVEL = 3
-    private const val PER_LEVEL = 0.01f
-    private const val FULL_HEALTH_PER_LEVEL = 0.02f
+    private const val FINISHER_FRACTION = 0.20f
 
     @SubscribeEvent
     fun onLivingDamage(e: LivingDamageEvent) {
@@ -44,14 +45,25 @@ object EnchantAdvancedFinalityHandler : Listenable {
         val player = e.attacker as? PlayerEntity ?: return
         val victim = e.entityLiving
         if (victim === player) return
-
         val level = getItemSpecificEnchantLevel(player.combatStack(e.source), GeneratedEnchantments.ADVANCED_FINALITY)
         if (level <= 0) return
 
         val before = e.amount
-        e.amount *= 1f + PER_LEVEL * (BASE_LEVEL + level)
-        if (victim.health >= victim.maxHealth) e.amount *= 1f + FULL_HEALTH_PER_LEVEL * level
-        FSTLog.log("AdvancedFinality") {
+        e.amount *= 1f + 0.01f * (BASE_LEVEL + level)
+        if (victim.getHealth() >= victim.getMaxHealth()) e.amount *= 1f + 0.02f * level
+
+        // Below the line the blade stops haggling with armour: the remainder is simply true damage.
+        val fraction = victim.getHealth() / victim.getMaxHealth().coerceAtLeast(1f)
+        if (fraction <= FINISHER_FRACTION) {
+            val finish = before * 0.10f * level
+            val landed = victim.damageElemental(player, ModDamageTypes.TRUE_DAMAGE, finish)
+            FSTLog.log("AdvancedFinalityHandler") {
+                "player=${player.name.string}, level=$level, finish=$finish, landed=$landed, outcome=finisher"
+            }
+            return
+        }
+
+        FSTLog.log("AdvancedFinalityHandler") {
             "player=${player.name.string}, level=$level, damage=$before->${e.amount}, outcome=amplified"
         }
     }

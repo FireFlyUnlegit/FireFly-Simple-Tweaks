@@ -1,8 +1,7 @@
 package dev.firefly.simpletweaks.enchantments.handlers.advanced
 
 import dev.firefly.simpletweaks.compat.FSTLog
-import dev.firefly.simpletweaks.compat.attacker
-import dev.firefly.simpletweaks.compat.event.LivingDamageEvent
+import dev.firefly.simpletweaks.compat.event.LivingHurtEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.invalid
 import dev.firefly.simpletweaks.core.Listenable
@@ -13,46 +12,48 @@ import dev.firefly.simpletweaks.enchantments.annotations.EnchantSupportedItemTag
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
-import dev.firefly.simpletweaks.util.FireBurn
-import dev.firefly.simpletweaks.util.absorptionHeadroomId
 import dev.firefly.simpletweaks.util.combatStack
 import dev.firefly.simpletweaks.util.damagesource.ModDamageTypes
 import dev.firefly.simpletweaks.util.damagesource.damageElemental
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
-import dev.firefly.simpletweaks.util.grantAbsorption
-import net.minecraft.entity.effect.StatusEffectInstance
-import net.minecraft.entity.effect.StatusEffects
+import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.player.PlayerEntity
+
 /** The advanced form of this enchantment: its top tier plus an effect of its own. */
 @ModEnchantment(
     id = "advanced_shield_bash",
     category = EnchantCategory.ADVANCED_LEGENDARY,
-    type = EnchantType.WEAPON,
+    type = EnchantType.HELD,
     maxLevel = 3,
     weight = EnchantItemWeights.ADVANCED_LEGENDARY,
     damagePerLevel = 0.0,
-    anvilCost = 12,
-    minCostBase = 35,
-    minCostPerLevel = 15,
-    supportedItems = EnchantSupportedItemTags.WEAPON,
-    slots = [EnchantSlot.MAINHAND],
+    anvilCost = 16,
+    minCostBase = 40,
+    minCostPerLevel = 20,
+    supportedItems = EnchantSupportedItemTags.SHIELD,
+    slots = [EnchantSlot.OFFHAND],
     order = 92,
 )
 object EnchantAdvancedShieldBashHandler : Listenable {
 
-    private const val BASE_LEVEL = 3
-
     @SubscribeEvent
-    fun onLivingDamage(e: LivingDamageEvent) {
+    fun onLivingHurt(e: LivingHurtEvent) {
         if (e.invalid) return
-        val player = e.attacker as? PlayerEntity ?: return
-        val victim = e.entityLiving
-        if (victim === player) return
+        val player = e.entityLiving as? PlayerEntity ?: return
+        val attacker = e.source.attacker as? LivingEntity ?: return
+        if (attacker === player) return
+        if (!player.isBlocking) return
         val level = getItemSpecificEnchantLevel(player.combatStack(e.source), GeneratedEnchantments.ADVANCED_SHIELD_BASH)
-        if (level <= 0) return
-        val before = e.amount
-        e.amount *= 1f + 0.03f * (BASE_LEVEL + level)
-        if (player.isBlocking) victim.addStatusEffect(StatusEffectInstance(StatusEffects.WEAKNESS, 60, 1))
-        FSTLog.log("AdvancedShieldBashHandler") { "player=${player.name.string}, level=$level, damage=$before->${e.amount}, outcome=applied" }
+        val offhandLevel = getItemSpecificEnchantLevel(player.offHandStack, GeneratedEnchantments.ADVANCED_SHIELD_BASH)
+        val effective = maxOf(level, offhandLevel)
+        if (effective <= 0) return
+
+        // A raised shield answers the swing instead of only eating it.
+        val bash = e.amount * 0.15f * effective
+        if (bash <= 0f) return
+        val landed = attacker.damageElemental(player, ModDamageTypes.TRUE_DAMAGE, bash)
+        FSTLog.log("AdvancedShieldBashHandler") {
+            "player=${player.name.string}, level=$effective, bash=$bash, landed=$landed, outcome=bashed"
+        }
     }
 }

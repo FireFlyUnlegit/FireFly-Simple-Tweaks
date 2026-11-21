@@ -13,16 +13,10 @@ import dev.firefly.simpletweaks.enchantments.annotations.EnchantSupportedItemTag
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
-import dev.firefly.simpletweaks.util.FireBurn
-import dev.firefly.simpletweaks.util.absorptionHeadroomId
 import dev.firefly.simpletweaks.util.combatStack
-import dev.firefly.simpletweaks.util.damagesource.ModDamageTypes
-import dev.firefly.simpletweaks.util.damagesource.damageElemental
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
-import dev.firefly.simpletweaks.util.grantAbsorption
-import net.minecraft.entity.effect.StatusEffectInstance
-import net.minecraft.entity.effect.StatusEffects
 import net.minecraft.entity.player.PlayerEntity
+
 /** The advanced form of this enchantment: its top tier plus an effect of its own. */
 @ModEnchantment(
     id = "advanced_skyfall",
@@ -31,16 +25,16 @@ import net.minecraft.entity.player.PlayerEntity
     maxLevel = 4,
     weight = EnchantItemWeights.ADVANCED_LEGENDARY,
     damagePerLevel = 0.0,
-    anvilCost = 12,
-    minCostBase = 35,
-    minCostPerLevel = 15,
+    anvilCost = 16,
+    minCostBase = 40,
+    minCostPerLevel = 20,
     supportedItems = EnchantSupportedItemTags.WEAPON,
     slots = [EnchantSlot.MAINHAND],
-    order = 91,
+    order = 93,
 )
 object EnchantAdvancedSkyfallHandler : Listenable {
 
-    private const val BASE_LEVEL = 3
+    private const val FALL_CAP = 6f
 
     @SubscribeEvent
     fun onLivingDamage(e: LivingDamageEvent) {
@@ -50,9 +44,15 @@ object EnchantAdvancedSkyfallHandler : Listenable {
         if (victim === player) return
         val level = getItemSpecificEnchantLevel(player.combatStack(e.source), GeneratedEnchantments.ADVANCED_SKYFALL)
         if (level <= 0) return
+        if (player.isOnGround) return
+
+        // Gravity is the weapon: the longer the drop, the harder the landing (capped so a sky-limit
+        // jump does not turn into an instant kill).
         val before = e.amount
-        val drop = if (player.fallDistance > 1.5f) 2f else 1f
-        e.amount *= 1f + 0.03f * (BASE_LEVEL + level) * drop
-        FSTLog.log("AdvancedSkyfallHandler") { "player=${player.name.string}, level=$level, damage=$before->${e.amount}, outcome=applied" }
+        val drop = player.fallDistance.coerceIn(0f, FALL_CAP)
+        e.amount *= 1f + 0.06f * level * (1f + drop)
+        FSTLog.log("AdvancedSkyfallHandler") {
+            "player=${player.name.string}, level=$level, drop=$drop, damage=$before->${e.amount}, outcome=plunged"
+        }
     }
 }

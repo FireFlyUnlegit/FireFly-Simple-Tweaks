@@ -13,16 +13,13 @@ import dev.firefly.simpletweaks.enchantments.annotations.EnchantSupportedItemTag
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
-import dev.firefly.simpletweaks.util.FireBurn
-import dev.firefly.simpletweaks.util.absorptionHeadroomId
 import dev.firefly.simpletweaks.util.combatStack
 import dev.firefly.simpletweaks.util.damagesource.ModDamageTypes
 import dev.firefly.simpletweaks.util.damagesource.damageElemental
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
-import dev.firefly.simpletweaks.util.grantAbsorption
-import net.minecraft.entity.effect.StatusEffectInstance
-import net.minecraft.entity.effect.StatusEffects
 import net.minecraft.entity.player.PlayerEntity
+import java.util.UUID
+
 /** The advanced form of this enchantment: its top tier plus an effect of its own. */
 @ModEnchantment(
     id = "advanced_devour",
@@ -31,16 +28,18 @@ import net.minecraft.entity.player.PlayerEntity
     maxLevel = 5,
     weight = EnchantItemWeights.ADVANCED_MYTHIC,
     damagePerLevel = 0.0,
-    anvilCost = 12,
-    minCostBase = 35,
-    minCostPerLevel = 15,
+    anvilCost = 18,
+    minCostBase = 40,
+    minCostPerLevel = 20,
     supportedItems = EnchantSupportedItemTags.WEAPON,
     slots = [EnchantSlot.MAINHAND],
-    order = 94,
+    order = 95,
 )
 object EnchantAdvancedDevourHandler : Listenable {
 
-    private const val BASE_LEVEL = 3
+    private const val SWINGS_PER_BITE = 5
+
+    private val swings = java.util.Collections.synchronizedMap(HashMap<UUID, Int>())
 
     @SubscribeEvent
     fun onLivingDamage(e: LivingDamageEvent) {
@@ -50,9 +49,20 @@ object EnchantAdvancedDevourHandler : Listenable {
         if (victim === player) return
         val level = getItemSpecificEnchantLevel(player.combatStack(e.source), GeneratedEnchantments.ADVANCED_DEVOUR)
         if (level <= 0) return
-        val before = e.amount
-        e.amount *= 1f + 0.04f * (BASE_LEVEL + level)
-        player.heal(0.01f * level * e.amount)
-        FSTLog.log("AdvancedDevourHandler") { "player=${player.name.string}, level=$level, damage=$before->${e.amount}, outcome=applied" }
+
+        val count = (swings[player.uuid] ?: 0) + 1
+        if (count < SWINGS_PER_BITE) {
+            swings[player.uuid] = count
+            return
+        }
+        swings[player.uuid] = 0
+
+        // Every fifth swing the stored hunger bites: an unavoidable chunk scaled by the hit itself.
+        val bite = e.amount * 0.05f * level
+        if (bite <= 0f) return
+        val landed = victim.damageElemental(player, ModDamageTypes.TRUE_DAMAGE, bite)
+        FSTLog.log("AdvancedDevourHandler") {
+            "player=${player.name.string}, level=$level, bite=$bite, landed=$landed, outcome=bite"
+        }
     }
 }

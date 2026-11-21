@@ -13,34 +13,30 @@ import dev.firefly.simpletweaks.enchantments.annotations.EnchantSupportedItemTag
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
-import dev.firefly.simpletweaks.util.FireBurn
 import dev.firefly.simpletweaks.util.absorptionHeadroomId
 import dev.firefly.simpletweaks.util.combatStack
-import dev.firefly.simpletweaks.util.damagesource.ModDamageTypes
-import dev.firefly.simpletweaks.util.damagesource.damageElemental
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import dev.firefly.simpletweaks.util.grantAbsorption
-import net.minecraft.entity.effect.StatusEffectInstance
-import net.minecraft.entity.effect.StatusEffects
 import net.minecraft.entity.player.PlayerEntity
+
 /** The advanced form of this enchantment: its top tier plus an effect of its own. */
 @ModEnchantment(
     id = "advanced_healing_blade",
     category = EnchantCategory.ADVANCED_MYTHIC,
-    type = EnchantType.WEAPON,
+    type = EnchantType.SWORD,
     maxLevel = 5,
     weight = EnchantItemWeights.ADVANCED_MYTHIC,
     damagePerLevel = 0.0,
-    anvilCost = 12,
-    minCostBase = 35,
-    minCostPerLevel = 15,
-    supportedItems = EnchantSupportedItemTags.WEAPON,
+    anvilCost = 18,
+    minCostBase = 45,
+    minCostPerLevel = 20,
+    supportedItems = EnchantSupportedItemTags.SWORD,
     slots = [EnchantSlot.MAINHAND],
-    order = 98,
+    order = 97,
 )
 object EnchantAdvancedHealingBladeHandler : Listenable {
 
-    private const val BASE_LEVEL = 8
+    private const val HEADROOM = "advanced_healing_blade"
 
     @SubscribeEvent
     fun onLivingDamage(e: LivingDamageEvent) {
@@ -50,11 +46,22 @@ object EnchantAdvancedHealingBladeHandler : Listenable {
         if (victim === player) return
         val level = getItemSpecificEnchantLevel(player.combatStack(e.source), GeneratedEnchantments.ADVANCED_HEALING_BLADE)
         if (level <= 0) return
-        val before = e.amount
-        e.amount *= 1f + 0.01f * (BASE_LEVEL + level)
-        val heal = 0.03f * level * e.amount
+
+        // Mending follows the wound, not the swing: the emptier the bar, the more the blade returns.
+        val missing = (player.maxHealth - player.health).coerceAtLeast(0f)
+        val heal = missing * 0.10f * level
+        if (heal <= 0f) return
         player.heal(heal)
-        grantAbsorption(player, absorptionHeadroomId("advanced_healing_blade"), heal * 0.5f, heal * 0.5f)
-        FSTLog.log("AdvancedHealingBladeHandler") { "player=${player.name.string}, level=$level, damage=$before->${e.amount}, outcome=applied" }
+
+        // At full health every drop is banked instead of wasted.
+        val stillMissing = (player.maxHealth - player.health).coerceAtLeast(0f)
+        if (stillMissing <= 0.5f) {
+            val headroom = 2f * level
+            grantAbsorption(player, absorptionHeadroomId(HEADROOM), heal, headroom)
+        }
+
+        FSTLog.log("AdvancedHealingBladeHandler") {
+            "player=${player.name.string}, level=$level, missing=$missing, healed=$heal"
+        }
     }
 }

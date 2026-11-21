@@ -13,16 +13,13 @@ import dev.firefly.simpletweaks.enchantments.annotations.EnchantSupportedItemTag
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
-import dev.firefly.simpletweaks.util.FireBurn
-import dev.firefly.simpletweaks.util.absorptionHeadroomId
 import dev.firefly.simpletweaks.util.combatStack
 import dev.firefly.simpletweaks.util.damagesource.ModDamageTypes
 import dev.firefly.simpletweaks.util.damagesource.damageElemental
+import dev.firefly.simpletweaks.util.elements.ElementAuras
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
-import dev.firefly.simpletweaks.util.grantAbsorption
-import net.minecraft.entity.effect.StatusEffectInstance
-import net.minecraft.entity.effect.StatusEffects
 import net.minecraft.entity.player.PlayerEntity
+
 /** The advanced form of this enchantment: its top tier plus an effect of its own. */
 @ModEnchantment(
     id = "advanced_resonance_core",
@@ -31,16 +28,14 @@ import net.minecraft.entity.player.PlayerEntity
     maxLevel = 4,
     weight = EnchantItemWeights.ADVANCED_MYSTERY,
     damagePerLevel = 0.0,
-    anvilCost = 12,
-    minCostBase = 35,
-    minCostPerLevel = 15,
+    anvilCost = 18,
+    minCostBase = 45,
+    minCostPerLevel = 20,
     supportedItems = EnchantSupportedItemTags.WEAPON,
     slots = [EnchantSlot.MAINHAND],
     order = 102,
 )
 object EnchantAdvancedResonanceCoreHandler : Listenable {
-
-    private const val BASE_LEVEL = 3
 
     @SubscribeEvent
     fun onLivingDamage(e: LivingDamageEvent) {
@@ -50,9 +45,16 @@ object EnchantAdvancedResonanceCoreHandler : Listenable {
         if (victim === player) return
         val level = getItemSpecificEnchantLevel(player.combatStack(e.source), GeneratedEnchantments.ADVANCED_RESONANCE_CORE)
         if (level <= 0) return
+        if (ElementAuras.peek(victim) == null) return
+
+        // The core refuses to wait for a reaction: it eats whatever element is already there and
+        // spends it as raw damage, so nothing is left for the reaction table to fire on.
         val before = e.amount
-        e.amount *= 1f + 0.03f * (BASE_LEVEL + level)
-        if (victim.health / victim.maxHealth < 0.5f) e.amount *= 1.25f
-        FSTLog.log("AdvancedResonanceCoreHandler") { "player=${player.name.string}, level=$level, damage=$before->${e.amount}, outcome=applied" }
+        ElementAuras.clear(victim)
+        val burst = before * 0.06f * level
+        val landed = victim.damageElemental(player, ModDamageTypes.TRUE_DAMAGE, burst)
+        FSTLog.log("AdvancedResonanceCoreHandler") {
+            "player=${player.name.string}, level=$level, burst=$burst, landed=$landed, outcome=discharged"
+        }
     }
 }

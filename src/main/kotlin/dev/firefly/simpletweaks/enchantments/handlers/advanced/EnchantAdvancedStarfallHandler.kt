@@ -13,34 +13,30 @@ import dev.firefly.simpletweaks.enchantments.annotations.EnchantSupportedItemTag
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
-import dev.firefly.simpletweaks.util.FireBurn
-import dev.firefly.simpletweaks.util.absorptionHeadroomId
 import dev.firefly.simpletweaks.util.combatStack
 import dev.firefly.simpletweaks.util.damagesource.ModDamageTypes
 import dev.firefly.simpletweaks.util.damagesource.damageElemental
+import dev.firefly.simpletweaks.util.elements.ElementAuras
+import dev.firefly.simpletweaks.util.elements.ElementType
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
-import dev.firefly.simpletweaks.util.grantAbsorption
-import net.minecraft.entity.effect.StatusEffectInstance
-import net.minecraft.entity.effect.StatusEffects
 import net.minecraft.entity.player.PlayerEntity
+
 /** The advanced form of this enchantment: its top tier plus an effect of its own. */
 @ModEnchantment(
     id = "advanced_starfall",
     category = EnchantCategory.ADVANCED_MYTHIC,
-    type = EnchantType.WEAPON,
+    type = EnchantType.BOW,
     maxLevel = 5,
     weight = EnchantItemWeights.ADVANCED_MYTHIC,
     damagePerLevel = 0.0,
-    anvilCost = 12,
-    minCostBase = 35,
-    minCostPerLevel = 15,
-    supportedItems = EnchantSupportedItemTags.WEAPON,
+    anvilCost = 18,
+    minCostBase = 45,
+    minCostPerLevel = 20,
+    supportedItems = EnchantSupportedItemTags.BOW_OR_CROSSBOW,
     slots = [EnchantSlot.MAINHAND],
-    order = 97,
+    order = 98,
 )
 object EnchantAdvancedStarfallHandler : Listenable {
-
-    private const val BASE_LEVEL = 5
 
     @SubscribeEvent
     fun onLivingDamage(e: LivingDamageEvent) {
@@ -50,9 +46,21 @@ object EnchantAdvancedStarfallHandler : Listenable {
         if (victim === player) return
         val level = getItemSpecificEnchantLevel(player.combatStack(e.source), GeneratedEnchantments.ADVANCED_STARFALL)
         if (level <= 0) return
-        val before = e.amount
-        e.amount *= 1f + 0.03f * (BASE_LEVEL + level)
-        FireBurn.ignite(victim, level, player)
-        FSTLog.log("AdvancedStarfallHandler") { "player=${player.name.string}, level=$level, damage=$before->${e.amount}, outcome=applied" }
+
+        // Every arrow leaves a star nailed to the target; a second arrow on a lit target makes it burst.
+        val lit = ElementAuras.peek(victim)?.first == ElementType.LIGHT
+        ElementAuras.attach(victim, ElementType.LIGHT, ElementAuras.STRONG)
+        if (!lit) {
+            FSTLog.log("AdvancedStarfallHandler") {
+                "player=${player.name.string}, level=$level, outcome=marked"
+            }
+            return
+        }
+
+        val burst = e.amount * 0.05f * level
+        val landed = victim.damageElemental(player, ModDamageTypes.STAR, burst)
+        FSTLog.log("AdvancedStarfallHandler") {
+            "player=${player.name.string}, level=$level, burst=$burst, landed=$landed, outcome=burst"
+        }
     }
 }

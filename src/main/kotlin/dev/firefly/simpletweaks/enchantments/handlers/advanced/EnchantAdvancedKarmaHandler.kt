@@ -1,6 +1,8 @@
 package dev.firefly.simpletweaks.enchantments.handlers.advanced
 
 import dev.firefly.simpletweaks.compat.FSTLog
+import java.util.UUID
+import net.minecraft.entity.LivingEntity
 import dev.firefly.simpletweaks.compat.attacker
 import dev.firefly.simpletweaks.compat.event.LivingDamageEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
@@ -41,6 +43,21 @@ import net.minecraft.entity.player.PlayerEntity
 )
 object EnchantAdvancedKarmaHandler : Listenable {
 
+
+    /** Damage the armour refused, waiting to be spent. */
+    private val pool = java.util.Collections.synchronizedMap(HashMap<UUID, Float>())
+
+    @SubscribeEvent(priority = 45)
+    fun onKarmaPayback(e: LivingDamageEvent) {
+        if (e.invalid) return
+        val player = e.attacker as? PlayerEntity ?: return
+        if (e.entityLiving === player) return
+        val owed = pool.remove(player.uuid) ?: return
+        if (owed <= 0f) return
+        e.entityLiving.damageElemental(player, ModDamageTypes.TRUE_DAMAGE, owed * 2f)
+        FSTLog.log("AdvancedKarma") { "player=${player.name.string}, owed=$owed, outcome=paid-back" }
+    }
+
     private const val BASE_LEVEL = 4
 
     @SubscribeEvent
@@ -55,7 +72,9 @@ object EnchantAdvancedKarmaHandler : Listenable {
         if (level <= 0) return
         val before = e.amount
         e.amount *= (1f - 0.04f * (BASE_LEVEL + level)).coerceAtLeast(0f)
-        player.heal((before - e.amount) * 0.25f)
+        // What the armour saved is not lost: it is held in karma and paid back on the next swing.
+        val saved = before - e.amount
+        if (saved > 0f) pool[player.uuid] = (pool[player.uuid] ?: 0f) + saved
         FSTLog.log("AdvancedKarmaHandler") { "player=${player.name.string}, level=$level, damage=$before->${e.amount}, outcome=applied" }
     }
 }

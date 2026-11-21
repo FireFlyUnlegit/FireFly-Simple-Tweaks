@@ -51,8 +51,12 @@ object EnchantAdvancedMidasTouchHandler : Listenable {
         val level = getItemSpecificEnchantLevel(player.combatStack(e.source), GeneratedEnchantments.ADVANCED_MIDAS_TOUCH)
         if (level <= 0) return
         val before = e.amount
-        e.amount *= 1f + 0.03f * (BASE_LEVEL + level)
-        if (victim.health >= victim.maxHealth) e.amount *= 1.3f
+        // Gold follows the kill, not the swing: a finished target drops bottles of enchanting.
+        if (victim.health - e.amount <= 0f) {
+            val bottles = Math.min(level, 3)
+            for (i in 0 until bottles) victim.dropStack(net.minecraft.item.ItemStack(net.minecraft.item.Items.EXPERIENCE_BOTTLE))
+            player.addStatusEffect(StatusEffectInstance(StatusEffects.HASTE, 20 * 10, level - 1))
+        }
         FSTLog.log("AdvancedMidasTouchHandler") { "player=${player.name.string}, level=$level, damage=$before->${e.amount}, outcome=applied" }
     }
 }

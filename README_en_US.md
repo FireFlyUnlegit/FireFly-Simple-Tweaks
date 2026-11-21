@@ -12,14 +12,14 @@
 
 A Minecraft mod I build for fun: new enchantments, new mechanics and better combat feedback for vanilla.
 
-Current **1.21.1 / Fabric** release: **v2.3.0** (139 enchantments, 17 elemental reactions, aura gauges, reworked armour curve).
+Current **1.21.1 / Fabric** release: **v2.4.0** (169 enchantments, 17 elemental reactions, aura gauges, reworked armour curve).
 
 ## 🌿 Branches
 
 | Branch                                                                                        | Game version | Loader | Status        |
 |-----------------------------------------------------------------------------------------------|--------------|--------|---------------|
 | [`forge-1.12.2`](https://github.com/FireFlyUnlegit/FireFly-Simple-Tweaks/tree/forge-1.12.2)   | 1.12.2       | Forge  | ✅ Stable     |
-| [`fabric-1.21.1`](https://github.com/FireFlyUnlegit/FireFly-Simple-Tweaks/tree/fabric-1.21.1) | 1.21.1       | Fabric | ✅ **v2.3.0** |
+| [`fabric-1.21.1`](https://github.com/FireFlyUnlegit/FireFly-Simple-Tweaks/tree/fabric-1.21.1) | 1.21.1       | Fabric | ✅ **v2.4.0** |
 
 - The **1.21.1 / Fabric** port is a full cross-version rewrite — see [`MIGRATION.md`](./MIGRATION.md)
 - The two versions are maintained **in parallel**, never merged
@@ -32,7 +32,7 @@ Current **1.21.1 / Fabric** release: **v2.3.0** (139 enchantments, 17 elemental 
 
 ### 🧙 Custom enchantments
 
-**139** unique enchantments, split by rarity:
+**169** unique enchantments, split by rarity:
 
 | Rarity | Count | Rarity | Count |
 |--------|-------|--------|-------|
@@ -40,8 +40,8 @@ Current **1.21.1 / Fabric** release: **v2.3.0** (139 enchantments, 17 elemental 
 | UNCOMMON | 13 | MYTHIC | 12 |
 | RARE | 28 | MYSTERY | 14 |
 | EPIC | 34 | UNIQUE | 5 |
-| ADVANCED_COMMON (advanced) | 1 | ADVANCED_RARE (advanced) | 1 |
-| ADVANCED_UNCOMMON (advanced) | 0 | ADVANCED_EPIC (advanced) | 2 |
+| ADVANCED_COMMON (advanced) | 3 | ADVANCED_RARE (advanced) | 2 |
+| ADVANCED_UNCOMMON (advanced) | 3 | ADVANCED_EPIC (advanced) | 11 |
 
 **Advanced enchantments** (ADVANCED_*) never come from the enchanting table: a book has to go onto a piece that already has the maxed base form, which that level is then consumed, and the piece counts as ase max + own level from then on (e.g. Advanced Deft I on a weapon behaves like Deft IV).
 

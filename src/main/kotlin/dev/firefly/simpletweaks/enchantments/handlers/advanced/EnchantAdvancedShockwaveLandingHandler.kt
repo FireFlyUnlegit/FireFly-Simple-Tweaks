@@ -1,6 +1,8 @@
 package dev.firefly.simpletweaks.enchantments.handlers.advanced
 
 import dev.firefly.simpletweaks.compat.FSTLog
+import java.util.UUID
+import net.minecraft.entity.LivingEntity
 import dev.firefly.simpletweaks.compat.attacker
 import dev.firefly.simpletweaks.compat.event.LivingDamageEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
@@ -55,7 +57,15 @@ object EnchantAdvancedShockwaveLandingHandler : Listenable {
         if (level <= 0) return
         val before = e.amount
         e.amount *= (1f - 0.03f * (BASE_LEVEL + level)).coerceAtLeast(0f)
-        player.addStatusEffect(StatusEffectInstance(StatusEffects.RESISTANCE, 40, 0))
+        // The ground answers for you: everything within three blocks takes the landing.
+        if (before > 0f) {
+            val blast = before * 0.5f * (BASE_LEVEL + level)
+            val nearby = player.world.getOtherEntities(player, player.boundingBox.expand(3.0)) { other ->
+                other is LivingEntity && other !== player && other.isAlive && other !is PlayerEntity
+            }
+            for (other in nearby) (other as LivingEntity).damageElemental(player, ModDamageTypes.TRUE_DAMAGE, blast)
+            if (nearby.isNotEmpty()) player.addStatusEffect(StatusEffectInstance(StatusEffects.RESISTANCE, 20, 0))
+        }
         FSTLog.log("AdvancedShockwaveLandingHandler") { "player=${player.name.string}, level=$level, damage=$before->${e.amount}, outcome=applied" }
     }
 }
