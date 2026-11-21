@@ -73,8 +73,8 @@ object BarHealthHud {
             context,
             listOf(
                 "${HudBar.number(current.toDouble())}/${HudBar.number(max.toDouble())}",
-                "${one(current.toDouble())}/${one(max.toDouble())}",
-                "${zero(current.toDouble())}/${zero(max.toDouble())}",
+                "${HudBar.one(current.toDouble())}/${HudBar.one(max.toDouble())}",
+                "${HudBar.zero(current.toDouble())}/${HudBar.zero(max.toDouble())}",
                 "${HudBar.compact(current.toDouble())}/${HudBar.compact(max.toDouble())}",
             ),
             barX, y, HudBar.WIDTH, TEXT,
@@ -93,8 +93,8 @@ object BarHealthHud {
                 context,
                 listOf(
                     "+${HudBar.number(absorption.toDouble())}",
-                    "+${one(absorption.toDouble())}",
-                    "+${zero(absorption.toDouble())}",
+                    "+${HudBar.one(absorption.toDouble())}",
+                    "+${HudBar.zero(absorption.toDouble())}",
                     "+${HudBar.compact(absorption.toDouble())}",
                 ),
                 barX, absorbY, HudBar.WIDTH, ABSORB_TEXT,
@@ -118,10 +118,4 @@ object BarHealthHud {
         ToughnessHud.reset()
         HungerHud.reset()
     }
-
-    /** One decimal: the first fallback, so a 1 000 HP pool still shows `1093.8/1093.8`. */
-    private fun one(value: Double): String = BarNumber.of(value, 1)
-
-    /** Whole numbers: the second fallback when even one decimal no longer fits the track. */
-    private fun zero(value: Double): String = BarNumber.of(value, 0)
 }

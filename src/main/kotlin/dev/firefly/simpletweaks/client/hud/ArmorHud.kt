@@ -32,7 +32,7 @@ object ArmorHud {
             context, barX, y, HudBar.WIDTH, HudBar.HEIGHT,
             (shown / REFERENCE).coerceIn(0f, 1f), FILL_TOP, FILL_BOTTOM,
         )
-        HudBar.text(context, HudBar.number(armor), barX, y, HudBar.WIDTH, TEXT)
+        HudBar.fitNumber(context, armor, barX, y, HudBar.WIDTH, TEXT)
     }
 
     fun reset() {

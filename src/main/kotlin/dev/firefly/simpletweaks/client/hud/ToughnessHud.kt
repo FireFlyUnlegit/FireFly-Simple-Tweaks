@@ -29,8 +29,7 @@ object ToughnessHud {
             context, barX, y, HudBar.WIDTH, HudBar.HEIGHT,
             (shown / REFERENCE).coerceIn(0f, 1f), FILL_TOP, FILL_BOTTOM,
         )
-        val value = HudBar.number(toughness)
-        HudBar.text(context, value, barX, y, HudBar.WIDTH, TEXT)
+        HudBar.fitNumber(context, toughness, barX, y, HudBar.WIDTH, TEXT)
         HudBar.shieldIcon(context, rightEdge, y)
     }
 

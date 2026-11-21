@@ -49,9 +49,15 @@ object HungerHud {
             )
         }
 
-        HudBar.text(
+        fun pair(foodText: String, saturationText: String) = "$foodText ($saturationText)"
+        HudBar.fitText(
             context,
-            HudBar.number(food.toDouble()) + " (" + HudBar.number(saturation.toDouble()) + ")",
+            listOf(
+                pair(HudBar.number(food.toDouble()), HudBar.number(saturation.toDouble())),
+                pair(HudBar.one(food.toDouble()), HudBar.one(saturation.toDouble())),
+                pair(HudBar.zero(food.toDouble()), HudBar.zero(saturation.toDouble())),
+                pair(HudBar.compact(food.toDouble()), HudBar.compact(saturation.toDouble())),
+            ),
             barX, y, HudBar.WIDTH, TEXT,
         )
         HudBar.icon(context, HudBar.FOOD_EMPTY, HudBar.FOOD_FULL, rightEdge, y)

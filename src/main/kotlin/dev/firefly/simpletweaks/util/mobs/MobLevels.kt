@@ -41,12 +41,12 @@ import kotlin.math.max
  * ## Stats, per level above 1
  * | attribute | operation | amount |
  * |---|---|---|
- * | `generic.max_health` | `ADD_MULTIPLIED_BASE` | `+0.20` (+20 %) |
- * | `generic.attack_damage` | `ADD_MULTIPLIED_BASE` | `+0.15` (+15 %) |
- * | `generic.armor` | `ADD_VALUE` | `+0.4` |
- * | `generic.knockback_resistance` | `ADD_VALUE` | `+0.03`, capped at `0.95` |
+ * | `generic.max_health` | `ADD_MULTIPLIED_BASE` | `+0.125` (+12.5 %) |
+ * | `generic.attack_damage` | `ADD_MULTIPLIED_BASE` | `+0.10` (+10 %) |
+ * | `generic.armor` | `ADD_VALUE` | `+0.8` |
+ * | `generic.knockback_resistance` | `ADD_VALUE` | `+0.03`, capped at `0.96` |
  *
- * At level 10 that is **+180 % health, +135 % attack damage, +3.6 armour, +27 % knockback
+ * At level 10 that is **+112.5 % health, +90 % attack damage, +7.2 armour, +27 % knockback
  * resistance**; the growth is linear and unbounded (except for the knockback cap), and armour's own
  * damage-reduction curve softens the high end (vanilla caps armour's effect well before the numbers
  * get silly). The numbers are [HEALTH_PER_LEVEL] / [ATTACK_PER_LEVEL] / [ARMOR_PER_LEVEL] /
@@ -77,12 +77,12 @@ object MobLevels {
      * `+0.03` knockback resistance per level above 1, **capped at [KNOCKBACK_CAP]**.
      *
      * Knockback resistance is a plain fraction in `0..1`: `LivingEntity#takeKnockback` multiplies the
-     * applied velocity by `1 - resistance`, so `1.0` would make a mob literally unmovable. `0.95` is
+     * applied velocity by `1 - resistance`, so `1.0` would make a mob literally unmovable. `0.96` is
      * the deliberate ceiling — a high-level mob shrugs off almost every push, but a critical-hit
      * knockback still budges it, which keeps "shove it into the lava" a viable answer.
      *
      * ⚠️ The vanilla attribute `generic.knockback_resistance` is a `ClampedEntityAttribute` with a
-     * **hard max of `1.0`** (see `AGENTS.md` §4.9). `0.95` sits inside that clamp, so this write needs
+     * **hard max of `1.0`** (see `AGENTS.md` §4.9). `0.96` sits inside that clamp, so this write needs
      * no headroom trick — unlike `absorptionAmount`, which silently discards everything above
      * `generic.max_absorption`.
      */

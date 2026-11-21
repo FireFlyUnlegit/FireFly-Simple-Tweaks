@@ -155,6 +155,21 @@ object HudBar {
             GeneralConfig.barCompactNumbers,
         )
 
+    /** One decimal, trailing zeros dropped: first fallback when the configured precision overflows. */
+    fun one(value: Double): String = BarNumber.of(value, 1)
+
+    /** Whole numbers: second fallback. */
+    fun zero(value: Double): String = BarNumber.of(value, 0)
+
+    /** Single bar number with the full ladder: configured → one decimal → integer → `k`/`M`. */
+    fun fitNumber(context: DrawContext, value: Double, x: Int, y: Int, w: Int, color: Int) {
+        fitText(
+            context,
+            listOf(number(value), one(value), zero(value), compact(value)),
+            x, y, w, color,
+        )
+    }
+
     private fun lerp(a: Int, b: Int, t: Float): Int {
         fun mix(shift: Int): Int {
             val ca = (a ushr shift) and 0xFF

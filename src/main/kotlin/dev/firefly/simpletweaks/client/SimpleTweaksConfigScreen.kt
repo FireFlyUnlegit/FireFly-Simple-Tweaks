@@ -414,7 +414,8 @@ class SimpleTweaksConfigScreen(private val parent: Screen?) :
         // Rows: a panel behind them, alternating stripes for readability, a highlight on the hovered row,
         // then the label (truncated so it can never run into the control on the right).
         val left = this.width / 2 - ROW_W / 2
-        val listTop = TOP - 6
+        // Two pixels below the tab body (30 + TABS_H - 4) so the panel never clips the tab row's shadow.
+        val listTop = TOP - 2
         val listBottom = rows.lastOrNull()?.let { it.y + ROW_H } ?: listTop
         context.fill(left - 8, listTop, left + ROW_W + 8, listBottom, 0x66000000.toInt())
         context.fill(left - 8, listTop, left - 7, listBottom, 0x40FFFFFF)
