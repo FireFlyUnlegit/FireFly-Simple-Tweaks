@@ -21,6 +21,10 @@ import dev.firefly.simpletweaks.util.elements.ElementAuras
 import dev.firefly.simpletweaks.util.elements.ElementType
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import net.minecraft.entity.player.PlayerEntity
+import net.minecraft.particle.ParticleTypes
+import net.minecraft.server.world.ServerWorld
+import net.minecraft.sound.SoundCategory
+import net.minecraft.sound.SoundEvents
 
 /** The advanced form of this enchantment: its top tier plus an effect of its own. */
 @ModEnchantment(
@@ -31,8 +35,8 @@ import net.minecraft.entity.player.PlayerEntity
     ladderBase = 5,
     weight = EnchantItemWeights.ADVANCED_MYTHIC,
     damagePerLevel = 0.0,
-    anvilCost = 18,
-    minCostBase = 45,
+    anvilCost = 16,
+    minCostBase = 40,
     minCostPerLevel = 20,
     supportedItems = EnchantSupportedItemTags.BOW_OR_CROSSBOW,
     slots = [EnchantSlot.MAINHAND],
@@ -50,10 +54,16 @@ object EnchantAdvancedStarfallHandler : Listenable {
         val level = getItemSpecificEnchantLevel(player.combatStack(e.source), GeneratedEnchantments.ADVANCED_STARFALL)
         if (level <= 0) return
 
-        // Every arrow leaves a star nailed to the target; a second arrow on a lit target makes it burst.
-        val lit = ElementAuras.peek(victim)?.first == ElementType.LIGHT
-        ElementAuras.attach(victim, ElementType.LIGHT, ElementAuras.STRONG)
+        // Every arrow nails a star to the target; a later arrow on a lit target makes it burst. Anything
+        // else on the target is left alone — overwriting a foreign aura silently broke other setups.
+        val aura = ElementAuras.peek(victim)
+        val lit = aura?.first == ElementType.LIGHT
+        if (!lit && aura != null) return
         if (!lit) {
+            ElementAuras.attach(victim, ElementType.LIGHT, ElementAuras.STRONG)
+            val world = victim.world
+            if (world is ServerWorld) world.spawnParticles(ParticleTypes.END_ROD, victim.x, victim.y + 0.6, victim.z, 12, 0.25, 0.3, 0.25, 0.02)
+            world.playSound(null, victim.blockPos, SoundEvents.BLOCK_AMETHYST_BLOCK_CHIME, SoundCategory.PLAYERS, 0.5f, 1.6f)
             FSTLog.log("AdvancedStarfallHandler") {
                 "player=${player.name.string}, level=$level, outcome=marked"
             }
@@ -62,6 +72,9 @@ object EnchantAdvancedStarfallHandler : Listenable {
 
         val burst = e.amount * 0.05f * level
         val landed = victim.damageElemental(player, ModDamageTypes.STAR, burst)
+        val world = victim.world
+        if (world is ServerWorld) world.spawnParticles(ParticleTypes.FIREWORK, victim.x, victim.y + 0.5, victim.z, 24, 0.35, 0.45, 0.35, 0.12)
+        world.playSound(null, victim.blockPos, SoundEvents.ENTITY_FIREWORK_ROCKET_BLAST, SoundCategory.PLAYERS, 0.7f, 1.2f)
         FSTLog.log("AdvancedStarfallHandler") {
             "player=${player.name.string}, level=$level, burst=$burst, landed=$landed, outcome=burst"
         }

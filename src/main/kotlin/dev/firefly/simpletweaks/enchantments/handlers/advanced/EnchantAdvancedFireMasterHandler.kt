@@ -1,6 +1,7 @@
 package dev.firefly.simpletweaks.enchantments.handlers.advanced
 
 import dev.firefly.simpletweaks.compat.FSTLog
+import dev.firefly.simpletweaks.compat.WorldSide
 import dev.firefly.simpletweaks.compat.attacker
 import dev.firefly.simpletweaks.compat.event.LivingDeathEvent
 import dev.firefly.simpletweaks.compat.event.LivingHurtEvent
@@ -70,6 +71,8 @@ object EnchantAdvancedFireMasterHandler : Listenable {
 
     @SubscribeEvent
     fun onLivingDeath(e: LivingDeathEvent) {
+        if (e.invalid) return
+        if (WorldSide.isClient(e.entityLiving.world)) return
         val dying = e.entityLiving
         if (dying.fireTicks <= 0) return
         val player = e.source.attacker as? PlayerEntity ?: return

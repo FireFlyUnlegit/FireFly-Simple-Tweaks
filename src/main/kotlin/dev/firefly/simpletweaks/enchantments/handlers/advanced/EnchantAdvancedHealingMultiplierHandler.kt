@@ -36,8 +36,8 @@ import net.minecraft.entity.player.PlayerEntity
     anvilCost = 12,
     minCostBase = 35,
     minCostPerLevel = 15,
-    supportedItems = EnchantSupportedItemTags.WEAPON,
-    slots = [EnchantSlot.MAINHAND],
+    supportedItems = EnchantSupportedItemTags.CHEST_ARMOR,
+    slots = [EnchantSlot.CHEST],
     order = 85,
 )
 object EnchantAdvancedHealingMultiplierHandler : Listenable {

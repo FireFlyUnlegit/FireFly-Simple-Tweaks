@@ -138,13 +138,13 @@ private val TIER_RARITY = mapOf(
     "LEGENDARY" to 4,
     "MYTHIC" to 5,
     "MYSTERY" to 6,
-    "ADVANCED_COMMON" to 4,
-    "ADVANCED_UNCOMMON" to 4,
-    "ADVANCED_RARE" to 4,
-    "ADVANCED_EPIC" to 4,
+    "ADVANCED_COMMON" to 0,
+    "ADVANCED_UNCOMMON" to 1,
+    "ADVANCED_RARE" to 2,
+    "ADVANCED_EPIC" to 3,
     "ADVANCED_LEGENDARY" to 4,
-    "ADVANCED_MYTHIC" to 4,
-    "ADVANCED_MYSTERY" to 4,
+    "ADVANCED_MYTHIC" to 5,
+    "ADVANCED_MYSTERY" to 6,
 )
 
 private fun tierWeight(category: String): Int = TIER_WEIGHTS[category] ?: 1

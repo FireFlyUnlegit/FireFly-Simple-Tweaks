@@ -3,6 +3,7 @@ package dev.firefly.simpletweaks.enchantments.handlers.advanced
 import dev.firefly.simpletweaks.compat.FSTLog
 import dev.firefly.simpletweaks.compat.WorldSide
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
+import dev.firefly.simpletweaks.compat.event.PlayerEvent
 import dev.firefly.simpletweaks.compat.event.TickEvent
 import dev.firefly.simpletweaks.compat.invalid
 import dev.firefly.simpletweaks.core.Listenable
@@ -16,6 +17,7 @@ import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 import dev.firefly.simpletweaks.util.absorptionHeadroomId
 import dev.firefly.simpletweaks.util.chestplate
 import dev.firefly.simpletweaks.util.ensureAbsorptionHeadroom
+import dev.firefly.simpletweaks.util.TempAbsorption
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import dev.firefly.simpletweaks.util.grantAbsorption
 import dev.firefly.simpletweaks.util.removeAbsorptionHeadroom
@@ -70,5 +72,11 @@ object EnchantAdvancedAegisHandler : Listenable {
         FSTLog.log("AdvancedAegis") {
             "player=${player.name.string}, level=$level, granted=$granted, outcome=shield-refilled"
         }
+    }
+    @SubscribeEvent
+    fun onLogout(e: PlayerEvent.PlayerLoggedOutEvent) {
+        lastGrant.remove(e.player.uuid)
+        removeAbsorptionHeadroom(e.player, absorptionHeadroomId("advanced_aegis"))
+        TempAbsorption.clear(e.player)
     }
 }

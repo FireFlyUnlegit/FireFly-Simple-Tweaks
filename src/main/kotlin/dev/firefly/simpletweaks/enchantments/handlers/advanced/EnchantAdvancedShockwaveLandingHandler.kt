@@ -1,9 +1,6 @@
 package dev.firefly.simpletweaks.enchantments.handlers.advanced
 
 import dev.firefly.simpletweaks.compat.FSTLog
-import java.util.UUID
-import net.minecraft.entity.LivingEntity
-import dev.firefly.simpletweaks.compat.attacker
 import dev.firefly.simpletweaks.compat.event.LivingDamageEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.invalid
@@ -15,18 +12,18 @@ import dev.firefly.simpletweaks.enchantments.annotations.EnchantSupportedItemTag
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
-import dev.firefly.simpletweaks.util.FireBurn
-import dev.firefly.simpletweaks.util.absorptionHeadroomId
-import dev.firefly.simpletweaks.util.combatStack
 import dev.firefly.simpletweaks.util.damagesource.ModDamageTypes
 import dev.firefly.simpletweaks.util.damagesource.damageElemental
 import dev.firefly.simpletweaks.util.damagesource.isAuxiliaryDamage
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
-import dev.firefly.simpletweaks.util.grantAbsorption
+import net.minecraft.entity.EquipmentSlot
+import net.minecraft.entity.LivingEntity
+import net.minecraft.registry.tag.DamageTypeTags
 import net.minecraft.entity.effect.StatusEffectInstance
 import net.minecraft.entity.effect.StatusEffects
-import net.minecraft.entity.EquipmentSlot
 import net.minecraft.entity.player.PlayerEntity
+import java.util.UUID
+
 /** The advanced form of this enchantment: its top tier plus an effect of its own. */
 @ModEnchantment(
     id = "advanced_shockwave_landing",
@@ -47,28 +44,52 @@ object EnchantAdvancedShockwaveLandingHandler : Listenable {
 
     private const val BASE_LEVEL = 3
 
+    /** The shockwave is about landing, so it only answers fall damage. */
+    private const val COOLDOWN_TICKS = 40L
+
+    /** Retaliation is capped at a multiple of the damage actually taken. */
+    private const val MAX_BLAST_FACTOR = 2.0f
+
+    /** Last blast tick per player — a shared field would let one player silence another's. */
+    private val lastBlast = java.util.Collections.synchronizedMap(HashMap<UUID, Long>())
+
     @SubscribeEvent
     fun onLivingDamage(e: LivingDamageEvent) {
         if (e.invalid) return
         if (e.source.isAuxiliaryDamage()) return
         val player = e.entityLiving as? PlayerEntity ?: return
-        var level = 0
-        for (slot in EquipmentSlot.entries) {
-            if (slot.type != EquipmentSlot.Type.HUMANOID_ARMOR) continue
-            level += getItemSpecificEnchantLevel(player.getEquippedStack(slot), GeneratedEnchantments.ADVANCED_SHOCKWAVE_LANDING)
-        }
+        val level = wornLevel(player)
         if (level <= 0) return
         val before = e.amount
         e.amount *= (1f - 0.03f * (BASE_LEVEL + level)).coerceAtLeast(0f)
-        // The ground answers for you: everything within three blocks takes the landing.
-        if (before > 0f) {
-            val blast = before * 0.5f * (BASE_LEVEL + level)
-            val nearby = player.world.getOtherEntities(player, player.boundingBox.expand(3.0)) { other ->
-                other is LivingEntity && other !== player && other.isAlive && other !is PlayerEntity
-            }
-            for (other in nearby) (other as LivingEntity).damageElemental(player, ModDamageTypes.TRUE_DAMAGE, blast)
-            if (nearby.isNotEmpty()) player.addStatusEffect(StatusEffectInstance(StatusEffects.RESISTANCE, 20, 0))
+        if (before <= 0f) return
+        if (!e.source.isIn(DamageTypeTags.IS_FALL)) return
+
+        val now = player.world.time
+        val last = lastBlast[player.uuid] ?: Long.MIN_VALUE
+        if (now - last < COOLDOWN_TICKS) return
+        lastBlast[player.uuid] = now
+
+        val blast = (before * 0.25f * (BASE_LEVEL + level)).coerceAtMost(before * MAX_BLAST_FACTOR)
+        val nearby = player.world.getOtherEntities(player, player.boundingBox.expand(3.0)) { other ->
+            other is LivingEntity && other !== player && other.isAlive && other !is PlayerEntity
         }
-        FSTLog.log("AdvancedShockwaveLandingHandler") { "player=${player.name.string}, level=$level, damage=$before->${e.amount}, outcome=applied" }
+        for (other in nearby) (other as LivingEntity).damageElemental(player, ModDamageTypes.TRUE_DAMAGE, blast)
+        if (nearby.isNotEmpty()) player.addStatusEffect(StatusEffectInstance(StatusEffects.RESISTANCE, 20, 0))
+        FSTLog.log("AdvancedShockwaveLanding") {
+            "player=${player.name.string}, level=$level, taken=$before, blast=$blast, hit=${nearby.size}, outcome=blast"
+        }
+    }
+
+    private fun wornLevel(player: PlayerEntity): Int {
+        var level = 0
+        for (slot in EquipmentSlot.entries) {
+            if (slot.type != EquipmentSlot.Type.HUMANOID_ARMOR) continue
+            level += getItemSpecificEnchantLevel(
+                player.getEquippedStack(slot),
+                GeneratedEnchantments.ADVANCED_SHOCKWAVE_LANDING,
+            )
+        }
+        return level
     }
 }

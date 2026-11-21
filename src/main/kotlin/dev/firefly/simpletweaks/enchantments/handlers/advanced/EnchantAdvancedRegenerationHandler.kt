@@ -49,7 +49,7 @@ object EnchantAdvancedRegenerationHandler : Listenable {
             player.heal(minOf(missing, level.toFloat()))
         } else {
             // At full health the same trickle is banked as hits, not wasted.
-            TempAbsorption.grant(player, 2f * level, 1)
+            if (TempAbsorption.peek(player) == null) TempAbsorption.grant(player, 2f * level, 1)
         }
 
         FSTLog.log("AdvancedRegenerationHandler") {

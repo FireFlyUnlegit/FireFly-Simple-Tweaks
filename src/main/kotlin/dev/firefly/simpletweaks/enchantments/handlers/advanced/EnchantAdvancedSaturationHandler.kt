@@ -74,6 +74,8 @@ object EnchantAdvancedSaturationHandler : Listenable {
         lastGrant[p.uuid] = p.age
 
         val wanted = HEARTS_PER_LEVEL * level * 2f
+        // Never stack: the point is a topped-up shield, not an ever-growing one.
+        if (p.absorptionAmount >= wanted) return
         val granted = grantAbsorption(
             p,
             absorptionHeadroomId("advanced_saturation"),
