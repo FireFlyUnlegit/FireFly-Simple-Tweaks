@@ -52,7 +52,7 @@ object EnchantAdvancedKillAuraHandler : Listenable {
         val player = e.attacker as? PlayerEntity ?: return
         val victim = e.entityLiving
         if (victim === player) return
-        val level = UpgradeEnchantments.ladderLevelOf(player.combatStack(e.source), GeneratedEnchantments.ADVANCED_KILL_AURA)
+        val level = getItemSpecificEnchantLevel(player.combatStack(e.source), GeneratedEnchantments.ADVANCED_KILL_AURA)
         if (level <= 0) return
         val before = e.amount
         // The aura keeps swinging: bleed `level` extra targets for a fraction of this hit.

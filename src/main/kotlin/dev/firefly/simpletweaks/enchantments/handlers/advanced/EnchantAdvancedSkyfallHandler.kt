@@ -52,7 +52,7 @@ object EnchantAdvancedSkyfallHandler : Listenable {
         val player = e.attacker as? PlayerEntity ?: return
         val victim = e.entityLiving
         if (victim === player) return
-        val level = UpgradeEnchantments.ladderLevelOf(player.combatStack(e.source), GeneratedEnchantments.ADVANCED_SKYFALL)
+        val level = getItemSpecificEnchantLevel(player.combatStack(e.source), GeneratedEnchantments.ADVANCED_SKYFALL)
         if (level <= 0) return
 
         // Gravity is the weapon: the longer the drop, the harder the landing (capped so a sky-limit

@@ -46,8 +46,8 @@ object EnchantAdvancedShieldBashHandler : Listenable {
         val attacker = e.source.attacker as? LivingEntity ?: return
         if (attacker === player) return
         if (!player.isBlocking) return
-        val level = UpgradeEnchantments.ladderLevelOf(player.combatStack(e.source), GeneratedEnchantments.ADVANCED_SHIELD_BASH)
-        val offhandLevel = UpgradeEnchantments.ladderLevelOf(player.offHandStack, GeneratedEnchantments.ADVANCED_SHIELD_BASH)
+        val level = getItemSpecificEnchantLevel(player.combatStack(e.source), GeneratedEnchantments.ADVANCED_SHIELD_BASH)
+        val offhandLevel = getItemSpecificEnchantLevel(player.offHandStack, GeneratedEnchantments.ADVANCED_SHIELD_BASH)
         val effective = maxOf(level, offhandLevel)
         if (effective <= 0) return
 

@@ -13,6 +13,7 @@ import dev.firefly.simpletweaks.util.PlayerPower;
 import dev.firefly.simpletweaks.util.ShotWeapon;
 import dev.firefly.simpletweaks.core.AdvancedEnchantMode;
 import dev.firefly.simpletweaks.util.UpgradeEnchantments;
+import dev.firefly.simpletweaks.util.EnchantmentsUtilKt;
 import dev.firefly.simpletweaks.SimpleTweaks;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.registry.RegistryKey;
@@ -1623,6 +1624,35 @@ public class SimpleTweaksGameTests implements FabricGameTest {
         context.assertTrue(huge == 64, "the lapis cost is capped at a stack");
         context.complete();
     }
+    /**
+     * An upgrade consumes its base enchantment, so every base handler that reads
+     * `getItemSpecificEnchantLevel` would see 0 and silently stop working (heavenly punishment lost its
+     * lightning and its `x(level+1)` multiplier this way). The reader floors the base to its max level.
+     */
+    @GameTest(templateName = FabricGameTest.EMPTY_STRUCTURE)
+    public void upgradeFloorKeepsTheBaseEffectAlive(TestContext context) {
+        ItemStack blade = new ItemStack(Items.DIAMOND_SWORD);
+        blade.addEnchantment(entry(context, "advanced_healing_blade"), 1);
+        ItemStack chest = new ItemStack(Items.DIAMOND_CHESTPLATE);
+        chest.addEnchantment(entry(context, "greater_vitality"), 1);
+        ItemStack plain = new ItemStack(Items.DIAMOND_SWORD);
+
+        int bladeBase = EnchantmentsUtilKt.getItemSpecificEnchantLevel(blade, key("healing_blade"));
+        int chestBase = EnchantmentsUtilKt.getItemSpecificEnchantLevel(chest, key("vitality"));
+        int plainBase = EnchantmentsUtilKt.getItemSpecificEnchantLevel(plain, key("healing_blade"));
+        int bladeOwn = EnchantmentsUtilKt.getItemSpecificEnchantLevel(blade, key("advanced_healing_blade"));
+
+        LOGGER.info("[FST-GameTest] upgrade floor: healing_blade=" + bladeBase + " (expect 8), "
+                + "vitality=" + chestBase + " (expect 10), plain=" + plainBase + " (expect 0), "
+                + "own=" + bladeOwn + " (expect 1)");
+
+        context.assertEquals(8, bladeBase, "an advanced healing blade must still report base level 8");
+        context.assertEquals(10, chestBase, "greater_vitality must still report vitality X");
+        context.assertEquals(0, plainBase, "a plain sword reports no base level");
+        context.assertEquals(1, bladeOwn, "the advanced level itself stays 1");
+        context.complete();
+    }
+
     @GameTest(templateName = FabricGameTest.EMPTY_STRUCTURE)
     public void upgradeLadderReplacesItsBase(TestContext context) {
         UpgradeEnchantments.Rule rule = UpgradeEnchantments.INSTANCE

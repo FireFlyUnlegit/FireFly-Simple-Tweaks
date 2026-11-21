@@ -88,7 +88,7 @@ object EnchantAdvancedAntiKnockbackHandler : Listenable {
         var level = 0
         for (slot in EquipmentSlot.entries) {
             if (slot.type != EquipmentSlot.Type.HUMANOID_ARMOR) continue
-            level += UpgradeEnchantments.ladderLevelOf(player.getEquippedStack(slot), GeneratedEnchantments.ADVANCED_ANTI_KNOCKBACK)
+            level += getItemSpecificEnchantLevel(player.getEquippedStack(slot), GeneratedEnchantments.ADVANCED_ANTI_KNOCKBACK)
         }
         return level
     }

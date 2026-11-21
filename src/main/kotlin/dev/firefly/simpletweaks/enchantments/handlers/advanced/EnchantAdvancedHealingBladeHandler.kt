@@ -47,15 +47,13 @@ object EnchantAdvancedHealingBladeHandler : Listenable {
         val player = e.attacker as? PlayerEntity ?: return
         val victim = e.entityLiving
         if (victim === player) return
-        val level = UpgradeEnchantments.ladderLevelOf(player.combatStack(e.source), GeneratedEnchantments.ADVANCED_HEALING_BLADE)
+        val level = getItemSpecificEnchantLevel(player.combatStack(e.source), GeneratedEnchantments.ADVANCED_HEALING_BLADE)
         if (level <= 0) return
 
-        // Inherits the base blade (a share of the damage just dealt), then adds the step effect.
+        // The base blade already siphons a share of the hit; this step pays out by how empty the bar is.
         val missing = (player.maxHealth - player.health).coerceAtLeast(0f)
         if (missing <= 0f) return
-        val siphon = (e.amount * 0.10f).coerceAtMost(missing)
-        val mending = (missing * 0.10f * level).coerceAtMost(missing - siphon)
-        val heal = siphon + mending
+        val heal = (missing * 0.10f * level).coerceAtMost(missing)
         if (heal <= 0f) return
         player.heal(heal)
 

@@ -120,7 +120,7 @@ class SimpleTweaksClient : ClientModInitializer {
                 "+ per-attribute min/max overrides (config screen, page 6) + finality, bulwark, " +
                 "elemental surge and reaction surge + a combined damage-modifier section in /fst stats " +
                 "+ advanced forms of four lower tiers, book-only above their base, behind the book slot in /fst enchantinfo " +
-                "(v2.4.0, build=devVer.1.0.7)",
+                "(v2.4.0, build=devVer.1.0.8)",
             SimpleTweaks.NAME,
             enchantmentCount,
         )

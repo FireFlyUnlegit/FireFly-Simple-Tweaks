@@ -64,7 +64,7 @@ object EnchantAdvancedMultitudeHandler : Listenable {
     ) {
         val player = attacker as? PlayerEntity ?: return
         if (player.world.isClient) return
-        val level = UpgradeEnchantments.ladderLevelOf(player.mainHandStack, GeneratedEnchantments.ADVANCED_MULTITUDE)
+        val level = getItemSpecificEnchantLevel(player.mainHandStack, GeneratedEnchantments.ADVANCED_MULTITUDE)
         if (level <= 0) return
         val current = depth.get()
         // `maxLevel` copies: layer 0 is the original reaction, layers 1..level are the copies.

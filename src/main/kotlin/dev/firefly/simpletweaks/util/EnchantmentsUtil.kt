@@ -27,10 +27,22 @@ import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 fun getItemSpecificEnchantLevel(itemStack: ItemStack, key: RegistryKey<Enchantment>): Int {
     val component = EnchantmentHelper.getEnchantments(itemStack)
     if (component.isEmpty) return 0
+    var level = 0
+    var upgrade = false
+    val upgradeKey = UpgradeEnchantments.upgradeOf(key)
     for (entry in component.enchantments) {
-        if (entry.matchesKey(key)) return component.getLevel(entry)
+        if (entry.matchesKey(key)) {
+            level = component.getLevel(entry)
+        } else if (upgradeKey != null && entry.matchesKey(upgradeKey)) {
+            upgrade = true
+        }
     }
-    return 0
+    // An upgrade consumes its base enchantment, so the base handler must still see its max level.
+    if (upgrade) {
+        val floor = UpgradeEnchantments.baseMaxOf(key)
+        if (level < floor) return floor
+    }
+    return level
 }
 
 /** Total level of every enchantment in [keys] present on [itemStack]. */

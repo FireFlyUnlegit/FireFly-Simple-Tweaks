@@ -51,7 +51,7 @@ object EnchantAdvancedMidasTouchHandler : Listenable {
         val player = e.attacker as? PlayerEntity ?: return
         val victim = e.entityLiving
         if (victim === player) return
-        val level = UpgradeEnchantments.ladderLevelOf(player.combatStack(e.source), GeneratedEnchantments.ADVANCED_MIDAS_TOUCH)
+        val level = getItemSpecificEnchantLevel(player.combatStack(e.source), GeneratedEnchantments.ADVANCED_MIDAS_TOUCH)
         if (level <= 0) return
         val before = e.amount
         // Gold follows the kill, not the swing: a finished target drops bottles of enchanting.

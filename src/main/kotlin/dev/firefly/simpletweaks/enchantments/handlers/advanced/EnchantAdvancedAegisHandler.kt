@@ -53,7 +53,7 @@ object EnchantAdvancedAegisHandler : Listenable {
         val player = e.player
         if (WorldSide.isClient(player.world)) return
 
-        val level = UpgradeEnchantments.ladderLevelOf(player.chestplate, GeneratedEnchantments.ADVANCED_AEGIS)
+        val level = getItemSpecificEnchantLevel(player.chestplate, GeneratedEnchantments.ADVANCED_AEGIS)
         val headroomId = absorptionHeadroomId("advanced_aegis")
         if (level <= 0) {
             lastGrant.remove(player.uuid)

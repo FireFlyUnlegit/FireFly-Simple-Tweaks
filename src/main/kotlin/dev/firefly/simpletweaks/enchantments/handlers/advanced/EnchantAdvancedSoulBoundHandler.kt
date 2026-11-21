@@ -53,7 +53,7 @@ object EnchantAdvancedSoulBoundHandler : Listenable {
         var level = 0
         for (slot in EquipmentSlot.entries) {
             if (slot.type != EquipmentSlot.Type.HUMANOID_ARMOR) continue
-            level += UpgradeEnchantments.ladderLevelOf(player.getEquippedStack(slot), GeneratedEnchantments.ADVANCED_SOUL_BOUND)
+            level += getItemSpecificEnchantLevel(player.getEquippedStack(slot), GeneratedEnchantments.ADVANCED_SOUL_BOUND)
         }
         if (level <= 0) return
         val before = e.amount

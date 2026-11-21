@@ -50,7 +50,7 @@ object EnchantAdvancedExecuteHandler : Listenable {
         val victim = e.entityLiving
         if (victim === player) return
 
-        val level = UpgradeEnchantments.ladderLevelOf(player.combatStack(e.source), GeneratedEnchantments.ADVANCED_EXECUTE)
+        val level = getItemSpecificEnchantLevel(player.combatStack(e.source), GeneratedEnchantments.ADVANCED_EXECUTE)
         if (level <= 0) return
 
         val lost = victim.maxHealth - victim.health

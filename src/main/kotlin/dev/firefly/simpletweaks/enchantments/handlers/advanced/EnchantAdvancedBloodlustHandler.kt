@@ -45,7 +45,7 @@ object EnchantAdvancedBloodlustHandler : Listenable {
         val player = e.attacker as? PlayerEntity ?: return
         val victim = e.entityLiving
         if (victim === player) return
-        val level = UpgradeEnchantments.ladderLevelOf(player.combatStack(e.source), GeneratedEnchantments.ADVANCED_BLOODLUST)
+        val level = getItemSpecificEnchantLevel(player.combatStack(e.source), GeneratedEnchantments.ADVANCED_BLOODLUST)
         if (level <= 0) return
         val before = e.amount
         val missing = 1f - (player.health / player.maxHealth).coerceIn(0f, 1f)

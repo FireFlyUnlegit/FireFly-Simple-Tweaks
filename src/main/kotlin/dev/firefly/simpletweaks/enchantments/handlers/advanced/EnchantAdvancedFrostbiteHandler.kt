@@ -50,7 +50,7 @@ object EnchantAdvancedFrostbiteHandler : Listenable {
         val player = e.attacker as? PlayerEntity ?: return
         val victim = e.entityLiving
         if (victim === player) return
-        val level = UpgradeEnchantments.ladderLevelOf(player.combatStack(e.source), GeneratedEnchantments.ADVANCED_FROSTBITE)
+        val level = getItemSpecificEnchantLevel(player.combatStack(e.source), GeneratedEnchantments.ADVANCED_FROSTBITE)
         if (level <= 0) return
 
         val before = e.amount

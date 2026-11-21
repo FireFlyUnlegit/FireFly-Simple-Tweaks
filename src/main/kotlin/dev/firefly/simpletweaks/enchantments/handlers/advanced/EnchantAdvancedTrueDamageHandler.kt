@@ -50,7 +50,7 @@ object EnchantAdvancedTrueDamageHandler : Listenable {
         val player = e.attacker as? PlayerEntity ?: return
         val victim = e.entityLiving
         if (victim === player) return
-        val level = UpgradeEnchantments.ladderLevelOf(player.combatStack(e.source), GeneratedEnchantments.ADVANCED_TRUE_DAMAGE)
+        val level = getItemSpecificEnchantLevel(player.combatStack(e.source), GeneratedEnchantments.ADVANCED_TRUE_DAMAGE)
         if (level <= 0) return
         val before = e.amount
         val bonus = 0.02f * level * e.amount

@@ -49,7 +49,7 @@ object EnchantAdvancedVenomHandler : Listenable {
         val player = e.attacker as? PlayerEntity ?: return
         val victim = e.entityLiving
         if (victim === player) return
-        val level = UpgradeEnchantments.ladderLevelOf(player.combatStack(e.source), GeneratedEnchantments.ADVANCED_VENOM)
+        val level = getItemSpecificEnchantLevel(player.combatStack(e.source), GeneratedEnchantments.ADVANCED_VENOM)
         if (level <= 0) return
         val poisoned = victim.getStatusEffect(net.minecraft.entity.effect.StatusEffects.POISON) != null
         victim.addStatusEffect(
@@ -71,7 +71,7 @@ object EnchantAdvancedVenomHandler : Listenable {
     fun onLivingDeath(e: dev.firefly.simpletweaks.compat.event.LivingDeathEvent) {
         val dying = e.entityLiving
         val player = e.source?.attacker as? PlayerEntity ?: return
-        val level = UpgradeEnchantments.ladderLevelOf(player.combatStack(e.source), GeneratedEnchantments.ADVANCED_VENOM)
+        val level = getItemSpecificEnchantLevel(player.combatStack(e.source), GeneratedEnchantments.ADVANCED_VENOM)
         if (level <= 0) return
         if (dying.getStatusEffect(net.minecraft.entity.effect.StatusEffects.POISON) == null) return
 

@@ -83,6 +83,23 @@ object UpgradeEnchantments {
     @JvmStatic
     fun isUpgrade(key: RegistryKey<Enchantment>): Boolean = RULES.any { it.upgrade == key }
 
+    private val BASE_MAX: Map<RegistryKey<Enchantment>, Int> = RULES.associate { it.base to it.baseMaxLevel }
+    private val UPGRADE_OF: Map<RegistryKey<Enchantment>, RegistryKey<Enchantment>> =
+        RULES.associate { it.base to it.upgrade }
+
+    /**
+     * Max level of the base enchantment that [key] upgrades, or `0` when [key] has no upgrade step.
+     *
+     * An upgrade consumes its base enchantment, so the base effect must still be computed as if the
+     * base were at this level — that is what `getItemSpecificEnchantLevel` floors it to.
+     */
+    @JvmStatic
+    fun baseMaxOf(key: RegistryKey<Enchantment>): Int = BASE_MAX[key] ?: 0
+
+    /** The upgrade step that replaces [key], or `null`. */
+    @JvmStatic
+    fun upgradeOf(key: RegistryKey<Enchantment>): RegistryKey<Enchantment>? = UPGRADE_OF[key]
+
     /** Enchantment levels this entry is worth in Arcane Echo's sum. */
     @JvmStatic
     fun echoLevel(key: RegistryKey<Enchantment>, level: Int): Int {

@@ -40,7 +40,7 @@ object EnchantAdvancedRegenerationHandler : Listenable {
         val player = e.player
         if (WorldSide.isClient(player.world)) return
         if (player.age % PERIOD != 0) return
-        val level = UpgradeEnchantments.ladderLevelOf(player.getEquippedStack(net.minecraft.entity.EquipmentSlot.LEGS), GeneratedEnchantments.ADVANCED_REGENERATION)
+        val level = getItemSpecificEnchantLevel(player.getEquippedStack(net.minecraft.entity.EquipmentSlot.LEGS), GeneratedEnchantments.ADVANCED_REGENERATION)
         if (level <= 0) return
 
         val missing = player.maxHealth - player.health
