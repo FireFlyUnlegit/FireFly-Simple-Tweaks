@@ -30,7 +30,6 @@ import java.util.UUID
     maxLevel = 5,
     ladderBase = 3,
     weight = EnchantItemWeights.ADVANCED_MYTHIC,
-    damagePerLevel = 0.0,
     anvilCost = 18,
     minCostBase = 40,
     minCostPerLevel = 20,

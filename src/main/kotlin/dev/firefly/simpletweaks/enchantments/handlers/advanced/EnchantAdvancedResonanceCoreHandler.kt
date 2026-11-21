@@ -30,7 +30,6 @@ import net.minecraft.entity.player.PlayerEntity
     maxLevel = 4,
     ladderBase = 3,
     weight = EnchantItemWeights.ADVANCED_MYSTERY,
-    damagePerLevel = 0.0,
     anvilCost = 18,
     minCostBase = 45,
     minCostPerLevel = 20,

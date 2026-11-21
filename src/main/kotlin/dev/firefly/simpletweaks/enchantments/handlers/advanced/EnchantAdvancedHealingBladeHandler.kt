@@ -29,7 +29,6 @@ import net.minecraft.entity.player.PlayerEntity
     maxLevel = 5,
     ladderBase = 8,
     weight = EnchantItemWeights.ADVANCED_MYTHIC,
-    damagePerLevel = 0.0,
     anvilCost = 18,
     minCostBase = 45,
     minCostPerLevel = 20,
@@ -51,9 +50,12 @@ object EnchantAdvancedHealingBladeHandler : Listenable {
         val level = UpgradeEnchantments.ladderLevelOf(player.combatStack(e.source), GeneratedEnchantments.ADVANCED_HEALING_BLADE)
         if (level <= 0) return
 
-        // Mending follows the wound, not the swing: the emptier the bar, the more the blade returns.
+        // Inherits the base blade (a share of the damage just dealt), then adds the step effect.
         val missing = (player.maxHealth - player.health).coerceAtLeast(0f)
-        val heal = missing * 0.10f * level
+        if (missing <= 0f) return
+        val siphon = (e.amount * 0.10f).coerceAtMost(missing)
+        val mending = (missing * 0.10f * level).coerceAtMost(missing - siphon)
+        val heal = siphon + mending
         if (heal <= 0f) return
         player.heal(heal)
 

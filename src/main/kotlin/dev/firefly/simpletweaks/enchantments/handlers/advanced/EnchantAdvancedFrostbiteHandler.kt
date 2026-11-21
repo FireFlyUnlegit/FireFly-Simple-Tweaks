@@ -32,7 +32,6 @@ import net.minecraft.entity.player.PlayerEntity
     maxLevel = 3,
     ladderBase = 3,
     weight = EnchantItemWeights.ADVANCED_RARE,
-    damagePerLevel = 0.0,
     anvilCost = 14,
     minCostBase = 35,
     minCostPerLevel = 15,

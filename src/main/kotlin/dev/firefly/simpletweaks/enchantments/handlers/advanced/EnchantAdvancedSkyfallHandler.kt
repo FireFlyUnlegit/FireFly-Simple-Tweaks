@@ -31,7 +31,6 @@ import net.minecraft.sound.SoundEvents
     maxLevel = 4,
     ladderBase = 3,
     weight = EnchantItemWeights.ADVANCED_EPIC,
-    damagePerLevel = 0.0,
     anvilCost = 16,
     minCostBase = 40,
     minCostPerLevel = 20,

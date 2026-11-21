@@ -35,7 +35,6 @@ import net.minecraft.entity.player.PlayerEntity
     maxLevel = 3,
     ladderBase = 6,
     weight = EnchantItemWeights.ADVANCED_MYTHIC,
-    damagePerLevel = 0.0,
     anvilCost = 12,
     minCostBase = 35,
     minCostPerLevel = 15,
