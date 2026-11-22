@@ -130,12 +130,37 @@ object EnchantTrackingArrowHandler : Listenable {
             val hits: Map<Int, Int> = if (isPiercing) state.`simpletweaks$getPierceHits`() else emptyMap()
             val maxPerTarget = if (isPiercing) state.`simpletweaks$getMaxPerTarget`() else 0
 
+            // A pierced arrow that did not leave the body keeps steering at that body's centre, so it
+            // hovers inside the hitbox where nothing can be damaged. A slow arrow inside a body is nudged
+            // back out instead: homing into something the arrow is already inside can only stall it.
+            // Fast arrows are left alone — they exit on the next tick and should not be deflected.
+            val inside = if (arrow.velocity.length() < 1.0) {
+                world
+                    .getNonSpectatingEntities(LivingEntity::class.java, arrow.boundingBox.expand(0.1))
+                    .firstOrNull { it !== shooter && it.isAlive && it.boundingBox.expand(0.05).contains(arrow.pos) }
+            } else {
+                null
+            }
+            if (inside != null) {
+                val out = Vec3d(
+                    arrow.x - inside.x,
+                    arrow.y - (inside.y + inside.height / 2.0),
+                    arrow.z - inside.z,
+                )
+                if (out.lengthSquared() > 1.0E-4) {
+                    arrow.velocity = out.normalize().multiply(maxOf(arrow.velocity.length(), 1.0))
+                    arrow.velocityModified = true
+                    continue
+                }
+            }
+
             val range = 2.0 + lvl
             val avoid = state.`simpletweaks$getTrackingAvoid`()
             val candidates = world
                 .getNonSpectatingEntities(LivingEntity::class.java, arrow.boundingBox.expand(range))
                 .filter {
                     it !== shooter && it.id != avoid && it.isAlive && !it.isTeammate(shooter) &&
+                        !it.boundingBox.expand(0.05).contains(arrow.pos) &&
                         (!isPiercing || (hits[it.id] ?: 0) < maxPerTarget)
                 }
 
