@@ -203,10 +203,10 @@ object UpgradeEnchantments {
             if (upgraded > 0) {
                 // Only a book may carry an upgrade onto an item, and only one that already sits at the
                 // base's maximum level. Everything else is a vanilla merge we have to undo.
-                // An item that already carries the upgrade keeps it when merged: the base was consumed
-                // the first time, so `baseOnInput` is 0 on every later trip to the anvil.
-                val legitimate = upgradeFromAddition > 0 &&
-                    (baseOnInput >= rule.baseMaxLevel || upgradeOnInput > 0)
+                // An item that already carries the upgrade keeps it when merged with anything at all:
+                // the base was consumed the first time, so `baseOnInput` is 0 on every later trip.
+                val legitimate = upgradeOnInput > 0 ||
+                    (upgradeFromAddition > 0 && baseOnInput >= rule.baseMaxLevel)
                 if (!legitimate) {
                     edit().remove { it.matchesKey(rule.upgrade) }
                 } else if (baseInResult > 0) {

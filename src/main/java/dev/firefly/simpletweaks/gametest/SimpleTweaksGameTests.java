@@ -1754,4 +1754,19 @@ public class SimpleTweaksGameTests implements FabricGameTest {
         context.assertTrue(bulwark == 3, "expected the base floor 3, got " + bulwark);
         context.complete();
     }
+
+    @GameTest(templateName = FabricGameTest.EMPTY_STRUCTURE)
+    public void anvilKeepsAnUpgradeTheItemAlreadyHas(TestContext context) {
+        ItemStack sword = new ItemStack(Items.DIAMOND_SWORD);
+        sword.addEnchantment(entry(context, "advanced_fire_master"), 2);
+        ItemStack book = new ItemStack(Items.ENCHANTED_BOOK);
+        book.addEnchantment(entry(context, "venom"), 1);
+        ItemStack result = sword.copy();
+        result.addEnchantment(entry(context, "venom"), 1);
+        UpgradeEnchantments.INSTANCE.sanitizeAnvilResult(result, sword, book);
+        int kept = net.minecraft.enchantment.EnchantmentHelper.getLevel(entry(context, "advanced_fire_master"), result);
+        LOGGER.info("[FST-GameTest] anvil keeps upgrade: kept=" + kept + " (expect 2)");
+        context.assertTrue(kept == 2, "expected the existing upgrade to survive, got " + kept);
+        context.complete();
+    }
 }
