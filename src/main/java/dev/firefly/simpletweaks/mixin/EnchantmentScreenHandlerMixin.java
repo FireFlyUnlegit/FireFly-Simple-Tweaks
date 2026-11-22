@@ -311,6 +311,10 @@ public abstract class EnchantmentScreenHandlerMixin {
         for (UpgradeEnchantments.Rule rule : UpgradeEnchantments.INSTANCE.rules()) {
             boolean allowed = UpgradeEnchantments.INSTANCE.isBook(stack)
                     || UpgradeEnchantments.INSTANCE.baseAtMax(stack, rule);
+            // A form whose base the table itself never rolls (mystery / unique) stays out of the table.
+            if (allowed && !AdvancedOffers.INSTANCE.baseObtainable(rule.getBase().getValue().getPath())) {
+                allowed = false;
+            }
             if (!allowed) {
                 continue;
             }
