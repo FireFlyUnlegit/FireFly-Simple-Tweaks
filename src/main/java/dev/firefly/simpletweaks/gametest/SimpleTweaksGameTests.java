@@ -1740,4 +1740,18 @@ public class SimpleTweaksGameTests implements FabricGameTest {
         context.assertTrue(Math.abs(third) < 1e-4, "depleted shield absorbs nothing: " + third);
         context.assertTrue(left == null, "shield should be gone once its value runs out");
         context.complete();
-    }}
+    }
+
+    @GameTest(templateName = FabricGameTest.EMPTY_STRUCTURE)
+    public void advancedSnapshotKeepsTheBaseLevel(TestContext context) {
+        net.minecraft.server.world.ServerWorld world = context.getWorld();
+        ZombieEntity zombie = new ZombieEntity(EntityType.ZOMBIE, world);
+        ItemStack chest = new ItemStack(Items.NETHERITE_CHESTPLATE);
+        chest.addEnchantment(entry(context, "advanced_bulwark"), 1);
+        zombie.equipStack(net.minecraft.entity.EquipmentSlot.CHEST, chest);
+        int bulwark = dev.firefly.simpletweaks.util.EnchantPresence.armorLevelOf(zombie, key("bulwark"));
+        LOGGER.info("[FST-GameTest] advanced snapshot: bulwark=" + bulwark + " (expect 3)");
+        context.assertTrue(bulwark == 3, "expected the base floor 3, got " + bulwark);
+        context.complete();
+    }
+}

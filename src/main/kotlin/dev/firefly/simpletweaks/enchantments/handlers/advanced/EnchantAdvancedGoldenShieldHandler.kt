@@ -44,6 +44,9 @@ import net.minecraft.entity.player.PlayerEntity
 )
 object EnchantAdvancedGoldenShieldHandler : Listenable {
 
+    private const val GRANT_INTERVAL = 100L
+    private val nextGrant: MutableMap<java.util.UUID, Long> = java.util.Collections.synchronizedMap(java.util.HashMap())
+
     @SubscribeEvent
     fun onLivingDamage(e: LivingDamageEvent) {
         if (e.invalid) return
@@ -56,9 +59,11 @@ object EnchantAdvancedGoldenShieldHandler : Listenable {
         }
         if (level <= 0) return
         val before = e.amount
-        if (player.age % 100 == 0) {
+        val now = player.world.time
+        if (now >= (nextGrant[player.uuid] ?: 0L)) {
             val shield = 2f * level
             grantAbsorption(player, absorptionHeadroomId("advanced_golden_shield"), shield, shield)
+            nextGrant[player.uuid] = now + GRANT_INTERVAL
         }
         e.amount *= (1f - 0.015f * level).coerceIn(0.25f, 1f)
         FSTLog.log("AdvancedGoldenShieldHandler") { "player=${player.name.string}, level=$level, damage=$before->${e.amount}, outcome=applied" }

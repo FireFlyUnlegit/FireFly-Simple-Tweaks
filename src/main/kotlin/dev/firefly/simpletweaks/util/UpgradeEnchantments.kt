@@ -74,6 +74,13 @@ object UpgradeEnchantments {
         Rule(GeneratedEnchantments.ADVANCED_VENOM, GeneratedEnchantments.VENOM, 3),
     )
 
+    /** Level the base must be credited with when [component] carries [upgrade] in this slot, else 0. */
+    @JvmStatic
+    fun floorIn(component: net.minecraft.component.type.ItemEnchantmentsComponent, upgrade: RegistryKey<Enchantment>): Int {
+        val rule = ruleOf(upgrade) ?: return 0
+        return if (levelIn(component, upgrade) > 0) rule.baseMaxLevel else 0
+    }
+
     @JvmStatic
     fun rules(): List<Rule> = RULES
 

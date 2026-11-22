@@ -198,6 +198,36 @@ object EnchantPresence {
                     else -> armor[position] += level
                 }
             }
+
+            // An upgrade consumes its base enchantment, so the snapshot has to credit the base with its
+            // max level, exactly like getItemSpecificEnchantLevel does for a direct stack read.
+            for (rule in dev.firefly.simpletweaks.util.UpgradeEnchantments.rules()) {
+                val floor = dev.firefly.simpletweaks.util.UpgradeEnchantments.floorIn(component, rule.upgrade)
+                if (floor <= 0) continue
+                val index = INDEX[rule.base] ?: continue
+                var position = -1
+                for (existing in 0 until tracked) {
+                    if (indices[existing] == index) {
+                        position = existing
+                        break
+                    }
+                }
+                if (position < 0) {
+                    if (tracked == MAX_TRACKED) continue
+                    position = tracked++
+                    indices[position] = index
+                }
+                val have = shares[slot][position]
+                if (have >= floor) continue
+                val gain = floor - have
+                all[position] += gain
+                shares[slot][position] += gain
+                when (slot) {
+                    MAIN -> main[position] += gain
+                    OFF -> off[position] += gain
+                    else -> armor[position] += gain
+                }
+            }
         }
 
         return Profile(
