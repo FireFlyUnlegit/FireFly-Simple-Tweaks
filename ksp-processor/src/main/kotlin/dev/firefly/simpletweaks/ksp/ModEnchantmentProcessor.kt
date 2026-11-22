@@ -416,7 +416,7 @@ class ModEnchantmentProcessor(
      * placeholder rather than a value, and writing that out yields a JSON file that fails to parse at load
      * time, far from the line that caused it.
      */
-    private fun readAttributes(raw: Any?, where: String, decl: KSClassDeclaration): List<AttrSpec>? {
+    private fun readAttributes(raw: Any?, where: String, decl: KSClassDeclaration, ladderBase: Int): List<AttrSpec>? {
         if (raw == null) return emptyList()
         val list = raw as? List<*> ?: run {
             logger.error("@ModEnchantment on '$where': `attributes` is not a list.", decl)
@@ -463,7 +463,9 @@ class ModEnchantmentProcessor(
                 )
                 return null
             }
-            out += AttrSpec(attribute, perLevel, operation)
+            // A declared spec on an advanced step starts at `ladderBase + 1`, like the derived ones.
+            val first = if (ladderBase > 0) round3(perLevel * (ladderBase + 1)) else perLevel
+            out += AttrSpec(attribute, perLevel, operation, first)
         }
         return out
     }
@@ -560,11 +562,11 @@ class ModEnchantmentProcessor(
             return null
         }
 
-        val declaredAttributes = readAttributes(args["attributes"]?.value, where, decl) ?: return null
+        val ladderBase = (args["ladderBase"]?.value as? Number)?.toInt() ?: 0
+        val declaredAttributes = readAttributes(args["attributes"]?.value, where, decl, ladderBase) ?: return null
         // Merged, not replaced: a declaration only *adds* to the rarity package. Anything it names itself
         // wins, because two entries for one attribute would share the derived id
         // (`<enchantment>.<attribute tail>`) and vanilla would treat them as one modifier anyway.
-        val ladderBase = (args["ladderBase"]?.value as? Number)?.toInt() ?: 0
         val derivedAttributes = deriveAttributes(category!!, type!!, ladderBase)
             .filterNot { derived -> declaredAttributes.any { it.attribute == derived.attribute } }
         if (derivedAttributes.isNotEmpty()) {

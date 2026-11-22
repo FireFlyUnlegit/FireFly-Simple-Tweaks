@@ -51,8 +51,10 @@ object EnchantAdvancedHealingMultiplierHandler : Listenable {
         val player = e.attacker as? PlayerEntity ?: return
         val victim = e.entityLiving
         if (victim === player) return
-        val level = getItemSpecificEnchantLevel(player.chestplate, GeneratedEnchantments.ADVANCED_HEALING_MULTIPLIER)
-        if (level <= 0) return
+        val own = getItemSpecificEnchantLevel(player.chestplate, GeneratedEnchantments.ADVANCED_HEALING_MULTIPLIER)
+        if (own <= 0) return
+        // The upgrade also consumes its base, so its strength starts one level above the base cap.
+        val level = UpgradeEnchantments.ladderLevelOf(player.chestplate, GeneratedEnchantments.ADVANCED_HEALING_MULTIPLIER)
         val before = e.amount
         val heal = 0.01f * level * e.amount
         grantAbsorption(player, absorptionHeadroomId("advanced_healing_multiplier"), heal, heal)
