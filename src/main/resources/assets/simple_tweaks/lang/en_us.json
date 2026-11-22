@@ -354,7 +354,7 @@
   "enchantment.simple_tweaks.venom.desc": "Hits stack poison up to 10 times. Each stack deals 0.2 x level true damage per second, ignoring armour, Resistance and Protection. When the victim dies, half of the poison spreads to the nearest enemy. (Poison is nature damage and leaves a nature mark.)",
   "enchantment.simple_tweaks.vitality.desc": "Increases your max health",
   "enchantment.simple_tweaks.void_protection.desc": "Teleports you back to y=256 when you fall into the void, and cancels that void damage",
-  "enchantment.simple_tweaks.volley.desc": "After a charged shot another full fan follows every 3 ticks, 1 + level arrows each, for 1 + level rounds; every arrow is fired at that shot's speed and costs no extra ammo. Exclusive with Multishot.",
+  "enchantment.simple_tweaks.volley.desc": "After a charged shot another round follows every 3 ticks, 1 + level rounds in total. Each round repeats the fan of the original shot, so with Multishot it carries that many arrows (1 + Multishot level) and a single arrow otherwise; every arrow flies at that shot's speed and costs no extra ammo.",
   "enchantment.simple_tweaks.water_conversion.desc": "Converts 1.5%% x level (max 7.5%%) of the hit into water damage: that share is removed from the original hit, re-dealt as water, and half of it is added again. Mutually exclusive with every other conversion. Fits swords, bows and crossbows; arrow hits convert and react exactly like melee.",
   "enchantment.simple_tweaks.water_protection.desc": "Reduces incoming water damage by 4%% per level per worn armour piece, up to 80%% total.",
   "modmenu.summaryTranslation.simple_tweaks": "169 enchantments, 7 elements, mob levels and floating damage numbers",

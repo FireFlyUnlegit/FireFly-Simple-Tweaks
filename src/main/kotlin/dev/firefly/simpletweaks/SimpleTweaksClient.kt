@@ -119,7 +119,7 @@ class SimpleTweaksClient : ClientModInitializer {
                 "+ game tests (./gradlew runGametest) " +
                 "+ an advanced mode in the enchanting table + 34 advanced forms, book-only above their base " +
                 "+ configurable attribute min/max + /fst stats and /fst enchantinfo " +
-                "(v2.4.0, build=devVer.1.0.26)",
+                "(v2.4.0, build=devVer.1.0.27)",
             SimpleTweaks.NAME,
             enchantmentCount,
         )

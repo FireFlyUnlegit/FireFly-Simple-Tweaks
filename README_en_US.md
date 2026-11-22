@@ -172,7 +172,7 @@ A 100-damage hit: armour 26 → 17 taken; armour 40 → 10 taken.
 | Tracking Arrow | arrows slowly turn toward the nearest enemy, radius scales with level |
 | Multishot | one extra arrow per level, spread horizontally, each consuming ammo |
 | Split Arrow | on its first hit an arrow splits into 2 (pierce or not), each keeping 60%/75%/90% of the original damage and inheriting the bow, so the children still pierce and track; if another enemy is nearby, one child turns onto it |
-| Volley | after a charged shot another full fan follows every 3 ticks, 1 + level arrows each, for 1 + level rounds at that shot's speed and no extra ammo; exclusive with Multishot |
+| Volley | after a charged shot another round follows every 3 ticks, 1 + level rounds in total; each round repeats the original fan, so with Multishot it fires 1 + Multishot level arrows, at that shot's speed and no extra ammo |
 | Hunter's Mark | arrow hits mark the target for 10 s; the next damage is increased by 20%/level |
 | Sniper | more damage the longer the arrow flies (+0.5% per block per level, capped at 40 blocks, doubled at max level and range) |
 | Elemental Mastery | +10% elemental conversion and reaction damage per level (cap +200%); elemental part only, no melee bonus, conflicts with no conversion |

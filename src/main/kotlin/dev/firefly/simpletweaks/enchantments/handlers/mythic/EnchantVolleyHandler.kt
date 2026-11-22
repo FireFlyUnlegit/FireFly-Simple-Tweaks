@@ -35,7 +35,6 @@ import java.util.UUID
     minCostPerLevel = 16,
     supportedItems = EnchantSupportedItemTags.BOW_OR_CROSSBOW,
     slots = [EnchantSlot.MAINHAND, EnchantSlot.OFFHAND],
-    exclusiveSet = "#simple_tweaks:exclusive_set/shot_count",
     order = 92,
 )
 object EnchantVolleyHandler : Listenable {
@@ -50,7 +49,7 @@ object EnchantVolleyHandler : Listenable {
     private class Pending(
         var rounds: Int,
         var nextAt: Long,
-        val level: Int,
+        val arrows: Int,
         val bow: ItemStack,
         val ammo: ItemStack,
         val speed: Float,
@@ -90,9 +89,9 @@ object EnchantVolleyHandler : Listenable {
         val ammo = found ?: ItemStack(Items.ARROW)
         val charge = (drawnTicks / 20f).coerceAtMost(1f)
         pending[player.uuid] = Pending(
-            rounds = 1 + level,
+            rounds = level,
             nextAt = player.world.time + SPACING,
-            level = level,
+            arrows = 1 + getItemSpecificEnchantLevel(e.bow, GeneratedEnchantments.MULTISHOT),
             bow = e.bow.copy(),
             ammo = ammo.copy(),
             speed = charge * 3.0f,
@@ -119,17 +118,17 @@ object EnchantVolleyHandler : Listenable {
         if (left <= 0) pending.remove(player.uuid)
 
         FSTLog.log("Volley") {
-            "player=${player.name.string}, left=$left, arrows=${1 + state.level}, " +
+            "player=${player.name.string}, left=$left, arrows=${state.arrows}, " +
                 "speed=${state.speed}, outcome=shot"
         }
     }
 
-    // One round is a full multishot fan (`1 + level` arrows, 5 degrees apart); the number of rounds
-    // is the same, so a level III volley is 4 waves of 4 arrows.
+    // Each extra round repeats the fan of the original shot, so it carries the same arrow count as
+    // multishot (`1 + multishot level`); volley only decides how many extra rounds follow.
     private fun spawn(player: PlayerEntity, state: Pending) {
         val world = player.world
         val arrowItem = state.ammo.item as? ArrowItem ?: Items.ARROW as ArrowItem
-        val arrows = 1 + state.level
+        val arrows = state.arrows
         val pitchRad = Math.toRadians(player.pitch.toDouble())
         val dy = -MathHelper.sin(pitchRad.toFloat()).toDouble()
         val cosPitch = MathHelper.cos(pitchRad.toFloat())

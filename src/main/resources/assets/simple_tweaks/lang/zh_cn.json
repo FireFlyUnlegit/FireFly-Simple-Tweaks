@@ -354,7 +354,7 @@
   "enchantment.simple_tweaks.venom.desc": "命中叠加毒素，最多 10 层。每层每秒造成 0.2 × 等级 点真实伤害，无视护甲、抗性提升与保护附魔。宿主死亡时，一半毒素会传染给最近的敌人。（毒素为自然元素伤害，会留下自然标记）",
   "enchantment.simple_tweaks.vitality.desc": "增加你的最大生命值",
   "enchantment.simple_tweaks.void_protection.desc": "掉入虚空时把你传送回 y=256，并取消这次虚空伤害",
-  "enchantment.simple_tweaks.volley.desc": "一次蓄力射击之后，每隔 3 tick 再射出一整轮（每轮 1+等级 支，像多重射击那样呈扇形），共 1+等级 轮；每支都按这次蓄力的速度结算，不额外消耗箭矢。与多重射击互斥。",
+  "enchantment.simple_tweaks.volley.desc": "一次蓄力射击之后，每隔 3 tick 再射出一整轮，共 1+等级 轮；每轮都复刻原本那一发的扇形 —— 有「多重射击」时就是它的箭数（1+多重射击等级），没有时是一支。每支都按这次蓄力的速度结算，不额外消耗箭矢。",
   "enchantment.simple_tweaks.water_conversion.desc": "将攻击伤害的 1.5%% × 等级（最高 7.5%%）转化为流水伤害：该部分从原伤害中取消，以流水伤害重新结算，并额外追加其一半。与其他所有转化附魔互斥。 可附在剑、弓与弩上；箭矢命中同样触发转化与元素反应。",
   "enchantment.simple_tweaks.water_protection.desc": "每件护甲每级减少受到的流水伤害 4%%，最多 80%%。",
   "modmenu.summaryTranslation.simple_tweaks": "169 个附魔、7 种元素、怪物等级与飘字伤害",
