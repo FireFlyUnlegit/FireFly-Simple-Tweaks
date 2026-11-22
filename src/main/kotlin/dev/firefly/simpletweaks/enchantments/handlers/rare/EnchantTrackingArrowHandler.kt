@@ -75,9 +75,23 @@ object EnchantTrackingArrowHandler : Listenable {
     private val TRACKING: MutableSet<PersistentProjectileEntity> =
         Collections.newSetFromMap(WeakHashMap<PersistentProjectileEntity, Boolean>())
 
+    /**
+     * Registers an arrow spawned by another seam (split arrows) for homing, skipping [avoidId] — the
+     * target the shot already struck — so the child flies after a different mob.
+     */
+    @JvmStatic
+    fun attach(arrow: PersistentProjectileEntity, level: Int, avoidId: Int) {
+        if (level <= 0) return
+        val state = arrow as SimpleTweaksArrow
+        if (state.`simpletweaks$getTrackingLevel`() < level) {
+            state.`simpletweaks$setTrackingLevel`(level)
+        }
+        state.`simpletweaks$setTrackingAvoid`(avoidId)
+        TRACKING.add(arrow)
+    }
+
     @SubscribeEvent
-    fun onEntityJoin(e: EntityJoinWorldEvent) {
-        if (e.world.isClient) return
+    fun onEntityJoin(e: EntityJoinWorldEvent) {        if (e.world.isClient) return
         val arrow = e.entity as? PersistentProjectileEntity ?: return
         val shooter = arrow.owner as? PlayerEntity ?: return
         // cleanup27: the bow that actually fired this arrow (vanilla `weapon`), not the main hand —
@@ -117,10 +131,11 @@ object EnchantTrackingArrowHandler : Listenable {
             val maxPerTarget = if (isPiercing) state.`simpletweaks$getMaxPerTarget`() else 0
 
             val range = 2.0 + lvl
+            val avoid = state.`simpletweaks$getTrackingAvoid`()
             val candidates = world
                 .getNonSpectatingEntities(LivingEntity::class.java, arrow.boundingBox.expand(range))
                 .filter {
-                    it !== shooter && it.isAlive && !it.isTeammate(shooter) &&
+                    it !== shooter && it.id != avoid && it.isAlive && !it.isTeammate(shooter) &&
                         (!isPiercing || (hits[it.id] ?: 0) < maxPerTarget)
                 }
 

@@ -72,6 +72,9 @@ public abstract class PersistentProjectileEntityStateMixin implements SimpleTwea
     private int simpletweaks$trackingLevel = 0;
 
     @Unique
+    private int simpletweaks$trackingAvoid = 0;
+
+    @Unique
     private final Map<Integer, Integer> simpletweaks$pierceHits = new HashMap<>();
 
     @Inject(method = "initDataTracker", at = @At("TAIL"))
@@ -99,6 +102,16 @@ public abstract class PersistentProjectileEntityStateMixin implements SimpleTwea
     @Override
     public void simpletweaks$setTrackingLevel(int value) {
         this.simpletweaks$trackingLevel = value;
+    }
+
+    @Override
+    public int simpletweaks$getTrackingAvoid() {
+        return this.simpletweaks$trackingAvoid;
+    }
+
+    @Override
+    public void simpletweaks$setTrackingAvoid(int value) {
+        this.simpletweaks$trackingAvoid = value;
     }
 
     /** Reads the synced value, so this is valid on the client too (see the class KDoc). */

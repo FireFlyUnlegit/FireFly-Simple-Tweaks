@@ -34,6 +34,11 @@ public interface SimpleTweaksArrow {
 
     void simpletweaks$setTrackingLevel(int value);
 
+    /** Entity id this arrow must not home onto (the target a split already struck); 0 means none. */
+    int simpletweaks$getTrackingAvoid();
+
+    void simpletweaks$setTrackingAvoid(int value);
+
     /** True once `piercing_arrow` has been applied to this arrow. */
     boolean simpletweaks$isPiercing();
 

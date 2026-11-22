@@ -95,15 +95,35 @@ object EnchantMultishotHandler : Listenable {
 
         val bow = e.bow
         val lvl = getItemSpecificEnchantLevel(bow, GeneratedEnchantments.MULTISHOT)
-        if (lvl <= 0) return
-        // Anti-tap gate, relaxed by fast_bow: a real draw ends `fast_bow level` ticks sooner, so its
-        // level is subtracted from the 5-tick floor. Clamped at 1 tick -- at 0 the gate would pass on
-        // a zero-tick release and spawn a zero-velocity volley.
-        val fastBowLvl = EnchantFastBowHandler.fastBowLevel(bow)
-        val minCharge = (5 - fastBowLvl).coerceAtLeast(1)
-        if (e.charge < minCharge) return
+        if (lvl <= 0) {
+            val ids = net.minecraft.enchantment.EnchantmentHelper.getEnchantments(bow).enchantments
+                .joinToString(",") { e2 -> e2.key.map { k -> k.value.path }.orElse("?") }
+            FSTLog.log("Multishot") {
+                "item=${bow.item}, lvl=0, charge=${e.charge}, enchants=[$ids], outcome=no-enchant"
+            }
+            return
+        }
+        // Anti-tap gate on the *effective* charge: fast_bow inflates the power of a short draw by
+        // scaling `useTicks` in vanilla's `getPullProgress`, but the tick count itself stays small --
+        // a full draw of a fast_bow V bow reaches the server as charge=4. Gating on the raw count
+        // would reject exactly the shots fast_bow is meant to produce.
+        val boost = EnchantFastBowHandler.chargeBoost(bow)
+        val effectiveCharge = Math.round(e.charge * boost)
+        if (effectiveCharge < 5) {
+            FSTLog.log("Multishot") {
+                "item=${bow.item}, lvl=$lvl, charge=${e.charge}, boost=$boost, effective=$effectiveCharge, outcome=too-shallow"
+            }
+            return
+        }
 
-        val ammo = findAmmo(p) ?: return
+        val found = findAmmo(p)
+        if (found == null && !p.abilities.creativeMode) {
+            FSTLog.log("Multishot") { "item=${bow.item}, lvl=$lvl, charge=${e.charge}, outcome=no-ammo" }
+            return
+        }
+        // A creative shot costs nothing and vanilla fires one with an empty quiver, so the volley
+        // falls back to a throwaway arrow instead of silently doing nothing.
+        val ammo = found ?: ItemStack(Items.ARROW)
 
         // Vanilla's shot is replaced entirely from here on.
         e.isCanceled = true
@@ -127,16 +147,17 @@ object EnchantMultishotHandler : Listenable {
         // (see the `world.isClient` return above), so the draw animation still speeds up while the
         // arrows come out at unboosted power.
         //
-        // Recomputed from the stack rather than read off `ChargeBoost.value`: this declaration carries
-        // `order = 28` while fast_bow leaves `order` at its default `Int.MAX_VALUE`, so fast_bow's
-        // listener runs *after* this one and the channel would still hold its just-reset `1.0f`.
-        // `chargeBoost` is fast_bow's own single source of truth -- the client animation mixin calls
-        // the very same function -- so the volley cannot drift from the animation.
-        val boost = EnchantFastBowHandler.chargeBoost(bow)
+        // `boost` is read off the stack (see the gate above) rather than off `ChargeBoost.value`:
+        // this declaration carries `order = 28` while fast_bow leaves `order` at its default
+        // `Int.MAX_VALUE`, so fast_bow's listener runs *after* this one and the channel would still
+        // hold its just-reset `1.0f`. `chargeBoost` is fast_bow's own single source of truth -- the
+        // client animation mixin calls the very same function -- so the volley cannot drift from the
+        // animation.
+        val fastBowLvl = EnchantFastBowHandler.fastBowLevel(bow)
         // Same rounding as that `@ModifyArg`, and the same clamp its contract promises: a boost may
         // bring a partial draw up to full-draw power, never above it. Without the clamp a boosted
         // long hold would overcharge (and `charge >= 1.0f` below would still be the critical flag).
-        val drawnTicks = if (boost == 1.0f) e.charge else Math.round(e.charge * boost)
+        val drawnTicks = effectiveCharge
         val charge = (drawnTicks / 20.0f).coerceAtMost(1.0f)
         val speed = charge * 3.0f
 
@@ -195,8 +216,8 @@ object EnchantMultishotHandler : Listenable {
         )
 
         FSTLog.log("Multishot") {
-            "player=${p.name.string}, lvl=$lvl, charge=${e.charge}, minCharge=$minCharge, " +
-                "fastBow=$fastBowLvl, boost=$boost, drawn=$drawnTicks, speed=$speed, " +
+            "player=${p.name.string}, lvl=$lvl, charge=${e.charge}, boost=$boost, " +
+                "fastBow=$fastBowLvl, drawn=$drawnTicks, speed=$speed, " +
                 "ammo=${ammo.count}, arrows=$arrows, " +
                 "infinity=$infinity, creative=$creative, outcome=volley-spawned"
         }

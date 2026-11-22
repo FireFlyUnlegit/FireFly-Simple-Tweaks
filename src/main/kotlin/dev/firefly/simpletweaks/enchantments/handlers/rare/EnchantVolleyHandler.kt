@@ -14,6 +14,7 @@ import dev.firefly.simpletweaks.enchantments.annotations.EnchantSupportedItemTag
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
+import dev.firefly.simpletweaks.enchantments.handlers.epic.EnchantFastBowHandler
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.item.ArrowItem
@@ -56,15 +57,36 @@ object EnchantVolleyHandler : Listenable {
 
     private val pending: MutableMap<UUID, Pending> = Collections.synchronizedMap(HashMap())
 
-    @SubscribeEvent
+    // multishot (order 28) cancels this event before we are dispatched; the queue must still arm.
+    @SubscribeEvent(receiveCanceled = true)
     fun onArrowLoose(e: ArrowLooseEvent) {
         val player = e.entityPlayer
         if (WorldSide.isClient(player.world)) return
-        if (e.charge < MIN_CHARGE) return
         val level = getItemSpecificEnchantLevel(e.bow, GeneratedEnchantments.VOLLEY)
-        if (level <= 0) return
-        val ammo = findAmmo(player) ?: return
-        val charge = (e.charge / 20f).coerceAtMost(1f)
+        if (level <= 0) {
+            val ids = net.minecraft.enchantment.EnchantmentHelper.getEnchantments(e.bow).enchantments
+                .joinToString(",") { it.key.map { k -> k.value.path }.orElse("?") }
+            FSTLog.log("Volley") { "item=${e.bow.item}, lvl=0, enchants=[$ids], outcome=no-enchant" }
+            return
+        }
+        // Gated on the effective charge: `fast_bow` keeps vanilla's tick count short while scaling the
+        // power in `getPullProgress`, so a full draw of a fast_bow V bow reaches the server as charge=4.
+        val boost = EnchantFastBowHandler.chargeBoost(e.bow)
+        val drawnTicks = Math.round(e.charge * boost)
+        if (drawnTicks < MIN_CHARGE) {
+            FSTLog.log("Volley") {
+                "item=${e.bow.item}, lvl=$level, charge=${e.charge}, boost=$boost, outcome=too-shallow"
+            }
+            return
+        }
+        val found = findAmmo(player)
+        if (found == null && !player.abilities.creativeMode) {
+            FSTLog.log("Volley") { "item=${e.bow.item}, lvl=$level, outcome=no-ammo" }
+            return
+        }
+        // Creative fires arrows with an empty quiver; the follow-up rounds need a template stack.
+        val ammo = found ?: ItemStack(Items.ARROW)
+        val charge = (drawnTicks / 20f).coerceAtMost(1f)
         pending[player.uuid] = Pending(
             rounds = level,
             nextAt = player.world.time + SPACING,
