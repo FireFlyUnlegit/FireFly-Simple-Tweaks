@@ -39,6 +39,9 @@ object EnchantAdvancedRegenerationHandler : Listenable {
         if (e.phase != TickEvent.Phase.END) return
         val player = e.player
         if (WorldSide.isClient(player.world)) return
+        // Same trap as the base regeneration: a dead player keeps ticking, and healing them here
+        // makes the server consider them alive, so the respawn packet is silently dropped.
+        if (!player.isAlive || player.health <= 0f) return
         if (player.age % PERIOD != 0) return
         val level = getItemSpecificEnchantLevel(player.getEquippedStack(net.minecraft.entity.EquipmentSlot.LEGS), GeneratedEnchantments.ADVANCED_REGENERATION)
         if (level <= 0) return

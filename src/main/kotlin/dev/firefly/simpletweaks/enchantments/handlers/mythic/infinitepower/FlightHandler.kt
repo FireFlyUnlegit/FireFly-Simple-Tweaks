@@ -84,7 +84,9 @@ object FlightHandler : Listenable {
         val speed = player.getAttributeInstance(EntityAttributes.GENERIC_ATTACK_SPEED)
 
         if (level > 0) {
-            if (player.health < player.maxHealth) {
+            // Never refill a corpse: death is cancelled by ForgeHandler, so reaching health 0 here
+            // means something bypassed it, and a revive would swallow the respawn packet.
+            if (player.isAlive && player.health < player.maxHealth) {
                 player.health = player.maxHealth
             }
             player.abilities.allowFlying = true

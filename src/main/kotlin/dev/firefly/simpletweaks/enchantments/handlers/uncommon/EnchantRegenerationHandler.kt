@@ -54,6 +54,12 @@ object EnchantRegenerationHandler : Listenable {
     fun onPlayerTick(e: TickEvent.PlayerTickEvent) {
         if (e.invalid) return
         val p = e.player
+        // A dead player is still ticked until they respawn; writing health here would revive them,
+        // and a "revived" player makes the server ignore the respawn packet (build=devVer.1.0.13).
+        if (!p.isAlive || p.health <= 0f) {
+            regenCounter.remove(p.uuid)
+            return
+        }
 
         val lvl = getItemSpecificEnchantLevel(p.leggings, GeneratedEnchantments.REGENERATION)
         if (lvl <= 0 || p.health >= p.maxHealth) {
