@@ -89,8 +89,8 @@ public class SimpleTweaksGameTests implements FabricGameTest {
         int keys = GeneratedEnchantments.INSTANCE.getKEYS().size();
         int categories = GeneratedEnchantments.INSTANCE.getCATEGORY().size();
         LOGGER.info("[FST-GameTest] generated table: keys={}, categories={}", keys, categories);
-        context.assertEquals(169, keys, "GeneratedEnchantments.KEYS should list all 169 enchantments");
-        context.assertEquals(169, categories, "GeneratedEnchantments.CATEGORY should cover every id");
+        context.assertEquals(171, keys, "GeneratedEnchantments.KEYS should list all 171 enchantments");
+        context.assertEquals(171, categories, "GeneratedEnchantments.CATEGORY should cover every id");
         context.complete();
     }
 
@@ -1713,6 +1713,48 @@ public class SimpleTweaksGameTests implements FabricGameTest {
         context.complete();
     }
 
+    @GameTest(templateName = FabricGameTest.EMPTY_STRUCTURE)
+    public void splitArrowSpawnsTwoWeakerChildren(TestContext context) {
+        net.minecraft.server.world.ServerWorld world = context.getWorld();
+        ZombieEntity shooter = new ZombieEntity(EntityType.ZOMBIE, world);
+        shooter.refreshPositionAndAngles(0.5, 64, 0.5, 0, 0);
+
+        ItemStack bow = new ItemStack(Items.BOW);
+        bow.addEnchantment(entry(context, "split_arrow"), 3);
+
+        ArrowEntity arrow = new ArrowEntity(world, shooter, new ItemStack(Items.ARROW), bow);
+        arrow.setOwner(shooter);
+        arrow.setPosition(0.5, 64, 0.5);
+        arrow.setVelocity(0.0, 0.0, 1.0, 3.0f, 0.0f);
+        arrow.setDamage(10.0);
+
+        net.minecraft.util.math.Box box = new net.minecraft.util.math.Box(
+            arrow.getPos().add(-6, -6, -6), arrow.getPos().add(6, 6, 6));
+        java.util.List<ArrowEntity> before = world.getEntitiesByClass(ArrowEntity.class, box, e -> e != arrow);
+
+        dev.firefly.simpletweaks.enchantments.handlers.rare.EnchantSplitArrowHandler.onHit(arrow, shooter);
+
+        java.util.List<ArrowEntity> children = world.getEntitiesByClass(ArrowEntity.class, box, e -> e != arrow);
+        children.removeAll(before);
+        LOGGER.info("[FST-GameTest] split arrow: children=" + children.size()
+            + ", damage=" + (children.isEmpty() ? -1 : children.get(0).getDamage())
+            + " (expect 2/9.0)");
+        context.assertEquals(2, children.size(), "a split produces exactly two children");
+        for (ArrowEntity child : children) {
+            context.assertTrue(Math.abs(child.getDamage() - 9.0) < 1e-4,
+                "child keeps 90% of the original damage at level III: " + child.getDamage());
+            context.assertEquals(
+                net.minecraft.entity.projectile.PersistentProjectileEntity.PickupPermission.DISALLOWED,
+                child.pickupType, "children are not free ammo");
+        }
+
+        // The same arrow must not split twice.
+        dev.firefly.simpletweaks.enchantments.handlers.rare.EnchantSplitArrowHandler.onHit(arrow, shooter);
+        java.util.List<ArrowEntity> again = world.getEntitiesByClass(ArrowEntity.class, box, e -> e != arrow);
+        context.assertEquals(2, again.size(), "one arrow splits exactly once");
+
+        context.complete();
+    }
     private static RegistryEntry<Enchantment> entry(TestContext context, String id) {
         return context.getWorld().getRegistryManager().get(RegistryKeys.ENCHANTMENT)
                 .getEntry(key(id)).orElseThrow();

@@ -36,6 +36,7 @@
     "PlayerEquippedStackSnapshotMixin",
     "PersistentProjectileEntityMirrorMixin",
     "PersistentProjectileEntityPiercingMixin",
+    "PersistentProjectileEntitySplitMixin",
     "PersistentProjectileEntityStateMixin",
     "PlayerEntityAttackMixin",
     "PlayerEntityBreakSpeedMixin",

@@ -143,6 +143,10 @@ object EnchantPiercingArrowHandler : Listenable {
 
         counts[target.id] = current + 1
 
+        // A piercing hit cancels vanilla's `onEntityHit`, so the split mixin's TAIL injection never
+        // runs for these arrows; split here instead.
+        EnchantSplitArrowHandler.onHit(arrow, target)
+
         val remaining = state.`simpletweaks$getPierceRemaining`() - 1
         state.`simpletweaks$setPierceRemaining`(remaining)
 
