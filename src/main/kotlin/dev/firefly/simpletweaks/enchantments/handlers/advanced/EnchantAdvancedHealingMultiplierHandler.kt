@@ -25,6 +25,11 @@ import dev.firefly.simpletweaks.util.grantAbsorption
 import net.minecraft.entity.effect.StatusEffectInstance
 import net.minecraft.entity.effect.StatusEffects
 import net.minecraft.entity.player.PlayerEntity
+import dev.firefly.simpletweaks.compat.WorldSide
+import dev.firefly.simpletweaks.compat.event.TickEvent
+import dev.firefly.simpletweaks.util.removeAbsorptionHeadroom
+import java.util.Collections
+import java.util.UUID
 /** The advanced form of this enchantment: its top tier plus an effect of its own. */
 @ModEnchantment(
     id = "advanced_healing_multiplier",
@@ -43,6 +48,10 @@ import net.minecraft.entity.player.PlayerEntity
 )
 object EnchantAdvancedHealingMultiplierHandler : Listenable {
 
+    private const val TTL_TICKS = 200L
+    private val banked: MutableMap<UUID, Float> = Collections.synchronizedMap(HashMap())
+    private val expiry: MutableMap<UUID, Long> = Collections.synchronizedMap(HashMap())
+
 
     @SubscribeEvent
     fun onLivingDamage(e: LivingDamageEvent) {
@@ -56,8 +65,32 @@ object EnchantAdvancedHealingMultiplierHandler : Listenable {
         // The upgrade also consumes its base, so its strength starts one level above the base cap.
         val level = UpgradeEnchantments.ladderLevelOf(player.chestplate, GeneratedEnchantments.ADVANCED_HEALING_MULTIPLIER)
         val before = e.amount
-        val heal = 0.01f * level * e.amount
-        grantAbsorption(player, absorptionHeadroomId("advanced_healing_multiplier"), heal, heal)
+        // Bank at most two health bars, and only for ten seconds: the old code piled every hit's
+        // share into absorption with a monotonic ceiling, so the golden hearts never drained.
+        val cap = player.maxHealth * 2f
+        val room = (cap - (banked[player.uuid] ?: 0f)).coerceAtLeast(0f)
+        val heal = (0.01f * level * e.amount).coerceAtMost(room)
+        if (heal > 0f) {
+            grantAbsorption(player, absorptionHeadroomId("advanced_healing_multiplier"), heal, cap)
+            banked[player.uuid] = (banked[player.uuid] ?: 0f) + heal
+            expiry[player.uuid] = player.world.time + TTL_TICKS
+        }
         FSTLog.log("AdvancedHealingMultiplierHandler") { "player=${player.name.string}, level=$level, damage=$before->${e.amount}, outcome=applied" }
+    }
+
+    @SubscribeEvent
+    fun onPlayerTick(e: TickEvent.PlayerTickEvent) {
+        if (e.invalid) return
+        val player = e.player
+        if (WorldSide.isClient(player.world)) return
+        val due = expiry[player.uuid] ?: return
+        if (player.world.time < due) return
+        expiry.remove(player.uuid)
+        val mine = banked.remove(player.uuid) ?: 0f
+        if (mine > 0f) {
+            player.absorptionAmount = (player.absorptionAmount - mine).coerceAtLeast(0f)
+            removeAbsorptionHeadroom(player, absorptionHeadroomId("advanced_healing_multiplier"))
+            FSTLog.log("AdvancedHealingMultiplierHandler") { "player=${player.name.string}, released=$mine, outcome=expired" }
+        }
     }
 }
