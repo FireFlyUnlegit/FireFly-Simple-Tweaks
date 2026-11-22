@@ -7,6 +7,7 @@ import dev.firefly.simpletweaks.compat.invalid
 import dev.firefly.simpletweaks.core.Listenable
 import dev.firefly.simpletweaks.util.combatStack
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
+import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.entity.LivingEntity
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
@@ -54,6 +55,9 @@ object EnchantHealerHandler : Listenable{
         {
             val originDMG = e.amount
             val living = e.entityLiving
+            // Support only: hitting a hostile mob must not turn the sword into a pacifier.
+            if (living !is PlayerEntity) return
+            if (living === e.source.attacker) return
             val healthBefore = living.health
             val healingFactor = 0.2f * lvl
             living.health = (originDMG * healingFactor + e.entityLiving.health).coerceAtMost(living.maxHealth)
