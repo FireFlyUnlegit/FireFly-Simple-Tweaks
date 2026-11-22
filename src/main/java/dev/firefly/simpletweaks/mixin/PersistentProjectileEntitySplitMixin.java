@@ -1,6 +1,6 @@
 package dev.firefly.simpletweaks.mixin;
 
-import dev.firefly.simpletweaks.enchantments.handlers.rare.EnchantSplitArrowHandler;
+import dev.firefly.simpletweaks.enchantments.handlers.epic.EnchantSplitArrowHandler;
 import net.minecraft.entity.projectile.PersistentProjectileEntity;
 import net.minecraft.util.hit.EntityHitResult;
 import org.spongepowered.asm.mixin.Mixin;

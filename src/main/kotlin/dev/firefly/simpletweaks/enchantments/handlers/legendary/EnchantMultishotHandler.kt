@@ -83,6 +83,7 @@ import kotlin.math.sin
     minCostPerLevel = 10,
     supportedItems = EnchantSupportedItemTags.BOW_OR_CROSSBOW,
     slots = [EnchantSlot.MAINHAND, EnchantSlot.OFFHAND],
+    exclusiveSet = "#simple_tweaks:exclusive_set/shot_count",
     order = 28,
 )
 object EnchantMultishotHandler : Listenable {

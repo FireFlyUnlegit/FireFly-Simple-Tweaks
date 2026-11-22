@@ -1,4 +1,4 @@
-package dev.firefly.simpletweaks.enchantments.handlers.rare
+package dev.firefly.simpletweaks.enchantments.handlers.mythic
 
 import dev.firefly.simpletweaks.compat.FSTLog
 import dev.firefly.simpletweaks.core.Listenable
@@ -26,15 +26,16 @@ import java.util.UUID
 
 @ModEnchantment(
     id = "volley",
-    category = EnchantCategory.RARE,
+    category = EnchantCategory.MYTHIC,
     type = EnchantType.BOW,
     maxLevel = 3,
-    weight = EnchantItemWeights.RARE,
-    anvilCost = 8,
-    minCostBase = 25,
-    minCostPerLevel = 10,
+    weight = EnchantItemWeights.MYTHIC,
+    anvilCost = 16,
+    minCostBase = 40,
+    minCostPerLevel = 16,
     supportedItems = EnchantSupportedItemTags.BOW_OR_CROSSBOW,
     slots = [EnchantSlot.MAINHAND, EnchantSlot.OFFHAND],
+    exclusiveSet = "#simple_tweaks:exclusive_set/shot_count",
     order = 92,
 )
 object EnchantVolleyHandler : Listenable {
@@ -49,6 +50,7 @@ object EnchantVolleyHandler : Listenable {
     private class Pending(
         var rounds: Int,
         var nextAt: Long,
+        val level: Int,
         val bow: ItemStack,
         val ammo: ItemStack,
         val speed: Float,
@@ -88,8 +90,9 @@ object EnchantVolleyHandler : Listenable {
         val ammo = found ?: ItemStack(Items.ARROW)
         val charge = (drawnTicks / 20f).coerceAtMost(1f)
         pending[player.uuid] = Pending(
-            rounds = level,
+            rounds = 1 + level,
             nextAt = player.world.time + SPACING,
+            level = level,
             bow = e.bow.copy(),
             ammo = ammo.copy(),
             speed = charge * 3.0f,
@@ -116,26 +119,33 @@ object EnchantVolleyHandler : Listenable {
         if (left <= 0) pending.remove(player.uuid)
 
         FSTLog.log("Volley") {
-            "player=${player.name.string}, left=$left, speed=${state.speed}, outcome=shot"
+            "player=${player.name.string}, left=$left, arrows=${1 + state.level}, " +
+                "speed=${state.speed}, outcome=shot"
         }
     }
 
+    // One round is a full multishot fan (`1 + level` arrows, 5 degrees apart); the number of rounds
+    // is the same, so a level III volley is 4 waves of 4 arrows.
     private fun spawn(player: PlayerEntity, state: Pending) {
         val world = player.world
         val arrowItem = state.ammo.item as? ArrowItem ?: Items.ARROW as ArrowItem
-        val arrow = arrowItem.createArrow(world, state.ammo, player, state.bow)
-        arrow.damage = state.speed * 2.0f + world.random.nextGaussian() * 0.25
-        arrow.isCritical = state.critical
-
+        val arrows = 1 + state.level
         val pitchRad = Math.toRadians(player.pitch.toDouble())
-        val yawRad = Math.toRadians(player.yaw.toDouble())
-        val dx = -MathHelper.sin(yawRad.toFloat()) * MathHelper.cos(pitchRad.toFloat())
-        val dy = -MathHelper.sin(pitchRad.toFloat())
-        val dz = MathHelper.cos(yawRad.toFloat()) * MathHelper.cos(pitchRad.toFloat())
-        arrow.setVelocity(dx.toDouble(), dy.toDouble(), dz.toDouble(), state.speed, 1.0f)
-        arrow.setPosition(player.x, player.eyeY - 0.1, player.z)
-        arrow.pickupType = net.minecraft.entity.projectile.PersistentProjectileEntity.PickupPermission.DISALLOWED
-        world.spawnEntity(arrow)
+        val dy = -MathHelper.sin(pitchRad.toFloat()).toDouble()
+        val cosPitch = MathHelper.cos(pitchRad.toFloat())
+        for (i in 0 until arrows) {
+            val arrow = arrowItem.createArrow(world, state.ammo, player, state.bow)
+            arrow.damage = state.speed * 2.0f + world.random.nextGaussian() * 0.25
+            arrow.isCritical = state.critical
+            val yaw = player.yaw + (i - (arrows - 1) / 2f) * 5.0f
+            val yawRad = Math.toRadians(yaw.toDouble())
+            val dx = -MathHelper.sin(yawRad.toFloat()) * cosPitch
+            val dz = MathHelper.cos(yawRad.toFloat()) * cosPitch
+            arrow.setVelocity(dx.toDouble(), dy, dz.toDouble(), state.speed, 1.0f)
+            arrow.setPosition(player.x, player.eyeY - 0.1, player.z)
+            arrow.pickupType = net.minecraft.entity.projectile.PersistentProjectileEntity.PickupPermission.DISALLOWED
+            world.spawnEntity(arrow)
+        }
     }
 
     private fun findAmmo(player: PlayerEntity): ItemStack? {

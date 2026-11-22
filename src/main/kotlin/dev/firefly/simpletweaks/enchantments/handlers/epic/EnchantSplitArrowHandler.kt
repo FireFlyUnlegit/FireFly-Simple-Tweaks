@@ -1,4 +1,4 @@
-package dev.firefly.simpletweaks.enchantments.handlers.rare
+package dev.firefly.simpletweaks.enchantments.handlers.epic
 
 import dev.firefly.simpletweaks.compat.FSTLog
 import dev.firefly.simpletweaks.core.Listenable
@@ -10,6 +10,7 @@ import dev.firefly.simpletweaks.enchantments.annotations.EnchantSupportedItemTag
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantType
 import dev.firefly.simpletweaks.enchantments.annotations.ModEnchantment
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
+import dev.firefly.simpletweaks.enchantments.handlers.rare.EnchantTrackingArrowHandler
 import dev.firefly.simpletweaks.util.firingWeapon
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import net.minecraft.entity.Entity
@@ -24,13 +25,13 @@ import java.util.WeakHashMap
 
 @ModEnchantment(
     id = "split_arrow",
-    category = EnchantCategory.RARE,
+    category = EnchantCategory.EPIC,
     type = EnchantType.BOW,
     maxLevel = 3,
-    weight = EnchantItemWeights.RARE,
-    anvilCost = 8,
-    minCostBase = 25,
-    minCostPerLevel = 10,
+    weight = EnchantItemWeights.EPIC,
+    anvilCost = 10,
+    minCostBase = 30,
+    minCostPerLevel = 12,
     supportedItems = EnchantSupportedItemTags.BOW_OR_CROSSBOW,
     slots = [EnchantSlot.MAINHAND, EnchantSlot.OFFHAND],
     order = 91,

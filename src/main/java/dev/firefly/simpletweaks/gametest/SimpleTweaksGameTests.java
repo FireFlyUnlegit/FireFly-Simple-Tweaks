@@ -1732,7 +1732,7 @@ public class SimpleTweaksGameTests implements FabricGameTest {
             arrow.getPos().add(-6, -6, -6), arrow.getPos().add(6, 6, 6));
         java.util.List<ArrowEntity> before = world.getEntitiesByClass(ArrowEntity.class, box, e -> e != arrow);
 
-        dev.firefly.simpletweaks.enchantments.handlers.rare.EnchantSplitArrowHandler.onHit(arrow, shooter);
+        dev.firefly.simpletweaks.enchantments.handlers.epic.EnchantSplitArrowHandler.onHit(arrow, shooter);
 
         java.util.List<ArrowEntity> children = world.getEntitiesByClass(ArrowEntity.class, box, e -> e != arrow);
         children.removeAll(before);
@@ -1749,7 +1749,7 @@ public class SimpleTweaksGameTests implements FabricGameTest {
         }
 
         // The same arrow must not split twice.
-        dev.firefly.simpletweaks.enchantments.handlers.rare.EnchantSplitArrowHandler.onHit(arrow, shooter);
+        dev.firefly.simpletweaks.enchantments.handlers.epic.EnchantSplitArrowHandler.onHit(arrow, shooter);
         java.util.List<ArrowEntity> again = world.getEntitiesByClass(ArrowEntity.class, box, e -> e != arrow);
         context.assertEquals(2, again.size(), "one arrow splits exactly once");
 
