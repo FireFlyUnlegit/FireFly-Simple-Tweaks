@@ -12,7 +12,7 @@
 
 A Minecraft mod I build for fun: new enchantments, new mechanics and better combat feedback for vanilla.
 
-Current **1.21.1 / Fabric** release: **v2.4.0** (171 enchantments, 17 elemental reactions, aura gauges, reworked armour curve).
+Current **1.21.1 / Fabric** release: **v2.4.0** (173 enchantments, 17 elemental reactions, aura gauges, reworked armour curve).
 
 ## 🌿 Branches
 
@@ -32,14 +32,14 @@ Current **1.21.1 / Fabric** release: **v2.4.0** (171 enchantments, 17 elemental 
 
 ### 🧙 Custom enchantments
 
-**171** unique enchantments, split by rarity:
+**173** unique enchantments, split by rarity:
 
 | Rarity | Count | Rarity | Count |
 |--------|-------|--------|-------|
 | COMMON | 13 | LEGENDARY | 16 |
 | UNCOMMON | 13 | MYTHIC | 13 |
-| RARE | 28 | MYSTERY | 14 |
-| EPIC | 35 | UNIQUE | 5 |
+| RARE | 29 | MYSTERY | 14 |
+| EPIC | 36 | UNIQUE | 5 |
 | ADVANCED_COMMON (advanced) | 4 | ADVANCED_EPIC (advanced) | 8 |
 | ADVANCED_UNCOMMON (advanced) | 4 | ADVANCED_LEGENDARY (advanced) | 2 |
 | ADVANCED_RARE (advanced) | 6 | ADVANCED_MYTHIC (advanced) | 5 |
@@ -173,6 +173,8 @@ A 100-damage hit: armour 26 → 17 taken; armour 40 → 10 taken.
 | Multishot | one extra arrow per level, spread horizontally, each consuming ammo |
 | Split Arrow | on its first hit an arrow splits into 2 (pierce or not), each keeping 60%/75%/90% of the original damage and inheriting the bow, so the children still pierce and track; if another enemy is nearby, one child turns onto it |
 | Volley | after a charged shot another round follows every 3 ticks, 1 + level rounds in total; each round repeats the original fan, so with Multishot it fires 1 + Multishot level arrows, at that shot's speed and no extra ammo |
+| Windbreak | for 20 x level ticks after release the arrow ignores air drag and keeps its launch speed, greatly extending range (gravity still pulls it down) |
+| Weightless | for 15 x level ticks after release the arrow ignores gravity and flies level (drag still slows it), so the impact point is predictable |
 | Hunter's Mark | arrow hits mark the target for 10 s; the next damage is increased by 20%/level |
 | Sniper | more damage the longer the arrow flies (+0.5% per block per level, capped at 40 blocks, doubled at max level and range) |
 | Elemental Mastery | +10% elemental conversion and reaction damage per level (cap +200%); elemental part only, no melee bonus, conflicts with no conversion |
