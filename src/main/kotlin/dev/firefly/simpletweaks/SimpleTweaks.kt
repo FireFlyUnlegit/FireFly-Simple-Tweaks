@@ -13,6 +13,8 @@ import dev.firefly.simpletweaks.particle.ModParticles
 import dev.firefly.simpletweaks.util.ArrowDamageSeam
 import dev.firefly.simpletweaks.util.elements.ElementCombat
 import dev.firefly.simpletweaks.util.elements.ElementShredTicker
+import dev.firefly.simpletweaks.util.mobs.MobAbilityDamage
+import dev.firefly.simpletweaks.util.mobs.MobRegen
 import net.fabricmc.api.ModInitializer
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents
 import net.fabricmc.loader.api.FabricLoader
@@ -49,6 +51,9 @@ class SimpleTweaks : ModInitializer {
         // handler that derives its effect from `e.amount` sees the already-scaled arrow damage.
         // See ArrowDamageSeam's KDoc for why the damage event (and not `onEntityHit`) is the seam.
         ArrowDamageSeam.registerEvents()
+        // Every non-melee mob hit (arrows, fireballs, blasts) reuses the same level attack curve;
+        // the attribute written by MobLevels.apply is melee-only.
+        MobAbilityDamage.registerEvents()
 
         // The elemental engine: one object owns conversion, protection, marks and reactions for all
         // sixteen element enchantments plus mastery (see util/elements/ElementCombat).
@@ -71,6 +76,8 @@ class SimpleTweaks : ModInitializer {
         MobLevelTracker.registerEvents()
         // Server: hand every mob a level at spawn, not only the ones that wear equipment (see its KDoc).
         MobSpawnEnhancer.register()
+        // Server: out-of-combat healing for mobs (see MobRegen).
+        MobRegen.registerEvents()
         NetworkManager.registerPackets()
         NetworkManager.registerServerReceivers()
         DamageIndicatorHandler.registerEvents()

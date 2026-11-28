@@ -1,17 +1,21 @@
 package dev.firefly.simpletweaks.network
 
+import dev.firefly.simpletweaks.SimpleTweaks
 import dev.firefly.simpletweaks.enchantments.handlers.mythic.EnchantInfinitePowerHandler
 import dev.firefly.simpletweaks.core.AdvancedEnchantMode
 import dev.firefly.simpletweaks.network.packets.PacketAdvancedEnchantMode
 import dev.firefly.simpletweaks.network.packets.PacketCelestialRing
 import dev.firefly.simpletweaks.network.packets.PacketDamageIndicator
+import net.fabricmc.loader.api.FabricLoader
 import net.minecraft.screen.EnchantmentScreenHandler
+import dev.firefly.simpletweaks.network.packets.PacketHandshake
 import dev.firefly.simpletweaks.network.packets.PacketLaser
 import dev.firefly.simpletweaks.network.packets.PacketManaPoolSync
 import dev.firefly.simpletweaks.network.packets.PacketMobLevel
 import dev.firefly.simpletweaks.network.packets.PacketOpenModScreen
 import dev.firefly.simpletweaks.network.packets.PacketResetAttackCooldown
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry
+import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking
 import net.minecraft.network.packet.CustomPayload
 import net.minecraft.server.network.ServerPlayerEntity
@@ -58,8 +62,17 @@ import net.minecraft.server.world.ServerWorld
  */
 object NetworkManager {
 
-    /** Kept for parity with the 1.12.2 constant; unused as a channel name in 1.21 (see the KDoc). */
-    const val CHANNEL = "simple_tweaks"
+    /**
+     * Bumped whenever an existing payload's shape changes (new field, reordered writes, changed units).
+     * Adding a *new* payload does not need a bump: an old client simply never receives it.
+     */
+    const val PROTOCOL_VERSION = 1
+
+    /** `fabric.mod.json` version of the running jar — for log lines, never for behaviour. */
+    fun modVersion(): String =
+        FabricLoader.getInstance().getModContainer(SimpleTweaks.MOD_ID)
+            .map { it.metadata.version.toString() }
+            .orElse("unknown")
 
     fun registerPackets() {
         PayloadTypeRegistry.playS2C().register(PacketDamageIndicator.ID, PacketDamageIndicator.CODEC)
@@ -84,6 +97,9 @@ object NetworkManager {
         PayloadTypeRegistry.playC2S().register(PacketLaser.ID, PacketLaser.CODEC)
         // Enchanting table advanced mode: the client toggles it, the server enforces the cost.
         PayloadTypeRegistry.playC2S().register(PacketAdvancedEnchantMode.ID, PacketAdvancedEnchantMode.CODEC)
+        // Version handshake, sent once per join — the only payload whose job is to prevent the silent
+        // cross-version decode failures the other payloads would otherwise produce.
+        PayloadTypeRegistry.playS2C().register(PacketHandshake.ID, PacketHandshake.CODEC)
     }
 
     /**
@@ -99,6 +115,9 @@ object NetworkManager {
      * not from the packet — which is why [PacketLaser] carries no player id at all.
      */
     fun registerServerReceivers() {
+        ServerPlayConnectionEvents.JOIN.register { handler, _, _ ->
+            sendToClient(PacketHandshake(PROTOCOL_VERSION, modVersion()), handler.player)
+        }
         ServerPlayNetworking.registerGlobalReceiver(PacketAdvancedEnchantMode.ID) { payload, context ->
             val player = context.player()
             player.server.execute {

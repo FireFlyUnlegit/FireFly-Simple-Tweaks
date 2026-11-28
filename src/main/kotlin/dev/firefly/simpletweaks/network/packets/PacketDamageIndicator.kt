@@ -91,6 +91,14 @@ class PacketDamageIndicator(
      * and an en_us client both read the reaction name correctly while the server stays language-agnostic.
      */
     val label: String = "",
+    /**
+     * Whether the damage behind this number crit, i.e. whether the value should read `90.0!!`.
+     *
+     * Physical crits are recorded from `CriticalHitEvent`, elemental ones by the handlers that multiply
+     * their own instance (月/星祝福, 共鸣核心). A label carries the elemental flag only: a reaction never
+     * crits on its own, it crits when the elemental instance it paid out did.
+     */
+    val crit: Boolean = false,
 ) : CustomPayload {
 
     override fun getId(): CustomPayload.Id<PacketDamageIndicator> = ID
@@ -135,6 +143,7 @@ class PacketDamageIndicator(
                 buf.writeByte(value.elementOrdinal)
                 buf.writeByte(value.role)
                 buf.writeString(value.label)
+                buf.writeBoolean(value.crit)
             },
             { buf: RegistryByteBuf ->
                 PacketDamageIndicator(
@@ -149,6 +158,7 @@ class PacketDamageIndicator(
                     buf.readByte().toInt(),
                     buf.readByte().toInt(),
                     buf.readString(),
+                    buf.readBoolean(),
                 )
             },
         )
