@@ -47,14 +47,24 @@ jobs:
           test -f "build/libs/simple_tweaks-${{ steps.mod.outputs.version }}.jar" || {
             echo "expected build/libs/simple_tweaks-${{ steps.mod.outputs.version }}.jar"; ls build/libs; exit 1; }
 
+      # The notes typed on the GitHub release win: mc-publish rewrites the release body from
+      # this file, so reading them back first keeps what was written by hand intact.
       - name: Extract the changelog entry
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          awk -v v="${{ steps.mod.outputs.version }}" '
-            /^## / { if (found) exit; if (index($0, v)) found = 1 }
-            found { print }
-          ' DEVLOG.md > CHANGELOG.md
+          gh release view "${{ github.ref_name }}" --json body -q .body > CHANGELOG.md 2>/dev/null || true
+          if [ -s CHANGELOG.md ]; then
+            echo "changelog: the notes of release ${{ github.ref_name }}"
+          else
+            awk -v v="${{ steps.mod.outputs.version }}" '
+              /^## / { if (found) exit; if (index($0, v)) found = 1 }
+              found { print }
+            ' DEVLOG.md > CHANGELOG.md
+            echo "changelog: DEVLOG.md"
+          fi
           if [ ! -s CHANGELOG.md ]; then
-            echo "Simple Tweaks ${{ steps.mod.outputs.version }}" > CHANGELOG.md
+            echo "FireFly's Simple Tweaks ${{ steps.mod.outputs.version }} for Fabric 1.21.1" > CHANGELOG.md
           fi
           head -n 20 CHANGELOG.md
 
@@ -68,10 +78,10 @@ jobs:
 
           github-token: ${{ secrets.GITHUB_TOKEN }}
           github-tag: ${{ github.ref_name }}
-          github-name: Simple Tweaks ${{ steps.mod.outputs.version }}
+          github-name: FireFly's Simple Tweaks ${{ steps.mod.outputs.version }} for Fabric 1.21.1
 
           files: build/libs/simple_tweaks-${{ steps.mod.outputs.version }}.jar
-          name: Simple Tweaks ${{ steps.mod.outputs.version }}
+          name: FireFly's Simple Tweaks ${{ steps.mod.outputs.version }} for Fabric 1.21.1
           version: ${{ steps.mod.outputs.version }}
           version-type: release
           changelog-file: CHANGELOG.md
