@@ -21,6 +21,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # mc-publish silently skips a target whose credentials are empty, so a missing variable or
+      # secret only shows up as "no CurseForge upload" much later. Fail here instead, before the
+      # five minute build.
+      - name: Check CurseForge credentials
+        env:
+          CF_ID: ${{ vars.CURSEFORGE_PROJECT_ID }}
+          CF_TOKEN: ${{ secrets.CURSEFORGE_TOKEN }}
+        run: |
+          missing=0
+          [ -n "$CF_ID" ] || { echo "::error::repository variable CURSEFORGE_PROJECT_ID is not set"; missing=1; }
+          [ -n "$CF_TOKEN" ] || { echo "::error::repository secret CURSEFORGE_TOKEN is not set"; missing=1; }
+          [ "$missing" -eq 0 ] || { echo "Settings -> Secrets and variables -> Actions; see AGENTS.md section 1"; exit 1; }
+          echo "CurseForge target: project $CF_ID"
+
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
