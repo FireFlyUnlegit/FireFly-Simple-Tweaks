@@ -15,3 +15,8 @@ rootProject.name = 'simple_tweaks-1.21.1'
 // library -- it must NOT be a Loom project, and it must not depend on the mod's own source set
 // (the processor only ever refers to the annotation by its fully-qualified name as a string).
 include 'ksp-processor'
+
+// Pure-Kotlin/JVM logic: the element damage/protection arithmetic, with no Minecraft on the
+// classpath, so it can be unit tested in milliseconds instead of on a real server. The mod compiles
+// these sources directly (see `sourceSets` in build.gradle), so no nested jar is shipped.
+include 'logic'

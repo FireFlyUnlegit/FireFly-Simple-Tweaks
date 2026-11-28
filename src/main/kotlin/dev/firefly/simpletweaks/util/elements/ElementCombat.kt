@@ -1,4 +1,4 @@
-package dev.firefly.simpletweaks.util.elements
+﻿package dev.firefly.simpletweaks.util.elements
 
 import dev.firefly.simpletweaks.SimpleTweaks
 import dev.firefly.simpletweaks.compat.FSTLog
@@ -8,6 +8,7 @@ import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.invalid
 import dev.firefly.simpletweaks.mixin.accessors.LivingEntityAccessor
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
+import dev.firefly.simpletweaks.logic.ElementMath
 import dev.firefly.simpletweaks.util.ArcaneEcho
 import dev.firefly.simpletweaks.util.combatStack
 import dev.firefly.simpletweaks.util.damagesource.CelestialDamageSources
@@ -33,91 +34,38 @@ import java.util.UUID
 /**
  * The shared engine behind every `xx_conversion` and every `xx_protection` enchantment.
  *
- * ## Conversion — the semantics the author asked for
- * > "Cancel 部分原伤害, 这部分伤害转化为对应元素伤害, 造成额外的元素伤害"
+ * The curves, caps and their combination rules live in [ElementMath] (pure Kotlin, unit tested in
+ * `logic/src/test`) so they cannot drift from their own documentation; this object only turns them into
+ * events. What is recorded here is the part that is *not* arithmetic:
  *
- * For a hit of `damage` landing on a target, with conversion level `L` of element `E` on the
- * attacker's weapon:
- *
- * ```
- * fraction  = BASE_FRACTION + PER_LEVEL_FRACTION × (L - 1)      // capped at MAX_FRACTION
- * cancelled = damage × fraction                                  // removed from the original hit
- * re-dealt  = cancelled × ELEMENT_SCALE                          // as element E
- * bonus     = cancelled × BONUS_SCALE                            // the "额外的" part
- * damage   -= cancelled                                          // the original hit shrinks
- * ```
- *
- * The target therefore receives `damage − cancelled` of the **original** element *and*
- * `re-dealt + bonus` of element `E`.
- *
- * ### The constants
- * | constant | value | meaning |
- * |---|---|---|
- * | [BASE_FRACTION] | `0.10` | level 1 converts a tenth of the hit |
- * | [PER_LEVEL_FRACTION] | `0.05` | +5 points per level above 1 |
- * | [MAX_FRACTION] | `0.075` | the cap is reachable at level 5; 7.5 % of a hit is the whole slice (`cleanup12`) |
- * | [ELEMENT_SCALE] | `1.00` | the converted part keeps its size |
- * | [BONUS_SCALE] | `0.50` | half of it again is added as bonus |
- *
- * At the cap the net multiplier is `1 − 0.5 + 0.5 × 1.5 = 1.25` — **+25% total damage**, all of the
- * added part being elemental. Deliberately modest: conversion's real value is *changing the element*
- * (per-type armour/resistance, and driving reactions), not raw numbers. A big flat multiplier is what
- * got `damage_lottery` removed.
- *
- * ### Why `LivingHurtEvent` (pre-armour) rather than `LivingDamageEvent`
- * "Cancel part of it" has to happen **before** armour is computed, or the target's armour bar has
- * already priced a hit that is about to shrink — which reads as "armour suddenly stopped mattering".
- * `LivingHurtEvent` fires at the head of `Entity#damage`, which is exactly that point.
- *
- * ### Why the re-deal is a separate damage call
- * 1.21 has no mutable damage-source type, and the whole point is that per-element resistances see it.
- * It is dealt through [damageElemental] — the same helper the venom/chain trio uses, including its
- * i-frame handling (clear + retry once) and its credit-to-the-attacker behaviour.
- *
- * ## Ordering (`priority = 20`)
- * Between `NORMAL` (`0`) and `LOW` (`50`). It must run **after** the arrow seam and the direct damage
- * scalers (so it converts a real, already-boosted number) and **before** the `LOW` handlers such as
- * `hunters_mark` / `echo_shot` (so they see the final, converted amount rather than a number that is
- * about to shrink).
- *
- * ## Protection
- * `xx_protection L` reduces incoming damage of that element by `PROTECTION_PER_LEVEL × L`, summed over
- * the four armour slots, capped at [PROTECTION_CAP]. It runs at `LivingDamageEvent` (post-armour),
- * matching `magic_protection` so the two behave identically.
+ * - Conversion runs on `LivingHurtEvent` (head of `Entity#damage`, before armour). Cancelling part of a
+ *   hit after armour has priced it reads as "armour suddenly stopped mattering".
+ * - The re-dealt part is a separate `damageElemental` call: 1.21 damage sources are immutable, and the
+ *   per-element resistances have to see it as its own element.
+ * - `priority = 20` puts it after the arrow seam and the flat scalers (it converts an already boosted
+ *   number) and before the `LOW` handlers such as `hunters_mark` (they see the converted amount).
+ * - Protection runs on `LivingDamageEvent` (post-armour), matching `magic_protection`.
  */
 object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
 
     // ---------------------------------------------------------------- conversion tuning
 
-    /**
-     * Converted fraction at level 1. Raised from `0.10` because at the old curve the level-1 net gain
-     * was `1.05×`, indistinguishable from vanilla's ±0.5 damage roll (reported as "伤害变低").
-     */
-    /**
-     * Converted share at level 1, and the growth per level.
-     *
-     * Author, `build=cleanup12`: "把元素转化倍率减少到每一级附魔 +1.5%，最高 7.5%". So the curve is
-     * flat `1.5 % × level`, capped at `7.5 %` (i.e. level 5 is already the ceiling). The reason the
-     * old curve (12 % + 6 %/level, cap 50 %) could be that generous was that element damage also
-     * bypassed armour; with the bypass restored the converted share is deliberately a *small* slice
-     * of the hit rather than a second attack.
-     */
-    const val BASE_FRACTION = 0.015f
+    /** Converted share at level 1 and the growth per level (see [ElementMath.conversionFraction]). */
+    const val BASE_FRACTION = ElementMath.BASE_FRACTION
 
-    /** Extra fraction per level above 1. Raised from `0.05` for the same reason as [BASE_FRACTION]. */
-    const val PER_LEVEL_FRACTION = 0.015f
+    const val PER_LEVEL_FRACTION = ElementMath.PER_LEVEL_FRACTION
 
-    const val MAX_FRACTION = 0.075f
-    const val ELEMENT_SCALE = 1.0f
-    const val BONUS_SCALE = 0.5f
+    const val MAX_FRACTION = ElementMath.MAX_FRACTION
+    const val ELEMENT_SCALE = ElementMath.ELEMENT_SCALE
+    const val BONUS_SCALE = ElementMath.BONUS_SCALE
 
     // ---------------------------------------------------------------- protection tuning
 
-    const val PROTECTION_PER_LEVEL = 0.04f
-    const val PROTECTION_CAP = 0.80f
+    const val PROTECTION_PER_LEVEL = ElementMath.PROTECTION_PER_LEVEL
+    const val PROTECTION_CAP = ElementMath.PROTECTION_CAP
     /** Per total level of `elemental_supremacy`: its own mitigation share (see [supremacyReduction]). */
-    const val SUPREMACY_PER_LEVEL = 0.045f
-    const val SUPREMACY_CAP = 0.90f
+    const val SUPREMACY_PER_LEVEL = ElementMath.SUPREMACY_PER_LEVEL
+    const val SUPREMACY_CAP = ElementMath.SUPREMACY_CAP
 
     // ---------------------------------------------------------------- mastery tuning
 
@@ -128,82 +76,70 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
      * global multiplier on every element's output, so it is in neither the conversion exclusive set nor
      * either protection.
      */
-    const val MASTERY_PER_LEVEL = 0.10f
+    const val MASTERY_PER_LEVEL = ElementMath.MASTERY_PER_LEVEL
 
-    /** Hard cap on the mastery bonus (`2.0` = +200%, i.e. ×3). */
-    const val MASTERY_CAP = 2.0f
+    /** Hard cap on the mastery bonus (`2.0` = +200%, i.e. 鑴?). */
+    const val MASTERY_CAP = ElementMath.MASTERY_CAP
 
     // ---------------------------------------------------------------- cross-element tuning
 
     /** `elemental_ward`: all-element damage reduction per level, and its cap (3 levels = 9 %). */
-    const val WARD_PER_LEVEL = 0.03f
-    const val WARD_CAP = 0.09f
+    const val WARD_PER_LEVEL = ElementMath.WARD_PER_LEVEL
+    const val WARD_CAP = ElementMath.WARD_CAP
 
     /** `elemental_resonance`: reaction damage bonus per level, and its cap (3 levels = +30 %). */
-    const val RESONANCE_PER_LEVEL = 0.10f
-    const val RESONANCE_CAP = 0.30f
+    const val RESONANCE_PER_LEVEL = ElementMath.RESONANCE_PER_LEVEL
+    const val RESONANCE_CAP = ElementMath.RESONANCE_CAP
 
     /** `elemental_penetration`: share of the target's elemental mitigation ignored, per level. */
-    const val PENETRATION_PER_LEVEL = 0.08f
-    const val PENETRATION_CAP = 0.24f
+    const val PENETRATION_PER_LEVEL = ElementMath.PENETRATION_PER_LEVEL
+    const val PENETRATION_CAP = ElementMath.PENETRATION_CAP
 
     /**
-     * The converted fraction of `xx_conversion` at [level]: `BASE + PER_LEVEL × (level - 1)`, capped.
+     * The converted fraction of `xx_conversion` at [level]: `BASE + PER_LEVEL 鑴?(level - 1)`, capped.
      *
      * ## Current curve (`build=cleanup12`, author's tuning)
-     * `1.5 % × level`, capped at `7.5 %` — level 5 is the ceiling and the five conversion levels are
+     * `1.5 % 鑴?level`, capped at `7.5 %` 閳?level 5 is the ceiling and the five conversion levels are
      * `1.5 / 3.0 / 4.5 / 6.0 / 7.5 %`. The author cut it from `12 % + 6 %/level, cap 50 %` in the same
      * breath as restoring the armour bypass: a *small* slice that ignores armour is a flavour/gimmick,
      * a 36 % slice that ignores armour was a second attack.
      *
      * ## The net-damage question, and why it is no longer a problem
-     * The re-dealt share is `ELEMENT_SCALE + BONUS_SCALE = 1.5 ×` the cancelled share, so the target
-     * takes `(1 − f) + 1.5f = 1 + 0.5f` times the original hit (before mastery and resistances) — with
+     * The re-dealt share is `ELEMENT_SCALE + BONUS_SCALE = 1.5 鑴砢 the cancelled share, so the target
+     * takes `(1 閳?f) + 1.5f = 1 + 0.5f` times the original hit (before mastery and resistances) 閳?with
      * `f = 0.075` that is a `+3.75 %` net, i.e. conversion is now a *sidegrade with a purpose* rather
      * than a damage amplifier. Two historical traps that made earlier, larger curves read as a
      * downgrade are still worth knowing, because both are silent:
      *
      * 1. **The elemental half can be discarded by the i-frame gate** unless the element type is in
-     *    `#minecraft:bypasses_cooldown` — since `build=cleanup14` the element types are **not** in that tag; `damageElemental` lifts the gate for its own instance and restores it (see there).
-     * 2. **A curve whose level-1 value is inside vanilla's ±0.5 damage roll reads as "no change"** —
-     *    at `f = 0.015` the elemental share is deliberately below that noise on a 10-damage hit, which
+     *    `#minecraft:bypasses_cooldown` 閳?since `build=cleanup14` the element types are **not** in that tag; `damageElemental` lifts the gate for its own instance and restores it (see there).
+     * 2. **A curve whose level-1 value is inside vanilla's 鍗?.5 damage roll reads as "no change"** 閳?     *    at `f = 0.015` the elemental share is deliberately below that noise on a 10-damage hit, which
      *    is fine now that the point of the enchantment is *element identity* (marks, reactions,
      *    protections), not raw damage.
      */
-    fun conversionFraction(level: Int): Float {
-        if (level <= 0) return 0f
-        return (BASE_FRACTION + PER_LEVEL_FRACTION * (level - 1)).coerceAtMost(MAX_FRACTION)
-    }
+    fun conversionFraction(level: Int): Float = ElementMath.conversionFraction(level)
 
     /**
      * Net damage multiplier of a conversion at [level], relative to the unconverted hit.
      *
-     * `(1 − f) + (ELEMENT_SCALE + BONUS_SCALE) × f × mastery` — exposed so the startup self-check and the
+     * `(1 閳?f) + (ELEMENT_SCALE + BONUS_SCALE) 鑴?f 鑴?mastery` 閳?exposed so the startup self-check and the
      * acceptance checklist can talk about the same number instead of each re-deriving it.
      *
      * With the shipped constants (`ELEMENT_SCALE = 1.0`, `BONUS_SCALE = 0.5`) this is
-     * `1 + 0.5 × f × mastery`, which is `≥ 1` for every `f ≥ 0` — i.e. **a conversion can never make
+     * `1 + 0.5 鑴?f 鑴?mastery`, which is `閳?1` for every `f 閳?0` 閳?i.e. **a conversion can never make
      * the hit smaller**. That is an invariant, not a coincidence: it is what the first field report
-     * ("寒冰附魔伤害还变低了") violated, and the self-check below fails the mod loudly if a future
+     * ("鐎垫帒鍟洪梽鍕摕娴笺倕顔婃潻妯哄綁娴ｅ簼绨?) violated, and the self-check below fails the mod loudly if a future
      * rebalance breaks it.
      */
-    fun netMultiplier(level: Int, mastery: Float = 1.0f): Float {
-        val f = conversionFraction(level)
-        if (f <= 0f) return 1.0f
-        val kept = 1.0f - f
-        val reDealt = (ELEMENT_SCALE + BONUS_SCALE) * f * mastery
-        return kept + reDealt
-    }
+    fun netMultiplier(level: Int, mastery: Float = 1.0f): Float =
+        ElementMath.netMultiplier(level, mastery)
 
     /**
-     * The mastery multiplier for [level]: `1 + MASTERY_PER_LEVEL × level`, capped.
+     * The mastery multiplier for [level]: `1 + MASTERY_PER_LEVEL 鑴?level`, capped.
      *
      * `1.0` (no bonus) when absent, so every call site can multiply unconditionally.
      */
-    fun masteryMultiplier(level: Int): Float {
-        if (level <= 0) return 1.0f
-        return (1.0f + MASTERY_PER_LEVEL * level).coerceAtMost(1.0f + MASTERY_CAP)
-    }
+    fun masteryMultiplier(level: Int): Float = ElementMath.masteryMultiplier(level)
 
     /** Mastery level on the attacker's main hand (`elemental_mastery`). */
     fun masteryOf(attacker: PlayerEntity): Int = masteryLevel(attacker.mainHandStack)
@@ -211,7 +147,7 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
     /**
      * Mastery level on one stack.
      *
-     * ⚠️ **This used to return 0 for every item in the game**, and the bug is the reason
+     * 閳跨媴绗?**This used to return 0 for every item in the game**, and the bug is the reason
      * `elemental_mastery` appeared to do nothing at all. It called
      * `keyOfElement("elemental_mastery", protective = false)`, and that helper *builds* a name:
      *
@@ -219,8 +155,7 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
      * id = if (protective) "<elementId>_protection" else "<elementId>_conversion"
      * ```
      *
-     * so it looked for `simple_tweaks:elemental_mastery_conversion`, which does not exist → `null` →
-     * `return 0`. Every conversion line in a real session logged `mastery=1.00`, i.e. the enchantment was
+     * so it looked for `simple_tweaks:elemental_mastery_conversion`, which does not exist 閳?`null` 閳?     * `return 0`. Every conversion line in a real session logged `mastery=1.00`, i.e. the enchantment was
      * never read at all. `keyOfElement` is only correct for the 14 enchantments whose ids are literally
      * `<element>_conversion` / `<element>_protection`; mastery is not keyed to an `ElementType`, so it
      * must use its own generated key.
@@ -237,9 +172,9 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
      *
      * Runs once from `init()`. It exists because the "conversion made my damage smaller" report was
      * *arithmetically impossible* with the shipped constants, so the bug had to be a discarded damage
-     * call — and a future rebalance of `ELEMENT_SCALE` / `BONUS_SCALE` / the fraction curve could make
+     * call 閳?and a future rebalance of `ELEMENT_SCALE` / `BONUS_SCALE` / the fraction curve could make
      * it arithmetically possible for real, silently. A `warn` here is a red flag in any build log, and
-     * §AK of the checklist tells the author to report it.
+     * 鎼侫K of the checklist tells the author to report it.
      */
     private fun selfCheck() {
         val worst = (1..9).minOf { netMultiplier(it) }
@@ -258,7 +193,7 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
         }
     }
 
-    /** [Listenable.init] hook — registers nothing, only runs [selfCheck]. */
+    /** [Listenable.init] hook 閳?registers nothing, only runs [selfCheck]. */
     override fun init() {
         selfCheck()
         selfCheckProtectionKeys()
@@ -300,7 +235,7 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
         if (aura == null) {
             // Nothing to react with: keep the element the weapon declares. A random pick would look like a
             // bug to the player, and a "weakest resistance" pick needs resistance data the target may not
-            // have — both were rejected on purpose.
+            // have 閳?both were rejected on purpose.
             return found
         }
         val reacting = ElementType.CONVERTIBLE.firstOrNull { candidate ->
@@ -321,14 +256,14 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
 
     /**
      * Per-target: how much health the **previous** converted hit actually removed, end to end
-     * (armour on the kept share + armour on the elemental share — elements respect armour since
- * `build=cleanup10`). Diagnostic only — it exists so the log can show
+     * (armour on the kept share + armour on the elemental share 閳?elements respect armour since
+ * `build=cleanup10`). Diagnostic only 閳?it exists so the log can show
      * the number the player sees instead of the pre-armour figure, which is what "sword says 9.13,
      * monster loses 5.84" was about.
      *
      * Keyed by UUID in a `WeakHashMap`-free plain map with no lifetime guarantee: entries are
      * overwritten on every hit and never read except for logging. Bounded by the number of entities the
-     * player has hit since login — deliberately **not** cleaned up, because doing so would need a tick
+     * player has hit since login 閳?deliberately **not** cleaned up, because doing so would need a tick
      * handler for a log line.
      */
     private val LAST_HIT = java.util.concurrent.ConcurrentHashMap<UUID, Float>()
@@ -336,18 +271,18 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
     // ---------------------------------------------------------------- seams
 
     /**
-     * Conversion, marking and reactions — on the pre-armour seam, **after every other damage handler**.
+     * Conversion, marking and reactions 閳?on the pre-armour seam, **after every other damage handler**.
      *
      * ## Why `priority = 200` and not [EventPriority.LOWEST] (`100`)
      * Conversion must see the **final** damage number: the crit, the mastery, `charged_strike`'s release,
-     * `combo`'s stacks, `hunters_mark` — everything that adjusts a hit. If it runs earlier, each of
+     * `combo`'s stacks, `hunters_mark` 閳?everything that adjusts a hit. If it runs earlier, each of
      * those multiplies the *pre-conversion* figure and then conversion carves its share out of a number
      * that is about to change again, so the elemental share no longer tracks the hit proportionally.
      *
      * But `100` does **not** mean "last": the bus breaks ties by **registration order**, and this object
      * is registered from `SimpleTweaks.onInitialize` **before** `EnchantmentManager.initHandlers()`, so
      * at `100` it would actually run *ahead* of `charged_strike` / `echo_shield` / `aoe_attack` /
-     * `adopted_armor` — i.e. "last" in name only. A value above `LOWEST` is the only way to express
+     * `adopted_armor` 閳?i.e. "last" in name only. A value above `LOWEST` is the only way to express
      * "after all of them" with an int priority (which is exactly what ints were adopted for).
      *
      * ## What the later position changes, and why that is acceptable
@@ -360,11 +295,11 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
      * | `aoe_attack` | splits the raw hit | splits the kept share |
      * | `adopted_armor` | reduces the raw hit | reduces the kept share |
      *
-     * That is the intended direction: conversion is a *distribution* change (physical → elemental), and
+     * That is the intended direction: conversion is a *distribution* change (physical 閳?elemental), and
      * "how much of this swing is physical" is what those four are about. The elemental remainder is
      * dealt separately and is not subject to a physical splitters' arithmetic.
      *
-     * ⚠️ The elemental damage itself is **queued**, never dealt from inside this handler — see
+     * 閳跨媴绗?The elemental damage itself is **queued**, never dealt from inside this handler 閳?see
      * [onWorldTick] and the note in the conversion body. Calling `LivingEntity#damage` from an event
      * handler corrupts `EventSeams`' ThreadLocal cache and silently discards the caller's `e.amount`.
      */
@@ -377,19 +312,19 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
 
         val incoming = ElementType.of(e.source)
 
-        // ⚠️ **A hit a raised shield is about to stop must not be converted.**
+        // 閳跨媴绗?**A hit a raised shield is about to stop must not be converted.**
         //
         // `LivingHurtEvent` fires at the HEAD of `LivingEntity#damage`, which is **before** the shield
         // check further down the same method:
         //
-        //   if (this.blockedByShield(source)) { this.damageShield(amount); … return false; }
+        //   if (this.blockedByShield(source)) { this.damageShield(amount); 閳?return false; }
         //
         // So this handler used to cancel a share of the incoming damage and queue the elemental rider
         // *before* the shield was ever consulted. The shield then blocked the (now smaller) physical
-        // hit — and the rider, which `damageElemental` deals with the gate lifted for its own instance, and is applied on the
-        // world tick, landed anyway. That is the reported "元素伤害可以穿盾": a raised shield stopped
+        // hit 閳?and the rider, which `damageElemental` deals with the gate lifted for its own instance, and is applied on the
+        // world tick, landed anyway. That is the reported "閸忓啰绀屾导銈咁唺閸欘垯浜掔粚璺ㄦ禈": a raised shield stopped
         // only the physical share, mob elemental attacks went straight through, and the barrier was
-        // therefore "好难防住".
+        // therefore "婵備粙姣﹂梼韫秶".
         //
         // Returning early leaves `e.amount` untouched, so vanilla blocks the whole hit and the shield
         // takes its normal damage. `blockedByShield` is a pure predicate here (bytecode: tag check +
@@ -403,19 +338,19 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
             return
         }
 
-        // Remember what just hit this entity, for the floating damage number — **before** the
+        // Remember what just hit this entity, for the floating damage number 閳?**before** the
         // own-damage early return below.
         //
         // The elemental share of a converted hit *is* one of our own damage types, so the earlier
         // ordering (remember after the return) meant a converted hit was never recorded: every
         // conversion weapon produced a **physical-red** number, on every client, which is the reported
-        // "附有元素转化的武器上攻击也是红色字体". Recording first only affects the *colour*; the early
+        // "闂勫嫭婀侀崗鍐鏉烆剙瀵查惃鍕劅閸ｃ劋绗傞弨璇插毊娑旂喐妲哥痪銏ｅ鐎涙ぞ缍?. Recording first only affects the *colour*; the early
         // return below still stops the element from being converted a second time.
         //
         // A hit no element claims (a plain swing) is skipped so it keeps the indicator's original colour.
         if (incoming != null) rememberElement(target, incoming)
 
-        // Our own re-dealt element damage must never be converted again — that would chain forever.
+        // Our own re-dealt element damage must never be converted again 閳?that would chain forever.
         if (isOwnElementalDamage(e)) return
 
         // A mob with an element takes over from here: it has no enchantments to read, so none of the
@@ -428,7 +363,7 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
         // Mastery is read **before** the conversion branch, because it must also affect a hit that is
         // already elemental (a fire weapon on a fire hit, an arrow from a fire arrow, ...). Reading it
         // inside the conversion branch only would make the enchantment silently do nothing to any
-        // player who is not carrying one of the seven conversions — the "键存在 ≠ 有人读它" shape.
+        // player who is not carrying one of the seven conversions 閳?the "闁款喖鐡ㄩ崷?閳?閺堝姹夌拠璇茬暊" shape.
         // The weapon **that fired this shot**, not whatever is in hand now: swapping to a
         // strong melee weapon after releasing the bow must not upgrade the arrow in flight.
         val weapon = attacker.combatStack(e.source)
@@ -447,11 +382,10 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
             // 2. a **non-elemental** hit leaves no mark (having no element is the base case and reacting on
             //    it would make every plain sword hit mark the target) but **still gets mastery**.
             //
-            // ⚠️ Case 2 is the one the first revision got wrong: the early return wrapped the whole block,
-            // so with a sword and no conversion enchantment `elemental_mastery` did *nothing at all* —
-            // the reported "元素精通未见成效". Mastery is an elemental-output multiplier, and on a
+            // 閳跨媴绗?Case 2 is the one the first revision got wrong: the early return wrapped the whole block,
+            // so with a sword and no conversion enchantment `elemental_mastery` did *nothing at all* 閳?            // the reported "閸忓啰绀岀划楣冣偓姘弓鐟欎焦鍨氶弫?. Mastery is an elemental-output multiplier, and on a
             // non-elemental hit the elemental output is zero, so the correct behaviour for mastery alone
-            // on a plain hit is to do nothing *visible* — but it must still be reachable, otherwise it
+            // on a plain hit is to do nothing *visible* 閳?but it must still be reachable, otherwise it
             // silently never fires and cannot be told apart from a broken enchantment. It is logged
             // (see `outcome=mastery-only-non-elemental`), which is what makes the two distinguishable.
             if (incoming == null) {
@@ -475,7 +409,7 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
                 }
                 return
             }
-            // 增幅 reaction: `melt`-style multipliers are applied to the *hit*, which is why they
+            // 婢х偛绠?reaction: `melt`-style multipliers are applied to the *hit*, which is why they
             // come back from `record` instead of being dealt as extra damage.
             val outcome = ElementMarks.record(attacker, target, incoming, e.amount, source = e.source)
             if (outcome.amplify > 1f) {
@@ -538,7 +472,7 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
         // actually loses in total rather than only the elemental slice.
         val healthAtStart = target.health
 
-        // Mastery scales the **elemental part only**, never the cancelled physical part — that is what
+        // Mastery scales the **elemental part only**, never the cancelled physical part 閳?that is what
         // makes it "elemental" mastery and keeps it from becoming a plain damage multiplier. It was
         // already read above; this is the same value, applied to the re-dealt share.
         val cancelled = original * fraction
@@ -547,7 +481,7 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
         // 1) cancel the converted share from the original hit
         e.amount = (original - cancelled).coerceAtLeast(0f)
 
-        // ⚠️ **A swing the i-frame gate is about to discard must not spawn a rider.**
+        // 閳跨媴绗?**A swing the i-frame gate is about to discard must not spawn a rider.**
         //
         // `LivingHurtEvent` fires at the HEAD of `LivingEntity#damage`, *before* the gate:
         //
@@ -555,14 +489,14 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
         //       && amount <= lastDamageTaken   ->   return false   (nothing applied)
         //
         // Clicking faster than the target's i-frames therefore fires this handler for a hit the game will
-        // throw away — and the rider we queue for it lives in `#minecraft:bypasses_cooldown` (it must, or
+        // throw away 閳?and the rider we queue for it lives in `#minecraft:bypasses_cooldown` (it must, or
         // it could never land), so **the elemental share went through while the swing did not**. Free
-        // damage on every discarded click; that is the reported "元素伤害无视无敌帧去攻击敌人".
+        // damage on every discarded click; that is the reported "閸忓啰绀屾导銈咁唺閺冪姾顫嬮弮鐘虫櫕鐢冨箵閺€璇插毊閺佸奔姹?.
         //
-        // ⚠️ **The amount must be the one vanilla will see, i.e. `e.amount` AFTER the cancellation above.**
+        // 閳跨媴绗?**The amount must be the one vanilla will see, i.e. `e.amount` AFTER the cancellation above.**
         // The first revision of this guard tested the *incoming* `original`, and that is why it never fired:
         // with `original=9.13`, `kept=5.84` and `lastDamageTaken=5.84`, the pre-conversion comparison
-        // (`9.13 <= 5.84`) was false — so the guard passed — while vanilla then compared the rewritten
+        // (`9.13 <= 5.84`) was false 閳?so the guard passed 閳?while vanilla then compared the rewritten
         // `5.84 <= 5.84` and discarded the whole swing. The log showed exactly that: `total_this_hit` equal
         // to `planned_elemental` and nothing else.
         if (wouldBeDiscardedByIFrames(target, e.source, e.amount)) {
@@ -576,7 +510,7 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
 
         // 2) **Defer** the elemental damage instead of dealing it here.
         //
-        // ⚠️ This is the fix for "20 HP takes 4 hits", and the mechanism is worth spelling out because
+        // 閳跨媴绗?This is the fix for "20 HP takes 4 hits", and the mechanism is worth spelling out because
         // the first three revisions all got it wrong in different ways.
         //
         // `LivingHurtEvent` is fired from `EntityDamageMixin` at the HEAD of `LivingEntity#damage`, and
@@ -589,7 +523,7 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
         // `e.amount` is lost.
         //
         // The measured symptom was exactly that: `kept=5.84` was computed and logged, and the target
-        // lost only the elemental 4.93 per hit (`prev_armor_kept=4.93`) — so a 20 HP mob needed
+        // lost only the elemental 4.93 per hit (`prev_armor_kept=4.93`) 閳?so a 20 HP mob needed
         // ceil(20 / 4.93) = 4 hits. The physical share never landed at all.
         //
         // Fixing it by clearing the cache around the nested call would be fragile (the outer event's
@@ -609,13 +543,12 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
             source = e.source,
         )
         if (reacted.amplify > 1f) {
-            // 增幅: the multiplier lands on the physical share of this very swing.
+            // 婢х偛绠? the multiplier lands on the physical share of this very swing.
             e.amount *= reacted.amplify
         }
 
         // `FSTLog`, i.e. **off unless `-Dsimpletweaks.debug=true`** (or `SIMPLETWEAKS_DEBUG=1`).
-        // This was unconditional for one build while the "damage is lower" report was being chased —
-        // see `DEVLOG.md` §12.6 for what it was needed for (it is what produced the `prev=` number that
+        // This was unconditional for one build while the "damage is lower" report was being chased 閳?        // see `DEVLOG.md` 鎼?2.6 for what it was needed for (it is what produced the `prev=` number that
         // finally located the real bug). Once that was found it goes back behind the switch: one line
         // per converted hit is far too much for normal play.
         //
@@ -642,7 +575,7 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
         /** `null` for an unreduced rider that carries no element (`enqueueUnreduced`). */
         val element: ElementType?,
         val amount: Float,
-        /** The triggering hit's damage after mastery — the reaction table scales from this. */
+        /** The triggering hit's damage after mastery 閳?the reaction table scales from this. */
         val baseDamage: Float,
         /** Health before the whole hit, for the end-to-end `total_this_hit` measurement. */
         val healthAtStart: Float,
@@ -659,9 +592,9 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
         // imported into the engine: `ElementDamageSeam` is a no-op when nothing is registered.
         val finalAmount = ElementDamageSeam.modify(attacker, target, element, amount)
 
-        // ⚠️ A non-finite amount must never be queued. `NaN` health is not recoverable in-game: the
+        // 閳跨媴绗?A non-finite amount must never be queued. `NaN` health is not recoverable in-game: the
         // entity can never be killed (`health <= 0` is false forever) and every later `health + x`
-        // stays `NaN`. `build=cleanup11` was that report ("打不死怪物 / lag on 0hp"): a handler
+        // stays `NaN`. `build=cleanup11` was that report ("閹垫挷绗夊缁樷偓顏嗗⒖ / lag on 0hp"): a handler
         // multiplied its own re-dealt damage until it overflowed to `Infinity` and then `NaN`.
         //
         // The message distinguishes "the caller asked for something invalid" from "a seam modifier
@@ -709,7 +642,7 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
      * Deals every queued elemental hit and logs the end-to-end total.
      *
      * Runs on `WorldTickEvent` (END), i.e. after every `LivingEntity#damage` of the tick has fully
-     * unwound — which is what makes `healthAtStart - health` a trustworthy total for the whole hit.
+     * unwound 閳?which is what makes `healthAtStart - health` a trustworthy total for the whole hit.
      */
     @SubscribeEvent
     fun onWorldTick(e: dev.firefly.simpletweaks.compat.event.TickEvent.WorldTickEvent) {
@@ -734,7 +667,7 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
                 pending.amount,
             )
             val actual = (before - target.health).coerceAtLeast(0f)
-            // Debug-gated like the conversion line above — same `[FST-Element]` tag, debug switch.
+            // Debug-gated like the conversion line above 閳?same `[FST-Element]` tag, debug switch.
             FSTLog.log("Element") {
                 "element=${pending.element?.id ?: "true"}, " +
                     "flushed_elemental=${"%.2f".format(pending.amount)}, landed=$landed, " +
@@ -753,8 +686,8 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
      * bonus), deliberately: the player's `xx_protection` is then the correct counter with no
      * special-casing, and the floating number colours the hit the same way regardless of who swung.
      *
-     * The elemental part is **queued** like every other re-deal — dealing damage from inside a
-     * `LivingHurtEvent` corrupts `EventSeams`' cache (see `DEVLOG` §12.6).
+     * The elemental part is **queued** like every other re-deal 閳?dealing damage from inside a
+     * `LivingHurtEvent` corrupts `EventSeams`' cache (see `DEVLOG` 鎼?2.6).
      */
     private fun handleMobAttack(attacker: LivingEntity, target: LivingEntity, incoming: ElementType?, e: LivingHurtEvent) {
         val mob = attacker as? MobEntity ?: return
@@ -771,12 +704,12 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
         if (fraction <= 0f) return
 
         val cancelled = original * fraction
-        val reDealt = cancelled * (1.0f + MobElements.BONUS_SCALE)
+        val reDealt = original * ElementMath.elementalShare(fraction, MobElements.BONUS_SCALE)
         val kept = (original - cancelled).coerceAtLeast(0f)
 
-        // ⚠️ Same guard as the player path: a swing the i-frame gate is about to discard must not
+        // 閳跨媴绗?Same guard as the player path: a swing the i-frame gate is about to discard must not
         // queue a rider. Without it a mob attacking faster than the target's i-frames still landed the
-        // elemental share — "怪物打你无视无敌帧" — because the rider is in `#minecraft:bypasses_cooldown`
+        // elemental share 閳?"閹亞澧块幍鎾茬稑閺冪姾顫嬮弮鐘虫櫕鐢? 閳?because the rider is in `#minecraft:bypasses_cooldown`
         // and therefore immune to the very gate that stopped the swing.
         if (wouldBeDiscardedByIFrames(target, e.source, kept)) {
             FSTLog.log("Element") {
@@ -791,7 +724,7 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
 
         rememberElement(target, element)
         // The victim also gets the aura: without it a mob's element could only ever hit, never set up a
-        // reaction on the player — i.e. the whole element game was one-directional.
+        // reaction on the player 閳?i.e. the whole element game was one-directional.
         ElementAuras.attach(target, element, MobElements.AURA_UNITS)
         enqueueElemental(attacker, target, element, reDealt)
 
@@ -818,8 +751,8 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
         }
 
         // `build=cleanup21`: venom and reflection sit in `#minecraft:bypasses_enchantments` on purpose
-        // (the author's "无视抗性"). Now that venom counts as `nature` and reflection mirrors an element,
-        // they would otherwise start being reduced here — the very enchantments they are documented to
+        // (the author's "閺冪姾顫嬮幎妤佲偓?). Now that venom counts as `nature` and reflection mirrors an element,
+        // they would otherwise start being reduced here 閳?the very enchantments they are documented to
         // ignore. Honouring the tag keeps that promise.
         if (e.source.isIn(DamageTypeTags.BYPASSES_ENCHANTMENTS)) {
             FSTLog.log("Element") {
@@ -835,8 +768,7 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
         // 100 % by itself); penetration is then applied as a multiplier on the combined mitigation, so
         // it can never turn an 80 % protection into a negative one.
         val level = protectionLevel(e.entityLiving, element)
-        val enchantReduction =
-            if (level > 0) (PROTECTION_PER_LEVEL * level).coerceAtMost(PROTECTION_CAP) else 0f
+        val enchantReduction = ElementMath.protectionReduction(level)
         val wardReduction = wardReduction(e.entityLiving)
         val mob = e.entityLiving as? MobEntity
         val mobReduction = if (mob != null) MobElements.resistanceFor(mob, element) else 0f
@@ -844,15 +776,13 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
 
         // `elemental_supremacy` is its **own** mitigation source, not a change to the affinity cap: the chain is
         // multiplicative, so an extra factor can never drive the total to 100 %. This is what gives the
-        // enchantment "height" as well as "breadth" — four maxed fire pieces already cap the affinity at 80 %,
+        // enchantment "height" as well as "breadth" 閳?four maxed fire pieces already cap the affinity at 80 %,
         // and supremacy then removes a further slice of what is left.
-        val mitigated = 1.0f - (1.0f - enchantReduction) * (1.0f - mobReduction) *
-            (1.0f - wardReduction) * (1.0f - supremacyReduction)
-        // No 0.95 ceiling: every source above is a factor strictly below 1, so the product can never reach 1
-        // and the damage can never be reduced to zero. The clamp is only a numeric guard (a NaN or a bad
-        // penetration value must not turn into negative damage), which is why it is 0..1 and not 0..0.95
-        // (`build=cleanup57`).
-        val effective = (mitigated * (1.0f - penetration)).coerceIn(0f, 1f)
+        // The combination rules live in `ElementMath` so they are unit tested; these comments only
+        // record why the shape is what it is. Mitigations multiply, penetration multiplies the product.
+        val effective = ElementMath.mitigatedShare(
+            enchantReduction, mobReduction, wardReduction, supremacyReduction, penetration
+        )
 
         if (effective <= 0f) return
 
@@ -875,7 +805,7 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
      *
      * A plain swing has no `xx_protection` (there is no element to pick), no mob resistance and no ward,
      * so the elemental chain above would be an all-zero multiply. Supremacy is deliberately different: it
-     * is the enchantment's whole promise — "all methods return to one" — so it is the only source that
+     * is the enchantment's whole promise 閳?"all methods return to one" 閳?so it is the only source that
      * also covers the non-elemental half, using the same 4.5 %/level, 90 % cap zone it applies to elements.
      *
      * `#minecraft:bypasses_enchantments` is still honoured (`true_damage`, `venom`, `reflection`), for the
@@ -910,10 +840,7 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
         EnchantPresence.armorMax(entity, GeneratedEnchantments.ELEMENTAL_WARD)
 
     /** `elemental_ward` reduction, capped. */
-    fun wardReduction(entity: LivingEntity): Float {
-        val lvl = wardLevel(entity)
-        return if (lvl <= 0) 0f else (WARD_PER_LEVEL * lvl).coerceAtMost(WARD_CAP)
-    }
+    fun wardReduction(entity: LivingEntity): Float = ElementMath.wardReduction(wardLevel(entity))
 
     /**
      * `elemental_resonance` level from the weapon **that dealt this hit** (reaction damage only).
@@ -926,16 +853,14 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
         else getItemSpecificEnchantLevel(attacker.combatStack(source), GeneratedEnchantments.ELEMENTAL_RESONANCE)
 
     /** Reaction damage multiplier from `elemental_resonance`, capped. */
-    fun resonanceMultiplier(attacker: LivingEntity?, source: DamageSource? = null): Float {
-        val lvl = resonanceOf(attacker, source)
-        return 1.0f + if (lvl <= 0) 0f else (RESONANCE_PER_LEVEL * lvl).coerceAtMost(RESONANCE_CAP)
-    }
+    fun resonanceMultiplier(attacker: LivingEntity?, source: DamageSource? = null): Float =
+        ElementMath.resonanceMultiplier(resonanceOf(attacker, source))
 
     /** `elemental_penetration` level from the weapon that dealt this hit (see [resonanceOf]). */
     fun penetrationOf(attacker: LivingEntity?, source: DamageSource? = null): Float {
         if (attacker == null) return 0f
         val lvl = getItemSpecificEnchantLevel(attacker.combatStack(source), GeneratedEnchantments.ELEMENTAL_PENETRATION)
-        return if (lvl <= 0) 0f else (PENETRATION_PER_LEVEL * lvl).coerceAtMost(PENETRATION_CAP)
+        return ElementMath.penetration(lvl)
     }
 
     // ---------------------------------------------------------------- helpers
@@ -958,7 +883,7 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
      *
      * Public because handlers that deal **their own** damage inside `LivingHurtEvent` need the same test: the
      * event fires at the HEAD of `LivingEntity#damage`, before the gate, so a rider queued here can land while
-     * the swing it belongs to is thrown away — that is the "elemental damage ignores i-frames" bug this guard
+     * the swing it belongs to is thrown away 閳?that is the "elemental damage ignores i-frames" bug this guard
      * exists to prevent (`build=cleanup61`, second time it bit).
      */
     fun wouldBeDiscardedByIFrames(
@@ -977,7 +902,7 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
      *
      * Deliberately a plain `ConcurrentHashMap` keyed by UUID and **not** cleared per tick: the
      * indicator reads it when it emits a number, and a stale entry only means a number inherits the
-     * previous hit's colour — harmless. Clearing it would need a second tick pass to decide *when*,
+     * previous hit's colour 閳?harmless. Clearing it would need a second tick pass to decide *when*,
      * for no benefit.
      */
     private val LAST_ELEMENT = java.util.concurrent.ConcurrentHashMap<UUID, ElementType>()
@@ -995,8 +920,7 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
      *
      * ## `elemental_supremacy`
      * With that enchantment worn, the **highest** single-element total is used for **every** element instead
-     * of each element's own total. So four pieces of fire protection defend exactly as well against frost —
-     * "specialise into one affinity, gain all seven" — but they do **not** stack: the answer is a maximum,
+     * of each element's own total. So four pieces of fire protection defend exactly as well against frost 閳?     * "specialise into one affinity, gain all seven" 閳?but they do **not** stack: the answer is a maximum,
      * not a sum, so wearing one piece of each element still gives you the single highest one.
      *
      * This is deliberately implemented here and nowhere else: [protectionLevel] is the only reader of the
@@ -1019,11 +943,11 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
         EnchantPresence.armorSum(entity, PROTECTION_KEYS.getValue(element))
 
     /**
-     * `elemental_supremacy`'s own mitigation **zone**: `4.5 % × total level`, capped at 90 %.
+     * `elemental_supremacy`'s own mitigation **zone**: `4.5 % 鑴?total level`, capped at 90 %.
      *
      * This is a separate zone from the 80 % affinity cap, not a refinement of it: at a full set (20 levels)
      * the zone alone is 90 %, and it composes multiplicatively with whatever affinity you have
-     * (`1 − (1 − affinity) × (1 − zone)`). With a maxed affinity that lands at 98 %, which the engine's
+     * (`1 閳?(1 閳?affinity) 鑴?(1 閳?zone)`). With a maxed affinity that lands at 98 %, which the engine's
      * final clamp reduces to the **95 %** ceiling every elemental hit is subject to.
      */
     /**
@@ -1036,8 +960,9 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
      */
     fun supremacyHaste(entity: LivingEntity): Float {
         if (!wearsSupremacy(entity)) return 1f
-        val total = EnchantPresence.armorLevelOf(entity, GeneratedEnchantments.ELEMENTAL_SUPREMACY)
-        return (1f - total / 20f).coerceIn(0f, 1f)
+        return ElementMath.supremacyHaste(
+            EnchantPresence.armorLevelOf(entity, GeneratedEnchantments.ELEMENTAL_SUPREMACY)
+        )
     }
 
     /** Shortens one ICD window by [supremacyHaste]; never below one tick. */
@@ -1048,12 +973,8 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
         return (windowTicks * factor).toLong().coerceAtLeast(1L)
     }
 
-    fun supremacyReduction(entity: LivingEntity): Float {
-        // `wearsSupremacy` used to re-run the same armour snapshot right after this lookup.
-        val total = EnchantPresence.armorLevelOf(entity, GeneratedEnchantments.ELEMENTAL_SUPREMACY)
-        if (total <= 0) return 0f
-        return (SUPREMACY_PER_LEVEL * total).coerceAtMost(SUPREMACY_CAP)
-    }
+    fun supremacyReduction(entity: LivingEntity): Float =
+        ElementMath.supremacyReduction(EnchantPresence.armorLevelOf(entity, GeneratedEnchantments.ELEMENTAL_SUPREMACY))
 
     /** Whether [entity] wears `elemental_supremacy` (any armour slot). */
     fun wearsSupremacy(entity: LivingEntity): Boolean =
@@ -1072,8 +993,8 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
         // `build=cleanup21`: these four are **our own** damage too, and three of them are now real
         // elements (venom = nature, chain_lightning = lightning, celestial_particle = light), so they
         // are in an `elemental_*` tag and `ElementType.of` classifies them. Without this they would take
-        // the "already elemental hit" path and be **converted again** — a chain arc carrying a fire
-        // conversion, a poison tick spawning extra riders — which is not what any of these enchantments
+        // the "already elemental hit" path and be **converted again** 閳?a chain arc carrying a fire
+        // conversion, a poison tick spawning extra riders 閳?which is not what any of these enchantments
         // is supposed to do.
         return key == ElementDamageTypes.VENOM ||
             key == ElementDamageTypes.CHAIN_LIGHTNING ||
@@ -1081,7 +1002,7 @@ object ElementCombat : dev.firefly.simpletweaks.core.Listenable {
             key == ModDamageTypes.REFLECTION ||
             // Non-elemental riders (`enqueueUnreduced`, `true_damage`) and the moon/star tiers are ours
             // too. They carry no element, so `ElementType.of` reads `null` and the conversion branch below
-            // would happily convert them again — a shield bash with a fire conversion would cancel a share
+            // would happily convert them again 閳?a shield bash with a fire conversion would cancel a share
             // of the bash, mark the target and queue a *second* rider. Removing `PHYSICAL` (which used to
             // sit in `CONVERTIBLE` and therefore caught this) is what exposed it.
             key == ModDamageTypes.TRUE_DAMAGE ||

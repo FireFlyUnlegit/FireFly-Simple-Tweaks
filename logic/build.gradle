@@ -1,0 +1,37 @@
+// Pure-Kotlin/JVM logic module. Deliberately NOT a Loom project and with no Minecraft dependency:
+// `:logic:test` must fail to compile the moment a game type leaks into the arithmetic.
+plugins {
+    id 'org.jetbrains.kotlin.jvm' version "${kotlin_version}"
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // Kotlin's assertion library on JUnit 5. Two coordinates is the whole test surface of the project
+    // (the mod itself has no test dependency).
+    testImplementation "org.jetbrains.kotlin:kotlin-test-junit5:${kotlin_version}"
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2'
+}
+
+kotlin {
+    jvmToolchain(21)
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+    testLogging {
+        events 'failed'
+        exceptionFormat 'full'
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    it.options.encoding = 'UTF-8'
+}

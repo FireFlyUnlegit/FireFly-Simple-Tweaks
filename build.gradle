@@ -63,6 +63,19 @@ kotlin {
     jvmToolchain(21)
 }
 
+// The pure arithmetic lives in `logic/` so it can be tested without Minecraft on the classpath.
+// This project compiles those sources directly instead of shipping a nested jar: one jar, no
+// jar-in-jar, and `:logic:test` still guarantees those files import no game type.
+sourceSets {
+    main {
+        kotlin.srcDir project(':logic').file('src/main/kotlin')
+    }
+}
+
+tasks.named('build') {
+    dependsOn ':logic:test'
+}
+
 // Game tests: a real server + world, spawned entities, the real damage pipeline.
 //
 // Deliberately a SEPARATE run configuration, and NOT wired into `build` or `check`:
