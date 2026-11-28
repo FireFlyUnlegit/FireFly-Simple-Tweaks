@@ -72,6 +72,7 @@ object UpgradeEnchantments {
         Rule(GeneratedEnchantments.ADVANCED_FINALITY, GeneratedEnchantments.FINALITY, 3),
         Rule(GeneratedEnchantments.ADVANCED_REGENERATION, GeneratedEnchantments.REGENERATION, 8),
         Rule(GeneratedEnchantments.ADVANCED_VENOM, GeneratedEnchantments.VENOM, 3),
+        Rule(GeneratedEnchantments.ADVANCED_BLOCKING, GeneratedEnchantments.BLOCKING, 1),
     )
 
     /** Level the base must be credited with when [component] carries [upgrade] in this slot, else 0. */

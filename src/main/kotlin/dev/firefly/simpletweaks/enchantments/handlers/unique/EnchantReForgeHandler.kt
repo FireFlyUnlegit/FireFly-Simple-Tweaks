@@ -6,9 +6,11 @@ import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.event.TickEvent
 import dev.firefly.simpletweaks.core.Listenable
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
+import dev.firefly.simpletweaks.util.rewriteEnchantments
 import net.minecraft.component.DataComponentTypes
 import net.minecraft.component.type.ItemEnchantmentsComponent
 import net.minecraft.enchantment.EnchantmentHelper
+import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.entity.player.PlayerInventory
 import net.minecraft.item.ItemStack
 import net.minecraft.item.Items
@@ -76,9 +78,9 @@ object EnchantReForgeHandler : Listenable {
 
 
         val inv = p.inventory
-        processInventory(inv, inv.main)
-        processInventory(inv, inv.armor)
-        processInventory(inv, inv.offHand)
+        processInventory(p, inv, inv.main)
+        processInventory(p, inv, inv.armor)
+        processInventory(p, inv, inv.offHand)
     }
 
     /**
@@ -87,7 +89,7 @@ object EnchantReForgeHandler : Listenable {
      * `IInventory` parameter collapses into the receiver and every list is addressed with the very
      * same index `setStack` would have used.
      */
-    private fun processInventory(inv: PlayerInventory, list: List<ItemStack>) {
+    private fun processInventory(player: PlayerEntity, inv: PlayerInventory, list: List<ItemStack>) {
         for (i in list.indices) {
             val stack = list[i]
             if (stack.isEmpty) continue
@@ -100,7 +102,7 @@ object EnchantReForgeHandler : Listenable {
             val enchants = EnchantmentHelper.getEnchantments(stack)
             val builder = ItemEnchantmentsComponent.Builder(enchants)
             builder.remove { it.matchesKey(GeneratedEnchantments.REFORGE) }
-            EnchantmentHelper.set(stack, builder.build())
+            rewriteEnchantments(stack, player, builder.build())
 
             // 1.12.2: `val tag = stack.tagCompound ?: continue; tag.removeTag("RepairCost")`.
             // 1.21: the anvil penalty is the `minecraft:repair_cost` data component.

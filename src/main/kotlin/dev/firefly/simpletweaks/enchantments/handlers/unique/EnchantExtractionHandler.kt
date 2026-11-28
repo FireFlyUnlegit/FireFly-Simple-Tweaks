@@ -8,6 +8,7 @@ import dev.firefly.simpletweaks.core.Listenable
 import dev.firefly.simpletweaks.enchantments.annotations.*
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
+import dev.firefly.simpletweaks.util.rewriteEnchantments
 import net.minecraft.component.DataComponentTypes
 import net.minecraft.component.type.ItemEnchantmentsComponent
 import net.minecraft.enchantment.EnchantmentHelper
@@ -76,7 +77,7 @@ object EnchantExtractionHandler : Listenable {
 
             val builder = ItemEnchantmentsComponent.Builder(enchants)
             builder.remove { it === best || it.matchesKey(GeneratedEnchantments.EXTRACTION) }
-            EnchantmentHelper.set(stack, builder.build())
+            rewriteEnchantments(stack, player, builder.build())
             // Mutation already landed in place (`EnchantmentHelper#set` writes through to the stack);
                 // `PlayerInventory#setStack(i, ...)` takes a COMBINED index, so a list-local `i` wrote
                 // the armour/offhand stack over hotbar slot i and duplicated it (`build=cleanup63`).

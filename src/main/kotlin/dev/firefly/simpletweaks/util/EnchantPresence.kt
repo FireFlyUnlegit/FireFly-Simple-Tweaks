@@ -1,5 +1,6 @@
 package dev.firefly.simpletweaks.util
 
+import dev.firefly.simpletweaks.SimpleTweaks
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 import net.minecraft.enchantment.Enchantment
 import net.minecraft.enchantment.EnchantmentHelper
@@ -39,8 +40,15 @@ object EnchantPresence {
     private val ARMOR_SLOTS =
         intArrayOf(ARMOR_FROM, ARMOR_FROM + 1, ARMOR_FROM + 2, ARMOR_FROM + 3)
 
-    /** Upper bound on distinct enchantments one entity can carry; the table has 128, six slots hold far fewer. */
+    /**
+     * Upper bound on distinct enchantments one entity can carry. Six slots hold far fewer than this;
+     * overflow is logged once (see [build]) because it silently truncates the snapshot.
+     */
     private const val MAX_TRACKED = 64
+
+    /** Set after the first truncation so a command-spawned stack cannot spam the log every rebuild. */
+    @Volatile
+    private var warnedTruncation = false
 
     private val INDEX: Map<RegistryKey<Enchantment>, Int> by lazy {
         GeneratedEnchantments.KEYS.withIndex().associate { (index, key) -> key to index }
@@ -167,6 +175,7 @@ object EnchantPresence {
         val armor = IntArray(MAX_TRACKED)
         val shares = Array(SLOTS.size) { IntArray(MAX_TRACKED) }
         var tracked = 0
+        var overflowed = false
 
         for (slot in SLOTS.indices) {
             val component = EnchantmentHelper.getEnchantments(stacks[slot])
@@ -185,7 +194,10 @@ object EnchantPresence {
                     }
                 }
                 if (position < 0) {
-                    if (tracked == MAX_TRACKED) continue
+                    if (tracked == MAX_TRACKED) {
+                        overflowed = true
+                        continue
+                    }
                     position = tracked++
                     indices[position] = index
                 }
@@ -213,7 +225,10 @@ object EnchantPresence {
                     }
                 }
                 if (position < 0) {
-                    if (tracked == MAX_TRACKED) continue
+                    if (tracked == MAX_TRACKED) {
+                        overflowed = true
+                        continue
+                    }
                     position = tracked++
                     indices[position] = index
                 }
@@ -228,6 +243,15 @@ object EnchantPresence {
                     else -> armor[position] += gain
                 }
             }
+        }
+
+        if (overflowed && !warnedTruncation) {
+            warnedTruncation = true
+            SimpleTweaks.LOGGER.warn(
+                "EnchantPresence: {} carries more than {} distinct tracked enchantments; " +
+                    "the surplus is not cached (levels will read as 0 for those keys)",
+                entity.name.string, MAX_TRACKED,
+            )
         }
 
         return Profile(

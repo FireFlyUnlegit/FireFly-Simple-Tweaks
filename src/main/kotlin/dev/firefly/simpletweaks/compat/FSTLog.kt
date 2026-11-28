@@ -1,6 +1,7 @@
 package dev.firefly.simpletweaks.compat
 
 import dev.firefly.simpletweaks.SimpleTweaks
+import dev.firefly.simpletweaks.core.config.GeneralConfig
 import org.slf4j.LoggerFactory
 
 /**
@@ -54,12 +55,15 @@ object FSTLog {
     private val startupEnabled: Boolean =
         isOn(System.getProperty("simpletweaks.debug")) || isOn(System.getenv("SIMPLETWEAKS_DEBUG"))
 
-    /** Flipped by the `debugLogging` config option; the startup switch above still wins. */
-    @JvmStatic
-    var runtimeEnabled: Boolean = false
-
+    /**
+     * True when a startup switch or the `debugLogging` config option asked for debug output.
+     *
+     * Read straight from the config instead of being pushed in on load: the old `runtimeEnabled`
+     * field had to be assigned by `SimpleTweaksConfig`, which made "does debug logging work"
+     * depend on load order and left the key with no reader outside the config package.
+     */
     val enabled: Boolean
-        get() = startupEnabled || runtimeEnabled
+        get() = startupEnabled || GeneralConfig.debugLogging
 
     private fun isOn(value: String?): Boolean =
         value != null && (value.equals("true", ignoreCase = true) || value.trim() == "1")

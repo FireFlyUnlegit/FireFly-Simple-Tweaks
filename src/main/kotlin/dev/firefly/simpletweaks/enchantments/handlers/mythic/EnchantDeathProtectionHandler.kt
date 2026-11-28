@@ -8,6 +8,7 @@ import dev.firefly.simpletweaks.core.Listenable
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 import dev.firefly.simpletweaks.util.chestplate
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
+import dev.firefly.simpletweaks.util.rewriteEnchantments
 import net.minecraft.component.type.ItemEnchantmentsComponent
 import net.minecraft.enchantment.EnchantmentHelper
 import net.minecraft.entity.player.PlayerEntity
@@ -88,7 +89,7 @@ object EnchantDeathProtectionHandler : Listenable {
             } else {
                 builder.remove { it.matchesKey(GeneratedEnchantments.DEATH_PROTECTION) }
             }
-            EnchantmentHelper.set(chest, builder.build())
+            rewriteEnchantments(chest, player, builder.build())
         }
 
         player.absorptionAmount = absorption

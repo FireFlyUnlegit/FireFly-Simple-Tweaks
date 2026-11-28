@@ -1,5 +1,6 @@
 package dev.firefly.simpletweaks.util
 
+import net.minecraft.component.type.ItemEnchantmentsComponent
 import net.minecraft.enchantment.Enchantment
 import net.minecraft.enchantment.EnchantmentHelper
 import net.minecraft.entity.EquipmentSlot
@@ -48,6 +49,23 @@ fun getItemSpecificEnchantLevel(itemStack: ItemStack, key: RegistryKey<Enchantme
 /** Total level of every enchantment in [keys] present on [itemStack]. */
 fun getItemSpecificEnchantsLevel(itemStack: ItemStack, keys: List<RegistryKey<Enchantment>>): Int =
     keys.sumOf { getItemSpecificEnchantLevel(itemStack, it) }
+
+/**
+ * Writes [component] onto [stack] and drops [owner]'s [EnchantPresence] snapshot.
+ *
+ * `EnchantmentHelper.set` mutates the stack in place, so the stack keeps its identity and the
+ * snapshot's validity check ([EnchantPresence] compares stack identity) cannot see the change.
+ * Every in-place rewrite must go through here, or the cached levels keep answering with the
+ * pre-rewrite numbers until that entity changes equipment.
+ */
+fun rewriteEnchantments(
+    stack: ItemStack,
+    owner: LivingEntity?,
+    component: ItemEnchantmentsComponent,
+) {
+    EnchantmentHelper.set(stack, component)
+    if (owner != null) EnchantPresence.invalidate(owner)
+}
 
 /** Total level of [key] across every stack in [itemStacks]. */
 fun getItemsSpecificEnchantLevel(itemStacks: List<ItemStack>, key: RegistryKey<Enchantment>): Int =

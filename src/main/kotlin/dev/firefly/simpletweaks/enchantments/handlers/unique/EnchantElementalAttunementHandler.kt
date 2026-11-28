@@ -9,6 +9,7 @@ import dev.firefly.simpletweaks.enchantments.annotations.*
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
 import dev.firefly.simpletweaks.util.elements.ElementType
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
+import dev.firefly.simpletweaks.util.rewriteEnchantments
 import net.minecraft.component.type.ItemEnchantmentsComponent
 import net.minecraft.enchantment.EnchantmentHelper
 import net.minecraft.entity.player.PlayerEntity
@@ -97,7 +98,7 @@ object EnchantElementalAttunementHandler : Listenable {
             builder.remove { it.matchesKey(currentKey) }
             builder.remove { it.matchesKey(GeneratedEnchantments.ELEMENTAL_ATTUNEMENT) }
             builder.set(newEntry, level)
-            EnchantmentHelper.set(stack, builder.build())
+            rewriteEnchantments(stack, player, builder.build())
             // Mutation already landed in place (`EnchantmentHelper#set` writes through to the stack);
                 // `PlayerInventory#setStack(i, ...)` takes a COMBINED index, so a list-local `i` wrote
                 // the armour/offhand stack over hotbar slot i and duplicated it (`build=cleanup63`).

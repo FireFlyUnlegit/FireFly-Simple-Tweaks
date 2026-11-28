@@ -10,7 +10,6 @@ import dev.firefly.simpletweaks.compat.ForgeEventBus
  * contract is identical. [ForgeEventBus] discovers `@SubscribeEvent` methods reflectively.
  */
 interface Listenable {
-    fun shouldHandleEvents(): Boolean = true
     fun init() {}
 }
 
