@@ -2,7 +2,9 @@ package dev.firefly.simpletweaks.mixin.client;
 
 import dev.firefly.simpletweaks.compat.FSTLog;
 import dev.firefly.simpletweaks.core.config.MobEnhancementConfig;
+import dev.firefly.simpletweaks.core.config.MobInfoBarConfig;
 import dev.firefly.simpletweaks.util.mobs.MobLevelSync;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.mob.MobEntity;
@@ -81,6 +83,17 @@ public abstract class LivingEntityRenderNameMixin {
         Entity self = (Entity) (Object) this;
         if (!(self instanceof MobEntity mob)) {
             return;
+        }
+        // The floating info bar draws the name itself; two labels on one mob is the bug, not the feature.
+        // Only surrender the name inside the bar's own range, so a custom-named boss 40 blocks away keeps
+        // its vanilla label instead of losing it entirely.
+        if (MobInfoBarConfig.getEnabled() && MobInfoBarConfig.getHideVanillaName()) {
+            MinecraftClient client = MinecraftClient.getInstance();
+            double range = MobInfoBarConfig.getMaxDistance();
+            if (client.player != null && mob.squaredDistanceTo(client.player) <= range * range) {
+                cir.setReturnValue(false);
+                return;
+            }
         }
         if (!MobEnhancementConfig.getEnabled() || !MobEnhancementConfig.getLevelsEnabled()) {
             return;

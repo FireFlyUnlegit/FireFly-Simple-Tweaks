@@ -1,6 +1,5 @@
 package dev.firefly.simpletweaks.core.config
 
-import dev.firefly.simpletweaks.compat.FSTLog
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
@@ -70,6 +69,7 @@ object SimpleTweaksConfig {
         readMobEnhancement(root.objectOrEmpty("mobEnhancement"))
         readDamageIndicator(root.objectOrEmpty("damageIndicator"))
         readAttributeCaps(root.objectOrEmpty("attributeCaps"))
+        readMobInfoBar(root.objectOrEmpty("mobInfoBar"))
 
         save()
 
@@ -96,17 +96,15 @@ object SimpleTweaksConfig {
             .coerceIn(ConfigBounds.ENCHANT_POWER)
         GeneralConfig.enabledEnchantmentColor = s.bool("enabledEnchantmentColor", true)
         GeneralConfig.enabledSpecialParticles = s.bool("enabledSpecialParticles", true)
+        GeneralConfig.enableSwordBlocking = s.bool("enableSwordBlocking", true)
         GeneralConfig.autoSprintEnabled = s.bool("autoSprintEnabled", false)
         GeneralConfig.autoSprintOmniSprint = s.bool("autoSprintOmniSprint", false)
-        // New in cleanup21, not a 1.12.2 option — hence a `false` default rather than a ported one.
-        GeneralConfig.noHurtCam = s.bool("noHurtCam", false)
         // New in cleanup86: the bar-shaped health HUD is on by default (it is the whole feature).
         GeneralConfig.barHealthHud = s.bool("barHealthHud", true)
         GeneralConfig.barDecimalPlaces = s.int("barDecimalPlaces", 2)
             .coerceIn(ConfigBounds.BAR_DECIMALS)
         GeneralConfig.barCompactNumbers = s.bool("barCompactNumbers", false)
         GeneralConfig.debugLogging = s.bool("debugLogging", false)
-        FSTLog.runtimeEnabled = GeneralConfig.debugLogging
         GeneralConfig.compactScientific = s.bool("compactScientific", false)
     }
 
@@ -129,6 +127,10 @@ object SimpleTweaksConfig {
             .coerceIn(ConfigBounds.LEVEL_UP_PERCENT)
         MobEnhancementConfig.levelUpWhenHurt = s.int("levelUpWhenHurt", 1)
             .coerceIn(ConfigBounds.LEVEL_UP_PERCENT)
+        // Out-of-combat regen: percent of max health per second, after a fixed 10 s of not being hurt.
+        MobEnhancementConfig.regenEnabled = s.bool("regenEnabled", true)
+        MobEnhancementConfig.regenPercent = s.int("regenPercent", 2)
+            .coerceIn(ConfigBounds.MOB_REGEN_PERCENT)
         // cleanup27: persistent difficulty bonus (`/fst difficulty modify`). Bounded so a typo cannot
         // turn every spawn into a level-5000 mob.
         MobEnhancementConfig.difficultyModifier = s.dbl("difficultyModifier", 0.0)
@@ -169,6 +171,30 @@ object SimpleTweaksConfig {
         }
     }
 
+    private fun readMobInfoBar(s: JsonObject) {
+        MobInfoBarConfig.enabled = s.bool("enabled", true)
+        MobInfoBarConfig.hpText = runCatching {
+            MobInfoBarConfig.HpText.valueOf(s.str("hpText", "PERCENT").uppercase())
+        }.getOrDefault(MobInfoBarConfig.HpText.PERCENT)
+        MobInfoBarConfig.showArmor = s.bool("showArmor", true)
+        MobInfoBarConfig.showPlayers = s.bool("showPlayers", false)
+        MobInfoBarConfig.hideVanillaName = s.bool("hideVanillaName", true)
+        MobInfoBarConfig.backgroundOpacity = s.int("backgroundOpacity", 35).coerceIn(ConfigBounds.MOB_INFO_BACKGROUND)
+        MobInfoBarConfig.maxDistance = s.dbl("maxDistance", 24.0).coerceIn(ConfigBounds.MOB_INFO_DISTANCE)
+        MobInfoBarConfig.scalePercent = s.int("scalePercent", 100).coerceIn(ConfigBounds.MOB_INFO_SCALE_PERCENT)
+    }
+
+    private fun mobInfoBar(): JsonObject = JsonObject().apply {
+        addProperty("enabled", MobInfoBarConfig.enabled)
+        addProperty("hpText", MobInfoBarConfig.hpText.name)
+        addProperty("showArmor", MobInfoBarConfig.showArmor)
+        addProperty("showPlayers", MobInfoBarConfig.showPlayers)
+        addProperty("hideVanillaName", MobInfoBarConfig.hideVanillaName)
+        addProperty("backgroundOpacity", MobInfoBarConfig.backgroundOpacity)
+        addProperty("maxDistance", MobInfoBarConfig.maxDistance)
+        addProperty("scalePercent", MobInfoBarConfig.scalePercent)
+    }
+
     private fun attributeCaps(): JsonObject {
         val out = JsonObject()
         for ((id, cap) in AttributeCapConfig.all()) {
@@ -207,9 +233,9 @@ object SimpleTweaksConfig {
             addProperty("maxEnchantmentPower", GeneralConfig.maxEnchantmentPower)
             addProperty("enabledEnchantmentColor", GeneralConfig.enabledEnchantmentColor)
             addProperty("enabledSpecialParticles", GeneralConfig.enabledSpecialParticles)
+            addProperty("enableSwordBlocking", GeneralConfig.enableSwordBlocking)
             addProperty("autoSprintEnabled", GeneralConfig.autoSprintEnabled)
             addProperty("autoSprintOmniSprint", GeneralConfig.autoSprintOmniSprint)
-            addProperty("noHurtCam", GeneralConfig.noHurtCam)
             addProperty("barHealthHud", GeneralConfig.barHealthHud)
             addProperty("barDecimalPlaces", GeneralConfig.barDecimalPlaces)
         addProperty("barCompactNumbers", GeneralConfig.barCompactNumbers)
@@ -224,6 +250,8 @@ object SimpleTweaksConfig {
         addProperty("levelUpOnHitPlayer", MobEnhancementConfig.levelUpOnHitPlayer)
         addProperty("levelUpOnKill", MobEnhancementConfig.levelUpOnKill)
         addProperty("levelUpWhenHurt", MobEnhancementConfig.levelUpWhenHurt)
+        addProperty("regenEnabled", MobEnhancementConfig.regenEnabled)
+        addProperty("regenPercent", MobEnhancementConfig.regenPercent)
             addProperty("difficultyModifier", MobEnhancementConfig.difficultyModifier)
         }
         val indicator = JsonObject().apply {
@@ -245,6 +273,7 @@ object SimpleTweaksConfig {
             add("mobEnhancement", mobEnhancement)
             add("damageIndicator", indicator)
             add("attributeCaps", attributeCaps())
+            add("mobInfoBar", mobInfoBar())
         }
     }
 
@@ -268,4 +297,7 @@ object SimpleTweaksConfig {
 
     private fun JsonObject.dbl(key: String, def: Double): Double =
         runCatching { if (has(key) && get(key).isJsonPrimitive) get(key).asDouble else def }.getOrDefault(def)
+
+    private fun JsonObject.str(key: String, def: String): String =
+        runCatching { if (has(key) && get(key).isJsonPrimitive) get(key).asString else def }.getOrDefault(def)
 }

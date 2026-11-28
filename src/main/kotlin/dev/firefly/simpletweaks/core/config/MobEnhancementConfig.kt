@@ -14,6 +14,7 @@ package dev.firefly.simpletweaks.core.config
  * | [enchantmentsEnabled] | `util/mobs/MobEnchantments#tryApplyAtSpawn` — gates the gear enchanting only |
  * | [levelsEnabled] | `util/mobs/MobLevels#ensureLevel` (spawn), `util/mobs/MobLevelProgression` (mid-fight level-up) and `EntityDisplayNameMixin` (name tag) |
  * | [levelUpOnHitPlayer] / [levelUpOnKill] / [levelUpWhenHurt] | `util/mobs/MobLevelProgression` only — three independent trigger chances in percent |
+ * | [regenEnabled] / [regenPercent] | `util/mobs/MobRegen` only — out-of-combat healing |
  *
  * ⚠️ **[enabled] does NOT gate the drop-side stripping.** `MobEnchantments#stripAll` runs
  * unconditionally, and that is deliberate: a world that was played with the feature on can still hold
@@ -82,6 +83,17 @@ object MobEnhancementConfig {
 
     /** Level-up chance **in percent** when a player hurts the mob and it survives (0 = off). */
     @JvmStatic var levelUpWhenHurt: Int = 1
+
+    /**
+     * Heal mobs that have not been hurt for 10 s (`MobRegen`).
+     *
+     * Default **true**. Gated by [enabled] as well; [regenPercent] `0` disables the healing without
+     * turning the row off, so a value can be restored without retyping it.
+     */
+    @JvmStatic var regenEnabled: Boolean = true
+
+    /** Health per second while out of combat, **in percent of max health** (0 = off). */
+    @JvmStatic var regenPercent: Int = 2
 
     /**
      * A **persistent** difficulty bonus, added on top of everything else (`/fst difficulty modify`).

@@ -3,6 +3,7 @@ package dev.firefly.simpletweaks.client
 import dev.firefly.simpletweaks.core.config.DamageIndicatorConfig
 import dev.firefly.simpletweaks.core.config.GeneralConfig
 import dev.firefly.simpletweaks.core.config.MobEnhancementConfig
+import dev.firefly.simpletweaks.core.config.MobInfoBarConfig
 import dev.firefly.simpletweaks.core.config.ConfigBounds
 import dev.firefly.simpletweaks.core.config.SimpleTweaksConfig
 import net.minecraft.client.gui.DrawContext
@@ -55,7 +56,7 @@ class SimpleTweaksConfigScreen(private val parent: Screen?) :
         /** Height of the page-tab strip under the title. */
         const val TABS_H = 18
         const val TOP = 48
-        const val PAGES = 6
+        const val PAGES = 7
         const val KEY_PREFIX = "gui.simple_tweaks.config."
 
         fun key(name: String): Text = Text.translatable(KEY_PREFIX + name)
@@ -189,8 +190,8 @@ class SimpleTweaksConfigScreen(private val parent: Screen?) :
                 boolRow("enabledSpecialParticles", { GeneralConfig.enabledSpecialParticles }) {
                     GeneralConfig.enabledSpecialParticles = it
                 }
-                boolRow("noHurtCam", { GeneralConfig.noHurtCam }) {
-                    GeneralConfig.noHurtCam = it
+                boolRow("enableSwordBlocking", { GeneralConfig.enableSwordBlocking }) {
+                    GeneralConfig.enableSwordBlocking = it
                 }
             }
 
@@ -207,9 +208,8 @@ class SimpleTweaksConfigScreen(private val parent: Screen?) :
                     fmt = { Text.literal(it.toInt().toString()) },
                 )
                 boolRow("debugLogging", { GeneralConfig.debugLogging }) {
-                GeneralConfig.debugLogging = it
-                dev.firefly.simpletweaks.compat.FSTLog.runtimeEnabled = it
-            }
+                    GeneralConfig.debugLogging = it
+                }
             boolRow("barCompactNumbers", { GeneralConfig.barCompactNumbers }) {
                     GeneralConfig.barCompactNumbers = it
                 }
@@ -336,17 +336,83 @@ class SimpleTweaksConfigScreen(private val parent: Screen?) :
                     max = ConfigBounds.LEVEL_UP_PERCENT.last.toDouble(),
                     fmt = { Text.literal(it.toInt().toString()) },
                 )
+                boolRow("mobEnhancement.regenEnabled", { MobEnhancementConfig.regenEnabled }) {
+                    MobEnhancementConfig.regenEnabled = it
+                }
+                numRow(
+                    "mobEnhancement.regenPercent",
+                    { MobEnhancementConfig.regenPercent.toDouble() },
+                    { MobEnhancementConfig.regenPercent = it.toInt() },
+                    step = 1.0,
+                    min = ConfigBounds.MOB_REGEN_PERCENT.first.toDouble(),
+                    max = ConfigBounds.MOB_REGEN_PERCENT.last.toDouble(),
+                    fmt = { Text.literal(it.toInt().toString()) },
+                )
             }
 
-            else -> {
-                // Page 5: the AutoSprint module. On its own page so every page stays at 9 rows or
-                // fewer, which is what keeps the screen inside a 240 px logical height.
+            4 -> {
+                // AutoSprint module. On its own page so every page stays at 9 rows or fewer, which is
+                // what keeps the screen inside a 240 px logical height.
                 boolRow("autoSprintEnabled", { GeneralConfig.autoSprintEnabled }) {
                     GeneralConfig.autoSprintEnabled = it
                 }
                 boolRow("autoSprintOmniSprint", { GeneralConfig.autoSprintOmniSprint }) {
                     GeneralConfig.autoSprintOmniSprint = it
                 }
+            }
+
+            6 -> {
+                boolRow("mobInfoBar.enabled", { MobInfoBarConfig.enabled }) {
+                    MobInfoBarConfig.enabled = it
+                }
+                // Three states do not fit a toggle, so the button cycles and prints the current one.
+                val hpText = MobInfoBarConfig.hpText
+                addDrawableChild(
+                    ButtonWidget.builder(key("mobInfoBar.hpText." + hpText.name.lowercase())) {
+                        MobInfoBarConfig.hpText = when (MobInfoBarConfig.hpText) {
+                            MobInfoBarConfig.HpText.NONE -> MobInfoBarConfig.HpText.ABSOLUTE
+                            MobInfoBarConfig.HpText.ABSOLUTE -> MobInfoBarConfig.HpText.PERCENT
+                            MobInfoBarConfig.HpText.PERCENT -> MobInfoBarConfig.HpText.NONE
+                        }
+                        SimpleTweaksConfig.save()
+                        clearAndInit()
+                    }.dimensions(x0 + ROW_W - FIELD_W, y + 1, FIELD_W, ROW_H - 6).build(),
+                )
+                rows.add(LabelRow(key("mobInfoBar.hpText"), y))
+                y += ROW_H
+                boolRow("mobInfoBar.showArmor", { MobInfoBarConfig.showArmor }) {
+                    MobInfoBarConfig.showArmor = it
+                }
+                boolRow("mobInfoBar.showPlayers", { MobInfoBarConfig.showPlayers }) {
+                    MobInfoBarConfig.showPlayers = it
+                }
+                boolRow("mobInfoBar.hideVanillaName", { MobInfoBarConfig.hideVanillaName }) {
+                    MobInfoBarConfig.hideVanillaName = it
+                }
+                numRow(
+                    "mobInfoBar.backgroundOpacity", { MobInfoBarConfig.backgroundOpacity.toDouble() },
+                    { MobInfoBarConfig.backgroundOpacity = it.toInt().coerceIn(ConfigBounds.MOB_INFO_BACKGROUND) },
+                    step = 5.0,
+                    min = ConfigBounds.MOB_INFO_BACKGROUND.first.toDouble(),
+                    max = ConfigBounds.MOB_INFO_BACKGROUND.last.toDouble(),
+                    fmt = { Text.literal(it.toInt().toString()) },
+                )
+                numRow(
+                    "mobInfoBar.maxDistance", { MobInfoBarConfig.maxDistance },
+                    { MobInfoBarConfig.maxDistance = it },
+                    step = 1.0,
+                    min = ConfigBounds.MOB_INFO_DISTANCE.start,
+                    max = ConfigBounds.MOB_INFO_DISTANCE.endInclusive,
+                    fmt = { Text.literal(String.format(java.util.Locale.ROOT, "%.0f", it)) },
+                )
+                numRow(
+                    "mobInfoBar.scalePercent", { MobInfoBarConfig.scalePercent.toDouble() },
+                    { MobInfoBarConfig.scalePercent = it.toInt().coerceIn(ConfigBounds.MOB_INFO_SCALE_PERCENT) },
+                    step = 5.0,
+                    min = ConfigBounds.MOB_INFO_SCALE_PERCENT.first.toDouble(),
+                    max = ConfigBounds.MOB_INFO_SCALE_PERCENT.last.toDouble(),
+                    fmt = { Text.literal(it.toInt().toString() + "%") },
+                )
             }
         }
 
@@ -400,6 +466,7 @@ class SimpleTweaksConfigScreen(private val parent: Screen?) :
         1, 2 -> "section.damage"
         3 -> "section.mob"
         4 -> "section.movement"
+        6 -> "section.mobInfo"
         else -> "section.hud"
     }
 

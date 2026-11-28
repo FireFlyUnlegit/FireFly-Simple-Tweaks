@@ -47,9 +47,17 @@ object ConfigBounds {
     /** Level-up chance in percent, for the three mob level-up triggers. */
     val LEVEL_UP_PERCENT = 0..100
 
+    /** Out-of-combat regen rate in percent of max health per second; 25 is a full heal in 4 s. */
+    val MOB_REGEN_PERCENT = 0..25
+
     /** Persistent `/fst difficulty modify` value (see `MobEnhancementConfig.difficultyModifier`). */
     val DIFFICULTY_MODIFIER = -1_000_000.0..1_000_000.0
 
     /** Decimals shown by the bar HUD numbers; 0 is "integers only", 4 is the finest readable step. */
     val BAR_DECIMALS = 0..4
+
+    /** Cut-off distance for the mob info bar, in blocks. 64 is beyond any sane name-tag range. */
+    val MOB_INFO_DISTANCE = 1.0..64.0
+    val MOB_INFO_BACKGROUND = 0..100
+    val MOB_INFO_SCALE_PERCENT = 25..300
 }
