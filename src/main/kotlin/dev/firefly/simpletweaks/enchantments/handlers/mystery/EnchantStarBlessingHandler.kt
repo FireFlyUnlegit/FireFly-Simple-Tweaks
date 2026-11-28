@@ -4,6 +4,7 @@ import dev.firefly.simpletweaks.compat.FSTLog
 import dev.firefly.simpletweaks.compat.event.LivingHurtEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.core.Listenable
+import dev.firefly.simpletweaks.damageindicator.DamageIndicatorHandler
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantItemWeights
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
@@ -150,7 +151,10 @@ object EnchantStarBlessingHandler : Listenable {
             "eclipse" -> if (stolen == null) star *= ECLIPSE_BONUS
         }
 
-        if (star > 0f) target.damageElemental(player, ModDamageTypes.STAR, star)
+        // Stellar damage always crits (`CRIT_MULTIPLIER` above); mark only if the hit actually landed.
+        if (star > 0f && target.damageElemental(player, ModDamageTypes.STAR, star)) {
+            DamageIndicatorHandler.markCrit(target, elemental = true)
+        }
         // The reaction stops being "过载" and becomes "星过载" for this hit.
         outcome.labelPrefix = LABEL_PREFIX
 

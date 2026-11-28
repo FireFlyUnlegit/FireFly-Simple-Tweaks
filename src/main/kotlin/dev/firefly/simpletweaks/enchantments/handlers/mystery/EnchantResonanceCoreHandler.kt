@@ -2,6 +2,7 @@ package dev.firefly.simpletweaks.enchantments.handlers.mystery
 
 import dev.firefly.simpletweaks.compat.FSTLog
 import dev.firefly.simpletweaks.core.Listenable
+import dev.firefly.simpletweaks.damageindicator.DamageIndicatorHandler
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantItemWeights
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
@@ -97,6 +98,7 @@ object EnchantResonanceCoreHandler : Listenable {
         }
 
         STACKS.remove(target)
+        DamageIndicatorHandler.markCrit(target, elemental = true)
         FSTLog.log("ResonanceCore") {
             "target=${target.type.name.string}, stacks=$effective, " +
                 "multiplier=$multiplier, crit=$CRIT_MULTIPLIER, outcome=critical-and-consumed"

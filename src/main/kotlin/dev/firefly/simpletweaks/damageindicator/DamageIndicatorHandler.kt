@@ -1,8 +1,10 @@
 package dev.firefly.simpletweaks.damageindicator
 
 import dev.firefly.simpletweaks.compat.FSTLog
+import dev.firefly.simpletweaks.compat.event.CriticalHitEvent
 import dev.firefly.simpletweaks.compat.event.LivingDamageEvent
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
+import dev.firefly.simpletweaks.compat.isCrit
 import dev.firefly.simpletweaks.core.Listenable
 import dev.firefly.simpletweaks.core.config.DamageIndicatorConfig
 import dev.firefly.simpletweaks.core.registerEvents
@@ -169,6 +171,38 @@ object DamageIndicatorHandler : Listenable {
      */
     private val composition = HashMap<UUID, Composition>()
 
+    /**
+     * Whether this tick's damage crit, and in which currency.
+     *
+     * The health differ cannot see a crit — a crit and a plain hit differ only in the amount, and the
+     * amount is exactly what this mod's own handlers rewrite. So the seams that *know* record a flag here
+     * and the emit path consumes it, with the same one-tick allowance as [Composition.tick].
+     */
+    private class CritMark(var tick: Long, var physical: Boolean, var elemental: Boolean)
+
+    private val critMarks = HashMap<UUID, CritMark>()
+
+    /** Records a crit against [target] for this tick. [elemental] = one elemental instance crit. */
+    fun markCrit(target: LivingEntity, elemental: Boolean) {
+        if (target.world.isClient) return
+        val mark = critMarks.getOrPut(target.uuid) { CritMark(tickCounter, false, false) }
+        mark.tick = tickCounter
+        if (elemental) mark.elemental = true else mark.physical = true
+    }
+
+    /**
+     * Melee crit seam.
+     *
+     * `priority = 100` (`LOWEST`) so a handler that *forces* a crit is already applied when the result is
+     * read (`EnchantCritHandler` runs at `HIGHEST`); `isCrit` covers the forced and the vanilla case.
+     */
+    @SubscribeEvent(priority = 100)
+    fun onCriticalHit(event: CriticalHitEvent) {
+        if (!DamageIndicatorConfig.enabled || !event.isCrit) return
+        val target = event.target as? LivingEntity ?: return
+        markCrit(target, elemental = false)
+    }
+
     /** 1.12.2 `onServerTick` (`Phase.END` only). */
     private fun onServerTickEnd(server: MinecraftServer) {
         if (!DamageIndicatorConfig.enabled) return
@@ -232,6 +266,15 @@ object DamageIndicatorHandler : Listenable {
                                 val actualDamage =
                                     if (isHeal) amount else amount.coerceAtMost(lastRealHealthValue)
 
+                                // Crit flags raised by the seams that know (see [CritMark]). A mark older
+                                // than the one-tick allowance is dropped, never reported: a crit must not
+                                // outlive the hit it belongs to.
+                                val mark = critMarks.remove(uuid)?.takeIf { it.tick >= tickCounter - 1 }
+                                val physicalCrit = mark?.physical == true
+                                val elementalCrit = mark?.elemental == true
+                                // A heal is never a crit.
+                                val anyCrit = !isHeal && (physicalCrit || elementalCrit)
+
                                 val afterRealHealth = if (isHeal) {
                                     (lastRealHealthValue + actualDamage).coerceAtMost(currentRealMaxHealth)
                                 } else {
@@ -285,6 +328,7 @@ object DamageIndicatorHandler : Listenable {
                                             displayAfter,
                                             ElementType.NONE_ORDINAL,
                                             PacketDamageIndicator.ROLE_NON_ELEMENTAL,
+                                            crit = physicalCrit && !isHeal,
                                         )
                                     }
 
@@ -304,6 +348,7 @@ object DamageIndicatorHandler : Listenable {
                                             displayAfter,
                                             ordinal,
                                             PacketDamageIndicator.ROLE_ELEMENTAL,
+                                            crit = anyCrit,
                                         )
                                     }
 
@@ -324,6 +369,7 @@ object DamageIndicatorHandler : Listenable {
                                         afterRealHealth,
                                         elementOrdinal,
                                         PacketDamageIndicator.ROLE_SINGLE,
+                                        crit = anyCrit,
                                     )
                                 }
                             }
@@ -346,6 +392,8 @@ object DamageIndicatorHandler : Listenable {
         // stale — keeping it would let a later hit inherit elements it never had and report the wrong
         // split (`build=cleanup63`).
         composition.entries.removeIf { it.value.tick < tickCounter - 1 }
+        // Same one-tick allowance as the composition buckets.
+        critMarks.entries.removeIf { it.value.tick < tickCounter - 1 }
         tickCounter++
 
         // Memory-only sweep: [HealthState.lastSeen] already makes a stale entry behave as absent, so this
@@ -367,6 +415,7 @@ object DamageIndicatorHandler : Listenable {
         elementOrdinal: Int,
         role: Int,
         label: String = "",
+        crit: Boolean = false,
     ) {
         val players = target.world.getNonSpectatingEntities(
             ServerPlayerEntity::class.java,
@@ -384,6 +433,7 @@ object DamageIndicatorHandler : Listenable {
                 elementOrdinal,
                 role,
                 label,
+                crit,
             )
             NetworkManager.sendToClient(packet, player)
         }
@@ -395,12 +445,15 @@ object DamageIndicatorHandler : Listenable {
      *
      * `ElementMarks.noticeReaction` calls this for every reaction. The wire carries the translation
      * **key**, and the client resolves it in the player's own language; `amount` is that reaction's own
-     * bonus, rendered as `感电 (-28.30)`. `elementOrdinal` colours it like the damage it belongs to; a
-     * label has no second health line and sits above the numbers.
+     * bonus, drawn as a second line under the name. `elementOrdinal` colours both lines.
+     *
+     * A label reads as a crit only when the elemental instance that paid the reaction out crit. A melee
+     * crit that merely *triggered* a reaction does not make the reaction itself a crit.
      */
     fun broadcastLabel(target: LivingEntity, labelKey: String, elementOrdinal: Int, amount: Float) {
         if (!DamageIndicatorConfig.enabled) return
         if (target.world.isClient) return
+        val crit = critMarks[target.uuid]?.let { it.elemental && it.tick >= tickCounter - 1 } == true
         sendToNearbyPlayers(
             target,
             amount,
@@ -411,6 +464,7 @@ object DamageIndicatorHandler : Listenable {
             elementOrdinal,
             PacketDamageIndicator.ROLE_LABEL,
             labelKey,
+            crit,
         )
     }
 }

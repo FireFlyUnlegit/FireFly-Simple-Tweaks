@@ -6,6 +6,7 @@ import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.core.Listenable
 import dev.firefly.simpletweaks.enchantments.annotations.*
 import dev.firefly.simpletweaks.enchantments.generated.GeneratedEnchantments
+import dev.firefly.simpletweaks.util.SwordBlocking
 import dev.firefly.simpletweaks.util.combatStack
 import dev.firefly.simpletweaks.util.getItemSpecificEnchantLevel
 import net.minecraft.entity.EquipmentSlot
@@ -58,6 +59,7 @@ object EnchantShieldBreakerHandler : Listenable {
 
         val shield = target.activeItem
         if (shield.isEmpty) return
+        if (SwordBlocking.isBlockingSword(shield)) return
 
         // Drop the block first: the target then takes this same hit unprotected.
         target.clearActiveItem()

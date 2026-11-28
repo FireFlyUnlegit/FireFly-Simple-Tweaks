@@ -34,6 +34,7 @@ object DamageIndicatorManager {
         elementOrdinal: Int = dev.firefly.simpletweaks.util.elements.ElementType.NONE_ORDINAL,
         role: Int = PacketDamageIndicator.ROLE_SINGLE,
         label: String = "",
+        crit: Boolean = false,
     ) {
         damageNumbers.add(
             DamageNumber(
@@ -47,6 +48,7 @@ object DamageIndicatorManager {
                 elementOrdinal,
                 role,
                 label,
+                crit,
             )
         )
     }

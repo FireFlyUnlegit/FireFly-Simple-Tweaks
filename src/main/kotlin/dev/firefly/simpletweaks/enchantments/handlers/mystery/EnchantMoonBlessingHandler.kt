@@ -5,6 +5,7 @@ import dev.firefly.simpletweaks.compat.WorldSide
 import dev.firefly.simpletweaks.compat.event.SubscribeEvent
 import dev.firefly.simpletweaks.compat.event.TickEvent
 import dev.firefly.simpletweaks.core.Listenable
+import dev.firefly.simpletweaks.damageindicator.DamageIndicatorHandler
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantCategory
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantItemWeights
 import dev.firefly.simpletweaks.enchantments.annotations.EnchantSlot
@@ -169,7 +170,9 @@ object EnchantMoonBlessingHandler : Listenable {
             "purify" -> if (canCleanse) lunar *= CLEANSE_BONUS
         }
 
-        if (lunar > 0f) target.damageElemental(player, ModDamageTypes.MOON, lunar)
+        if (lunar > 0f && target.damageElemental(player, ModDamageTypes.MOON, lunar) && crit) {
+            DamageIndicatorHandler.markCrit(target, elemental = true)
+        }
         STACKS[player] = Stacks(
             minOf(count + (if (amplified) AMPLIFIED_STACKS else 1), MAX_STACKS),
             now + STACK_TICKS,

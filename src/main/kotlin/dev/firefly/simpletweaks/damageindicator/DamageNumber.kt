@@ -68,6 +68,13 @@ data class DamageNumber(
      * belongs next to the hit, not on the action bar.
      */
     val label: String = "",
+    /**
+     * Whether the hit (or the reaction) behind this number crit → a trailing `!!` on the value.
+     *
+     * Physical crits come from `CriticalHitEvent`, elemental ones from the handlers that multiply their
+     * own instance (月/星祝福, 共鸣核心); a reaction label carries the elemental flag of its instance.
+     */
+    val crit: Boolean = false,
 ) {
     var age: Int = 0
 
@@ -120,6 +127,9 @@ data class DamageNumber(
          * (radius and jitter), where the two sides do not need to agree.
          */
         const val GOLDEN_RATIO = 0.6180339887498949
+
+        /** Appended to a crit value (`90.0` -> `90.0!!`). */
+        const val CRIT_MARK = "!!"
     }
 
     /**
@@ -309,21 +319,16 @@ data class DamageNumber(
      * watched happen.
      */
     fun getText(): String {
-        // A label is not a number: it renders the reaction's translated name, followed by the extra
-        // damage that reaction dealt (`感电 (-28.30)`), which is what the author asked for — the name
-        // alone left the reader guessing whether the reaction did anything at all.
-        if (role == PacketDamageIndicator.ROLE_LABEL) {
-            val name = labelText(label)
-            return if (actualDamage > 0f) "$name (-${formatFloat(actualDamage)})" else name
-        }
-        val percentageMode = DamageIndicatorConfig.percentageMode
+        // A label is not a number: line 1 is the reaction's name, line 2 the damage the reaction added.
+        if (role == PacketDamageIndicator.ROLE_LABEL) return labelText(label)
+        val mark = if (crit) CRIT_MARK else ""
         val sign = getSign()
 
-        return if (percentageMode) {
+        return if (DamageIndicatorConfig.percentageMode) {
             val percent = (actualDamage / realMaxHealth * 100).coerceAtMost(100f)
-            "$sign${formatFloat(percent)}%"
+            "$sign${formatFloat(percent)}%$mark"
         } else {
-            "$sign${formatFloat(actualDamage)}"
+            "$sign${formatFloat(actualDamage)}$mark"
         }
     }
 
@@ -343,11 +348,26 @@ data class DamageNumber(
         return prefix + inner
     }
 
-    /** `false` for the elemental half of a split hit and for labels, which show only one line. */
-    fun hasSecondLine(): Boolean =
-        role != PacketDamageIndicator.ROLE_ELEMENTAL && role != PacketDamageIndicator.ROLE_LABEL
+    /** `false` for the elemental half of a split hit, and for a label with no amount to show. */
+    fun hasSecondLine(): Boolean = when (role) {
+        PacketDamageIndicator.ROLE_ELEMENTAL -> false
+        PacketDamageIndicator.ROLE_LABEL -> actualDamage > 0f
+        else -> true
+    }
 
-    fun getSecondLineText(): String {        val percentageMode = DamageIndicatorConfig.percentageMode
+    fun getSecondLineText(): String {
+        // A label's second line is what the reaction added, not a health readout. Percentage mode is
+        // honoured here too, so a label stays readable next to the numbers it sits among.
+        if (role == PacketDamageIndicator.ROLE_LABEL) {
+            val value = if (DamageIndicatorConfig.percentageMode) {
+                val percent = (actualDamage / realMaxHealth.coerceAtLeast(1f) * 100f).coerceAtMost(100f)
+                "${formatFloat(percent)}%"
+            } else {
+                formatFloat(actualDamage)
+            }
+            return "-$value${if (crit) CRIT_MARK else ""}"
+        }
+        val percentageMode = DamageIndicatorConfig.percentageMode
         val healthAfter = afterRealHealth.coerceAtLeast(0f)
         val maxHp = realMaxHealth.coerceAtLeast(1f)
 
