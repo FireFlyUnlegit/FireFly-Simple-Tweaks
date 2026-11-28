@@ -12,14 +12,14 @@
 
 A Minecraft mod I build for fun: new enchantments, new mechanics and better combat feedback for vanilla.
 
-Current **1.21.1 / Fabric** release: **v2.4.0** (173 enchantments, 17 elemental reactions, aura gauges, reworked armour curve).
+Current **1.21.1 / Fabric** release: **v2.5.0** (175 enchantments, 17 elemental reactions, aura gauges, reworked armour curve).
 
 ## 🌿 Branches
 
 | Branch                                                                                        | Game version | Loader | Status        |
 |-----------------------------------------------------------------------------------------------|--------------|--------|---------------|
 | [`forge-1.12.2`](https://github.com/FireFlyUnlegit/FireFly-Simple-Tweaks/tree/forge-1.12.2)   | 1.12.2       | Forge  | ✅ Stable     |
-| [`fabric-1.21.1`](https://github.com/FireFlyUnlegit/FireFly-Simple-Tweaks/tree/fabric-1.21.1) | 1.21.1       | Fabric | ✅ **v2.4.0** |
+| [`fabric-1.21.1`](https://github.com/FireFlyUnlegit/FireFly-Simple-Tweaks/tree/fabric-1.21.1) | 1.21.1       | Fabric | ✅ **v2.5.0** |
 
 - The **1.21.1 / Fabric** port is a full cross-version rewrite — see [`MIGRATION.md`](./MIGRATION.md)
 - The two versions are maintained **in parallel**, never merged

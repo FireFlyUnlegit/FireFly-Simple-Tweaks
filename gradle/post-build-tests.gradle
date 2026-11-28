@@ -372,6 +372,188 @@ tasks.register('runTest') {
                                 'build identifier together with gradle.properties, or the client ready line ' +
                                 'will lie about which jar is running')
             }
+            // ---------------------------------------------------------------------------------
+            // The three checks below close the "silent no-op" gap that the jar-only checks above
+            // cannot see: a listener whose parameter names the wrong event never fires, and a config
+            // key nobody reads never takes effect — both build, load and run without a single line in
+            // the log (AGENTS 4.4/4.6). They read the source tree because that is where the wiring is.
+            // ---------------------------------------------------------------------------------
+            def sources = [:]
+            fileTree('src/main') { include '**/*.kt', '**/*.java' }.each { File f ->
+                sources[f.absolutePath.replace('\\', '/')] = f.getText('UTF-8')
+            }
+
+            def stripComments = { String text ->
+                text.replaceAll(/(?s)\/\*.*?\*\//, ' ').replaceAll(/(?m)\/\/.*$/, ' ')
+            }
+
+            // --- 14. every @SubscribeEvent parameter is a declared event that is actually posted ----
+            check('every subscribed event type is declared and posted') {
+                def declaredEvents = [] as Set
+                sources.each { String path, String text ->
+                    if (!path.contains('/compat/event/')) return
+                    (text =~ /(?m)^\s*(?:(?:public|internal|private|abstract|open|sealed|data|static|final)\s+)*class\s+(\w+)/)
+                            .each { declaredEvents << it[1] }
+                }
+                expect(!declaredEvents.isEmpty(), 'no event classes found under compat/event')
+
+                // A listener is an `@SubscribeEvent` annotation whose *next* code line is the method.
+                // Anything that does not parse that way fails the check instead of being skipped: a
+                // parser that silently overlooks listeners is exactly the failure this check exists for.
+                def subscribed = [:] as Map
+                sources.each { String path, String text ->
+                    if (path.contains('/compat/event/')) return
+                    def lines = text.split('\n', -1)
+                    for (int i = 0; i < lines.length; i++) {
+                        int at = lines[i].indexOf('@SubscribeEvent')
+                        if (at < 0) continue
+                        def prefix = lines[i].substring(0, at)
+                        // Comments and string literals mention the annotation without being one
+                        // (a log message about "no @SubscribeEvent methods found" is the real case).
+                        if (prefix.contains('*') || prefix.contains('//')) continue
+                        if (prefix.count('"') % 2 == 1) continue
+                        int j = i + 1
+                        while (j < lines.length) {
+                            def line = lines[j].trim()
+                            if (line.isEmpty() || line.startsWith('@') || line.startsWith('//')
+                                    || line.startsWith('*')) {
+                                j++
+                                continue
+                            }
+                            break
+                        }
+                        expect(j < lines.length, 'dangling @SubscribeEvent: ' + path + ':' + (i + 1))
+                        def m = lines[j] =~ /^\s*(?:(?:public|private|protected|internal|override|open)\s+)*fun\s+\w+\s*\(\s*\w+\s*:\s*([A-Za-z0-9_.]+)/
+                        expect(m.find(),
+                                'cannot read the listener signature at ' + path + ':' + (j + 1) +
+                                        ' - expected `fun name(param: EventType)`; teach this check the new shape')
+                        def type = m.group(1)
+                        if (!subscribed.containsKey(type)) subscribed[type] = []
+                        subscribed[type] << path
+                    }
+                }
+                expect(subscribed.size() >= 20,
+                        'only ' + subscribed.size() + ' event types found - the listener scan has drifted')
+
+                // Collected as identifier bags instead of per-type regexes: ~250 types x ~40 call
+                // sites is 10k regex evaluations, and this task runs on every build.
+                def postedNames = [] as Set
+                sources.each { String path, String text ->
+                    if (path.contains('/compat/event/')) return
+                    def lines = text.split('\n', -1)
+                    for (int i = 0; i < lines.length; i++) {
+                        // Java sees the Kotlin object as `ForgeEventBus.INSTANCE.post(...)`, so match
+                        // the receiver and the call separately instead of one literal substring.
+                        if (!lines[i].contains('ForgeEventBus') || !lines[i].contains('.post(')) continue
+                        def from = Math.max(0, i - 15)
+                        (lines[from..i].join('\n') =~ /[A-Za-z_][A-Za-z0-9_]*/).each { postedNames << it }
+                    }
+                }
+
+                def undeclared = []
+                def unposted = []
+                subscribed.each { String type, List files ->
+                    def simple = type.substring(type.lastIndexOf('.') + 1)
+                    if (!declaredEvents.contains(simple)) {
+                        undeclared << (type + ' <- ' + files[0].substring(files[0].lastIndexOf('/') + 1))
+                    }
+                    if (!postedNames.contains(simple)) {
+                        unposted << (type + ' <- ' + files[0].substring(files[0].lastIndexOf('/') + 1))
+                    }
+                }
+                expect(undeclared.isEmpty(), 'listeners for non-event types: ' + truncate(undeclared))
+                expect(unposted.isEmpty(),
+                        'no ForgeEventBus.post(...) anywhere names these event types, so the listeners ' +
+                                'never run: ' + truncate(unposted))
+                println '         (' + subscribed.size() + ' event types, ' +
+                        subscribed.values().sum { it.size() } + ' listeners)'
+            }
+
+            // --- 15. every config key has a reader outside the config package -----------------------
+            check('every config key has a reader outside the config package') {
+                def configMarker = '/core/config/'
+                def screen = '/SimpleTweaksConfigScreen.kt'
+                def keys = [] as Set
+                sources.each { String path, String text ->
+                    if (!path.contains(configMarker)) return
+                    (stripComments(text) =~ /@JvmStatic\s+var\s+(\w+)/).each { keys << it[1] }
+                }
+                expect(keys.size() >= 30, 'config scan found only ' + keys.size() + ' keys - parser drift?')
+
+                // The config screen and the config package itself do not count as readers: those are
+                // the places a key gets added to, not the places it does something.
+                def readerBlob = new StringBuilder()
+                sources.each { String path, String text ->
+                    if (path.contains(configMarker) || path.endsWith(screen)) return
+                    readerBlob.append(stripComments(text)).append('\n')
+                }
+                def blob = readerBlob.toString()
+                // Java mixins cannot see a `@JvmStatic var` as a field, so they read the generated
+                // accessor instead (`GeneralConfig.getDisableAnvilCostLimit()`); accept both spellings.
+                def dead = keys.findAll { String key ->
+                    def capitalized = key.substring(0, 1).toUpperCase() + key.substring(1)
+                    [key, 'get' + capitalized, 'is' + capitalized].every { String form ->
+                        !(blob =~ ('\\b' + form + '\\b')).find()
+                    }
+                }
+                expect(dead.isEmpty(), 'config keys nobody reads (add a reader or drop the key): ' +
+                        truncate(dead))
+                println '         (' + keys.size() + ' config keys)'
+            }
+
+            // --- 16. a jsonEmit = false handler agrees with its hand-written JSON --------------------
+            // AGENTS 4.9: with `jsonEmit = false` the annotation's numbers are inert documentation and
+            // the resource file wins. Two sources of truth, no compiler, no runtime check - so it is
+            // checked here. Values that are constants (`weight = EnchantItemWeights.MYTHIC`) are not
+            // compared; only the plain integers that can be compared mechanically.
+            check('hand-written enchantment JSON agrees with its annotation') {
+                def offenders = []
+                def compared = 0
+                def handlers = fileTree('src/main/kotlin') { include '**/enchantments/**/*.kt' }
+                handlers.each { File f ->
+                    def text = f.getText('UTF-8')
+                    if (!(text =~ /(?m)^\s*jsonEmit\s*=\s*false\s*,/)) return
+                    def idMatcher = text =~ /@ModEnchantment\([^)]*?"([^"]+)"/
+                    expect(idMatcher.find(), 'jsonEmit = false without a readable id in ' + f.name)
+                    def id = idMatcher.group(1)
+                    def jsonFile = project.file('src/main/resources/data/' + modId +
+                            '/enchantment/' + id + '.json')
+                    if (!jsonFile.isFile()) {
+                        offenders << (id + ': jsonEmit = false but no hand-written JSON exists')
+                        return
+                    }
+                    def json = new JsonSlurper().parseText(jsonFile.getText('UTF-8'))
+                    def annotationNumber = { String field ->
+                        def m = text =~ ('(?m)^\\s*' + field + '\\s*=\\s*(\\d+)\\s*,')
+                        return m.find() ? (m.group(1) as int) : null
+                    }
+                    def compare = { String label, Integer annotated, Object fromJson ->
+                        if (annotated == null || fromJson == null) return
+                        compared++
+                        if ((fromJson as int) != annotated) {
+                            offenders << (id + ': ' + label + ' annotation=' + annotated +
+                                    ' json=' + fromJson)
+                        }
+                    }
+                    compare('max_level', annotationNumber('maxLevel'), json.max_level)
+                    compare('anvil_cost', annotationNumber('anvilCost'), json.anvil_cost)
+                    compare('min_cost.base', annotationNumber('minCostBase'), json.min_cost?.base)
+                    if (json.weight != null) {
+                        def weight = text =~ /(?m)^\s*weight\s*=\s*(\d+)\s*,/
+                        if (weight.find()) {
+                            compared++
+                            if ((json.weight as int) != (weight.group(1) as int)) {
+                                offenders << (id + ': weight annotation=' + weight.group(1) +
+                                        ' json=' + json.weight)
+                            }
+                        }
+                    }
+                }
+                expect(offenders.isEmpty(),
+                        'annotation and hand-written JSON disagree (fix whichever is wrong): ' +
+                                truncate(offenders))
+                println '         (' + compared + ' values compared)'
+            }
         } finally {
             zip.close()
         }

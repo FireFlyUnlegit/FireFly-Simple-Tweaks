@@ -1,0 +1,81 @@
+name: Release
+
+# Two ways in, both keyed on the same tag:
+#   * pushing a tag from the shell
+#   * clicking "Publish release" in the GitHub UI (a tag created there does not emit a push event)
+# A normal push to a branch still never publishes anything.
+on:
+  push:
+    tags:
+      - 'v*'
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Read mod version
+        id: mod
+        run: |
+          version=$(grep '^mod_version=' gradle.properties | cut -d= -f2 | tr -d '\r')
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "building simple_tweaks-$version"
+
+      - name: Build
+        run: ./gradlew build --console=plain
+
+      # The artifact is the remapped jar; build/devlibs must never be published because its
+      # mixins carry no refmap and every installation would fail with "target not found".
+      - name: Collect the release jar
+        run: |
+          test -f "build/libs/simple_tweaks-${{ steps.mod.outputs.version }}.jar" || {
+            echo "expected build/libs/simple_tweaks-${{ steps.mod.outputs.version }}.jar"; ls build/libs; exit 1; }
+
+      - name: Extract the changelog entry
+        run: |
+          awk -v v="${{ steps.mod.outputs.version }}" '
+            /^## / { if (found) exit; if (index($0, v)) found = 1 }
+            found { print }
+          ' DEVLOG.md > CHANGELOG.md
+          if [ ! -s CHANGELOG.md ]; then
+            echo "Simple Tweaks ${{ steps.mod.outputs.version }}" > CHANGELOG.md
+          fi
+          head -n 20 CHANGELOG.md
+
+      - name: Publish to CurseForge and GitHub Releases
+        uses: Kir-Antipov/mc-publish@v3
+        with:
+          # Repository variable (Settings -> Secrets and variables -> Actions -> Variables).
+          curseforge-id: ${{ vars.CURSEFORGE_PROJECT_ID }}
+          # Repository secret holding the CurseForge API token.
+          curseforge-token: ${{ secrets.CURSEFORGE_TOKEN }}
+
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-tag: ${{ github.ref_name }}
+          github-name: Simple Tweaks ${{ steps.mod.outputs.version }}
+
+          files: build/libs/simple_tweaks-${{ steps.mod.outputs.version }}.jar
+          name: Simple Tweaks ${{ steps.mod.outputs.version }}
+          version: ${{ steps.mod.outputs.version }}
+          version-type: release
+          changelog-file: CHANGELOG.md
+
+          game-versions: 1.21.1
+          loaders: fabric
+          java: 21
