@@ -47,24 +47,40 @@ jobs:
           test -f "build/libs/simple_tweaks-${{ steps.mod.outputs.version }}.jar" || {
             echo "expected build/libs/simple_tweaks-${{ steps.mod.outputs.version }}.jar"; ls build/libs; exit 1; }
 
-      # The notes typed on the GitHub release win: mc-publish rewrites the release body from
-      # this file, so reading them back first keeps what was written by hand intact.
+      # Three sources, first hit wins:
+      #   1. the notes typed on the GitHub release (mc-publish rewrites the body from this file,
+      #      so reading them back first keeps whatever was written by hand intact)
+      #   2. the English player-facing section of CHANGELOG.md for this version
+      #   3. the Chinese engineering entry in DEVLOG.md
       - name: Extract the changelog entry
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release view "${{ github.ref_name }}" --json body -q .body > CHANGELOG.md 2>/dev/null || true
-          if [ -s CHANGELOG.md ]; then
-            echo "changelog: the notes of release ${{ github.ref_name }}"
+          v="${{ steps.mod.outputs.version }}"
+          gh release view "${{ github.ref_name }}" --json body -q .body > .notes.md 2>/dev/null || true
+          if [ -s .notes.md ]; then
+            source="release notes"
+            cp .notes.md CHANGELOG.md
           else
-            awk -v v="${{ steps.mod.outputs.version }}" '
-              /^## / { if (found) exit; if (index($0, v)) found = 1 }
+            awk -v v="$v" '
+              /^## / { if (found) exit; if (index($0, "[" v "]")) found = 1 }
               found { print }
-            ' DEVLOG.md > CHANGELOG.md
-            echo "changelog: DEVLOG.md"
+            ' CHANGELOG.md > .notes.md
+            if [ -s .notes.md ]; then
+              source="CHANGELOG.md"
+              cp .notes.md CHANGELOG.md
+            else
+              awk -v v="$v" '
+                /^## / { if (found) exit; if (index($0, v)) found = 1 }
+                found { print }
+              ' DEVLOG.md > CHANGELOG.md
+              source="DEVLOG.md"
+            fi
           fi
+          echo "changelog source: $source"
           if [ ! -s CHANGELOG.md ]; then
-            echo "FireFly's Simple Tweaks ${{ steps.mod.outputs.version }} for Fabric 1.21.1" > CHANGELOG.md
+            echo "FireFly's Simple Tweaks $v for Fabric 1.21.1" > CHANGELOG.md
+            echo "changelog source: fallback title"
           fi
           head -n 20 CHANGELOG.md
 
