@@ -70,6 +70,12 @@ object MobLevels {
     /** `+10 %` attack damage per level above 1. */
     const val ATTACK_PER_LEVEL = 0.1
 
+    /**
+     * Damage ceiling for explosions. The radius stays vanilla: vanilla derives both blast size and
+     * blast damage from one power value, so scaling power for damage would also enlarge the crater.
+     */
+    const val EXPLOSION_MAX_MULTIPLIER = 2.5f
+
     /** `+0.8` armour per level above 1. */
     const val ARMOR_PER_LEVEL = 0.8
 
@@ -378,6 +384,17 @@ object MobLevels {
                 "outcome=mob-levelled"
         }
     }
+
+    /**
+     * The attack multiplier [apply] writes as an attribute; non-melee damage must reuse it.
+     */
+    fun attackMultiplier(level: Int): Float = (1.0 + (level - 1) * ATTACK_PER_LEVEL).toFloat()
+
+    /**
+     * Explosion damage stops growing at [EXPLOSION_MAX_MULTIPLIER]; the blast radius is never scaled.
+     */
+    fun explosionMultiplier(level: Int): Float =
+        attackMultiplier(level).coerceAtMost(EXPLOSION_MAX_MULTIPLIER)
 
     /**
      * Writes [level]'s stat modifiers onto [mob] and heals it to the **new** maximum.

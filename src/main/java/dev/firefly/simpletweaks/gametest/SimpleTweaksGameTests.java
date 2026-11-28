@@ -26,7 +26,10 @@ import dev.firefly.simpletweaks.util.TempAbsorption;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.attribute.EntityAttributeModifier;
 import net.minecraft.entity.attribute.EntityAttributes;
+import net.minecraft.entity.damage.DamageSource;
+import net.minecraft.entity.mob.CreeperEntity;
 import net.minecraft.entity.mob.ZombieEntity;
+import net.minecraft.entity.passive.PigEntity;
 import net.minecraft.entity.projectile.ArrowEntity;
 import net.minecraft.entity.projectile.thrown.PotionEntity;
 import net.minecraft.item.ItemStack;
@@ -48,13 +51,13 @@ import java.util.List;
  * <h2>Why this exists separately from `runTest`</h2>
  * The Gradle task `runTest` (see {@code gradle/post-build-tests.gradle}) is a <b>packaging</b> gate:
  * it never boots Minecraft, so it can check that the jar is well formed but not that the mod does
- * anything. This class is the other half — it spawns a mob, asks the game what its level and health
+ * anything. This class is the other half 鈥?it spawns a mob, asks the game what its level and health
  * are, and deals damage through {@code LivingEntity#damage}, which is the exact seam the elemental
  * and enchantment handlers sit on.
  *
  * <h2>Why every test logs its values before asserting</h2>
  * Fabric's {@code invokeTestMethod} reports a failed assertion as the generic
- * <em>"Failed to invoke test method"</em>, which says nothing about <em>what</em> was wrong — the
+ * <em>"Failed to invoke test method"</em>, which says nothing about <em>what</em> was wrong 鈥?the
  * first CI run produced three failures and no reasons. So each test logs the numbers it is about to
  * assert on (prefixed {@code [FST-GameTest]}), and the workflow prints the JUnit XML. Between the two,
  * a red run explains itself.
@@ -62,7 +65,7 @@ import java.util.List;
  * <h2>How it runs</h2>
  * Only on demand: {@code ./gradlew runGametest} (the {@code gametest} run config in build.gradle) or
  * the {@code gametest} GitHub workflow, which is scheduled/manual and deliberately <b>not</b> part of
- * {@code build} — it needs a world, a server tick loop and the Minecraft EULA, none of which belong in
+ * {@code build} 鈥?it needs a world, a server tick loop and the Minecraft EULA, none of which belong in
  * a per-push build.
  */
 public class SimpleTweaksGameTests implements FabricGameTest {
@@ -89,8 +92,8 @@ public class SimpleTweaksGameTests implements FabricGameTest {
         int keys = GeneratedEnchantments.INSTANCE.getKEYS().size();
         int categories = GeneratedEnchantments.INSTANCE.getCATEGORY().size();
         LOGGER.info("[FST-GameTest] generated table: keys={}, categories={}", keys, categories);
-        context.assertEquals(173, keys, "GeneratedEnchantments.KEYS should list all 173 enchantments");
-        context.assertEquals(173, categories, "GeneratedEnchantments.CATEGORY should cover every id");
+        context.assertEquals(175, keys, "GeneratedEnchantments.KEYS should list all 175 enchantments");
+        context.assertEquals(175, categories, "GeneratedEnchantments.CATEGORY should cover every id");
         context.complete();
     }
 
@@ -193,9 +196,9 @@ public class SimpleTweaksGameTests implements FabricGameTest {
      * The level curve, applied to a mob: levelling at a known difficulty must produce a level inside
      * the documented band and the health/attack/armour the curve promises.
      *
-     * <p>The test above only proves "a spawned mob gets <em>some</em> level" — in the game-test world
+     * <p>The test above only proves "a spawned mob gets <em>some</em> level" 鈥?in the game-test world
      * that is level 1, i.e. no stat modifiers at all, so it would not notice a broken curve. Here the
-     * difficulty is supplied directly, so the level is deterministic up to the documented ±25 % spread
+     * difficulty is supplied directly, so the level is deterministic up to the documented 卤25 % spread
      * and the stats have to match it exactly.
      */
     @GameTest(templateName = FabricGameTest.EMPTY_STRUCTURE)
@@ -270,8 +273,8 @@ public class SimpleTweaksGameTests implements FabricGameTest {
      *
      * <p>This is the vanilla gate the elemental riders have to work around (they save and restore
      * {@code timeUntilRegen} / {@code lastDamageTaken}). If a future change breaks that accounting in
-     * a way that also disables the gate, "combo" behaviour comes back — observed in real play as
-     * "元素伤害无视无敌帧".
+     * a way that also disables the gate, "combo" behaviour comes back 鈥?observed in real play as
+     * "鍏冪礌浼ゅ鏃犺鏃犳晫甯?.
      */
     @GameTest(templateName = FabricGameTest.EMPTY_STRUCTURE)
     public void damageLandsAndIFramesGateTheNextHit(TestContext context) {
@@ -294,6 +297,189 @@ public class SimpleTweaksGameTests implements FabricGameTest {
         context.assertFalse(secondHit, "a smaller hit inside the i-frame window must be discarded");
         context.assertEquals(afterFirst, afterSecond, "a discarded hit must not change health");
         context.complete();
+    }
+
+    /**
+     * A levelled mob's projectile must hit harder than the same projectile from an unlevelled mob.
+     *
+     * <p>Regression this guards: the level attack bonus is a {@code generic.attack_damage} attribute,
+     * and vanilla never reads that attribute for arrows, so levelled skeletons used to hit exactly as
+     * hard as level-1 ones. {@code MobAbilityDamage} is the seam that applies the same curve to
+     * projectile hits; this drives a real arrow damage source through {@code LivingHurtEvent}.
+     */
+    @GameTest(templateName = FabricGameTest.EMPTY_STRUCTURE)
+    public void mobProjectileDamageFollowsTheLevelCurve(TestContext context) {
+        ZombieEntity shooter = EntityType.ZOMBIE.create(context.getWorld());
+        PigEntity target = EntityType.PIG.create(context.getWorld());
+        context.assertTrue(shooter != null && target != null, "could not create the test entities");
+        if (shooter == null || target == null) {
+            context.complete();
+            return;
+        }
+
+        // Level 3 keeps the elemental conversion rider out of the picture (fraction is 0 below level 5).
+        ((LevelledMob) shooter).setMobLevel(3);
+        MobLevels.INSTANCE.apply(shooter, 3);
+        float multiplier = MobLevels.INSTANCE.attackMultiplier(3);
+
+        ArrowEntity arrow = new ArrowEntity(context.getWorld(), shooter, new ItemStack(Items.ARROW), null);
+        DamageSource source = context.getWorld().getDamageSources().mobProjectile(arrow, shooter);
+
+        target.setHealth(target.getMaxHealth());
+        float before = target.getHealth();
+        boolean hit = target.damage(source, 4.0f);
+        float after = target.getHealth();
+
+        float expected = 4.0f * multiplier;
+        LOGGER.info("[FST-GameTest] mob projectile: kind={}, attacker={}, level={}, multiplier={}, hit={}, "
+                        + "before={}, after={}, expectedDrop={}, actualDrop={}",
+                source.getName(), source.getAttacker(), ((LevelledMob) shooter).getMobLevel(),
+                multiplier, hit, before, after, expected, before - after);
+
+        context.assertTrue(hit, "the arrow hit must be applied");
+        context.assertTrue(
+                Math.abs((before - after) - expected) < 0.05f,
+                "levelled arrow must deal " + expected + ", dropped " + (before - after));
+        context.assertTrue(multiplier > 1.0f, "level 3 must imply a damage bonus");
+        context.complete();
+    }
+
+    /**
+     * Non-projectile ability damage (sonic boom, fireball, blast) scales by the level curve.
+     *
+     * <p>Regression this guards: only arrows were covered at first, so a levelled mob's explosion or
+     * sonic boom stayed at its base value.
+     */
+    @GameTest(templateName = FabricGameTest.EMPTY_STRUCTURE)
+    public void mobAbilityDamageFollowsTheLevelCurve(TestContext context) {
+        ZombieEntity shooter = EntityType.ZOMBIE.create(context.getWorld());
+        PigEntity target = EntityType.PIG.create(context.getWorld());
+        context.assertTrue(shooter != null && target != null, "could not create the test entities");
+        if (shooter == null || target == null) {
+            context.complete();
+            return;
+        }
+
+        ((LevelledMob) shooter).setMobLevel(3);
+        MobLevels.INSTANCE.apply(shooter, 3);
+        float multiplier = MobLevels.INSTANCE.attackMultiplier(3);
+
+        DamageSource source = context.getWorld().getDamageSources().sonicBoom(shooter);
+        target.setHealth(target.getMaxHealth());
+        float before = target.getHealth();
+        boolean hit = target.damage(source, 4.0f);
+        float after = target.getHealth();
+
+        float expected = 4.0f * multiplier;
+        LOGGER.info("[FST-GameTest] mob ability: kind={} multiplier={}, hit={}, before={}, after={}, "
+                        + "expectedDrop={}, actualDrop={}",
+                source.getName(), multiplier, hit, before, after, expected, before - after);
+
+        context.assertTrue(hit, "the sonic boom must be applied");
+        context.assertTrue(
+                Math.abs((before - after) - expected) < 0.05f,
+                "levelled sonic boom must deal " + expected + ", dropped " + (before - after));
+        context.complete();
+    }
+
+    /**
+     * Creeper blasts scale like any other ability hit, but their damage is capped and the radius is no
+     * longer touched at all.
+     *
+     * <p>Vanilla derives the blast radius and the blast damage from one power value, so the old
+     * power-scaling mixin enlarged the crater together with the damage. The cap keeps a level-30 creeper
+     * at {@code 2.5x} damage instead of {@code 3.9x}.
+     */
+    @GameTest(templateName = FabricGameTest.EMPTY_STRUCTURE)
+    public void creeperBlastDamageIsCappedWhileTheRadiusStaysVanilla(TestContext context) {
+        CreeperEntity creeper = EntityType.CREEPER.create(context.getWorld());
+        PigEntity target = EntityType.PIG.create(context.getWorld());
+        context.assertTrue(creeper != null && target != null, "could not create the test entities");
+        if (creeper == null || target == null) {
+            context.complete();
+            return;
+        }
+
+        ((LevelledMob) creeper).setMobLevel(30);
+        MobLevels.INSTANCE.apply(creeper, 30);
+
+        float multiplier = MobLevels.INSTANCE.explosionMultiplier(30);
+        DamageSource source = context.getWorld().getDamageSources().explosion(creeper, null);
+        target.setHealth(target.getMaxHealth());
+        float before = target.getHealth();
+        boolean hit = target.damage(source, 4.0f);
+        float after = target.getHealth();
+
+        float expected = 4.0f * multiplier;
+        LOGGER.info("[FST-GameTest] creeper blast: kind={} multiplier={} (uncapped would be {}), "
+                        + "hit={}, before={}, after={}, expectedDrop={}, actualDrop={}",
+                source.getName(), multiplier, MobLevels.INSTANCE.attackMultiplier(30), hit, before, after,
+                expected, before - after);
+
+        context.assertTrue(hit, "the blast must be applied");
+        context.assertTrue(multiplier == 2.5f, "level 30 blast must be capped at 2.5, got " + multiplier);
+        context.assertTrue(
+                Math.abs((before - after) - expected) < 0.05f,
+                "capped blast must deal " + expected + ", dropped " + (before - after));
+        context.complete();
+    }
+
+    /**
+     * Direct melee must not be scaled twice: the {@code generic.attack_damage} modifier already did it.
+     */
+    @GameTest(templateName = FabricGameTest.EMPTY_STRUCTURE)
+    public void mobMeleeDamageIsNotScaledByTheAbilitySeam(TestContext context) {
+        ZombieEntity attacker = EntityType.ZOMBIE.create(context.getWorld());
+        PigEntity target = EntityType.PIG.create(context.getWorld());
+        context.assertTrue(attacker != null && target != null, "could not create the test entities");
+        if (attacker == null || target == null) {
+            context.complete();
+            return;
+        }
+
+        ((LevelledMob) attacker).setMobLevel(3);
+        MobLevels.INSTANCE.apply(attacker, 3);
+
+        DamageSource source = context.getWorld().getDamageSources().mobAttack(attacker);
+        target.setHealth(target.getMaxHealth());
+        float before = target.getHealth();
+        boolean hit = target.damage(source, 4.0f);
+        float after = target.getHealth();
+
+        LOGGER.info("[FST-GameTest] mob melee: hit={}, before={}, after={}, actualDrop={}",
+                hit, before, after, before - after);
+
+        context.assertTrue(hit, "the melee hit must be applied");
+        context.assertTrue(
+                Math.abs((before - after) - 4.0f) < 0.05f,
+                "melee must stay at 4.0 (the attribute already scaled it), dropped " + (before - after));
+        context.complete();
+    }
+
+    /**
+     * A mob that has not been hurt for 10 s heals a percentage of its max health every second.
+     */
+    @GameTest(templateName = FabricGameTest.EMPTY_STRUCTURE)
+    public void outOfCombatRegenHealsDamagedMobs(TestContext context) {
+        PigEntity pig = context.spawnMob(EntityType.PIG, 1, 1, 1);
+        context.assertTrue(pig != null, "could not spawn the test mob");
+        if (pig == null) {
+            context.complete();
+            return;
+        }
+
+        pig.setHealth(2.0f);
+        // lastAttackedTime stays 0 (never hurt), so aging the entity puts it outside the combat window.
+        pig.age = 400;
+        float before = pig.getHealth();
+
+        context.runAtTick(context.getTick() + 60, () -> {
+            float after = pig.getHealth();
+            LOGGER.info("[FST-GameTest] out-of-combat regen: before={}, after={}, healed={}",
+                    before, after, after - before);
+            context.assertTrue(after > before, "out-of-combat regen must heal " + before + " -> " + after);
+            context.complete();
+        });
     }
 
     /**
@@ -325,7 +511,7 @@ public class SimpleTweaksGameTests implements FabricGameTest {
      *
      * <p>This asserts the **maths**, not the mixin: {@code DamageUtilMixin} calls these same functions,
      * and a future "small tweak" to the efficiency or the ceiling would silently re-tune every fight in
-     * the game. The points that matter are the two boundaries — vanilla parity at 20 and saturation —
+     * the game. The points that matter are the two boundaries 鈥?vanilla parity at 20 and saturation 鈥?
      * because those are the two claims the feature makes.
      */
 
@@ -333,9 +519,9 @@ public class SimpleTweaksGameTests implements FabricGameTest {
      * Smoke test for the damage window: a hit resolved through `LivingEntity#damage` must open the window,
      * read the main hand through the mixin and close again without throwing.
      *
-     * <p>⚠️ <b>It does not reproduce the `build=cleanup34` crash.</b> That recursion needs a
-     * <b>player</b>-attributed source (`PlayerEntity#getWeaponStack` → `getMainHandStack` → the mixin), and a
-     * game test has no player to attribute damage to — verified by disabling the re-entrancy guard and
+     * <p>鈿狅笍 <b>It does not reproduce the `build=cleanup34` crash.</b> That recursion needs a
+     * <b>player</b>-attributed source (`PlayerEntity#getWeaponStack` 鈫?`getMainHandStack` 鈫?the mixin), and a
+     * game test has no player to attribute damage to 鈥?verified by disabling the re-entrancy guard and
      * watching this test still pass. Closing that gap needs a fake `ServerPlayerEntity`; until then the guard
      * is covered by review, and this test only guards the window's open/close path on a mob.
      */
@@ -384,7 +570,7 @@ public class SimpleTweaksGameTests implements FabricGameTest {
      * <p>An enchantment whose {@code primary_items} / {@code supported_items} points at a tag that does
      * not exist is <b>inert and silent</b>: the tag resolves to an empty list, {@code isPrimaryItem}
      * answers {@code false} for every stack in the game, and the enchantment can never be put on
-     * anything — no error, no log, no crash. This is the {@code build=cleanup68} bug
+     * anything 鈥?no error, no log, no crash. This is the {@code build=cleanup68} bug
      * ({@code shield_breaker} declared {@code #minecraft:enchantable/axe}, and 1.21.1 has no such tag;
      * vanilla's is {@code #minecraft:axes} plus {@code #minecraft:enchantable/sharp_weapon}).
      *
@@ -407,7 +593,7 @@ public class SimpleTweaksGameTests implements FabricGameTest {
             var definition = entry.value().definition();
             // `supportedItems()` is a plain `RegistryEntryList` in 1.21.1; only `primaryItems()` is
             // wrapped in an `Optional` (absent = "fall back to supported_items").
-            // `-1` means "the JSON did not declare one", which is also unusable — the generator always
+            // `-1` means "the JSON did not declare one", which is also unusable 鈥?the generator always
             // emits both, so an absent one is a bug rather than a "no restriction" feature.
             int primary = definition.primaryItems().map(net.minecraft.registry.entry.RegistryEntryList::size).orElse(-1);
             int supported = definition.supportedItems().size();
@@ -439,7 +625,7 @@ public class SimpleTweaksGameTests implements FabricGameTest {
                 .isEnchantable();
 
         // `build=cleanup72` added three mod-owned item tags (hoe / pickaxe / shield). A missing or empty
-        // tag is silent — the enchantment simply never appears — so each new one is asserted by name.
+        // tag is silent 鈥?the enchantment simply never appears 鈥?so each new one is asserted by name.
         boolean bountifulOnHoe = accepts(registry, "bountiful", net.minecraft.item.Items.IRON_HOE);
         boolean gleanerOnPickaxe = accepts(registry, "gleaner", net.minecraft.item.Items.IRON_PICKAXE);
         boolean bashOnShield = accepts(registry, "shield_bash", net.minecraft.item.Items.SHIELD);
@@ -481,7 +667,7 @@ public class SimpleTweaksGameTests implements FabricGameTest {
      * Looks an enchantment up by its id path, e.g. {@code "gale_elytra"}.
      *
      * <p>Goes through {@link GeneratedEnchantments#getKEYS()} rather than a generated per-id property so
-     * this file does not have to know the Kotlin property names — and so a rename in KSP breaks the
+     * this file does not have to know the Kotlin property names 鈥?and so a rename in KSP breaks the
      * string check loudly instead of the Java getter at compile time.
      */
     private static net.minecraft.registry.entry.RegistryEntry.Reference<net.minecraft.enchantment.Enchantment>
@@ -505,17 +691,17 @@ public class SimpleTweaksGameTests implements FabricGameTest {
     }
 
     /**
-     * 剧变 (transformative) reaction damage must not depend on the target's max health.
+     * 鍓у彉 (transformative) reaction damage must not depend on the target's max health.
      *
-     * <p>The formula is {@code (4 + 0.55 × attacker XP level) × coefficient × mastery × resonance},
-     * i.e. it is driven by the **attacker's** progression — never by what it is hitting. That is easy to
+     * <p>The formula is {@code (4 + 0.55 脳 attacker XP level) 脳 coefficient 脳 mastery 脳 resonance},
+     * i.e. it is driven by the **attacker's** progression 鈥?never by what it is hitting. That is easy to
      * misread in play, because a mod that levels mobs raises max health and the reaction numbers at the
      * same time (the player's level usually grows alongside), so "the number got bigger on the big mob"
      * looks like a health term. This test pins the invariant: two zombies, 20 vs 200 max health, same
      * reaction, identical flat damage.
      *
      * <p>Uses {@code attacker = null} deliberately: then level 0 and mastery 0, so the expected value is
-     * exactly {@code 4 × 1.25 = 5.0} for {@code conduct} and nothing can hide behind a player's stats.
+     * exactly {@code 4 脳 1.25 = 5.0} for {@code conduct} and nothing can hide behind a player's stats.
      */
     @GameTest(templateName = FabricGameTest.EMPTY_STRUCTURE)
     public void transformativeReactionDamageIgnoresTargetMaxHealth(TestContext context) {
@@ -556,15 +742,15 @@ public class SimpleTweaksGameTests implements FabricGameTest {
     }
 
     /**
-     * The reaction scaling: 剧变 / 激化 read **gear power**, not the player's experience level.
+     * The reaction scaling: 鍓у彉 / 婵€鍖?read **gear power**, not the player's experience level.
      *
      * <p>The old driver was `experienceLevel`, a farmable currency: a mob farm took it to 100+, and one
-     * 感电 then hit for ~143 before mastery/resonance. Gear power (the same number the mob difficulty curve
-     * uses) cannot be farmed and is deliberately **uncapped** — the clamp was the guard against farming,
+     * 鎰熺數 then hit for ~143 before mastery/resonance. Gear power (the same number the mob difficulty curve
+     * uses) cannot be farmed and is deliberately **uncapped** 鈥?the clamp was the guard against farming,
      * not against gear.
      *
      * <p>The pure function is tested directly because a game test has no `PlayerEntity`; the numbers below
-     * are the documented band (`×5`: naked ≈ 0.5, iron ≈ 6.5, endgame ≈ 26.5).
+     * are the documented band (`脳5`: naked 鈮?0.5, iron 鈮?6.5, endgame 鈮?26.5).
      */
     @GameTest(templateName = FabricGameTest.EMPTY_STRUCTURE)
     public void reactionPowerScalesFromGearNotExperience(TestContext context) {
@@ -591,12 +777,12 @@ public class SimpleTweaksGameTests implements FabricGameTest {
     }
 
     /**
-     * 处决 (`execute`) must not turn an inflated health pool into free damage.
+     * 澶勫喅 (`execute`) must not turn an inflated health pool into free damage.
      *
      * <p>The formula reads the **target's** missing health, so a 1,000,000 HP target made one level-5
-     * swing add up to 100,000 — and because that number is added to `e.amount` before the crit / combo /
+     * swing add up to 100,000 鈥?and because that number is added to `e.amount` before the crit / combo /
      * true-damage multipliers, they multiplied the health pool too (the author measured 494,731 in one
-     * hit). The cap is `1.25 × hit` (RARE tier), which for vanilla mobs is never reached, so nothing
+     * hit). The cap is `1.25 脳 hit` (RARE tier), which for vanilla mobs is never reached, so nothing
      * changes there.
      */
     @GameTest(templateName = FabricGameTest.EMPTY_STRUCTURE)
@@ -638,10 +824,10 @@ public class SimpleTweaksGameTests implements FabricGameTest {
     }
 
     /**
-     * 吞噬's stacks must live in the item's `CUSTOM_DATA` and survive a component round-trip.
+     * 鍚炲櫖's stacks must live in the item's `CUSTOM_DATA` and survive a component round-trip.
      *
      * <p>`devour` is the only enchantment whose progression is stored on the stack (`build=cleanup77`).
-     * If the NBT key or the component handling were wrong, the bonus would silently stay at 0 forever —
+     * If the NBT key or the component handling were wrong, the bonus would silently stay at 0 forever 鈥?
      * and the tooltip line would stay hidden, so nothing would look broken. This test writes the same
      * component the handler writes and reads it back through the handler's own accessor.
      */
@@ -674,11 +860,11 @@ public class SimpleTweaksGameTests implements FabricGameTest {
     }
 
     /**
-     * 因果's level maths: `max_level = 16` means **four pieces at IV**, not one item at 16.
+     * 鍥犳灉's level maths: `max_level = 16` means **four pieces at IV**, not one item at 16.
      *
      * <p>The equipped level is the sum across the four armour slots, clamped to 16, and every formula
-     * uses `sum / 4`. So a perfect set (4 × 4) and a single forced-16 item both resolve to effective 4 —
-     * otherwise one `/fst enchant … karma 16 armor` would hand out three times the designed strength.
+     * uses `sum / 4`. So a perfect set (4 脳 4) and a single forced-16 item both resolve to effective 4 鈥?
+     * otherwise one `/fst enchant 鈥?karma 16 armor` would hand out three times the designed strength.
      */
     @GameTest(templateName = FabricGameTest.EMPTY_STRUCTURE)
     public void karmaLevelMapsAFullSetToTheDesignCeiling(TestContext context) {
@@ -706,10 +892,10 @@ public class SimpleTweaksGameTests implements FabricGameTest {
     }
 
     /**
-     * 万法归元's counter table: the element that answers each incoming element.
+     * 涓囨硶褰掑厓's counter table: the element that answers each incoming element.
      *
      * <p>0.5 units of the *countering* element are attached onto the attacker, vs the 1.0 unit an active
-     * hit applies. The table must stay derived from the 克制链 (water beats fire, fire beats frost, frost
+     * hit applies. The table must stay derived from the 鍏嬪埗閾?(water beats fire, fire beats frost, frost
      * beats water, fire burns nature, lightning conducts on water, light and dark annihilate); a counter
      * that does not actually react would make the whole mechanic invisible.
      */
@@ -753,7 +939,7 @@ public class SimpleTweaksGameTests implements FabricGameTest {
      *
      * <p>Removing an enum constant is a silent, wide-reaching change: ordinal-shifted NBT, a conversion
      * enchantment that no longer exists, a protected tag with a dangling member. This test pins the facts
-     * that code above it assumes — seven elements, a sentinel that really means "none", and exactly one
+     * that code above it assumes 鈥?seven elements, a sentinel that really means "none", and exactly one
      * `<element>_conversion` / `<element>_protection` pair generated per element (14, not the old 16).
      */
     @GameTest(templateName = FabricGameTest.EMPTY_STRUCTURE)
@@ -991,9 +1177,9 @@ public class SimpleTweaksGameTests implements FabricGameTest {
     }
 
     /**
-     * 共鸣核心's stack maths: `2 + level` stacks, `+4 %` per stack, `×2` at the cap.
+     * 鍏遍福鏍稿績's stack maths: `2 + level` stacks, `+4 %` per stack, `脳2` at the cap.
      *
-     * <p>Pure functions only — the amplification itself lives behind `ElementDamageSeam` and needs a
+     * <p>Pure functions only 鈥?the amplification itself lives behind `ElementDamageSeam` and needs a
      * player, which a game test has none of. What this pins is the part that would silently drift: the
      * cap scaling with level and the multiplier at the cap.
      */
@@ -1026,7 +1212,7 @@ public class SimpleTweaksGameTests implements FabricGameTest {
     /**
      * The moon and star blessings each answer to a fixed set of reaction keys.
      *
-     * <p>Those keys are strings: a typo (`"conducts"`) compiles, runs, and silently never fires — the
+     * <p>Those keys are strings: a typo (`"conducts"`) compiles, runs, and silently never fires 鈥?the
      * enchantment would look broken with no log line to show for it. This test resolves every key the two
      * handlers claim against the reaction table, and pins that the families stay disjoint (the moon owns
      * the water family, the star the frost one).
@@ -1143,7 +1329,7 @@ public class SimpleTweaksGameTests implements FabricGameTest {
      * for a slot it was not asked about.
      *
      * <p>This is the whole risk of {@code EnchantPresence}: it caches "what are this entity's enchantments"
-     * and every handler in the mod now trusts it. A stale snapshot would not crash — it would silently
+     * and every handler in the mod now trusts it. A stale snapshot would not crash 鈥?it would silently
      * answer with the gear the entity used to wear, which is exactly the class of bug that survives a
      * playtest. Three things are pinned here:
      *
@@ -1155,7 +1341,7 @@ public class SimpleTweaksGameTests implements FabricGameTest {
      *
      * <p>The last assertion documents the one blind spot on purpose: writing enchantments onto the
      * <em>already equipped</em> stack in place changes no stack identity, so the snapshot keeps the old
-     * answer until the writer calls {@code EnchantPresence.invalidate} — which is why
+     * answer until the writer calls {@code EnchantPresence.invalidate} 鈥?which is why
      * {@code /fst enchant}, the mob gear roll/strip and {@code void_protection} do exactly that.
      */
     @GameTest(templateName = FabricGameTest.EMPTY_STRUCTURE)
@@ -1250,7 +1436,7 @@ public class SimpleTweaksGameTests implements FabricGameTest {
         ShotWeapon.INSTANCE.record(arrow, bow);
         ItemStack fromArrow = ShotWeapon.INSTANCE.weaponFor(world.getDamageSources().arrow(arrow, zombie));
 
-        // 2. A thrown potion resolves to "no weapon" — empty, not the thrower's hand.
+        // 2. A thrown potion resolves to "no weapon" 鈥?empty, not the thrower's hand.
         PotionEntity potion = new PotionEntity(world, zombie);
         ItemStack fromPotion = ShotWeapon.INSTANCE.weaponFor(world.getDamageSources().indirectMagic(potion, zombie));
 
@@ -1279,7 +1465,7 @@ public class SimpleTweaksGameTests implements FabricGameTest {
 
     /**
      * `setOwner` runs **inside** `ProjectileEntity`'s constructor, so the first snapshot is a guess taken
-     * from the shooter's main hand. With the bow in the off hand that guess is the sword — and before
+     * from the shooter's main hand. With the bow in the off hand that guess is the sword 鈥?and before
      * `build=cleanup23` it stuck, so a plain bow fired the sword's enchantments. The constructor injection
      * records vanilla's own `weapon` argument authoritatively and replaces the guess; later non-authoritative
      * guesses must still not overwrite it.
@@ -1315,7 +1501,7 @@ public class SimpleTweaksGameTests implements FabricGameTest {
     /**
      * Why `arcane_echo`'s attribute modifiers are persistent: vanilla reads the `attributes` tag **before**
      * `Health` (`LivingEntity#readCustomDataFromNbt`), so a max-health bonus living only in a temporary
-     * modifier is not there yet when the saved health is applied — vanilla clamps the save down to the base
+     * modifier is not there yet when the saved health is applied 鈥?vanilla clamps the save down to the base
      * 20 on every re-join. This writes an entity to NBT and reads it back: the bonus must survive the round
      * trip, and the health written with it must come back too.
      */
@@ -1406,7 +1592,7 @@ public class SimpleTweaksGameTests implements FabricGameTest {
     }
 
     /**
-     * `arcane_echo`'s numbers, pinned: the bonus is `units × effective level`; only movement speed carries a
+     * `arcane_echo`'s numbers, pinned: the bonus is `units 脳 effective level`; only movement speed carries a
      * ceiling (it changes how the game feels), everything else grows (`build=cleanup21`).
      */
     @GameTest(templateName = FabricGameTest.EMPTY_STRUCTURE)
